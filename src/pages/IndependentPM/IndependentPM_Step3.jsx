@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { CustomDropdown } from '../../components/ui';
 
 if (typeof document !== 'undefined' && !document.getElementById('tabler-icons-cdn')) {
   const l = document.createElement('link');
@@ -32,37 +33,6 @@ const FL = { display:'block', fontFamily:F.body, fontSize:'10px', fontWeight:700
 const inputS = (error=false) => ({ width:'100%', height:'40px', boxSizing:'border-box', background:C.white, border:'1px solid '+(error?C.danger:C.borderMedium), borderRadius:'8px', padding:'0 12px', fontFamily:F.body, fontSize:'13px', color:C.textPrimary, outline:'none' });
 const hintS = (error=false) => ({ fontFamily:F.body, fontSize:'11px', color:error?C.danger:C.textTertiary, marginTop:'4px' });
 const dividerS = { borderTop:'1px solid '+C.border, margin:'20px 0' };
-
-// ─── Custom Dropdown ───────────────────────────────────────────────────────────
-function CustomDropdown({ options, value, onChange, error, placeholder }) {
-  const [open, setOpen] = useState(false);
-  const ref = useRef();
-  useEffect(() => {
-    const h = e => { if (ref.current && !ref.current.contains(e.target)) setOpen(false); };
-    document.addEventListener('mousedown', h);
-    return () => document.removeEventListener('mousedown', h);
-  }, []);
-  const selected = options.find(o => o.value === value);
-  return (
-    <div ref={ref} style={{ position:'relative', width:'100%' }}>
-      <div onClick={()=>setOpen(p=>!p)} style={{ width:'100%', height:'40px', boxSizing:'border-box', background:open||value?C.dropdownBg:C.white, border:'1px solid '+(error?C.danger:open?'#BFDBFE':C.borderMedium), borderRadius:open?'8px 8px 0 0':'8px', padding:'0 36px 0 12px', display:'flex', alignItems:'center', fontFamily:F.body, fontSize:'13px', color:value?C.textPrimary:C.textTertiary, cursor:'pointer', userSelect:'none', transition:'all 0.15s' }}>
-        <span style={{ flex:1 }}>{selected?selected.label:placeholder}</span>
-        <i className={'ti '+(open?'ti-chevron-up':'ti-chevron-down')} style={{ position:'absolute', right:'10px', fontSize:'14px', color:C.textSecondary }} />
-      </div>
-      {open && (
-        <div style={{ position:'absolute', top:'100%', left:0, right:0, zIndex:100, background:C.white, border:'1px solid #BFDBFE', borderTop:'none', borderRadius:'0 0 8px 8px', boxShadow:'0 4px 12px rgba(0,45,91,0.1)', overflow:'hidden', maxHeight:'220px', overflowY:'auto' }}>
-          {options.filter(o=>o.value!=='').map(o=>(
-            <div key={o.value} onClick={()=>{onChange(o.value);setOpen(false);}}
-              style={{ padding:'10px 12px', fontFamily:F.body, fontSize:'13px', color:o.value===value?C.primary:C.textPrimary, background:o.value===value?C.dropdownBg:C.white, cursor:'pointer', fontWeight:o.value===value?600:400 }}
-              onMouseEnter={e=>{ if(o.value!==value) e.currentTarget.style.background='#F0F5FF'; }}
-              onMouseLeave={e=>{ if(o.value!==value) e.currentTarget.style.background=C.white; }}
-            >{o.label}</div>
-          ))}
-        </div>
-      )}
-    </div>
-  );
-}
 
 // ─── Document upload zone ──────────────────────────────────────────────────────
 function DocUploadZone({ files, onAdd, onRemove }) {

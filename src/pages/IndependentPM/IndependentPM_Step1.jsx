@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { CustomDropdown } from '../../components/ui';
 
 // ─── Tabler icons ──────────────────────────────────────────────────────────────
 if (typeof document !== 'undefined' && !document.getElementById('tabler-icons-cdn')) {
@@ -127,85 +128,6 @@ function PhotoUpload({ preview, onChange }) {
   );
 }
 
-
-// ─── Custom Dropdown ───────────────────────────────────────────────────────────
-function CustomDropdown({ options, value, onChange, error, placeholder }) {
-  const [open, setOpen] = useState(false);
-  const ref = useRef();
-
-  // Close on outside click
-  useEffect(() => {
-    const handler = e => { if (ref.current && !ref.current.contains(e.target)) setOpen(false); };
-    document.addEventListener('mousedown', handler);
-    return () => document.removeEventListener('mousedown', handler);
-  }, []);
-
-  const selected = options.find(o => o.value === value);
-
-  return (
-    <div ref={ref} style={{ position: 'relative', width: '100%' }}>
-      {/* Trigger button */}
-      <div
-        onClick={() => setOpen(p => !p)}
-        style={{
-          width: '100%', height: '40px', boxSizing: 'border-box',
-          background: open ? '#E4ECFC' : value ? '#E4ECFC' : C.white,
-          border: '1px solid ' + (error ? C.danger : open ? '#BFDBFE' : C.borderMedium),
-          borderRadius: open ? '8px 8px 0 0' : '8px',
-          padding: '0 36px 0 12px',
-          display: 'flex', alignItems: 'center',
-          fontFamily: F.body, fontSize: '13px',
-          color: value ? C.textPrimary : C.textTertiary,
-          cursor: 'pointer', userSelect: 'none',
-          transition: 'all 0.15s',
-        }}
-      >
-        <span style={{ flex: 1 }}>{selected ? selected.label : placeholder}</span>
-        <i
-          className={'ti ' + (open ? 'ti-chevron-up' : 'ti-chevron-down')}
-          style={{
-            position: 'absolute', right: '10px',
-            fontSize: '14px', color: C.textSecondary,
-            transition: 'transform 0.15s',
-          }}
-        />
-      </div>
-
-      {/* Dropdown list */}
-      {open && (
-        <div style={{
-          position: 'absolute', top: '100%', left: 0, right: 0, zIndex: 100,
-          background: C.white,
-          border: '1px solid #BFDBFE',
-          borderTop: 'none',
-          borderRadius: '0 0 8px 8px',
-          boxShadow: '0 4px 12px rgba(0,45,91,0.1)',
-          overflow: 'hidden',
-        }}>
-          {options.filter(o => o.value !== '').map(o => (
-            <div
-              key={o.value}
-              onClick={() => { onChange(o.value); setOpen(false); }}
-              style={{
-                padding: '10px 12px',
-                fontFamily: F.body, fontSize: '13px',
-                color: o.value === value ? C.primary : C.textPrimary,
-                background: o.value === value ? '#E4ECFC' : C.white,
-                cursor: 'pointer',
-                fontWeight: o.value === value ? 600 : 400,
-                transition: 'background 0.1s',
-              }}
-              onMouseEnter={e => { if (o.value !== value) e.currentTarget.style.background = '#F0F5FF'; }}
-              onMouseLeave={e => { if (o.value !== value) e.currentTarget.style.background = C.white; }}
-            >
-              {o.label}
-            </div>
-          ))}
-        </div>
-      )}
-    </div>
-  );
-}
 
 // ─── Vertical Stepper (standalone middle column) ───────────────────────────────
 function VerticalStepper({ current }) {

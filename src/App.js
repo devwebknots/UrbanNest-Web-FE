@@ -14,6 +14,10 @@ import IndependentPM_Step1   from './pages/IndependentPM/IndependentPM_Step1';
 import IndependentPM_Step2   from './pages/IndependentPM/IndependentPM_Step2';
 import IndependentPM_Step3   from './pages/IndependentPM/IndependentPM_Step3';
 
+// PM Portal
+import PMDashboard from './pages/PMPortal/PMDashboard';
+import PMProfileView from './pages/PMPortal/PMProfileView';
+
 function AppRoutes() {
   const navigate = useNavigate();
   const location = useLocation();
@@ -45,6 +49,10 @@ function AppRoutes() {
       <Route path="/pm-registration"        element={<IndependentPM_Step1 />} />
       <Route path="/pm-registration/step-2" element={<IndependentPM_Step2 />} />
       <Route path="/pm-registration/step-3" element={<IndependentPM_Step3 />} />
+
+      {/* ── PM Portal ── */}
+      <Route path="/pm-portal/dashboard/my-dashboard" element={<PMDashboard />} />  
+      <Route path="/pm-portal/profile/persona"         element={<PMProfileView />} />
 
       {/* ── PMS onboarding (existing) ── */}
       <Route path="/onboarding" element={<PMSOnboardingStep1 />} />

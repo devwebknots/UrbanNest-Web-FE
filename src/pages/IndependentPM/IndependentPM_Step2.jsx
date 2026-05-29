@@ -1,5 +1,6 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { CustomDropdown } from '../../components/ui';
 
 if (typeof document !== 'undefined' && !document.getElementById('tabler-icons-cdn')) {
   const l = document.createElement('link');
@@ -40,41 +41,6 @@ const dividerS = { borderTop:'1px solid '+C.border, margin:'20px 0' };
 
 const US_STATES = ['Alabama','Alaska','Arizona','Arkansas','California','Colorado','Connecticut','Delaware','Florida','Georgia','Hawaii','Idaho','Illinois','Indiana','Iowa','Kansas','Kentucky','Louisiana','Maine','Maryland','Massachusetts','Michigan','Minnesota','Mississippi','Missouri','Montana','Nebraska','Nevada','New Hampshire','New Jersey','New Mexico','New York','North Carolina','North Dakota','Ohio','Oklahoma','Oregon','Pennsylvania','Rhode Island','South Carolina','South Dakota','Tennessee','Texas','Utah','Vermont','Virginia','Washington','West Virginia','Wisconsin','Wyoming'];
 
-// ─── Custom Dropdown ───────────────────────────────────────────────────────────
-function CustomDropdown({ options, value, onChange, error, placeholder, disabled }) {
-  const [open, setOpen] = useState(false);
-  const ref = useRef();
-  useEffect(() => {
-    const h = e => { if (ref.current && !ref.current.contains(e.target)) setOpen(false); };
-    document.addEventListener('mousedown', h);
-    return () => document.removeEventListener('mousedown', h);
-  }, []);
-  const selected = options.find(o => o.value === value);
-  if (disabled) return (
-    <div style={{ width:'100%', height:'40px', boxSizing:'border-box', background:C.neutral, border:'1px solid '+C.border, borderRadius:'8px', padding:'0 12px', display:'flex', alignItems:'center', fontFamily:F.body, fontSize:'13px', color:C.textTertiary }}>
-      {selected ? selected.label : placeholder}
-    </div>
-  );
-  return (
-    <div ref={ref} style={{ position:'relative', width:'100%' }}>
-      <div onClick={() => setOpen(p=>!p)} style={{ width:'100%', height:'40px', boxSizing:'border-box', background:open||value?C.dropdownBg:C.white, border:'1px solid '+(error?C.danger:open?'#BFDBFE':C.borderMedium), borderRadius:open?'8px 8px 0 0':'8px', padding:'0 36px 0 12px', display:'flex', alignItems:'center', fontFamily:F.body, fontSize:'13px', color:value?C.textPrimary:C.textTertiary, cursor:'pointer', userSelect:'none', transition:'all 0.15s' }}>
-        <span style={{ flex:1 }}>{selected ? selected.label : placeholder}</span>
-        <i className={'ti '+(open?'ti-chevron-up':'ti-chevron-down')} style={{ position:'absolute', right:'10px', fontSize:'14px', color:C.textSecondary }} />
-      </div>
-      {open && (
-        <div style={{ position:'absolute', top:'100%', left:0, right:0, zIndex:100, background:C.white, border:'1px solid #BFDBFE', borderTop:'none', borderRadius:'0 0 8px 8px', boxShadow:'0 4px 12px rgba(0,45,91,0.1)', overflow:'hidden', maxHeight:'220px', overflowY:'auto' }}>
-          {options.filter(o=>o.value!=='').map(o => (
-            <div key={o.value} onClick={() => { onChange(o.value); setOpen(false); }}
-              style={{ padding:'10px 12px', fontFamily:F.body, fontSize:'13px', color:o.value===value?C.primary:C.textPrimary, background:o.value===value?C.dropdownBg:C.white, cursor:'pointer', fontWeight:o.value===value?600:400 }}
-              onMouseEnter={e=>{ if(o.value!==value) e.currentTarget.style.background='#F0F5FF'; }}
-              onMouseLeave={e=>{ if(o.value!==value) e.currentTarget.style.background=C.white; }}
-            >{o.label}</div>
-          ))}
-        </div>
-      )}
-    </div>
-  );
-}
 
 // ─── City tag input ───────────────────────────────────────────────────────────
 function CityTagInput({ tags, onAdd, onRemove, error }) {
@@ -98,11 +64,12 @@ function CityTagInput({ tags, onAdd, onRemove, error }) {
 }
 
 // ─── File attach ──────────────────────────────────────────────────────────────
-function FileAttach({ label, onChange, fileName }) {
+// CHANGE 1: Added disabled prop
+function FileAttach({ label, onChange, fileName, disabled }) {
   const ref = useRef();
   return (
-    <div onClick={() => ref.current?.click()} style={{ height:'40px', background:C.white, border:'1px solid '+C.borderMedium, borderRadius:'8px', display:'flex', alignItems:'center', justifyContent:'space-between', padding:'0 12px', cursor:'pointer', fontFamily:F.body, fontSize:'13px', color:fileName?C.textPrimary:C.textTertiary, boxSizing:'border-box' }}>
-      <input ref={ref} type="file" style={{ display:'none' }} onChange={onChange} accept=".pdf,.jpg,.png" />
+    <div onClick={() => !disabled && ref.current?.click()} style={{ height:'40px', background:disabled?C.neutral:C.white, border:'1px solid '+(disabled?C.border:C.borderMedium), borderRadius:'8px', display:'flex', alignItems:'center', justifyContent:'space-between', padding:'0 12px', cursor:disabled?'not-allowed':'pointer', fontFamily:F.body, fontSize:'13px', color:fileName?C.textPrimary:C.textTertiary, boxSizing:'border-box' }}>
+      <input ref={ref} type="file" style={{ display:'none' }} onChange={onChange} accept=".pdf,.jpg,.png" disabled={disabled} />
       <span>{fileName||label}</span>
       <i className="ti ti-paperclip" style={{ fontSize:'15px', color:C.textTertiary }} />
     </div>
@@ -187,9 +154,10 @@ export default function IndependentPM_Step2() {
   const [userName,     setUserName]     = useState('');
   const [userRole,     setUserRole]     = useState('');
   const [state,        setState]        = useState('');
-  const [cities,       setCities]       = useState(['Austin','Round Rock']);
+  const [cities,       setCities]       = useState([]);
   const [licenseNum,   setLicenseNum]   = useState('');
-  const [issuingState, setIssuingState] = useState('Texas');
+  // CHANGE 2: Fixed hardcoded 'Texas' → ''
+  const [issuingState, setIssuingState] = useState('');
   const [expiryDate,   setExpiryDate]   = useState('');
   const [licenseFile,  setLicenseFile]  = useState(null);
   const [brokerageName,setBrokerageName]= useState('');
@@ -222,31 +190,36 @@ export default function IndependentPM_Step2() {
   const addCity = c => { if (!cities.includes(c)) setCities(p=>[...p,c]); };
   const removeCity = c => setCities(p=>p.filter(x=>x!==c));
 
+  // CHANGE 3: licenseRequired drives field protection
+  const licenseRequired = licenseNum.trim().length > 0;
+
+  // CHANGE 4: Updated validate — license fields conditional + clear errors on submit
   const validate = () => {
     const e = {};
     if (!state) e.state = 'Required';
     if (!cities.length) e.cities = 'Add at least one city';
+    if (licenseRequired && !issuingState) e.issuingState = 'Required when license number is provided';
+    if (licenseRequired && !expiryDate)   e.expiryDate   = 'Required when license number is provided';
+    if (licenseRequired && !licenseFile)  e.licenseFile  = 'Required when license number is provided';
     return e;
   };
 
   const handleContinue = async () => {
+    // CHANGE 5: Clear errors before validation
+    setErrors({});
     const e = validate();
     if (Object.keys(e).length) { setErrors(e); return; }
     setSaving(true);
 
     try {
       const token = localStorage.getItem('access_token');
-
-      // type="date" already returns YYYY-MM-DD — use directly
       const formattedExpiry = expiryDate || null;
 
-      // Use FormData only if there is a file, else use JSON
       let res;
       if (licenseFile) {
         const formData = new FormData();
         formData.append('country',          'US');
         formData.append('state',            state);
-        // Send cities as JSON string — backend Step2Serializer uses ListField
         formData.append('cities',           JSON.stringify(cities));
         formData.append('license_number',   licenseNum);
         formData.append('issuing_state',    issuingState);
@@ -260,7 +233,6 @@ export default function IndependentPM_Step2() {
           body:    formData,
         });
       } else {
-        // JSON body — cleaner, no multipart needed
         const body = {
           country:          'US',
           state:            state,
@@ -273,23 +245,18 @@ export default function IndependentPM_Step2() {
         if (formattedExpiry) body.expiry_date = formattedExpiry;
         res = await fetch('http://localhost:8001/api/pm/register/step-2/', {
           method:  'PATCH',
-          headers: {
-            Authorization:  'Bearer ' + token,
-            'Content-Type': 'application/json',
-          },
+          headers: { Authorization: 'Bearer ' + token, 'Content-Type': 'application/json' },
           body: JSON.stringify(body),
         });
       }
 
       const data = await res.json();
-
       if (!res.ok) {
         const msg = data.detail || data.non_field_errors?.[0] || 'Could not save. Please try again.';
         setErrors(p => ({ ...p, api: msg }));
         setSaving(false);
         return;
       }
-
       navigate('/pm-registration/step-3');
 
     } catch (err) {
@@ -298,8 +265,8 @@ export default function IndependentPM_Step2() {
     }
   };
 
-  const STATE_OPTIONS = [{ value:'', label:'Select state…' }, ...US_STATES.map(s=>({ value:s, label:s }))];
-  const ISSUING_OPTIONS = US_STATES.map(s=>({ value:s, label:s }));
+  const STATE_OPTIONS   = [{ value:'', label:'Select state…' }, ...US_STATES.map(s=>({ value:s, label:s }))];
+  const ISSUING_OPTIONS = [{ value:'', label:'Select state…' }, ...US_STATES.map(s=>({ value:s, label:s }))];
 
   return (
     <>
@@ -334,11 +301,8 @@ export default function IndependentPM_Step2() {
 
           {/* Body row */}
           <div style={{ flex:1, display:'flex', minHeight:0, overflow:'hidden' }}>
-
-            {/* Vertical stepper — Step 2 active */}
             <VerticalStepper current={2} />
 
-            {/* Form scroll col */}
             <div className="pm-form-scroll" style={{ flex:1, overflowY:'auto', padding:'clamp(16px,2vw,24px) clamp(20px,3vw,48px) clamp(20px,2.5vw,36px)', minWidth:0 }}>
               <div style={{ background:C.white, border:'1px solid '+C.border, borderRadius:'12px', padding:'clamp(20px,2.5vw,32px) clamp(20px,3vw,40px)', maxWidth:'780px', width:'100%', animation:'fadein 0.3s ease both' }}>
 
@@ -381,38 +345,68 @@ export default function IndependentPM_Step2() {
                 <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:'16px', marginBottom:'16px' }}>
                   <div>
                     <span style={FL}>License Number</span>
-                    <input style={inputS()} placeholder="e.g. PM-12345" value={licenseNum} onChange={e=>setLicenseNum(e.target.value)} />
+                    {/* CHANGE 6: Clear dependent fields when license # is cleared */}
+                    <input style={inputS()} placeholder="e.g. PM-12345" value={licenseNum}
+                      onChange={e => {
+                        const val = e.target.value;
+                        setLicenseNum(val);
+                        if (!val.trim()) {
+                          setIssuingState('');
+                          setExpiryDate('');
+                          setLicenseFile(null);
+                        }
+                      }}
+                    />
                   </div>
                   <div>
-                    <span style={FL}>Issuing State</span>
-                    <CustomDropdown options={ISSUING_OPTIONS} value={issuingState} placeholder="Select state…" onChange={v=>setIssuingState(v)} />
+                    {/* CHANGE 7: Issuing State disabled when no license # */}
+                    <span style={FL}>Issuing State{licenseRequired ? ' *' : ''}</span>
+                    <CustomDropdown
+                      options={ISSUING_OPTIONS}
+                      value={issuingState}
+                      placeholder="Select state…"
+                      disabled={!licenseRequired}
+                      error={!!errors.issuingState}
+                      onChange={v=>{setIssuingState(v);setErrors(p=>({...p,issuingState:''}));}}
+                    />
+                    {errors.issuingState && <p style={hintS(true)}>{errors.issuingState}</p>}
                   </div>
                 </div>
                 <div style={{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:'16px', marginBottom:'16px' }}>
                   <div>
-                    <span style={FL}>License Expiry Date</span>
+                    {/* CHANGE 8: Expiry Date disabled when no license # */}
+                    <span style={FL}>License Expiry Date{licenseRequired ? ' *' : ''}</span>
                     <div style={{ position:'relative' }}>
                       <input
                         type="date"
                         min={new Date().toISOString().split('T')[0]}
+                        readOnly={!licenseRequired}
                         style={{
-                          ...inputS(),
+                          ...inputS(!licenseRequired, !!errors.expiryDate),
                           paddingRight:'36px',
                           color: expiryDate ? C.textPrimary : C.textTertiary,
-                          cursor:'pointer',
-                          // Hide native calendar icon — we show our own
+                          cursor: licenseRequired ? 'pointer' : 'not-allowed',
                           colorScheme:'light',
                         }}
                         value={expiryDate}
-                        onChange={e => setExpiryDate(e.target.value)}
+                        onChange={e => { setExpiryDate(e.target.value); setErrors(p=>({...p,expiryDate:''})); }}
                       />
                       <i className="ti ti-calendar" style={{ position:'absolute', right:'11px', top:'50%', transform:'translateY(-50%)', fontSize:'14px', color:C.textTertiary, pointerEvents:'none' }} />
                     </div>
-                    <p style={hintS()}>License must not be expired</p>
+                    {errors.expiryDate
+                      ? <p style={hintS(true)}>{errors.expiryDate}</p>
+                      : <p style={hintS()}>License must not be expired</p>}
                   </div>
                   <div>
-                    <span style={FL}>License Document (Optional)</span>
-                    <FileAttach label="Upload file…" fileName={licenseFile?.name} onChange={e=>setLicenseFile(e.target.files[0])} />
+                    {/* CHANGE 9: License Document disabled when no license # */}
+                    <span style={FL}>License Document{licenseRequired ? ' *' : ' (Optional)'}</span>
+                    <FileAttach
+                      label="Upload file…"
+                      fileName={licenseFile?.name}
+                      disabled={!licenseRequired}
+                      onChange={e=>{setLicenseFile(e.target.files[0]);setErrors(p=>({...p,licenseFile:''}));}}
+                    />
+                    {errors.licenseFile && <p style={hintS(true)}>{errors.licenseFile}</p>}
                   </div>
                 </div>
                 <div style={{ display:'flex', alignItems:'flex-start', gap:'10px', background:C.infoBg, border:'1px solid '+C.infoBorder, borderRadius:'8px', padding:'11px 14px' }}>
