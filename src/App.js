@@ -19,28 +19,31 @@ import PMWelcomePage        from './pages/PMPortal/Dashboard/PMWelcomePage';
 import PMProfileView        from './pages/PMPortal/Profile/PMProfileView';
 
 // UN Admin Portal
-import UNAdminDashboard     from './pages/UNAdminPortal/Dashboard/UNAdminDashboard';
+import UNAdminShell          from './pages/UNAdminPortal/UNAdminShell';
+import UNAdminDashboard      from './pages/UNAdminPortal/Dashboard/UNAdminDashboard';
+import UNAdminServiceCatalog from './pages/UNAdminPortal/Services/Catalog/UNAdminServiceCatalog';
+import UNAdminPlanCatalog    from './pages/UNAdminPortal/Plans/UNAdminPlanCatalog';
 
 // PMS Onboarding (existing — pending refactor)
 import PMSOnboardingStep1   from './PMS_Onboarding_Step1';
 
 function AppRoutes() {
-  const navigate  = useNavigate();
-  const location  = useLocation();
+  const navigate = useNavigate();
+  const location = useLocation();
 
   return (
     <Routes>
 
       {/* ── Auth ──────────────────────────────────────────────────────────── */}
-      <Route path="/"            element={<LoginModal />} />
-      <Route path="/login"       element={<LoginPage />} />
-      <Route path="/signup"      element={
+      <Route path="/"           element={<LoginModal />} />
+      <Route path="/login"      element={<LoginPage />} />
+      <Route path="/signup"     element={
         <SignUpPage
           onNavigateToLogin={() => navigate('/login')}
           onNavigateToOTP={(data) => navigate('/verify-otp', { state: data })}
         />
       } />
-      <Route path="/verify-otp"  element={
+      <Route path="/verify-otp" element={
         <OTPVerificationPage
           email={location.state?.email}
           phone={location.state?.phone}
@@ -61,7 +64,21 @@ function AppRoutes() {
       <Route path="/pm-portal/profile/persona"        element={<PMProfileView />} />
 
       {/* ── UN Admin Portal ───────────────────────────────────────────────── */}
-      <Route path="/admin-portal/dashboard"           element={<UNAdminDashboard />} />
+      <Route path="/admin-portal/dashboard" element={
+        <UNAdminShell activeId="dashboard" title="Dashboard">
+          <UNAdminDashboard />
+        </UNAdminShell>
+      } />
+      <Route path="/admin-portal/services/catalog" element={
+        <UNAdminShell activeId="services-catalog" title="Service Catalog">
+          <UNAdminServiceCatalog />
+        </UNAdminShell>
+      } />
+      <Route path="/admin-portal/config/plans" element={
+        <UNAdminShell activeId="config-plans" title="Plan Catalog">
+          <UNAdminPlanCatalog />
+        </UNAdminShell>
+      } />
 
       {/* ── PMS Onboarding (existing — pending refactor) ──────────────────── */}
       <Route path="/onboarding" element={<PMSOnboardingStep1 />} />
