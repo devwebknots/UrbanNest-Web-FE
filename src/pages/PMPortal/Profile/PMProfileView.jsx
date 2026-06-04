@@ -12,8 +12,8 @@
 
 import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { CustomDropdown } from '../../components/ui';
-import NavB from '../../components/layout/NavB';
+import { CustomDropdown } from '../../../components/ui';
+import NavB from '../../../components/layout/NavB';
 
 // ─── Tabler Icons CDN ──────────────────────────────────────────────────────────
 if (typeof document !== 'undefined' && !document.getElementById('tabler-icons-cdn')) {

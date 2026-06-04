@@ -20,6 +20,11 @@ function getAuthHeaders() {
   return { Authorization: `Bearer ${token}` };
 }
 
+async function apiGetPlan(id) {
+  const res = await fetch(`${PLANS_URL}${id}/`, { headers: getAuthHeaders() });
+  if (!res.ok) throw new Error('Failed to load plan');
+  return res.json();
+}
 async function apiGetPlans() {
   const res = await fetch(PLANS_URL, { headers: getAuthHeaders() });
   if (!res.ok) throw new Error('Failed to load plans');
@@ -68,6 +73,44 @@ async function apiGetHistory(id) {
   if (!res.ok) throw new Error('Failed to load history');
   const data = await res.json();
   return Array.isArray(data) ? data : data.history || data.results || [];
+}
+
+async function apiGetPlanServices(planId) {
+  const res = await fetch(`${PLANS_URL}${planId}/services/`, { headers: getAuthHeaders() });
+  if (!res.ok) throw new Error('Failed to load services');
+  const data = await res.json();
+  return data.services || [];
+}
+async function apiGetAvailableServices(planId) {
+  const res = await fetch(`${PLANS_URL}${planId}/available-services/`, { headers: getAuthHeaders() });
+  if (!res.ok) throw new Error('Failed to load available services');
+  const data = await res.json();
+  return Array.isArray(data) ? data : [];
+}
+async function apiAssignService(planId, payload) {
+  const res = await fetch(`${PLANS_URL}${planId}/services/`, {
+    method: 'POST',
+    headers: { ...getAuthHeaders(), 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  });
+  if (!res.ok) { const err = await res.json(); throw new Error(err.error || JSON.stringify(err)); }
+  return res.json();
+}
+async function apiUpdateServiceAssignment(planId, serviceId, payload) {
+  const res = await fetch(`${PLANS_URL}${planId}/services/${serviceId}/`, {
+    method: 'PATCH',
+    headers: { ...getAuthHeaders(), 'Content-Type': 'application/json' },
+    body: JSON.stringify(payload),
+  });
+  if (!res.ok) { const err = await res.json(); throw new Error(err.error || JSON.stringify(err)); }
+  return res.json();
+}
+async function apiRemoveService(planId, serviceId) {
+  const res = await fetch(`${PLANS_URL}${planId}/services/${serviceId}/`, {
+    method: 'DELETE',
+    headers: getAuthHeaders(),
+  });
+  if (!res.ok) throw new Error('Failed to remove service');
 }
 
 // ─── CONSTANTS ─────────────────────────────────────────────────────────────────
@@ -578,9 +621,26 @@ function PlanCard({ plan, onViewDetails }) {
               </div>
           }
         </div>
-        <p style={{fontFamily:F.body, fontSize:12, color:C.textSecondary, margin:'0 0 14px', lineHeight:1.5, flex:1, display:'-webkit-box', WebkitLineClamp:2, WebkitBoxOrient:'vertical', overflow:'hidden'}}>
+        <p style={{fontFamily:F.body, fontSize:12, color:C.textSecondary, margin:'0 0 10px', lineHeight:1.5, display:'-webkit-box', WebkitLineClamp:2, WebkitBoxOrient:'vertical', overflow:'hidden'}}>
           {plan.short_description || '—'}
         </p>
+        {/* Services summary on card */}
+        {((plan.included_services||[]).length > 0 || (plan.addon_services||[]).length > 0) && (
+          <div style={{marginBottom:12}}>
+            {(plan.included_services||[]).length > 0 && (
+              <div style={{display:'flex', alignItems:'center', gap:5, marginBottom:3}}>
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17l-5-5" stroke={C.green} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                <span style={{fontFamily:F.body, fontSize:10, color:C.green, fontWeight:600}}>{(plan.included_services||[]).length} service{(plan.included_services||[]).length !== 1 ? 's' : ''} included</span>
+              </div>
+            )}
+            {(plan.addon_services||[]).length > 0 && (
+              <div style={{display:'flex', alignItems:'center', gap:5}}>
+                <svg width="11" height="11" viewBox="0 0 24 24" fill="none"><path d="M12 5v14M5 12h14" stroke={C.textTertiary} strokeWidth="2.5" strokeLinecap="round"/></svg>
+                <span style={{fontFamily:F.body, fontSize:10, color:C.textTertiary, fontWeight:600}}>{(plan.addon_services||[]).length} add-on{(plan.addon_services||[]).length !== 1 ? 's' : ''} available</span>
+              </div>
+            )}
+          </div>
+        )}
         <button onClick={() => onViewDetails(plan)}
           style={{width:'100%', padding:'9px', border:`1px solid ${hover ? C.primary : C.borderMedium}`, borderRadius:8, background: hover ? C.neutral : 'transparent', fontFamily:F.body, fontSize:11, fontWeight:700, color: hover ? C.primary : C.textPrimary, textTransform:'uppercase', letterSpacing:'0.08em', cursor:'pointer', transition:'all 0.15s'}}>
           View Details
@@ -651,6 +711,43 @@ function PlanDetailPanel({ plan, onClose, onEdit, onDelete, onShowHistory }) {
             )}
             <div><p style={dl}>Unit Range</p><span style={dv}>{fmtUnitRange(plan)}</span></div>
             <div><p style={dl}>Receivers</p><span style={dv}>{receiverLabels || '—'}</span></div>
+
+            {/* Included Services */}
+            {(plan.included_services||[]).length > 0 && (
+              <div style={{borderTop:`1px solid ${C.border}`, paddingTop:16}}>
+                <p style={dl}>Included Services</p>
+                <div style={{display:'flex', flexDirection:'column', gap:6}}>
+                  {(plan.included_services||[]).map(s => (
+                    <div key={s.id} style={{display:'flex', alignItems:'center', gap:6}}>
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17l-5-5" stroke={C.green} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                      <span style={{fontFamily:F.body, fontSize:12, color:C.textPrimary}}>{s.service_name}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Add-on Services */}
+            {(plan.addon_services||[]).length > 0 && (
+              <div style={{borderTop:`1px solid ${C.border}`, paddingTop:16}}>
+                <p style={dl}>Add-on Services</p>
+                <div style={{display:'flex', flexDirection:'column', gap:6}}>
+                  {(plan.addon_services||[]).map(s => (
+                    <div key={s.id} style={{display:'flex', alignItems:'center', justifyContent:'space-between', gap:6}}>
+                      <div style={{display:'flex', alignItems:'center', gap:6}}>
+                        <svg width="11" height="11" viewBox="0 0 24 24" fill="none"><path d="M12 5v14M5 12h14" stroke={C.textTertiary} strokeWidth="2.5" strokeLinecap="round"/></svg>
+                        <span style={{fontFamily:F.body, fontSize:12, color:C.textPrimary}}>{s.service_name}</span>
+                      </div>
+                      {s.effective_price && (
+                        <span style={{fontFamily:F.body, fontSize:11, color:C.textSecondary, whiteSpace:'nowrap'}}>
+                          ${s.effective_price}/{s.service_price_unit?.split('_')[1]?.toLowerCase()||'mo'}
+                        </span>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
             <div><p style={dl}>Display Order</p><span style={dv}>{plan.display_order ?? '—'}</span></div>
             {plan.scheduled_status && (
               <div style={{borderTop:`1px solid ${C.border}`, paddingTop:16}}>
@@ -761,7 +858,7 @@ function HistoryPopup({ plan, onClose }) {
 }
 
 // ─── Plan Form Modal (Add / Edit) ──────────────────────────────────────────────
-function PlanFormModal({ mode, plan, references, onClose, onSaved }) {
+function PlanFormModal({ mode, plan, references, onClose, onSaved, onAddedToList }) {
   const isEdit = mode === 'edit';
   const emptyForm = {
     name:'', short_description:'', long_description:'',
@@ -796,6 +893,68 @@ function PlanFormModal({ mode, plan, references, onClose, onSaved }) {
     reader.onload = (e) => setImagePreview(e.target.result);
     reader.readAsDataURL(file);
     setImageFile(file);
+  };
+
+  // ── Service assignment state (Option B — active after plan saved) ──
+  const [savedPlanId, setSavedPlanId]           = useState(plan?.id || null);
+  const [planSaved, setPlanSaved]               = useState(isEdit);
+  const [assignedServices, setAssignedServices] = useState(
+    isEdit ? [...(plan?.included_services||[]), ...(plan?.addon_services||[])] : []
+  );
+  const [availableServices, setAvailableServices] = useState([]);
+  const [svcLoading, setSvcLoading]             = useState(false);
+  const [svcDropOpen, setSvcDropOpen]           = useState(false);
+  const [svcInclType, setSvcInclType]           = useState('INCLUDED');
+  const [svcAddonPrice, setSvcAddonPrice]       = useState('');
+  const [svcAddonCurrency, setSvcAddonCurrency] = useState('USD');
+  const [svcError, setSvcError]                 = useState('');
+  const [selectedAvailSvc, setSelectedAvailSvc] = useState(null);
+
+  // Load available services when plan is saved
+  useEffect(() => {
+    if (!savedPlanId) return;
+    setSvcLoading(true);
+    apiGetAvailableServices(savedPlanId)
+      .then(data => setAvailableServices(data))
+      .catch(() => {})
+      .finally(() => setSvcLoading(false));
+  }, [savedPlanId, assignedServices.length]);
+
+  const handleAssignService = async () => {
+    if (!selectedAvailSvc) { setSvcError('Select a service first'); return; }
+    setSvcError('');
+    try {
+      const payload = {
+        service_id:     selectedAvailSvc.id,
+        inclusion_type: svcInclType,
+      };
+      if (svcInclType === 'ADDON' && svcAddonPrice) {
+        payload.addon_price          = parseFloat(svcAddonPrice);
+        payload.addon_price_currency = svcAddonCurrency;
+      }
+      const created = await apiAssignService(savedPlanId, payload);
+      setAssignedServices(prev => [...prev, created]);
+      setSelectedAvailSvc(null);
+      setSvcAddonPrice('');
+      setSvcInclType('INCLUDED');
+    } catch (err) {
+      setSvcError(err.message || 'Could not assign service');
+    }
+  };
+
+  const handleToggleInclusion = async (svc) => {
+    const newType = svc.inclusion_type === 'INCLUDED' ? 'ADDON' : 'INCLUDED';
+    try {
+      const updated = await apiUpdateServiceAssignment(savedPlanId, svc.service_id, { inclusion_type: newType });
+      setAssignedServices(prev => prev.map(s => s.id === updated.id ? updated : s));
+    } catch {}
+  };
+
+  const handleRemoveService = async (svc) => {
+    try {
+      await apiRemoveService(savedPlanId, svc.service_id);
+      setAssignedServices(prev => prev.filter(s => s.service_id !== svc.service_id));
+    } catch {}
   };
 
   const set = (k, v) => setForm(f => ({ ...f, [k]: v }));
@@ -890,7 +1049,25 @@ function PlanFormModal({ mode, plan, references, onClose, onSaved }) {
     setSaving(true); setApiError('');
     try {
       const saved = isEdit ? await apiUpdatePlan(plan.id, buildFormData()) : await apiCreatePlan(buildFormData());
-      onSaved(saved, isEdit);
+      if (isEdit) {
+        // Refetch to get latest data including service assignments
+        try {
+          const latest = await apiGetPlan(saved.id);
+          onSaved(latest, true);
+        } catch {
+          onSaved(saved, true);
+        }
+      } else {
+        // Option B: plan created — stay open, activate service assignment section
+        // onAddedToList adds plan to catalog grid WITHOUT closing this modal
+        setSavedPlanId(saved.id);
+        setPlanSaved(true);
+        onAddedToList(saved);  // notify parent to add card to list, keep modal open
+        setTimeout(() => {
+          const el = document.getElementById('service-assign-section');
+          if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }, 200);
+      }
     } catch (err) { setApiError(err.message||'Something went wrong.'); }
     finally { setSaving(false); }
   };
@@ -1118,14 +1295,160 @@ function PlanFormModal({ mode, plan, references, onClose, onSaved }) {
               ))}
             </div>
           </div>
+
+          {/* ── Assign Services Section ────────────────────────────────────────
+              Add mode: appears after plan is saved (Option B)
+              Edit mode: always visible, pre-populated                          */}
+          <div id="service-assign-section" style={{borderTop:`1px solid ${C.border}`, paddingTop:16, marginBottom:8}}>
+            <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:4}}>
+              <p style={sec}>Assign Services</p>
+              {!planSaved && !isEdit && (
+                <span style={{fontFamily:F.body, fontSize:11, color:C.amberText, background:C.amberBg, border:`1px solid ${C.amberBorder}`, borderRadius:6, padding:'2px 8px'}}>
+                  Save plan first to assign services
+                </span>
+              )}
+            </div>
+            <p style={{fontFamily:F.body, fontSize:12, color:C.textSecondary, margin:'0 0 14px', lineHeight:1.5}}>
+              Define which services are bundled with this plan and which are available as paid add-ons.
+            </p>
+
+            {/* Currently assigned services */}
+            {assignedServices.length > 0 && (
+              <div style={{marginBottom:14}}>
+                {assignedServices.map(svc => (
+                  <div key={svc.id || svc.service_id} style={{display:'flex', alignItems:'center', gap:10, padding:'8px 12px', background:C.neutral, borderRadius:8, marginBottom:6}}>
+                    {/* Inclusion badge */}
+                    <span style={{
+                      background: svc.inclusion_type === 'INCLUDED' ? '#DCFCE7' : '#EFF6FF',
+                      color:      svc.inclusion_type === 'INCLUDED' ? '#15803D' : C.primary,
+                      border:     `1px solid ${svc.inclusion_type === 'INCLUDED' ? '#BBF7D0' : '#BFDBFE'}`,
+                      borderRadius:20, padding:'2px 8px', fontFamily:F.body, fontSize:10, fontWeight:700,
+                      whiteSpace:'nowrap', flexShrink:0,
+                    }}>
+                      {svc.inclusion_type === 'INCLUDED' ? '✓ Included' : '+ Add-on'}
+                    </span>
+                    {/* Service name */}
+                    <span style={{fontFamily:F.body, fontSize:13, color:C.textPrimary, flex:1}}>{svc.service_name}</span>
+                    {/* Addon price if applicable */}
+                    {svc.inclusion_type === 'ADDON' && svc.effective_price && (
+                      <span style={{fontFamily:F.body, fontSize:12, color:C.textSecondary, flexShrink:0}}>
+                        ${svc.effective_price}
+                      </span>
+                    )}
+                    {/* Toggle inclusion type */}
+                    {planSaved && (
+                      <button
+                        onClick={() => handleToggleInclusion(svc)}
+                        title={`Switch to ${svc.inclusion_type === 'INCLUDED' ? 'Add-on' : 'Included'}`}
+                        style={{background:'none', border:`1px solid ${C.borderMedium}`, borderRadius:6, padding:'3px 8px', cursor:'pointer', fontFamily:F.body, fontSize:10, color:C.textSecondary, flexShrink:0}}>
+                        Switch
+                      </button>
+                    )}
+                    {/* Remove */}
+                    {planSaved && (
+                      <button onClick={() => handleRemoveService(svc)} style={{background:'none', border:'none', cursor:'pointer', display:'flex', alignItems:'center', flexShrink:0}}>
+                        <SvgX size={14} color={C.danger}/>
+                      </button>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+
+            {/* Add new service — only when plan is saved */}
+            {planSaved ? (
+              <div style={{border:`1px solid ${C.border}`, borderRadius:10, padding:14}}>
+                <p style={{fontFamily:F.body, fontSize:11, fontWeight:700, color:C.textSecondary, textTransform:'uppercase', letterSpacing:'0.06em', margin:'0 0 10px'}}>Add a Service</p>
+                <div style={{display:'grid', gridTemplateColumns:'1fr auto', gap:10, marginBottom:10}}>
+                  {/* Service selector */}
+                  <div style={{position:'relative'}}>
+                    <div onClick={() => setSvcDropOpen(o => !o)}
+                      style={{background:C.white, border:`1px solid ${svcDropOpen ? '#BFDBFE' : C.border}`, borderRadius:8, padding:'9px 12px', display:'flex', justifyContent:'space-between', alignItems:'center', cursor:'pointer', fontSize:13, fontFamily:F.body, color: selectedAvailSvc ? C.textPrimary : C.textTertiary}}>
+                      {selectedAvailSvc ? selectedAvailSvc.name : svcLoading ? 'Loading…' : availableServices.length === 0 ? 'All services assigned' : 'Select service…'}
+                      <SvgChevron direction={svcDropOpen ? 'up' : 'down'}/>
+                    </div>
+                    {svcDropOpen && availableServices.length > 0 && (
+                      <div style={{position:'absolute', top:'100%', left:0, right:0, zIndex:60, background:C.white, border:`1px solid ${C.border}`, borderRadius:8, boxShadow:'0 8px 24px rgba(0,0,0,0.12)', marginTop:4, maxHeight:180, overflowY:'auto'}}>
+                        {availableServices.map(svc => (
+                          <div key={svc.id} onClick={() => { setSelectedAvailSvc(svc); setSvcDropOpen(false); }}
+                            style={{padding:'10px 14px', cursor:'pointer', fontFamily:F.body, fontSize:13, color:C.textPrimary, background:'transparent'}}
+                            onMouseEnter={e => e.currentTarget.style.background = '#F8FAFC'}
+                            onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
+                            <div style={{fontWeight:600}}>{svc.name}</div>
+                            <div style={{fontSize:11, color:C.textTertiary}}>${svc.price} / {svc.price_unit?.split('_')[1]?.toLowerCase()||'unit'}</div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                  {/* Inclusion type toggle */}
+                  <div style={{display:'flex', gap:4}}>
+                    {['INCLUDED','ADDON'].map(t => (
+                      <button key={t} onClick={() => setSvcInclType(t)}
+                        style={{padding:'8px 12px', border:`1px solid ${svcInclType===t ? C.primary : C.border}`, borderRadius:8, background:svcInclType===t ? C.primary : C.white, color:svcInclType===t ? C.white : C.textSecondary, fontFamily:F.body, fontSize:11, fontWeight:700, cursor:'pointer', whiteSpace:'nowrap'}}>
+                        {t === 'INCLUDED' ? '✓ Included' : '+ Add-on'}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+                {/* Addon price override — only when ADDON selected */}
+                {svcInclType === 'ADDON' && (
+                  <div style={{display:'grid', gridTemplateColumns:'1fr 1fr', gap:10, marginBottom:10}}>
+                    <div>
+                      <label style={lbl}>Add-on Price Override <span style={{fontWeight:400, textTransform:'none', letterSpacing:0}}>(optional)</span></label>
+                      <input type="number" step="0.01" min="0" placeholder="Leave blank to use service price" style={inp()} value={svcAddonPrice} onChange={e => setSvcAddonPrice(e.target.value)}/>
+                    </div>
+                    <div>
+                      <label style={lbl}>Currency</label>
+                      <FormDropdown value={svcAddonCurrency} onChange={setSvcAddonCurrency} options={Object.keys({'USD':'','INR':'','EUR':'','GBP':''}).map(k=>({value:k,label:k}))} open={false} setOpen={()=>{}}/>
+                    </div>
+                  </div>
+                )}
+                {svcError && <p style={{fontFamily:F.body, fontSize:12, color:C.danger, marginBottom:8}}>{svcError}</p>}
+                <button onClick={handleAssignService} disabled={!selectedAvailSvc}
+                  style={{background: selectedAvailSvc ? C.primary : C.borderMedium, color:C.white, border:'none', borderRadius:8, fontFamily:F.body, fontSize:12, fontWeight:700, padding:'9px 18px', cursor: selectedAvailSvc ? 'pointer' : 'not-allowed'}}>
+                  Assign Service
+                </button>
+              </div>
+            ) : !isEdit && (
+              <div style={{background:C.neutral, borderRadius:8, padding:'12px 16px', textAlign:'center'}}>
+                <p style={{fontFamily:F.body, fontSize:12, color:C.textSecondary, margin:0}}>Save the plan above to start assigning services</p>
+              </div>
+            )}
+          </div>
         </div>
 
-        <div style={{padding:'14px 28px', borderTop:`1px solid ${C.border}`, display:'flex', justifyContent:'flex-end', gap:12, flexShrink:0, background:C.white}}>
-          <button onClick={onClose} style={{background:'none', border:'none', cursor:'pointer', fontFamily:F.body, fontSize:12, fontWeight:700, color:C.textSecondary, textTransform:'uppercase', letterSpacing:'0.06em', padding:'10px 16px'}}>Cancel</button>
-          <button onClick={handleSave} disabled={saving} style={{background: saving ? C.borderMedium : C.primary, color:C.white, border:'none', borderRadius:8, fontFamily:F.body, fontSize:12, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.06em', padding:'10px 24px', cursor: saving ? 'not-allowed' : 'pointer', display:'flex', alignItems:'center', gap:8}}>
-            {saving && <Spinner size={14}/>}
-            {isEdit ? 'Save Changes' : 'Save Plan'}
-          </button>
+        <div style={{padding:'14px 28px', borderTop:`1px solid ${C.border}`, display:'flex', justifyContent:'space-between', alignItems:'center', gap:12, flexShrink:0, background:C.white}}>
+          <div>
+            {planSaved && !isEdit && (
+              <span style={{fontFamily:F.body, fontSize:12, color:C.green, display:'flex', alignItems:'center', gap:6}}>
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M20 6L9 17l-5-5" stroke={C.green} strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                Plan saved — assign services above then close
+              </span>
+            )}
+          </div>
+          <div style={{display:'flex', gap:12}}>
+            <button
+              onClick={async () => {
+                if (planSaved && !isEdit && savedPlanId) {
+                  // Refetch plan with latest services before closing
+                  try {
+                    const latest = await apiGetPlan(savedPlanId);
+                    onAddedToList(latest, true); // true = replace existing entry
+                  } catch {}
+                }
+                onClose();
+              }}
+              style={{background:'none', border:'none', cursor:'pointer', fontFamily:F.body, fontSize:12, fontWeight:700, color:C.textSecondary, textTransform:'uppercase', letterSpacing:'0.06em', padding:'10px 16px'}}>
+              {planSaved && !isEdit ? 'Done' : 'Cancel'}
+            </button>
+            {(!planSaved || isEdit) && (
+              <button onClick={handleSave} disabled={saving} style={{background: saving ? C.borderMedium : C.primary, color:C.white, border:'none', borderRadius:8, fontFamily:F.body, fontSize:12, fontWeight:700, textTransform:'uppercase', letterSpacing:'0.06em', padding:'10px 24px', cursor: saving ? 'not-allowed' : 'pointer', display:'flex', alignItems:'center', gap:8}}>
+                {saving && <Spinner size={14}/>}
+                {isEdit ? 'Save Changes' : 'Save Plan'}
+              </button>
+            )}
+          </div>
         </div>
       </div>
       <style>{`@keyframes spin{from{transform:rotate(0deg)}to{transform:rotate(360deg)}}`}</style>
@@ -1261,8 +1584,20 @@ export default function UNAdminPlanCatalog() {
   const handleShowHistory = (plan) => { setHistoryPlan(plan); };
   const handleCloseHistory = () => { setHistoryPlan(null); };
   const handleSaved  = (saved, wasEdit) => {
-    setPlans(prev => wasEdit ? prev.map(p => p.id===saved.id ? saved : p) : [saved, ...prev]);
+    // Edit mode: update plan in list + close modal
+    setPlans(prev => prev.map(p => p.id===saved.id ? saved : p));
     setModal(null); setEditTarget(null);
+  };
+
+  // Called by Add modal:
+  // - replace=false (default): plan just created, add to top of list
+  // - replace=true: Done clicked, replace with latest data including services
+  const handleAddedToList = (saved, replace = false) => {
+    if (replace) {
+      setPlans(prev => prev.map(p => p.id === saved.id ? saved : p));
+    } else {
+      setPlans(prev => [saved, ...prev]);
+    }
   };
   const handleDeleted = (id) => {
     setPlans(prev => prev.filter(p => p.id!==id));
@@ -1439,6 +1774,7 @@ export default function UNAdminPlanCatalog() {
           references={references}
           onClose={() => { setModal(null); setEditTarget(null); }}
           onSaved={handleSaved}
+          onAddedToList={handleAddedToList}
         />
       )}
 
