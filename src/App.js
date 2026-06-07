@@ -71,9 +71,13 @@ function AppRoutes() {
       <Route path="/pm-registration/step-3" element={<IndependentPM_Step3 />} />
 
       {/* ── PM Portal ─────────────────────────────────────────────────────── */}
-      <Route path="/pm-portal/dashboard/welcome"      element={<PMWelcomePage />} />
-      <Route path="/pm-portal/dashboard/my-dashboard" element={<PMDashboard />} />
+      <Route path="/pm-portal/dashboard/welcome"      element={<PMWelcomePage persona="INDEPENDENT_PM" />} />
+      <Route path="/pm-portal/dashboard/my-dashboard" element={<PMDashboard   persona="INDEPENDENT_PM" />} />
       <Route path="/pm-portal/profile/persona"        element={<PMProfileView />} />
+
+      {/* ── Org PMS Portal — reuses PM dashboard (NavD when Org-specific nav needed) ── */}
+      <Route path="/org-portal/dashboard/welcome"      element={<PMWelcomePage persona="ORGANIZATIONAL_PM" />} />
+      <Route path="/org-portal/dashboard/my-dashboard" element={<PMDashboard persona="ORGANIZATIONAL_PM" />} />
 
       {/* ── UN Admin Portal ───────────────────────────────────────────────── */}
       <Route path="/admin-portal/dashboard" element={

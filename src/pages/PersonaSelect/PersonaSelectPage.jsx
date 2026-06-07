@@ -246,7 +246,7 @@ export default function PersonaSelectPage() {
           navigate('/org-onboarding/pending');
           break;
         case 'APPROVED':
-          navigate('/coming-soon'); // → /org-portal/dashboard when built (Session 17+)
+          navigate('/org-portal/dashboard/welcome');
           break;
         case 'SUSPENDED':
           navigate('/coming-soon');

@@ -1,9 +1,9 @@
 /**
  * PMDashboard.jsx — PM Portal: My Dashboard
  * Route:   /pm-portal/dashboard/my-dashboard
+ *          /org-portal/dashboard/my-dashboard  ← Session 18: reused for Org PMS
  * Session: 7 — May 30, 2026
- * Changes: Added useLocation + SampleBanner for ?mode=sample support.
- *          Everything else identical to the file on disk.
+ * Updated: Session 18 — accept persona prop for role label
  */
 
 import React, { useState, useEffect, useRef } from 'react';
@@ -71,9 +71,6 @@ const MOCK_PROPERTIES = [
 ];
 const DATE_TABS = ['Today','This week','This month','Custom range'];
 
-// ─── Sample Banner ← NEW Session 7 ────────────────────────────────────────────
-// Shown above page title when ?mode=sample is in the URL.
-// Matches Figma: pale green bg, info icon, bold title, muted subtitle.
 function SampleBanner({ onBack }) {
   return (
     <div style={{
@@ -554,8 +551,8 @@ function CustomReportsModal({open,onClose}){
   );
 }
 
-// ─── Main ─────────────────────────────────────────────────────────────────────
-export default function PMDashboard() {
+// ─── Main — PATCHED Session 18 ────────────────────────────────────────────────
+export default function PMDashboard({ persona }) {
   const navigate = useNavigate();
   const location = useLocation();
   const isSampleMode = new URLSearchParams(location.search).get('mode') === 'sample';
@@ -599,7 +596,14 @@ export default function PMDashboard() {
       .then(data=>{
         if (data) {
           setUserName(((data.first_name||'')+' '+(data.last_name||'')).trim()||data.email||'User');
-          setUserRole(data.role||data.active_persona||'Independent PM');
+          const roleMap = {
+            INDEPENDENT_PM:    'Independent PM',
+            ORGANIZATIONAL_PM: 'Org PMS Admin',
+            LANDLORD:          'Landlord',
+            RENTER:            'Renter',
+          };
+          // persona prop from route takes priority over API active_persona
+          setUserRole(roleMap[persona || data.active_persona] || data.role || 'Independent PM');
         } else {
           const d=decodeJWT(token);
           if(d)setUserName(((d.first_name||'')+' '+(d.last_name||'')).trim()||d.email||'User');
@@ -609,7 +613,7 @@ export default function PMDashboard() {
         const d=decodeJWT(localStorage.getItem('access_token'));
         if(d)setUserName(d.email||'User');
       });
-  }, [navigate]);
+  }, [navigate, persona]);
 
   return (
     <>
@@ -633,18 +637,19 @@ export default function PMDashboard() {
           <div style={{flex:1,display:'flex',minHeight:0,overflow:'hidden'}}>
             <div className="dash-scroll" style={{flex:1,overflowY:'auto',padding:'clamp(16px,2vw,24px) clamp(20px,3vw,36px) 32px',minWidth:0}}>
 
-              {/* ── Sample banner — shown when ?mode=sample ── */}
               {isSampleMode && (
-                <SampleBanner onBack={() => navigate('/pm-portal/dashboard/welcome')} />
+                <SampleBanner onBack={() => navigate(
+                  location.pathname.startsWith('/org-portal')
+                    ? '/org-portal/dashboard/welcome'
+                    : '/pm-portal/dashboard/welcome'
+                )} />
               )}
 
-              {/* Page title */}
               <div style={{marginBottom:'16px',animation:'fadein 0.3s ease both'}}>
                 <h1 style={{margin:'0 0 4px',fontFamily:F.headline,fontSize:'clamp(22px,2.2vw,28px)',fontWeight:700,color:C.textPrimary}}>My Dashboard</h1>
                 <p style={{margin:0,fontFamily:F.headline,fontSize:'clamp(13px,1.2vw,15px)',fontWeight:600,color:C.green}}>Portfolio Overview</p>
               </div>
 
-              {/* Control bar */}
               <div style={{background:C.white,border:'1px solid '+C.border,borderRadius:'12px',marginBottom:'16px',overflow:'hidden',animation:'fadein 0.3s ease 0.05s both'}}>
                 <div style={{display:'flex',alignItems:'center',gap:'8px',padding:'clamp(10px,1.5vw,14px) clamp(14px,2vw,18px) 10px',flexWrap:'wrap'}}>
                   <span style={{fontFamily:F.body,fontSize:'10px',fontWeight:700,color:C.textTertiary,textTransform:'uppercase',letterSpacing:'0.08em'}}>Viewing</span>
@@ -672,13 +677,11 @@ export default function PMDashboard() {
                 </div>
               </div>
 
-              {/* Context badge */}
               <div style={{display:'inline-flex',alignItems:'center',gap:'5px',background:C.contextBg,border:'1px solid '+C.contextBorder,borderRadius:'20px',padding:'4px 12px',marginBottom:'14px',animation:'fadein 0.3s ease 0.08s both'}}>
                 <i className="ti ti-map-pin" style={{fontSize:'11px',color:C.primary}}/>
                 <span style={{fontFamily:F.body,fontSize:'11px',fontWeight:600,color:C.primary}}>{contextText}</span>
               </div>
 
-              {/* Metric cards */}
               <div style={{display:'flex',gap:'clamp(8px,1.2vw,12px)',marginBottom:'clamp(10px,1.5vw,14px)',animation:'fadein 0.3s ease 0.1s both'}}>
                 <MetricCard icon="ti-building"   accentColor={C.primary} label="Total Units"      value={MOCK_METRICS.totalUnits}                       sub={`Across ${MOCK_METRICS.totalProperties} properties`}/>
                 <MetricCard icon="ti-home-check" accentColor={C.green}   label="Occupancy Rate"   value={`${MOCK_METRICS.occupancyRate}%`}              sub="vs last month" trend={MOCK_METRICS.occupancyTrend}/>
@@ -686,14 +689,12 @@ export default function PMDashboard() {
                 <MetricCard icon="ti-tool"       accentColor={C.danger}  label="Open Maintenance" value={MOCK_METRICS.openMaintenance}                   sub={`${MOCK_METRICS.overdueCount} overdue`} subDanger/>
               </div>
 
-              {/* Row 1 */}
               <div style={{display:'grid',gridTemplateColumns:'minmax(0,1fr) minmax(0,0.75fr) minmax(0,1fr)',gap:'clamp(8px,1.2vw,12px)',marginBottom:'clamp(8px,1.2vw,12px)',animation:'fadein 0.3s ease 0.14s both'}}>
                 {moduleToggles['Leasing Activity']  && <LeasingActivityCard/>}
                 {moduleToggles['Property Snapshot'] && <PropertySnapshotCard/>}
                 {moduleToggles['Financial Pulse']   && <FinancialPulseCard/>}
               </div>
 
-              {/* Row 2 */}
               <div style={{display:'grid',gridTemplateColumns:'minmax(0,1fr) minmax(0,1fr)',gap:'clamp(8px,1.2vw,12px)',animation:'fadein 0.3s ease 0.18s both'}}>
                 {moduleToggles['Recent Activity']     && <RecentActivityCard/>}
                 {moduleToggles['Recent Transactions'] && <RecentTransactionsCard/>}
