@@ -155,6 +155,7 @@ const NAV_SECTIONS = [
     children: [
       { id: 'config-screening',  label: 'Screening Config', route: '/admin-portal/config/screening' },
       { id: 'config-plans',      label: 'Plan & Billing',   route: '/admin-portal/config/plans' },
+      { id: 'config-onboard-docs', label: 'Onboard Docs', route: '/admin-portal/config/onboard-docs' },
       { id: 'config-emails',     label: 'Email Templates',  route: '/admin-portal/config/emails' },
       { id: 'config-reference',  label: 'Reference Data',   route: '/admin-portal/config/reference' },
       { id: 'config-rules',      label: 'Business Rules',   route: '/admin-portal/config/rules' },

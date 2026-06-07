@@ -23,9 +23,21 @@ import UNAdminShell          from './pages/UNAdminPortal/UNAdminShell';
 import UNAdminDashboard      from './pages/UNAdminPortal/Dashboard/UNAdminDashboard';
 import UNAdminServiceCatalog from './pages/UNAdminPortal/Services/Catalog/UNAdminServiceCatalog';
 import UNAdminPlanCatalog    from './pages/UNAdminPortal/Plans/UNAdminPlanCatalog';
+import UNAdminOnboardDocs    from './pages/UNAdminPortal/OnboardDocs/UNAdminOnboardDocs';
+import UNAdminApplicationReview from './pages/UNAdminPortal/Applications/UNAdminApplicationReview';
 
 // PMS Onboarding (existing — pending refactor)
 import PMSOnboardingStep1   from './PMS_Onboarding_Step1';
+
+// Org PMS Onboarding
+import OrgPMS_Step1_CompanyPortfolio   from './pages/OrgPMSOnboarding/OrgPMS_Step1_CompanyPortfolio';
+import OrgPMS_Step2_DocumentUpload     from './pages/OrgPMSOnboarding/OrgPMS_Step2_DocumentUpload';
+import OrgPMS_Step3_IntegrationMethod  from './pages/OrgPMSOnboarding/OrgPMS_Step3_IntegrationMethod';
+import OrgPMS_Step4_PlanSelection      from './pages/OrgPMSOnboarding/OrgPMS_Step4_PlanSelection';
+import OrgPMS_Step5_AdditionalServices from './pages/OrgPMSOnboarding/OrgPMS_Step5_AdditionalServices';
+import OrgPMS_Step6_Payment            from './pages/OrgPMSOnboarding/OrgPMS_Step6_Payment';
+import OrgPMS_Step7_ReviewSubmit       from './pages/OrgPMSOnboarding/OrgPMS_Step7_ReviewSubmit';
+import OrgPMS_PendingStatus            from './pages/OrgPMSOnboarding/OrgPMS_PendingStatus';
 
 function AppRoutes() {
   const navigate = useNavigate();
@@ -79,12 +91,33 @@ function AppRoutes() {
           <UNAdminPlanCatalog />
         </UNAdminShell>
       } />
+      <Route path="/admin-portal/config/onboard-docs" element={
+        <UNAdminShell activeId="config-onboard-docs" title="Onboarding Documents">
+          <UNAdminOnboardDocs />
+        </UNAdminShell>
+      } />
+      <Route path="/admin-portal/operations/applications" element={
+        <UNAdminShell activeId="operations-applications" title="Application Review">
+          <UNAdminApplicationReview />
+        </UNAdminShell>
+      } />
 
       {/* ── PMS Onboarding (existing — pending refactor) ──────────────────── */}
       <Route path="/onboarding" element={<PMSOnboardingStep1 />} />
 
       {/* ── Placeholders ──────────────────────────────────────────────────── */}
       <Route path="/coming-soon" element={<ComingSoonPage />} />
+
+      {/* ── Organizational PMS onboarding wizard ──────────────────────────── */}
+      <Route path="/org-onboarding/step-1"   element={<OrgPMS_Step1_CompanyPortfolio />} />
+      <Route path="/org-onboarding/step-2"   element={<OrgPMS_Step2_DocumentUpload />} />
+      <Route path="/org-onboarding/step-3"   element={<OrgPMS_Step3_IntegrationMethod />} />
+      <Route path="/org-onboarding/step-4"   element={<OrgPMS_Step4_PlanSelection />} />
+      <Route path="/org-onboarding/step-5"   element={<OrgPMS_Step5_AdditionalServices />} />
+      <Route path="/org-onboarding/step-6"   element={<OrgPMS_Step6_Payment />} />
+      <Route path="/org-onboarding/step-7"   element={<OrgPMS_Step7_ReviewSubmit />} />
+      {/* Standalone pending/waiting screen — shown when user clicks PENDING persona card */}
+      <Route path="/org-onboarding/pending"  element={<OrgPMS_PendingStatus />} />
 
     </Routes>
   );

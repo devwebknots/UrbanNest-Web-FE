@@ -13,7 +13,6 @@ import { F } from '../../constants/fonts';
 
 const API_BASE = 'http://localhost:8001';
 
-// ── Static data ───────────────────────────────
 const ESTATE_IMAGE = 'https://images.unsplash.com/photo-1613977257363-707ba9348227?w=900&q=80&fit=crop';
 
 const TESTIMONIALS = [
@@ -34,7 +33,6 @@ const TESTIMONIALS = [
   },
 ];
 
-// ── Icons ─────────────────────────────────────
 function LockIcon() {
   return (
     <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
@@ -64,14 +62,13 @@ function AppleLogo() {
   );
 }
 
-// ── Page component ────────────────────────────
 export default function LoginPage() {
   const navigate = useNavigate();
 
-  const [clientId,  setClientId]  = useState('');
-  const [password,  setPassword]  = useState('');
-  const [loading,   setLoading]   = useState(false);
-  const [error,     setError]     = useState('');
+  const [clientId, setClientId] = useState('');
+  const [password, setPassword] = useState('');
+  const [loading,  setLoading]  = useState(false);
+  const [error,    setError]    = useState('');
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -93,7 +90,6 @@ export default function LoginPage() {
       const data = await res.json();
 
       if (!res.ok) {
-        // Surface backend error message
         const msg =
           data.detail ||
           data.non_field_errors?.[0] ||
@@ -105,7 +101,12 @@ export default function LoginPage() {
         return;
       }
 
-      // ── AUTH_WEB_001: Save JWT tokens to localStorage ──
+      // ── SECURITY: clear ALL previous user data before saving new tokens ──
+      // Prevents previous user's org_pms_* wizard state, tokens, and any other
+      // localStorage keys from bleeding into the newly logged-in user's session.
+      localStorage.clear();
+
+      // ── AUTH_WEB_001: Save JWT tokens ──
       // Backend returns tokens nested: { tokens: { access, refresh }, user: {...} }
       const tokens = data.tokens || data;
       if (tokens.access)  localStorage.setItem('access_token',  tokens.access);
@@ -141,11 +142,8 @@ export default function LoginPage() {
 
         {/* ── LEFT — hero image + testimonial ── */}
         <div style={{ position: 'relative', width: '52%', minHeight: '100%', overflow: 'hidden', flexShrink: 0 }}>
-          <img
-            src={ESTATE_IMAGE}
-            alt="Luxury estate"
-            style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center' }}
-          />
+          <img src={ESTATE_IMAGE} alt="Luxury estate"
+            style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center' }} />
           <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to bottom, rgba(0,20,50,0.42) 0%, rgba(0,20,50,0.12) 40%, rgba(0,20,50,0.62) 100%)' }} />
           <div style={{ position: 'absolute', top: 52, left: 52, fontFamily: F.body, fontWeight: 700, fontSize: 15, letterSpacing: '0.38em', color: '#fff', textTransform: 'uppercase' }}>
             URBANNEST
@@ -160,27 +158,18 @@ export default function LoginPage() {
           padding: '56px 76px 36px 68px', background: '#fff',
         }}>
           <div style={{ maxWidth: 440 }}>
-            <h1 style={{
-              fontFamily: F.headline, fontWeight: 700, fontSize: 40,
-              color: C.primary, lineHeight: 1.2, marginBottom: 10,
-            }}>
+            <h1 style={{ fontFamily: F.headline, fontWeight: 700, fontSize: 40, color: C.primary, lineHeight: 1.2, marginBottom: 10 }}>
               Secure Access
             </h1>
-            <p style={{
-              fontFamily: F.body, fontWeight: 400, fontSize: 13,
-              color: C.textSecondary, marginBottom: 34, lineHeight: 1.5,
-            }}>
+            <p style={{ fontFamily: F.body, fontWeight: 400, fontSize: 13, color: C.textSecondary, marginBottom: 34, lineHeight: 1.5 }}>
               Enter your credentials to access your UrbanNest account.
             </p>
 
-            {/* ── Error banner ── */}
             {error && (
               <div style={{
-                background: '#FEF2F2', border: '1px solid #FECACA',
-                borderRadius: 8, padding: '10px 14px', marginBottom: 18,
-                display: 'flex', alignItems: 'center', gap: 8,
-                fontFamily: F.body, fontSize: 12, color: '#DC2626',
-                animation: 'un-fadein 0.2s ease',
+                background: '#FEF2F2', border: '1px solid #FECACA', borderRadius: 8,
+                padding: '10px 14px', marginBottom: 18, display: 'flex', alignItems: 'center',
+                gap: 8, fontFamily: F.body, fontSize: 12, color: '#DC2626', animation: 'un-fadein 0.2s ease',
               }}>
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#DC2626" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
@@ -190,31 +179,12 @@ export default function LoginPage() {
             )}
 
             <form onSubmit={handleSubmit}>
-              {/* ── No persona dropdown — AUTH_REG_005 / Option B ── */}
-              <Input
-                label="Email or Phone"
-                type="text"
-                placeholder="Enter your email or phone number"
-                value={clientId}
-                onChange={e => { setClientId(e.target.value); setError(''); }}
-                autoComplete="username"
-              />
-              <Input
-                label="Password"
-                type="password"
-                placeholder="• • • • • • • •"
-                value={password}
-                onChange={e => { setPassword(e.target.value); setError(''); }}
-                autoComplete="current-password"
-                rightAction={{ label: 'Forgot password?', onClick: () => {} }}
-                style={{ marginBottom: 22 }}
-              />
-              <Button
-                type="submit"
-                variant="primary"
-                loading={loading}
-                disabled={loading}
-              >
+              <Input label="Email or Phone" type="text" placeholder="Enter your email or phone number"
+                value={clientId} onChange={e => { setClientId(e.target.value); setError(''); }} autoComplete="username" />
+              <Input label="Password" type="password" placeholder="• • • • • • • •"
+                value={password} onChange={e => { setPassword(e.target.value); setError(''); }} autoComplete="current-password"
+                rightAction={{ label: 'Forgot password?', onClick: () => {} }} style={{ marginBottom: 22 }} />
+              <Button type="submit" variant="primary" loading={loading} disabled={loading}>
                 <LockIcon /> Secure Sign In
               </Button>
             </form>
@@ -222,29 +192,21 @@ export default function LoginPage() {
             <Divider label="OR CONTINUE WITH" />
 
             <div style={{ display: 'flex', gap: 14, marginBottom: 26 }}>
-              <Button variant="social" fullWidth={false} style={{ flex: 1 }}>
-                <GoogleLogo /> Google
-              </Button>
-              <Button variant="social" fullWidth={false} style={{ flex: 1 }}>
-                <AppleLogo /> Apple
-              </Button>
+              <Button variant="social" fullWidth={false} style={{ flex: 1 }}><GoogleLogo /> Google</Button>
+              <Button variant="social" fullWidth={false} style={{ flex: 1 }}><AppleLogo /> Apple</Button>
             </div>
 
             <div style={{ textAlign: 'center' }}>
               <span style={{ fontFamily: F.body, fontSize: 13, fontWeight: 400, color: C.textSecondary }}>
                 New here?{' '}
-                <a
-                  href="/signup"
-                  className="un-reglink"
-                  style={{ color: C.textPrimary, fontWeight: 600, textDecoration: 'none', borderBottom: '1px solid transparent', transition: 'border-color 0.18s' }}
-                >
+                <a href="/signup" className="un-reglink"
+                  style={{ color: C.textPrimary, fontWeight: 600, textDecoration: 'none', borderBottom: '1px solid transparent', transition: 'border-color 0.18s' }}>
                   Create Account ↗
                 </a>
               </span>
             </div>
           </div>
 
-          {/* Footer */}
           <div style={{ textAlign: 'center', marginTop: 32 }}>
             <p style={{ fontFamily: F.body, fontSize: 11, color: C.textTertiary, letterSpacing: '0.05em', marginBottom: 10 }}>
               © 2024 URBANNEST EDITORIAL SYSTEMS. ALL RIGHTS RESERVED.
