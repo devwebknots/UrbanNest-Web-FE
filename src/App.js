@@ -39,6 +39,9 @@ import OrgPMS_Step6_Payment            from './pages/OrgPMSOnboarding/OrgPMS_Ste
 import OrgPMS_Step7_ReviewSubmit       from './pages/OrgPMSOnboarding/OrgPMS_Step7_ReviewSubmit';
 import OrgPMS_PendingStatus            from './pages/OrgPMSOnboarding/OrgPMS_PendingStatus';
 
+// Properties
+import AddNewProperty from "./pages/Properties/AddProperty/AddNewProperty";
+
 function AppRoutes() {
   const navigate = useNavigate();
   const location = useLocation();
@@ -123,6 +126,10 @@ function AppRoutes() {
       {/* Standalone pending/waiting screen — shown when user clicks PENDING persona card */}
       <Route path="/org-onboarding/pending"  element={<OrgPMS_PendingStatus />} />
 
+      {/* ── Properties  ──────────────────────────── */}  
+      <Route path="/pm-portal/properties/add" element={<AddNewProperty persona="INDEPENDENT_PM" />} />
+      <Route path="/org-portal/properties/add"  element={<AddNewProperty persona="ORGANIZATIONAL_PM" />} />
+   
     </Routes>
   );
 }

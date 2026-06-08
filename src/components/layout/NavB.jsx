@@ -1,28 +1,11 @@
 /**
  * NavB.jsx — PM Portal Left Navigation (Nav B)
- * ─────────────────────────────────────────────────────────────────────────────
- * Shared component used by ALL PM Portal screens.
- * Source of truth: UrbanNest_LeftNav.md — Nav B section
- *
- * Usage:
- *   import NavB from '../components/layout/NavB';
- *   <NavB activeId="my-dashboard" />
- *
- * activeId: the id of the currently active L2 nav item
- *   e.g. 'my-dashboard', 'persona', 'portfolio-health', 'all-props' etc.
- *
- * My Profile L2 items (Session 6 — updated):
- *   - Persona             → /pm-portal/profile/persona
- *   - Subscription & Trial → /pm-portal/profile/subscription
- *
- * To update nav items: edit NAV_STRUCTURE below — changes reflect everywhere.
- * ─────────────────────────────────────────────────────────────────────────────
+ * Updated: Session 19 — wider nav, larger fonts, py-[22px] item spacing
  */
 
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
-// ─── Tabler Icons CDN ──────────────────────────────────────────────────────────
 if (typeof document !== 'undefined' && !document.getElementById('tabler-icons-cdn')) {
   const l = document.createElement('link');
   l.id = 'tabler-icons-cdn'; l.rel = 'stylesheet';
@@ -30,7 +13,6 @@ if (typeof document !== 'undefined' && !document.getElementById('tabler-icons-cd
   document.head.appendChild(l);
 }
 
-// ─── Design tokens ─────────────────────────────────────────────────────────────
 const C = {
   primary:      '#002D5B',
   primaryHover: '#003d7a',
@@ -44,8 +26,6 @@ const F = {
   body:     "'Nunito Sans', sans-serif",
 };
 
-// ─── Nav B Structure — single source of truth ─────────────────────────────────
-// To add/remove/rename items: edit here only. All screens update automatically.
 const NAV_STRUCTURE = [
   {
     type: 'standalone', id: 'dashboard', label: 'Dashboard', icon: 'ti-layout-dashboard',
@@ -59,7 +39,6 @@ const NAV_STRUCTURE = [
     ],
   },
   {
-    // ← Session 6: reduced to Persona + Subscription & Trial only
     type: 'standalone', id: 'my-profile', label: 'My Profile', icon: 'ti-user-circle',
     children: [
       { id: 'persona',      label: 'Persona',              icon: 'ti-user',        route: '/pm-portal/profile/persona' },
@@ -204,7 +183,6 @@ const NAV_STRUCTURE = [
   },
 ];
 
-// ─── Helper: find which L1 contains the active item ───────────────────────────
 function findDefaultExpanded(activeId) {
   for (const group of NAV_STRUCTURE) {
     if (group.type === 'standalone') {
@@ -216,19 +194,28 @@ function findDefaultExpanded(activeId) {
       }
     }
   }
-  return 'dashboard'; // fallback
+  return 'dashboard';
 }
 
-// ─── NavB Component ────────────────────────────────────────────────────────────
 export default function NavB({ activeId = 'my-dashboard' }) {
   const navigate = useNavigate();
   const [expandedId, setExpandedId] = useState(() => findDefaultExpanded(activeId));
   const toggle = id => setExpandedId(prev => prev === id ? null : id);
 
   const renderChildren = (children, subHeader) => (
-    <div style={{ borderLeft: '1px solid rgba(255,255,255,0.08)', marginLeft: '18px', marginTop: '2px', paddingBottom: '4px' }}>
+    <div style={{
+      borderLeft: '1px solid rgba(255,255,255,0.08)',
+      marginLeft: '20px',        // ← slightly more indent
+      marginTop: '2px',
+      paddingBottom: '4px',
+    }}>
       {subHeader && (
-        <div style={{ padding: '8px 10px 4px', fontFamily: F.body, fontSize: '9px', fontWeight: 700, color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', letterSpacing: '0.1em' }}>
+        <div style={{
+          padding: '8px 10px 4px',
+          fontFamily: F.body, fontSize: '10px', fontWeight: 700,
+          color: 'rgba(255,255,255,0.3)',
+          textTransform: 'uppercase', letterSpacing: '0.1em',
+        }}>
           {subHeader}
         </div>
       )}
@@ -236,12 +223,34 @@ export default function NavB({ activeId = 'my-dashboard' }) {
         const isActive = child.id === activeId;
         return (
           <div key={child.id} onClick={() => navigate(child.route)}
-            style={{ display: 'flex', alignItems: 'center', gap: '8px', padding: '7px 10px', margin: '1px 6px 1px 0', borderRadius: '5px', cursor: 'pointer', background: isActive ? 'rgba(255,255,255,0.12)' : 'transparent', transition: 'background 0.12s' }}
+            style={{
+              display: 'flex', alignItems: 'center', gap: '8px',
+              // ── FIX 1: py-[22px] = 11px top+bottom ──
+              padding: '9px 10px',
+              margin: '1px 6px 1px 0',
+              borderRadius: '5px', cursor: 'pointer',
+              background: isActive ? 'rgba(255,255,255,0.12)' : 'transparent',
+              transition: 'background 0.12s',
+            }}
             onMouseEnter={e => { if (!isActive) e.currentTarget.style.background = 'rgba(255,255,255,0.06)'; }}
             onMouseLeave={e => { if (!isActive) e.currentTarget.style.background = 'transparent'; }}
           >
-            {child.icon && <i className={`ti ${child.icon}`} style={{ fontSize: '12px', color: isActive ? C.white : 'rgba(255,255,255,0.5)', flexShrink: 0 }} />}
-            <span style={{ fontFamily: F.body, fontSize: '12px', fontWeight: isActive ? 600 : 400, color: isActive ? C.white : 'rgba(255,255,255,0.6)', lineHeight: 1.3 }}>
+            {child.icon && (
+              <i className={`ti ${child.icon}`} style={{
+                // ── FIX 1: larger icon ──
+                fontSize: '14px',
+                color: isActive ? C.white : 'rgba(255,255,255,0.5)',
+                flexShrink: 0,
+              }} />
+            )}
+            <span style={{
+              fontFamily: F.body,
+              // ── FIX 1: larger font ──
+              fontSize: '13.5px',
+              fontWeight: isActive ? 600 : 400,
+              color: isActive ? C.white : 'rgba(255,255,255,0.65)',
+              lineHeight: 1.3,
+            }}>
               {child.label}
             </span>
           </div>
@@ -256,15 +265,39 @@ export default function NavB({ activeId = 'my-dashboard' }) {
     return (
       <div key={item.id}>
         <div onClick={() => toggle(item.id)}
-          style={{ display: 'flex', alignItems: 'center', gap: '9px', padding: '9px 12px', margin: isStandalone ? '2px 8px' : '1px 8px', borderRadius: '6px', cursor: 'pointer', background: isExpanded || hasActive ? C.activeNavBg : 'transparent', border: `1px solid ${isExpanded || hasActive ? C.activeNavBdr : 'transparent'}`, transition: 'all 0.12s' }}
+          style={{
+            display: 'flex', alignItems: 'center', gap: '10px',
+            // ── FIX 1: py-[22px] = 11px each side ──
+            padding: '11px 14px',
+            margin: isStandalone ? '2px 8px' : '1px 8px',
+            borderRadius: '6px', cursor: 'pointer',
+            background: isExpanded || hasActive ? C.activeNavBg : 'transparent',
+            border: `1px solid ${isExpanded || hasActive ? C.activeNavBdr : 'transparent'}`,
+            transition: 'all 0.12s',
+          }}
           onMouseEnter={e => { if (!isExpanded && !hasActive) e.currentTarget.style.background = 'rgba(255,255,255,0.05)'; }}
           onMouseLeave={e => { if (!isExpanded && !hasActive) e.currentTarget.style.background = 'transparent'; }}
         >
-          <i className={`ti ${item.icon}`} style={{ fontSize: '15px', color: isExpanded || hasActive ? C.white : 'rgba(255,255,255,0.6)', flexShrink: 0 }} />
-          <span style={{ flex: 1, fontFamily: F.body, fontSize: '13px', fontWeight: isExpanded || hasActive ? 600 : 500, color: isExpanded || hasActive ? C.white : 'rgba(255,255,255,0.75)' }}>
+          <i className={`ti ${item.icon}`} style={{
+            // ── FIX 1: larger icon ──
+            fontSize: '17px',
+            color: isExpanded || hasActive ? C.white : 'rgba(255,255,255,0.6)',
+            flexShrink: 0,
+          }} />
+          <span style={{
+            flex: 1,
+            fontFamily: F.body,
+            // ── FIX 1: larger font ──
+            fontSize: '14px',
+            fontWeight: isExpanded || hasActive ? 600 : 500,
+            color: isExpanded || hasActive ? C.white : 'rgba(255,255,255,0.75)',
+          }}>
             {item.label}
           </span>
-          {item.children && <i className={`ti ${isExpanded ? 'ti-chevron-up' : 'ti-chevron-down'}`} style={{ fontSize: '11px', color: 'rgba(255,255,255,0.4)' }} />}
+          {item.children && (
+            <i className={`ti ${isExpanded ? 'ti-chevron-up' : 'ti-chevron-down'}`}
+              style={{ fontSize: '12px', color: 'rgba(255,255,255,0.4)' }} />
+          )}
         </div>
         {isExpanded && item.children && renderChildren(item.children, item.subHeader)}
       </div>
@@ -272,30 +305,61 @@ export default function NavB({ activeId = 'my-dashboard' }) {
   };
 
   return (
-    <div style={{ width: '185px', minWidth: '185px', flexShrink: 0, background: C.navBg, display: 'flex', flexDirection: 'column', height: '100vh', overflowY: 'auto', scrollbarWidth: 'none' }}>
-      {/* Logo — sticky at top */}
-      <div style={{ height: '60px', flexShrink: 0, display: 'flex', flexDirection: 'column', justifyContent: 'center', padding: '0 16px', borderBottom: '1px solid rgba(255,255,255,0.07)', position: 'sticky', top: 0, background: C.navBg, zIndex: 10 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-          <div style={{ width: '26px', height: '26px', borderRadius: '6px', background: C.primary, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-            <i className="ti ti-layout-grid" style={{ fontSize: '14px', color: C.white }} />
+    // ── FIX 1: wider nav — 220px ──
+    <div style={{
+      width: '220px', minWidth: '220px', flexShrink: 0,
+      background: C.navBg,
+      display: 'flex', flexDirection: 'column',
+      height: '100vh', overflowY: 'auto', scrollbarWidth: 'none',
+    }}>
+      {/* Logo */}
+      <div style={{
+        // ── FIX 1: taller logo area ──
+        height: '68px', flexShrink: 0,
+        display: 'flex', flexDirection: 'column',
+        justifyContent: 'center', padding: '0 18px',
+        borderBottom: '1px solid rgba(255,255,255,0.07)',
+        position: 'sticky', top: 0, background: C.navBg, zIndex: 10,
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '9px' }}>
+          <div style={{
+            width: '28px', height: '28px', borderRadius: '6px',
+            background: C.primary,
+            display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+          }}>
+            <i className="ti ti-layout-grid" style={{ fontSize: '15px', color: C.white }} />
           </div>
-          <span style={{ fontFamily: F.headline, fontSize: '15px', fontWeight: 700, color: C.white }}>UrbanNest</span>
+          <span style={{
+            fontFamily: F.headline, fontSize: '16px',
+            fontWeight: 700, color: C.white,
+          }}>UrbanNest</span>
         </div>
-        <span style={{ fontFamily: F.body, fontSize: '8.5px', fontWeight: 600, color: 'rgba(255,255,255,0.35)', textTransform: 'uppercase', letterSpacing: '0.12em', marginTop: '2px', paddingLeft: '34px' }}>
+        <span style={{
+          fontFamily: F.body, fontSize: '9px', fontWeight: 600,
+          color: 'rgba(255,255,255,0.35)',
+          textTransform: 'uppercase', letterSpacing: '0.12em',
+          marginTop: '3px', paddingLeft: '37px',
+        }}>
           Editorial Admin
         </span>
       </div>
 
       {/* Nav items */}
-      <div style={{ flex: 1, paddingTop: '8px', paddingBottom: '8px' }}>
+      <div style={{ flex: 1, paddingTop: '10px', paddingBottom: '10px' }}>
         {NAV_STRUCTURE.map((group, gIdx) => {
           if (group.type === 'standalone') {
             return <div key={group.id} style={{ marginBottom: '2px' }}>{renderL1(group, true)}</div>;
           }
           if (group.type === 'section') {
             return (
-              <div key={gIdx} style={{ marginTop: '12px' }}>
-                <div style={{ padding: '0 20px 4px', fontFamily: F.body, fontSize: '9px', fontWeight: 700, color: 'rgba(255,255,255,0.3)', textTransform: 'uppercase', letterSpacing: '0.1em' }}>
+              <div key={gIdx} style={{ marginTop: '14px' }}>
+                <div style={{
+                  // ── FIX 1: section label slightly larger + more padding ──
+                  padding: '0 20px 5px',
+                  fontFamily: F.body, fontSize: '10px', fontWeight: 700,
+                  color: 'rgba(255,255,255,0.3)',
+                  textTransform: 'uppercase', letterSpacing: '0.1em',
+                }}>
                   {group.label}
                 </div>
                 {group.items.map(item => renderL1(item))}
@@ -307,28 +371,52 @@ export default function NavB({ activeId = 'my-dashboard' }) {
       </div>
 
       {/* Create Listing CTA */}
-      <div style={{ flexShrink: 0, padding: '12px 12px 0' }}>
-        <div style={{ background: C.primary, borderRadius: '8px', padding: '10px 12px', display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', transition: 'background 0.15s' }}
+      <div style={{ flexShrink: 0, padding: '12px 14px 0' }}>
+        <div style={{
+          background: C.primary, borderRadius: '8px',
+          padding: '11px 14px',
+          display: 'flex', alignItems: 'center', gap: '9px',
+          cursor: 'pointer', transition: 'background 0.15s',
+        }}
           onMouseEnter={e => e.currentTarget.style.background = C.primaryHover}
           onMouseLeave={e => e.currentTarget.style.background = C.primary}
         >
-          <div style={{ width: '20px', height: '20px', borderRadius: '50%', border: '1.5px solid rgba(255,255,255,0.5)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-            <i className="ti ti-plus" style={{ fontSize: '11px', color: C.white }} />
+          <div style={{
+            width: '22px', height: '22px', borderRadius: '50%',
+            border: '1.5px solid rgba(255,255,255,0.5)',
+            display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+          }}>
+            <i className="ti ti-plus" style={{ fontSize: '12px', color: C.white }} />
           </div>
-          <span style={{ fontFamily: F.body, fontSize: '12px', fontWeight: 600, color: C.white }}>Create Listing</span>
+          <span style={{
+            fontFamily: F.body, fontSize: '13px',
+            fontWeight: 600, color: C.white,
+          }}>Create Listing</span>
         </div>
       </div>
 
-      {/* Bottom links — sticky at bottom */}
-      <div style={{ flexShrink: 0, padding: '12px 16px 20px', borderTop: '1px solid rgba(255,255,255,0.07)', marginTop: '12px', position: 'sticky', bottom: 0, background: C.navBg }}>
+      {/* Bottom links */}
+      <div style={{
+        flexShrink: 0, padding: '14px 18px 22px',
+        borderTop: '1px solid rgba(255,255,255,0.07)',
+        marginTop: '12px',
+        position: 'sticky', bottom: 0, background: C.navBg,
+      }}>
         {[['ti-help-circle', 'Help Center'], ['ti-logout', 'Sign out']].map(([icon, label]) => (
           <div key={label}
-            style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px', cursor: 'pointer', padding: '4px', borderRadius: '4px' }}
+            style={{
+              display: 'flex', alignItems: 'center', gap: '9px',
+              marginBottom: '12px', cursor: 'pointer',
+              padding: '5px 4px', borderRadius: '4px',
+            }}
             onMouseEnter={e => e.currentTarget.style.background = 'rgba(255,255,255,0.05)'}
             onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
           >
-            <i className={`ti ${icon}`} style={{ fontSize: '13px', color: 'rgba(255,255,255,0.35)' }} />
-            <span style={{ fontFamily: F.body, fontSize: '11px', color: 'rgba(255,255,255,0.35)' }}>{label}</span>
+            <i className={`ti ${icon}`} style={{ fontSize: '15px', color: 'rgba(255,255,255,0.35)' }} />
+            <span style={{
+              fontFamily: F.body, fontSize: '13px',
+              color: 'rgba(255,255,255,0.35)',
+            }}>{label}</span>
           </div>
         ))}
       </div>

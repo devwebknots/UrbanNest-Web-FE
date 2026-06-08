@@ -4,12 +4,14 @@
  *          /org-portal/dashboard/my-dashboard  ← Session 18: reused for Org PMS
  * Session: 7 — May 30, 2026
  * Updated: Session 18 — accept persona prop for role label
+ * Updated: Session 19 — Header extracted to shared component
  */
 
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { CustomDropdown, Button } from '../../../components/ui';
 import NavB from '../../../components/layout/NavB';
+import Header from '../../../components/layout/Header';  // ← Session 19: shared Header
 
 if (typeof document !== 'undefined' && !document.getElementById('tabler-icons-cdn')) {
   const l = document.createElement('link');
@@ -73,29 +75,18 @@ const DATE_TABS = ['Today','This week','This month','Custom range'];
 
 function SampleBanner({ onBack }) {
   return (
-    <div style={{
-      display:'flex', alignItems:'center', justifyContent:'space-between', gap:'12px',
-      background:'#F0FDF4', border:'1px solid #BBF7D0', borderRadius:'8px',
-      padding:'12px 16px', marginBottom:'16px',
-    }}>
-      <div style={{display:'flex', alignItems:'center', gap:'10px'}}>
-        <i className="ti ti-info-circle" style={{fontSize:'18px', color:'#16A34A', flexShrink:0}}/>
+    <div style={{display:'flex',alignItems:'center',justifyContent:'space-between',gap:'12px',background:'#F0FDF4',border:'1px solid #BBF7D0',borderRadius:'8px',padding:'12px 16px',marginBottom:'16px'}}>
+      <div style={{display:'flex',alignItems:'center',gap:'10px'}}>
+        <i className="ti ti-info-circle" style={{fontSize:'18px',color:'#16A34A',flexShrink:0}}/>
         <div>
-          <p style={{margin:0, fontFamily:F.body, fontSize:'13px', fontWeight:700, color:'#14532D'}}>
-            This is a sample view — data shown is not real
-          </p>
-          <p style={{margin:0, fontFamily:F.body, fontSize:'12px', color:'#166534'}}>
-            Add your first property to see your actual dashboard
-          </p>
+          <p style={{margin:0,fontFamily:F.body,fontSize:'13px',fontWeight:700,color:'#14532D'}}>This is a sample view — data shown is not real</p>
+          <p style={{margin:0,fontFamily:F.body,fontSize:'12px',color:'#166534'}}>Add your first property to see your actual dashboard</p>
         </div>
       </div>
-      <button onClick={onBack}
-        style={{flexShrink:0, display:'flex', alignItems:'center', gap:'5px', background:C.white, border:'1px solid #BBF7D0', borderRadius:'6px', padding:'6px 12px', fontFamily:F.body, fontSize:'12px', fontWeight:600, color:'#166634', cursor:'pointer', whiteSpace:'nowrap'}}
-        onMouseEnter={e => e.currentTarget.style.background = '#DCFCE7'}
-        onMouseLeave={e => e.currentTarget.style.background = C.white}
-      >
-        <i className="ti ti-arrow-left" style={{fontSize:'13px'}}/>
-        Back to getting started
+      <button onClick={onBack} style={{flexShrink:0,display:'flex',alignItems:'center',gap:'5px',background:C.white,border:'1px solid #BBF7D0',borderRadius:'6px',padding:'6px 12px',fontFamily:F.body,fontSize:'12px',fontWeight:600,color:'#166634',cursor:'pointer',whiteSpace:'nowrap'}}
+        onMouseEnter={e=>e.currentTarget.style.background='#DCFCE7'}
+        onMouseLeave={e=>e.currentTarget.style.background=C.white}>
+        <i className="ti ti-arrow-left" style={{fontSize:'13px'}}/>Back to getting started
       </button>
     </div>
   );
@@ -118,31 +109,8 @@ function MiniSelector({options,value,onChange}){
   );
 }
 
-function Header({userName,userRole}){
-  return(
-    <div style={{height:'60px',flexShrink:0,background:C.white,borderBottom:'1px solid '+C.border,display:'flex',alignItems:'center',justifyContent:'space-between',padding:'0 clamp(20px,3vw,36px)'}}>
-      <div style={{display:'flex',alignItems:'center',gap:'8px',background:C.neutral,borderRadius:'8px',padding:'0 14px',height:'36px',width:'280px'}}>
-        <i className="ti ti-search" style={{fontSize:'14px',color:C.textTertiary}}/>
-        <input type="text" placeholder="Search properties, tenants, or help…" style={{background:'none',border:'none',outline:'none',fontFamily:F.body,fontSize:'12px',color:C.textSecondary,width:'100%'}}/>
-      </div>
-      <div style={{display:'flex',alignItems:'center',gap:'16px'}}>
-        <div style={{position:'relative',cursor:'pointer'}}>
-          <i className="ti ti-bell" style={{fontSize:'18px',color:C.textSecondary}}/>
-          <div style={{position:'absolute',top:'-2px',right:'-2px',width:'7px',height:'7px',borderRadius:'50%',background:C.danger,border:'1.5px solid '+C.white}}/>
-        </div>
-        <div style={{display:'flex',alignItems:'center',gap:'10px',paddingLeft:'12px',borderLeft:'1px solid '+C.border}}>
-          <div style={{textAlign:'right'}}>
-            <p style={{margin:0,fontFamily:F.body,fontSize:'13px',fontWeight:600,color:C.textPrimary}}>{userName}</p>
-            <p style={{margin:0,fontFamily:F.body,fontSize:'9px',color:C.textTertiary,textTransform:'uppercase',letterSpacing:'0.06em'}}>{userRole}</p>
-          </div>
-          <div style={{width:'34px',height:'34px',borderRadius:'50%',background:C.primary,display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0}}>
-            <i className="ti ti-user" style={{fontSize:'16px',color:C.white}}/>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-}
+// ─── NOTE: Header function removed — now using shared Header component ─────────
+// import Header from '../../../components/layout/Header'  (added at top of file)
 
 function MetricCard({icon,accentColor,label,value,sub,trend,subDanger}){
   return(
@@ -551,7 +519,7 @@ function CustomReportsModal({open,onClose}){
   );
 }
 
-// ─── Main — PATCHED Session 18 ────────────────────────────────────────────────
+// ─── Main ──────────────────────────────────────────────────────────────────────
 export default function PMDashboard({ persona }) {
   const navigate = useNavigate();
   const location = useLocation();
@@ -602,7 +570,6 @@ export default function PMDashboard({ persona }) {
             LANDLORD:          'Landlord',
             RENTER:            'Renter',
           };
-          // persona prop from route takes priority over API active_persona
           setUserRole(roleMap[persona || data.active_persona] || data.role || 'Independent PM');
         } else {
           const d=decodeJWT(token);
@@ -632,6 +599,8 @@ export default function PMDashboard({ persona }) {
         <NavB activeId="my-dashboard" />
 
         <div style={{flex:1,display:'flex',flexDirection:'column',minWidth:0,overflow:'hidden'}}>
+
+          {/* ← Session 19: using shared Header component */}
           <Header userName={userName} userRole={userRole} />
 
           <div style={{flex:1,display:'flex',minHeight:0,overflow:'hidden'}}>

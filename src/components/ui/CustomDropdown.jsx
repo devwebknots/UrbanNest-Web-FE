@@ -4,6 +4,13 @@
  * Reusable dropdown component — replaces all native <select> elements.
  * Source of truth: UrbanNest Design System §9 — Custom Dropdown Standard
  *
+ * Updated: Session 19 —
+ *   - Height 38px, bg #F8F9FA, border always #E8ECF0 (no dark border on open)
+ *   - No blue focus ring
+ *   - Border radius 6px
+ *   - Font Nunito Sans 13px
+ *   - All item weights regular (400) — never bold
+ *
  * Usage:
  *   import { CustomDropdown } from '../components/ui';
  *
@@ -12,44 +19,31 @@
  *     value={selectedValue}
  *     onChange={v => setSelectedValue(v)}
  *     placeholder="Select…"
- *     error={!!errors.field}       // optional — shows danger border
- *     disabled={false}             // optional — disables interaction
+ *     error={!!errors.field}
+ *     disabled={false}
  *   />
- *
- * Design tokens (UrbanNest Design System):
- *   Closed:   white bg, #CBD5E1 border, chevron-down
- *   Open:     #E4ECFC bg, #BFDBFE border (light blue), chevron-up
- *   Selected: #E4ECFC bg, navy text, bold
- *   Hover:    #F0F5FF bg
- *   Error:    #E53E3E border
- *   Disabled: #F8FAFC bg, not-allowed cursor
- *   Max height: 220px with scroll for long lists
- *   Closes on outside click
  * ─────────────────────────────────────────────────────────────────────────────
  */
 
 import React, { useState, useRef, useEffect } from 'react';
 
-// ─── Design tokens (mirrors src/constants/colors.js + fonts.js) ───────────────
 const C = {
   primary:       '#002D5B',
-  border:        '#E2E8F0',
-  borderMedium:  '#CBD5E1',
+  inputBg:       '#F8F9FA',      // very light grey — trigger background
+  inputBorder:   '#E8ECF0',      // very light border — always, open or closed
   textPrimary:   '#0F172A',
   textSecondary: '#64748B',
   textTertiary:  '#94A3B8',
   white:         '#FFFFFF',
-  neutral:       '#F8FAFC',
+  neutral:       '#F8FAFC',      // disabled background
   danger:        '#E53E3E',
-  dropdownBg:    '#E4ECFC',
-  dropdownBorder:'#BFDBFE',
-  hoverBg:       '#F0F5FF',
+  hoverBg:       '#F0F5FF',      // item hover
+  selectedBg:    '#EFF6FF',      // selected item background
 };
 const F = {
   body: "'Nunito Sans', sans-serif",
 };
 
-// ─── CustomDropdown ────────────────────────────────────────────────────────────
 export default function CustomDropdown({
   options = [],
   value,
@@ -61,7 +55,6 @@ export default function CustomDropdown({
   const [open, setOpen] = useState(false);
   const ref = useRef();
 
-  // Close on outside click
   useEffect(() => {
     const handler = e => {
       if (ref.current && !ref.current.contains(e.target)) setOpen(false);
@@ -70,36 +63,18 @@ export default function CustomDropdown({
     return () => document.removeEventListener('mousedown', handler);
   }, []);
 
-  // Derive the currently selected option object
   const selected = options.find(o => o.value === value);
 
-  // Resolve border color based on state priority: error > open > default
-  const borderColor = error
-    ? C.danger
-    : open
-    ? C.dropdownBorder
-    : C.borderMedium;
+  // ← Border: error shows danger, everything else always #E8ECF0
+  const borderColor = error ? C.danger : C.inputBorder;
 
-  // Resolve background based on state: disabled > open/selected > default
-  const triggerBg = disabled
-    ? C.neutral
-    : open || value
-    ? C.dropdownBg
-    : C.white;
-
-  const handleToggle = () => {
-    if (!disabled) setOpen(prev => !prev);
-  };
-
-  const handleSelect = (optValue) => {
-    onChange(optValue);
-    setOpen(false);
-  };
+  const handleToggle = () => { if (!disabled) setOpen(prev => !prev); };
+  const handleSelect = optValue => { onChange(optValue); setOpen(false); };
 
   return (
     <div ref={ref} style={{ position: 'relative', width: '100%' }}>
 
-      {/* ── Trigger button ── */}
+      {/* ── Trigger ── */}
       <div
         onClick={handleToggle}
         role="combobox"
@@ -107,12 +82,12 @@ export default function CustomDropdown({
         aria-haspopup="listbox"
         style={{
           width: '100%',
-          height: '40px',
+          height: '38px',
           boxSizing: 'border-box',
-          background: triggerBg,
+          background: disabled ? C.neutral : C.inputBg,
           border: `1px solid ${borderColor}`,
-          borderRadius: open ? '8px 8px 0 0' : '8px',
-          padding: '0 36px 0 12px',
+          borderRadius: open ? '6px 6px 0 0' : '6px',
+          padding: '0 32px 0 11px',
           display: 'flex',
           alignItems: 'center',
           fontFamily: F.body,
@@ -120,32 +95,35 @@ export default function CustomDropdown({
           color: selected ? C.textPrimary : C.textTertiary,
           cursor: disabled ? 'not-allowed' : 'pointer',
           userSelect: 'none',
-          transition: 'all 0.15s',
+          // ← No focus ring / box shadow
+          boxShadow: 'none',
+          transition: 'border-color 0.15s',
           opacity: disabled ? 0.6 : 1,
         }}
       >
-        {/* Label */}
         <span style={{
           flex: 1,
           overflow: 'hidden',
           textOverflow: 'ellipsis',
           whiteSpace: 'nowrap',
-          fontWeight: 400,
+          fontWeight: '400',     // ← regular weight
+          fontFamily: F.body,
+          fontSize: '13px',
           color: selected ? C.textPrimary : C.textTertiary,
         }}>
           {selected ? selected.label : placeholder}
         </span>
 
-        {/* Chevron icon */}
+        {/* Chevron */}
         <i
           className={`ti ${open ? 'ti-chevron-up' : 'ti-chevron-down'}`}
           style={{
             position: 'absolute',
             right: '10px',
-            fontSize: '14px',
+            fontSize: '13px',
             color: C.textSecondary,
-            transition: 'transform 0.15s',
             pointerEvents: 'none',
+            transition: 'transform 0.15s',
           }}
         />
       </div>
@@ -159,21 +137,21 @@ export default function CustomDropdown({
             top: '100%',
             left: 0,
             right: 0,
-            zIndex: 200,
+            zIndex: 300,
             background: C.white,
-            border: `1px solid ${C.dropdownBorder}`,
+            // ← Light border on list too — matches trigger
+            border: `1px solid ${C.inputBorder}`,
             borderTop: 'none',
-            borderRadius: '0 0 8px 8px',
-            boxShadow: '0 4px 12px rgba(0,45,91,0.1)',
+            borderRadius: '0 0 6px 6px',
+            boxShadow: '0 6px 16px rgba(0,45,91,0.08)',
             maxHeight: '220px',
             overflowY: 'auto',
-            // Scrollbar styling
             scrollbarWidth: 'thin',
-            scrollbarColor: `${C.borderMedium} transparent`,
+            scrollbarColor: `#CBD5E1 transparent`,
           }}
         >
           {options
-            .filter(o => o.value !== '')  // skip blank placeholder option if present
+            .filter(o => o.value !== '')
             .map(o => {
               const isSelected = o.value === value;
               return (
@@ -183,12 +161,13 @@ export default function CustomDropdown({
                   aria-selected={isSelected}
                   onClick={() => handleSelect(o.value)}
                   style={{
-                    padding: '10px 12px',
+                    padding: '9px 12px',
                     fontFamily: F.body,
                     fontSize: '13px',
+                    // ← Regular weight for ALL items including selected
+                    fontWeight: '400',
                     color: isSelected ? C.primary : C.textPrimary,
-                    background: isSelected ? C.dropdownBg : C.white,
-                    fontWeight: isSelected ? 600 : 400,
+                    background: isSelected ? C.selectedBg : C.white,
                     cursor: 'pointer',
                     transition: 'background 0.1s',
                     display: 'flex',
@@ -203,7 +182,7 @@ export default function CustomDropdown({
                   }}
                 >
                   <span>{o.label}</span>
-                  {/* Checkmark for selected item */}
+                  {/* Checkmark for selected item only */}
                   {isSelected && (
                     <i
                       className="ti ti-check"
