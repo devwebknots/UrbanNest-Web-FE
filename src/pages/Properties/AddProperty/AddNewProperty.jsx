@@ -1032,18 +1032,15 @@ export default function AddNewProperty({ persona = 'INDEPENDENT_PM' }) {
           <div className="anp-scroll" style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', minHeight: 0 }}>
 
             {/* Page header — module title + per-tab page title + subtitle */}
-            <div style={{ padding: `${PAGE_PX}px ${PAGE_PX}px 14px`, flexShrink: 0 }}>
-              <h1 style={{ fontSize: 32, fontWeight: 800, color: '#0D2D4A', margin: 0, marginBottom: 6, fontFamily: F.headline, letterSpacing: '-0.5px', lineHeight: 1.15 }}>
+            <div style={{ padding: `${PAGE_PX}px ${PAGE_PX}px 0`, flexShrink: 0 }}>
+              <h1 style={{ margin: '0 0 4px', fontFamily: F.headline, fontSize: 'clamp(22px, 2.2vw, 28px)', fontWeight: 700, color: C.textPrimary, lineHeight: 1.2 }}>
                 Add New Property
               </h1>
-              <div style={{ display: 'flex', alignItems: 'center', marginBottom: 8 }}>
-                <div style={{ width: 3, height: 22, background: '#1B5E42', borderRadius: 2, marginRight: 10, flexShrink: 0 }} />
-                <h2 style={{ fontSize: 18, fontWeight: 700, color: '#1B5E42', margin: 0, fontFamily: F.headline, lineHeight: 1.3 }}>
-                  {meta.title}
-                </h2>
-              </div>
+              <p style={{ margin: '0 0 10px', fontFamily: F.headline, fontSize: 'clamp(13px, 1.2vw, 15px)', fontWeight: 600, color: C.success }}>
+                {meta.title}
+              </p>
               {meta.sub && (
-                <p style={{ fontSize: 13, color: C.textSec, margin: 0, fontFamily: F.body, lineHeight: 1.65, maxWidth: 700 }}>
+                <p style={{ margin: 0, fontFamily: F.body, fontSize: '13px', color: C.textSec, lineHeight: 1.6, maxWidth: '580px' }}>
                   {meta.sub}
                 </p>
               )}
