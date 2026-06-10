@@ -673,21 +673,7 @@ function StakeholderCard({ owner, onUpdate, onRemove, isSelf = false, isSaved = 
         <div style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 12, fontWeight: 500, padding: '3px 10px', borderRadius: 20, background: statusCfg.bg, color: statusCfg.color, border: `1px solid ${statusCfg.border}`, whiteSpace: 'nowrap', fontFamily: F.body }}>
           <i className={`ti ${statusCfg.icon}`} style={{ fontSize: 12 }} />{statusCfg.label}
         </div>
-        {isSaved && !open && (
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-            <div title="View" style={{ width: 28, height: 28, borderRadius: 6, border: `1px solid ${C.border}`, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
-              <i className="ti ti-eye" style={{ fontSize: 14, color: C.textSec }} />
-            </div>
-            <div title="Edit" onClick={e => { e.stopPropagation(); setOpen(true); setEditMode(true); }}
-              style={{ width: 28, height: 28, borderRadius: 6, border: `1px solid ${C.border}`, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
-              <i className="ti ti-pencil" style={{ fontSize: 14, color: C.textSec }} />
-            </div>
-            <div title="Delete" onClick={onRemove}
-              style={{ width: 28, height: 28, borderRadius: 6, border: `1px solid ${C.border}`, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
-              <i className="ti ti-trash" style={{ fontSize: 14, color: C.danger }} />
-            </div>
-          </div>
-        )}
+
         <div onClick={() => setOpen(o => !o)} style={{ cursor: 'pointer', padding: '2px 4px' }}>
           <i className={`ti ${open ? 'ti-chevron-up' : 'ti-chevron-down'}`} style={{ fontSize: 14, color: C.textTert }} />
         </div>
@@ -830,17 +816,16 @@ function OwnershipTab({ selfUser, owners, setOwners, selfOwner, setSelfOwner }) 
             <div style={{ fontSize: 14, fontWeight: 600, color: C.textPrimary, fontFamily: F.body }}>
               Stakeholder List <span style={{ fontSize: 13, fontWeight: 400, color: C.textSec }}>({ownerCount} added)</span>
             </div>
+            {ownerCount > 0 && !showNewForm && (
+              <button onClick={() => setShowNewForm(true)}
+                style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'transparent', border: `none`, cursor: 'pointer', fontSize: 13, fontWeight: 600, color: C.primary, fontFamily: F.body, padding: '5px 14px' }}>
+                + Add Stakeholder
+              </button>
+            )}
           </div>
 
           {selfOwner && (
             <StakeholderCard owner={selfOwner} onUpdate={patch => setSelfOwner(o => ({ ...o, ...patch }))} onRemove={() => { setSelfOwner(null); setSelfSaved(false); }} isSelf isSaved={selfSaved} />
-          )}
-
-          {selfOwner && !selfSaved && (
-            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, marginTop: -4, marginBottom: 10 }}>
-              <button onClick={() => { setSelfOwner(null); setSelfSaved(false); }} style={{ height: 38, padding: '0 20px', border: `1px solid ${C.borderMed}`, borderRadius: 7, background: C.cardBg, fontSize: 13, fontWeight: 600, color: C.textSec, cursor: 'pointer', fontFamily: F.body }}>Cancel</button>
-              <button onClick={() => setSelfSaved(true)} style={{ height: 38, padding: '0 20px', background: C.primary, border: 'none', borderRadius: 7, fontSize: 13, fontWeight: 700, color: '#fff', cursor: 'pointer', fontFamily: F.body }}>Add Owner</button>
-            </div>
           )}
 
           {owners.map(o => (
@@ -862,12 +847,6 @@ function OwnershipTab({ selfUser, owners, setOwners, selfOwner, setSelfOwner }) 
 
           {showNewForm && <NewStakeholderForm onAdd={addOwner} onCancel={() => setShowNewForm(false)} />}
 
-          {ownerCount > 0 && !showNewForm && (
-            <button onClick={() => setShowNewForm(true)}
-              style={{ display: 'flex', alignItems: 'center', gap: 6, background: 'transparent', border: 'none', cursor: 'pointer', fontSize: 13, fontWeight: 600, color: C.primary, fontFamily: F.body, padding: '8px 0', marginTop: 4 }}>
-              + Add Stakeholder
-            </button>
-          )}
         </div>
       </div>
 
@@ -928,6 +907,464 @@ function OwnershipTab({ selfUser, owners, setOwners, selfOwner, setSelfOwner }) 
             <a href="#" style={{ fontSize: 13, fontWeight: 700, color: '#0D5E3A', textDecoration: 'none', fontFamily: F.body, display: 'flex', alignItems: 'center', gap: 5 }}>
               Full Documentation <i className="ti ti-external-link" style={{ fontSize: 13 }} />
             </a>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// BANK ACCOUNT TAB — drop this entire block into AddNewProperty.jsx
+// Place it after the OwnershipTab component and before the main export
+// ─────────────────────────────────────────────────────────────────────────────
+
+// ── Constants ─────────────────────────────────────────────────────────────────
+
+const ACCOUNT_CATEGORIES = [
+  {
+    section: 'PROPERTY BANK ACCOUNTS',
+    items: [
+      { id: 'prop_operating', label: 'Property Operating Account', sub: 'Day-to-day operations',    icon: 'ti-building-bank' },
+      { id: 'prop_reserve',   label: 'Property Reserve Account',   sub: 'CapEx and rainy day funds', icon: 'ti-safe'          },
+    ],
+  },
+  {
+    section: 'PMS ACCOUNTS',
+    items: [
+      { id: 'pm_operating', label: 'PM Operating Account',       sub: 'Management fees & admin',   icon: 'ti-briefcase'     },
+      { id: 'pm_trust',     label: 'PM Trust Account',           sub: 'Client funds management',   icon: 'ti-shield-lock'   },
+      { id: 'rent',         label: 'Rent Collection Account',    sub: 'Tenant payment routing',    icon: 'ti-home-dollar'   },
+      { id: 'security',     label: 'Security Deposit Account',   sub: 'Escrow holding account',    icon: 'ti-lock-dollar'   },
+    ],
+  },
+];
+
+const ACCOUNT_DESCRIPTIONS = {
+  prop_operating: 'Primary account used for day-to-day property expenses and receiving operational income. Ensures transparency in daily financial activities.',
+  prop_reserve:   'Dedicated fund for capital expenditures, major repairs, and emergency reserves. Keeps long-term property finances separate from operations.',
+  pm_operating:   'Account for collecting and disbursing property management fees, administrative costs, and vendor payments.',
+  pm_trust:       'Segregated trust account holding client funds in compliance with property management regulations. Must remain separate from PM operating funds.',
+  rent:           'Dedicated account where tenants route rent payments. Provides clean reconciliation between collected rent and owner disbursements.',
+  security:       'Escrow account holding tenant security deposits. Regulated in most jurisdictions — funds must be kept separate and accounted for individually.',
+};
+
+// Mock existing accounts — replace with API fetch when Financials is built
+const MOCK_EXISTING_ACCOUNTS = [
+  { value: 'acc_001', label: 'Chase Main — ••••8829',       bank: 'Chase Manhattan', nickname: 'Main Op - 5th Ave',  number: '••••••••••8829', routing: '021000021', type: 'checking', owner: 'Tate Real Estate Holdings LLC' },
+  { value: 'acc_002', label: 'Wells Fargo Reserve — ••••4412', bank: 'Wells Fargo',  nickname: 'Reserve Fund A',     number: '••••••••••4412', routing: '121000248', type: 'savings',  owner: 'Tate Real Estate Holdings LLC' },
+  { value: 'acc_003', label: 'BofA Operations — ••••7731',  bank: 'Bank of America', nickname: 'BofA Ops Account',   number: '••••••••••7731', routing: '026009593', type: 'checking', owner: 'Metro Holdings Inc.' },
+];
+
+const ACCOUNT_TYPE_OPTIONS = [
+  { value: '',         label: 'Select type…' },
+  { value: 'checking', label: 'Checking'     },
+  { value: 'savings',  label: 'Savings'      },
+];
+
+function emptyAccountState() {
+  return {
+    mode: 'existing',          // 'existing' | 'new'
+    existingId: '',
+    saved: false,
+    bankName: '', nickname: '', accountNumber: '', routing: '',
+    accountType: '', owner: '', voidedCheck: null, voidedCheckName: '',
+  };
+}
+
+function emptyReserveExtras() {
+  return {
+    minThreshold: '',
+    topUp: 'manual',           // 'manual' | 'auto'
+    topUpMode: 'existing',     // 'existing' | 'new'
+    topUpExistingId: '',
+    topUpBankName: '', topUpNickname: '', topUpAccountNumber: '',
+    topUpRouting: '', topUpAccountType: '', topUpOwner: '',
+    topUpVoidedCheck: null, topUpVoidedCheckName: '',
+  };
+}
+
+// ── Shared sub-components ──────────────────────────────────────────────────────
+
+function BankFieldLabel({ children, required }) {
+  return (
+    <div style={{ fontSize: 10.5, fontWeight: 700, color: C.labelColor, textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 5, fontFamily: F.body }}>
+      {children}{required && <span style={{ color: C.danger, marginLeft: 2 }}>*</span>}
+    </div>
+  );
+}
+
+function BankInput({ value, onChange, placeholder, prefix, type = 'text', disabled = false, error = false }) {
+  const [focused, setFocused] = React.useState(false);
+  return (
+    <div style={{
+      display: 'flex', alignItems: 'center', height: 38,
+      border: `1px solid ${error ? C.danger : focused ? C.inputFocus : C.inputBorder}`,
+      borderRadius: 6, background: disabled ? '#f1f5f9' : C.inputBg,
+      boxShadow: focused && !disabled ? `0 0 0 2px ${error ? '#fde8e8' : '#dbeafe'}` : 'none',
+      overflow: 'hidden', transition: 'all 0.15s', opacity: disabled ? 0.7 : 1,
+    }}>
+      {prefix && (
+        <span style={{ padding: '0 10px', fontSize: 13, color: C.textSec, borderRight: `1px solid ${C.inputBorder}`, background: '#f1f5f9', alignSelf: 'stretch', display: 'flex', alignItems: 'center', fontFamily: F.body, flexShrink: 0 }}>{prefix}</span>
+      )}
+      <input
+        type={type} value={value} placeholder={placeholder} disabled={disabled}
+        onChange={e => onChange && onChange(e.target.value)}
+        onFocus={() => setFocused(true)} onBlur={() => setFocused(false)}
+        style={{ flex: 1, padding: '0 11px', fontSize: 13, border: 'none', outline: 'none', background: 'transparent', color: C.textPrimary, fontFamily: F.body, cursor: disabled ? 'default' : 'text' }}
+      />
+    </div>
+  );
+}
+
+function ModeToggle({ mode, onChange }) {
+  return (
+    <div style={{ display: 'flex', border: `1px solid ${C.borderMed}`, borderRadius: 7, overflow: 'hidden', width: 'fit-content', marginBottom: 20 }}>
+      {[['existing', 'Select Existing'], ['new', 'Add New Account']].map(([val, label]) => (
+        <button key={val} onClick={() => onChange(val)}
+          style={{
+            padding: '8px 18px', fontSize: 13, fontWeight: 600, cursor: 'pointer',
+            border: 'none', fontFamily: F.body,
+            background: mode === val ? C.primary : C.cardBg,
+            color: mode === val ? '#fff' : C.textSec,
+            transition: 'all 0.15s',
+          }}>
+          {label}
+        </button>
+      ))}
+    </div>
+  );
+}
+
+function VoidedCheckUpload({ fileName, onFile, onRemove }) {
+  const ref = React.useRef();
+  return (
+    <div>
+      {fileName ? (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, background: C.successLight, border: `1px solid #bbf7d0`, borderRadius: 6, padding: '8px 12px' }}>
+          <i className="ti ti-file-check" style={{ fontSize: 16, color: C.success, flexShrink: 0 }} />
+          <span style={{ flex: 1, fontSize: 12, color: '#166534', fontFamily: F.body, fontWeight: 600, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{fileName}</span>
+          <button onClick={onRemove} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, display: 'flex', alignItems: 'center' }}>
+            <i className="ti ti-x" style={{ fontSize: 13, color: C.textSec }} />
+          </button>
+        </div>
+      ) : (
+        <div
+          onClick={() => ref.current.click()}
+          style={{ display: 'flex', alignItems: 'center', gap: 10, border: `1.5px dashed ${C.borderMed}`, borderRadius: 6, padding: '9px 14px', cursor: 'pointer', background: C.inputBg, transition: 'border-color 0.15s' }}
+          onMouseEnter={e => e.currentTarget.style.borderColor = C.primary}
+          onMouseLeave={e => e.currentTarget.style.borderColor = C.borderMed}>
+          <input ref={ref} type="file" accept="image/jpeg,image/png,application/pdf" style={{ display: 'none' }}
+            onChange={e => { if (e.target.files[0]) { onFile(e.target.files[0]); e.target.value = ''; } }} />
+          <i className="ti ti-upload" style={{ fontSize: 15, color: C.textTert, flexShrink: 0 }} />
+          <div>
+            <div style={{ fontSize: 12, fontWeight: 700, color: C.primaryBlue, fontFamily: F.body }}>Upload Voided Check</div>
+            <div style={{ fontSize: 11, color: C.textTert, fontFamily: F.body }}>JPG, PNG or PDF — Max 5MB</div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function ExistingAccountForm({ existingId, onChange }) {
+  const selected = MOCK_EXISTING_ACCOUNTS.find(a => a.value === existingId);
+  return (
+    <div>
+      <div style={{ marginBottom: 16 }}>
+        <BankFieldLabel required>Existing Account</BankFieldLabel>
+        <CustomDropdown
+          options={[{ value: '', label: 'Select an account…' }, ...MOCK_EXISTING_ACCOUNTS]}
+          value={existingId}
+          onChange={onChange}
+          placeholder="Select an account…"
+        />
+      </div>
+      {selected && (
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px 16px', marginTop: 4 }}>
+          <div><BankFieldLabel>Bank Name</BankFieldLabel><BankInput value={selected.bank} disabled /></div>
+          <div><BankFieldLabel>Account Nickname</BankFieldLabel><BankInput value={selected.nickname} disabled /></div>
+          <div><BankFieldLabel>Account Number</BankFieldLabel><BankInput value={selected.number} disabled /></div>
+          <div><BankFieldLabel>Routing / IFSC</BankFieldLabel><BankInput value={selected.routing} disabled /></div>
+          <div>
+            <BankFieldLabel>Account Type</BankFieldLabel>
+            <BankInput value={selected.type.charAt(0).toUpperCase() + selected.type.slice(1)} disabled />
+          </div>
+          <div><BankFieldLabel>Legal Owner Name</BankFieldLabel><BankInput value={selected.owner} disabled /></div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function NewAccountForm({ data, onChange }) {
+  const upd = patch => onChange({ ...data, ...patch });
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px 16px', marginBottom: 12 }}>
+        <div>
+          <BankFieldLabel required>Bank Name</BankFieldLabel>
+          <BankInput value={data.bankName} onChange={v => upd({ bankName: v })} placeholder="e.g. Chase Manhattan" />
+        </div>
+        <div>
+          <BankFieldLabel required>Account Nickname</BankFieldLabel>
+          <BankInput value={data.nickname} onChange={v => upd({ nickname: v })} placeholder="e.g. Main Op Account" />
+        </div>
+      </div>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px 16px', marginBottom: 12 }}>
+        <div>
+          <BankFieldLabel required>Account Number</BankFieldLabel>
+          <BankInput value={data.accountNumber} onChange={v => upd({ accountNumber: v })} placeholder="Enter account number" type="password" />
+        </div>
+        <div>
+          <BankFieldLabel required>Routing / IFSC Number</BankFieldLabel>
+          <BankInput value={data.routing} onChange={v => upd({ routing: v })} placeholder="e.g. 021000021" />
+        </div>
+      </div>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px 16px', marginBottom: 12 }}>
+        <div>
+          <BankFieldLabel>Account Type</BankFieldLabel>
+          <CustomDropdown options={ACCOUNT_TYPE_OPTIONS} value={data.accountType} onChange={v => upd({ accountType: v })} placeholder="Select type…" />
+        </div>
+        <div>
+          <BankFieldLabel>Owner</BankFieldLabel>
+          <BankInput value={data.owner} onChange={v => upd({ owner: v })} placeholder="Legal owner name" />
+        </div>
+      </div>
+      <div>
+        <BankFieldLabel>Voided Check</BankFieldLabel>
+        <VoidedCheckUpload
+          fileName={data.voidedCheckName}
+          onFile={f => upd({ voidedCheck: f, voidedCheckName: f.name })}
+          onRemove={() => upd({ voidedCheck: null, voidedCheckName: '' })}
+        />
+      </div>
+    </div>
+  );
+}
+
+// ── Reserve Account extras (threshold + top-up) ────────────────────────────────
+function ReserveExtras({ extras, onChange }) {
+  const upd = patch => onChange({ ...extras, ...patch });
+
+  const topUpNewData = {
+    bankName: extras.topUpBankName, nickname: extras.topUpNickname,
+    accountNumber: extras.topUpAccountNumber, routing: extras.topUpRouting,
+    accountType: extras.topUpAccountType, owner: extras.topUpOwner,
+    voidedCheck: extras.topUpVoidedCheck, voidedCheckName: extras.topUpVoidedCheckName,
+  };
+  const updateTopUpNew = patch => upd({
+    topUpBankName: patch.bankName ?? extras.topUpBankName,
+    topUpNickname: patch.nickname ?? extras.topUpNickname,
+    topUpAccountNumber: patch.accountNumber ?? extras.topUpAccountNumber,
+    topUpRouting: patch.routing ?? extras.topUpRouting,
+    topUpAccountType: patch.accountType ?? extras.topUpAccountType,
+    topUpOwner: patch.owner ?? extras.topUpOwner,
+    topUpVoidedCheck: patch.voidedCheck ?? extras.topUpVoidedCheck,
+    topUpVoidedCheckName: patch.voidedCheckName ?? extras.topUpVoidedCheckName,
+  });
+
+  return (
+    <div style={{ marginTop: 20, paddingTop: 20, borderTop: `1px solid ${C.border}` }}>
+      {/* Minimum Threshold */}
+      <div style={{ marginBottom: 16, maxWidth: 260 }}>
+        <BankFieldLabel>Minimum Threshold Amount</BankFieldLabel>
+        <BankInput value={extras.minThreshold} onChange={v => upd({ minThreshold: v })} placeholder="0.00" prefix="$" type="number" />
+        <div style={{ fontSize: 11, color: C.textTert, marginTop: 4, fontFamily: F.body }}>Auto-refill triggers when balance falls below this amount.</div>
+      </div>
+
+      {/* Top Up radio */}
+      <div style={{ marginBottom: extras.topUp === 'auto' ? 16 : 0 }}>
+        <BankFieldLabel>Top Up</BankFieldLabel>
+        <div style={{ display: 'flex', gap: 20, marginTop: 6 }}>
+          {[['manual', 'Manual'], ['auto', 'Auto']].map(([val, label]) => (
+            <div key={val} onClick={() => upd({ topUp: val })}
+              style={{ display: 'flex', alignItems: 'center', gap: 7, cursor: 'pointer', userSelect: 'none' }}>
+              <div style={{ width: 16, height: 16, borderRadius: '50%', border: `1.5px solid ${extras.topUp === val ? C.primary : C.borderMed}`, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                {extras.topUp === val && <div style={{ width: 8, height: 8, borderRadius: '50%', background: C.primary }} />}
+              </div>
+              <span style={{ fontSize: 13, color: extras.topUp === val ? C.primary : C.textSec, fontWeight: extras.topUp === val ? 600 : 400, fontFamily: F.body }}>{label}</span>
+            </div>
+          ))}
+        </div>
+        <div style={{ fontSize: 11, color: C.textTert, marginTop: 4, fontFamily: F.body }}>
+          {extras.topUp === 'auto' ? 'Funds will be automatically transferred from the source account.' : 'You will manually transfer funds when the balance runs low.'}
+        </div>
+      </div>
+
+      {/* Auto top-up source account */}
+      {extras.topUp === 'auto' && (
+        <div style={{ marginTop: 16, background: C.inputBg, border: `1px solid ${C.border}`, borderRadius: 8, padding: 16 }}>
+          <div style={{ fontSize: 13, fontWeight: 700, color: C.textPrimary, fontFamily: F.body, marginBottom: 12, display: 'flex', alignItems: 'center', gap: 7 }}>
+            <i className="ti ti-arrows-exchange" style={{ fontSize: 14, color: C.primaryBlue }} />
+            Top Up From Account
+          </div>
+          <ModeToggle mode={extras.topUpMode} onChange={v => upd({ topUpMode: v })} />
+          {extras.topUpMode === 'existing'
+            ? <ExistingAccountForm existingId={extras.topUpExistingId} onChange={v => upd({ topUpExistingId: v })} />
+            : <NewAccountForm data={topUpNewData} onChange={updateTopUpNew} />
+          }
+        </div>
+      )}
+    </div>
+  );
+}
+
+// ── AccountCard — right panel ─────────────────────────────────────────────────
+function AccountCard({ categoryId, accountData, onChange, reserveExtras, onReserveExtrasChange }) {
+  const isReserve = categoryId === 'prop_reserve';
+  const desc = ACCOUNT_DESCRIPTIONS[categoryId] || '';
+
+  // Find category meta
+  const allItems = ACCOUNT_CATEGORIES.flatMap(s => s.items);
+  const meta = allItems.find(i => i.id === categoryId) || { label: '', icon: 'ti-building-bank' };
+
+  const canSave = accountData.mode === 'existing'
+    ? Boolean(accountData.existingId)
+    : Boolean(accountData.bankName && accountData.accountNumber && accountData.routing);
+
+  function handleSave() {
+    if (!canSave) return;
+    onChange({ ...accountData, saved: true });
+  }
+
+  function handleCancel() {
+    onChange({ ...accountData, saved: false });
+  }
+
+  return (
+    <div style={{ background: C.cardBg, border: `1px solid ${C.border}`, borderRadius: 10, boxShadow: '0 1px 4px rgba(0,0,0,0.05)', overflow: 'hidden' }}>
+      {/* Card header */}
+      <div style={{ padding: '18px 20px 16px', borderBottom: `1px solid ${C.border}` }}>
+        <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12 }}>
+          <div style={{ width: 36, height: 36, borderRadius: 8, background: '#EFF6FF', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, marginTop: 1 }}>
+            <i className={`ti ${meta.icon}`} style={{ fontSize: 17, color: C.primaryBlue }} />
+          </div>
+          <div>
+            <div style={{ fontSize: 16, fontWeight: 700, color: C.textPrimary, fontFamily: F.headline, marginBottom: 4 }}>{meta.label}</div>
+            <div style={{ fontSize: 12, color: C.textSec, fontFamily: F.body, lineHeight: 1.55, maxWidth: 520 }}>{desc}</div>
+          </div>
+          {accountData.saved && (
+            <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 5, background: C.successLight, border: '1px solid #bbf7d0', borderRadius: 20, padding: '3px 10px', fontSize: 11, fontWeight: 700, color: C.success, fontFamily: F.body, whiteSpace: 'nowrap', flexShrink: 0 }}>
+              <i className="ti ti-circle-check" style={{ fontSize: 12 }} /> Saved
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Card body */}
+      <div style={{ padding: '20px 20px 0' }}>
+        <ModeToggle mode={accountData.mode} onChange={v => onChange({ ...accountData, mode: v, saved: false })} />
+
+        {accountData.mode === 'existing'
+          ? <ExistingAccountForm existingId={accountData.existingId} onChange={v => onChange({ ...accountData, existingId: v })} />
+          : <NewAccountForm data={accountData} onChange={d => onChange({ ...accountData, ...d })} />
+        }
+
+        {/* Reserve extras */}
+        {isReserve && (
+          <ReserveExtras extras={reserveExtras} onChange={onReserveExtrasChange} />
+        )}
+      </div>
+
+      {/* Card footer */}
+      <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, padding: '16px 20px', marginTop: 16, borderTop: `1px solid ${C.border}`, background: '#fafbfc' }}>
+        <button onClick={handleCancel}
+          style={{ height: 36, padding: '0 20px', border: `1px solid ${C.borderMed}`, borderRadius: 7, background: C.cardBg, fontSize: 13, fontWeight: 600, color: C.textSec, cursor: 'pointer', fontFamily: F.body }}>
+          Cancel
+        </button>
+        <button onClick={handleSave} disabled={!canSave}
+          style={{ height: 36, padding: '0 20px', background: canSave ? C.primary : C.borderMed, border: 'none', borderRadius: 7, fontSize: 13, fontWeight: 700, color: '#fff', cursor: canSave ? 'pointer' : 'not-allowed', fontFamily: F.body, transition: 'background 0.15s' }}>
+          Save Changes
+        </button>
+      </div>
+    </div>
+  );
+}
+
+// ── BankAccountTab — top-level ────────────────────────────────────────────────
+function BankAccountTab() {
+  const allIds = ACCOUNT_CATEGORIES.flatMap(s => s.items.map(i => i.id));
+
+  // One state object per account slot
+  const [accounts, setAccounts] = React.useState(() =>
+    Object.fromEntries(allIds.map(id => [id, emptyAccountState()]))
+  );
+
+  // Reserve-specific extras
+  const [reserveExtras, setReserveExtras] = React.useState(emptyReserveExtras);
+
+  // Which category is active in the left nav
+  const [activeId, setActiveId] = React.useState('prop_operating');
+
+  const savedCount = Object.values(accounts).filter(a => a.saved).length;
+  const totalCount = allIds.length;
+
+  function updateAccount(id, data) {
+    setAccounts(prev => ({ ...prev, [id]: data }));
+  }
+
+  return (
+    <div style={{ display: 'flex', gap: 16, alignItems: 'flex-start' }}>
+
+      {/* ── Left category nav ── */}
+      <div style={{ width: 260, flexShrink: 0, background: C.cardBg, border: `1px solid ${C.border}`, borderRadius: 10, overflow: 'hidden', boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
+        {ACCOUNT_CATEGORIES.map((section, si) => (
+          <div key={section.section}>
+            {/* Section label */}
+            <div style={{ padding: si === 0 ? '16px 16px 8px' : '12px 16px 8px', fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.09em', color: C.textTert, fontFamily: F.body, borderTop: si > 0 ? `1px solid ${C.border}` : 'none' }}>
+              {section.section}
+            </div>
+            {/* Items */}
+            {section.items.map(item => {
+              const isActive = activeId === item.id;
+              const isSaved  = accounts[item.id]?.saved;
+              return (
+                <div key={item.id} onClick={() => setActiveId(item.id)}
+                  style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 16px', cursor: 'pointer', background: isActive ? C.primaryLight : 'transparent', borderLeft: `3px solid ${isActive ? C.primary : 'transparent'}`, transition: 'all 0.12s' }}
+                  onMouseEnter={e => { if (!isActive) e.currentTarget.style.background = '#f8faff'; }}
+                  onMouseLeave={e => { if (!isActive) e.currentTarget.style.background = 'transparent'; }}>
+                  {/* Status dot */}
+                  <div style={{ width: 10, height: 10, borderRadius: '50%', flexShrink: 0, background: isSaved ? C.success : isActive ? C.primary : C.borderMed, border: `2px solid ${isSaved ? C.success : isActive ? C.primary : C.borderMed}`, transition: 'all 0.15s' }} />
+                  <div style={{ flex: 1, minWidth: 0 }}>
+                    <div style={{ fontSize: 13, fontWeight: isActive ? 700 : 500, color: isActive ? C.primary : C.textPrimary, fontFamily: F.body, lineHeight: 1.3 }}>{item.label}</div>
+                    <div style={{ fontSize: 11, color: C.textTert, fontFamily: F.body, marginTop: 1 }}>{item.sub}</div>
+                  </div>
+                  {isSaved && <i className="ti ti-circle-check" style={{ fontSize: 13, color: C.success, flexShrink: 0 }} />}
+                </div>
+              );
+            })}
+          </div>
+        ))}
+
+        {/* Progress footer */}
+        <div style={{ padding: '12px 16px', borderTop: `1px solid ${C.border}`, background: C.inputBg }}>
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 }}>
+            <span style={{ fontSize: 11, color: C.textSec, fontFamily: F.body }}>{savedCount} of {totalCount} configured</span>
+            <span style={{ fontSize: 11, fontWeight: 700, color: savedCount === totalCount ? C.success : C.textTert, fontFamily: F.body }}>{Math.round((savedCount / totalCount) * 100)}%</span>
+          </div>
+          <div style={{ height: 4, borderRadius: 2, background: C.border, overflow: 'hidden' }}>
+            <div style={{ height: '100%', borderRadius: 2, background: savedCount === totalCount ? C.success : C.primaryBlue, width: `${(savedCount / totalCount) * 100}%`, transition: 'width 0.4s ease' }} />
+          </div>
+        </div>
+      </div>
+
+      {/* ── Right account card ── */}
+      <div style={{ flex: 1, minWidth: 0 }}>
+        <AccountCard
+          key={activeId}
+          categoryId={activeId}
+          accountData={accounts[activeId]}
+          onChange={data => updateAccount(activeId, data)}
+          reserveExtras={reserveExtras}
+          onReserveExtrasChange={setReserveExtras}
+        />
+
+        {/* Info note */}
+        <div style={{ display: 'flex', alignItems: 'flex-start', gap: 7, marginTop: 12, padding: '0 2px' }}>
+          <i className="ti ti-lock" style={{ fontSize: 13, color: C.textTert, flexShrink: 0, marginTop: 1 }} />
+          <div style={{ fontSize: 11, color: C.textTert, lineHeight: 1.5, fontFamily: F.body }}>
+            Account details are encrypted at rest. Banking credentials are never stored in plain text.
           </div>
         </div>
       </div>
@@ -1138,7 +1575,10 @@ export default function AddNewProperty({ persona = 'INDEPENDENT_PM' }) {
                 <OwnershipTab selfUser={selfUser} owners={owners} setOwners={setOwners} selfOwner={selfOwner} setSelfOwner={setSelfOwner} />
               )}
 
-              {((subTab !== 'Primary Info' && subTab !== 'Amenities' && subTab !== 'Ownership' && mainTab === 'property') ||
+              {subTab === 'Bank Account' && mainTab === 'property' && ( <BankAccountTab />
+              )}  
+
+              {((subTab !== 'Primary Info' && subTab !== 'Amenities' && subTab !== 'Ownership' && subTab !== 'Bank Account' && mainTab === 'property') ||
                 (mainTab === 'unit' && subTab !== 'Unit/Home Info' && subTab !== 'Gallery')) && (
                 <div style={{ background: C.cardBg, borderRadius: 10, border: `1.5px dashed ${C.border}`, padding: '56px 24px', textAlign: 'center' }}>
                   <i className={`ti ${{ 'Bank Account': 'ti-building-bank' }[subTab] || 'ti-layout'}`} style={{ fontSize: 38, color: C.borderMed, display: 'block', marginBottom: 12 }} />
