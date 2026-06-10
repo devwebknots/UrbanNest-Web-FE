@@ -1051,7 +1051,7 @@ function VoidedCheckUpload({ fileName, onFile, onRemove }) {
       ) : (
         <div
           onClick={() => ref.current.click()}
-          style={{ display: 'flex', alignItems: 'center', gap: 10, border: `1.5px dashed ${C.borderMed}`, borderRadius: 6, padding: '9px 14px', cursor: 'pointer', background: C.inputBg, transition: 'border-color 0.15s' }}
+          style={{ display: 'flex', alignItems: 'center', gap: 10, border: `1.5px dashed ${C.borderMed}`, borderRadius: 6, padding: '9px 14px', cursor: 'pointer', background: C.inputBg, transition: 'border-color 0.15s' , width: '100%', boxSizing: 'border-box'}}
           onMouseEnter={e => e.currentTarget.style.borderColor = C.primary}
           onMouseLeave={e => e.currentTarget.style.borderColor = C.borderMed}>
           <input ref={ref} type="file" accept="image/jpeg,image/png,application/pdf" style={{ display: 'none' }}
@@ -1131,7 +1131,7 @@ function NewAccountForm({ data, onChange }) {
           <BankInput value={data.owner} onChange={v => upd({ owner: v })} placeholder="Legal owner name" />
         </div>
       </div>
-      <div>
+      <div style={{ width: '100%' }}>
         <BankFieldLabel>Voided Check</BankFieldLabel>
         <VoidedCheckUpload
           fileName={data.voidedCheckName}
@@ -1211,7 +1211,7 @@ function ReserveExtras({ extras, onChange }) {
 }
 
 // ── AccountCard — right panel ─────────────────────────────────────────────────
-function AccountCard({ categoryId, accountData, onChange, reserveExtras, onReserveExtrasChange }) {
+function AccountCard({ categoryId, accountData, onChange, onSaved, reserveExtras, onReserveExtrasChange }) {
   const isReserve = categoryId === 'prop_reserve';
   const desc = ACCOUNT_DESCRIPTIONS[categoryId] || '';
 
@@ -1221,11 +1221,17 @@ function AccountCard({ categoryId, accountData, onChange, reserveExtras, onReser
 
   const canSave = accountData.mode === 'existing'
     ? Boolean(accountData.existingId)
-    : Boolean(accountData.bankName && accountData.accountNumber && accountData.routing);
+    : Boolean(
+        (accountData.bankName || '').trim() &&
+        (accountData.accountNumber || '').trim() &&
+        (accountData.routing || '').trim()
+    );
+       
 
   function handleSave() {
     if (!canSave) return;
     onChange({ ...accountData, saved: true });
+    if (onSaved) onSaved();
   }
 
   function handleCancel() {
@@ -1304,6 +1310,11 @@ function BankAccountTab() {
     setAccounts(prev => ({ ...prev, [id]: data }));
   }
 
+  function advanceToNext(currentId) {
+    const idx = allIds.indexOf(currentId);
+    if (idx < allIds.length - 1) setActiveId(allIds[idx + 1]);
+  }
+
   return (
     <div style={{ display: 'flex', gap: 16, alignItems: 'flex-start' }}>
 
@@ -1356,6 +1367,7 @@ function BankAccountTab() {
           categoryId={activeId}
           accountData={accounts[activeId]}
           onChange={data => updateAccount(activeId, data)}
+          onSaved={() => advanceToNext(activeId)}
           reserveExtras={reserveExtras}
           onReserveExtrasChange={setReserveExtras}
         />
