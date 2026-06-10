@@ -11,6 +11,7 @@ import { useNavigate } from 'react-router-dom';
 import NavB from '../../../components/layout/NavB';
 import Header from '../../../components/layout/Header';
 import { CustomDropdown } from '../../../components/ui';
+import UnitTabContent, { UnitSwitcher, emptyUnit } from './UnitTabs';
 
 if (typeof document !== 'undefined' && !document.getElementById('tabler-icons-cdn')) {
   const l = document.createElement('link');
@@ -1418,6 +1419,9 @@ export default function AddNewProperty({ persona = 'INDEPENDENT_PM' }) {
   const [galleryVideos, setGalleryVideos]         = useState([]);
   const [owners, setOwners]                       = useState([]);
   const [selfOwner, setSelfOwner]                 = useState(null);
+  const firstUnit                      = React.useMemo(() => emptyUnit(''), []);
+  const [units, setUnits]              = useState([firstUnit]);
+  const [activeUnitId, setActiveUnitId] = useState(firstUnit.id);  
 
   const selfUser = { firstName: userName.split(' ')[0] || 'User', lastName: userName.split(' ').slice(1).join(' ') || '', email: '' };
   const currentTabs  = mainTab === 'property' ? PROP_SUBTABS : UNIT_SUBTABS;
@@ -1463,6 +1467,24 @@ export default function AddNewProperty({ persona = 'INDEPENDENT_PM' }) {
 
   const isLastTab = currentTabs.indexOf(subTab) === currentTabs.length - 1;
   const meta = PAGE_META[subTab] || { title: subTab, sub: '' };
+
+  const activeUnit = units.find(u => u.id === activeUnitId) || units[0];
+
+  function updateActiveUnit(data) {
+  setUnits(prev => prev.map(u => u.id === activeUnitId ? data : u));
+  }
+
+  function handleAddUnit() {
+  const newUnit = emptyUnit('');
+  setUnits(prev => [...prev, newUnit]);
+  setActiveUnitId(newUnit.id);
+  setSubTab('Unit/Home Info');
+  }
+
+  function handleSwitchUnit(id) {
+  setActiveUnitId(id);
+  setSubTab('Unit/Home Info');
+  }
 
   return (
     <>
@@ -1513,6 +1535,7 @@ export default function AddNewProperty({ persona = 'INDEPENDENT_PM' }) {
             </div>
 
             {/* Sub-tabs */}
+
             <div style={{ background: C.cardBg, margin: `0 ${PAGE_PX}px`, borderBottom: `1px solid ${C.border}`, borderLeft: `1px solid ${C.border}`, borderRight: `1px solid ${C.border}`, display: 'flex', flexShrink: 0 }}>
               {currentTabs.map(st => {
                 const isA = subTab === st;
@@ -1590,8 +1613,7 @@ export default function AddNewProperty({ persona = 'INDEPENDENT_PM' }) {
               {subTab === 'Bank Account' && mainTab === 'property' && ( <BankAccountTab />
               )}  
 
-              {((subTab !== 'Primary Info' && subTab !== 'Amenities' && subTab !== 'Ownership' && subTab !== 'Bank Account' && mainTab === 'property') ||
-                (mainTab === 'unit' && subTab !== 'Unit/Home Info' && subTab !== 'Gallery')) && (
+              {(subTab !== 'Primary Info' && subTab !== 'Amenities' && subTab !== 'Ownership' && subTab !== 'Bank Account' && mainTab === 'property')  && (
                 <div style={{ background: C.cardBg, borderRadius: 10, border: `1.5px dashed ${C.border}`, padding: '56px 24px', textAlign: 'center' }}>
                   <i className={`ti ${{ 'Bank Account': 'ti-building-bank' }[subTab] || 'ti-layout'}`} style={{ fontSize: 38, color: C.borderMed, display: 'block', marginBottom: 12 }} />
                   <div style={{ fontSize: 14, fontWeight: 700, color: C.textPrimary, marginBottom: 5, fontFamily: F.headline }}>{subTab}</div>
@@ -1599,13 +1621,20 @@ export default function AddNewProperty({ persona = 'INDEPENDENT_PM' }) {
                 </div>
               )}
 
-              {subTab === 'Unit/Home Info' && (
-                <div style={{ background: C.cardBg, borderRadius: 10, border: `1.5px dashed ${C.border}`, padding: '56px 24px', textAlign: 'center' }}>
-                  <i className="ti ti-door" style={{ fontSize: 38, color: C.borderMed, display: 'block', marginBottom: 12 }} />
-                  <div style={{ fontSize: 14, fontWeight: 700, color: C.textPrimary, marginBottom: 5, fontFamily: F.headline }}>Unit / Home Info</div>
-                  <div style={{ fontSize: 13, color: C.textSec, fontFamily: F.body }}>Unit details form — building next.</div>
-                </div>
-              )}
+              {mainTab === 'unit' && activeUnit && (
+                <UnitTabContent
+                  subTab={subTab}
+                  unit={activeUnit}
+                  onChange={updateActiveUnit}
+                  propName={propName}
+                  propType={propType}
+                  units={units}
+                  activeUnitId={activeUnitId}
+                  onSwitchUnit={handleSwitchUnit}
+                  onAddUnit={handleAddUnit}
+                />
+              )}  
+            
             </div>
 
             {/* Footer */}
@@ -1619,7 +1648,7 @@ export default function AddNewProperty({ persona = 'INDEPENDENT_PM' }) {
               {isLastTab && mainTab === 'property' ? (
                 <button onClick={() => { setMainTab('unit'); setSubTab('Unit/Home Info'); }} style={{ padding: '9px 24px', fontSize: 13, fontWeight: 700, background: C.primary, border: 'none', borderRadius: 7, color: '#fff', cursor: 'pointer', fontFamily: F.body, outline: 'none' }}>Go to Unit Details →</button>
               ) : isLastTab && mainTab === 'unit' ? (
-                <button onClick={() => { setUnitCount(c => c + 1); setShowMore(true); }} style={{ padding: '9px 24px', fontSize: 13, fontWeight: 700, background: C.primary, border: 'none', borderRadius: 7, color: '#fff', cursor: 'pointer', fontFamily: F.body, outline: 'none' }}>Save Unit Details</button>
+                <button onClick={() => { setUnitCount(units.length); setShowMore(true); }} style={{ padding: '9px 24px', fontSize: 13, fontWeight: 700, background: C.primary, border: 'none', borderRadius: 7, color: '#fff', cursor: 'pointer', fontFamily: F.body, outline: 'none' }}>Save Unit Details</button>
               ) : (
                 <button onClick={handleNext} style={{ padding: '9px 24px', fontSize: 13, fontWeight: 700, background: C.primary, border: 'none', borderRadius: 7, color: '#fff', cursor: 'pointer', fontFamily: F.body, outline: 'none' }}>
                   {subTab === 'Primary Info' ? 'Save & Continue' : 'Next →'}
@@ -1641,7 +1670,7 @@ export default function AddNewProperty({ persona = 'INDEPENDENT_PM' }) {
             </div>
             <div style={{ display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
               <button onClick={() => { setShowMore(false); alert('Final Submit'); }} style={{ padding: '9px 20px', fontSize: 13, fontWeight: 600, background: 'transparent', border: `1.5px solid ${C.borderMed}`, borderRadius: 7, color: C.textSec, cursor: 'pointer', outline: 'none' }}>No - Final Submit</button>
-              <button onClick={() => { setShowMore(false); setSubTab('Unit/Home Info'); setMainTab('unit'); }} style={{ padding: '9px 20px', fontSize: 13, fontWeight: 700, background: C.primary, border: 'none', borderRadius: 7, color: '#fff', cursor: 'pointer', outline: 'none' }}>+ Add Another Unit</button>
+              <button onClick={() => { setShowMore(false); handleAddUnit(); setMainTab('unit'); }} style={{ padding: '9px 20px', fontSize: 13, fontWeight: 700, background: C.primary, border: 'none', borderRadius: 7, color: '#fff', cursor: 'pointer', outline: 'none' }}>+ Add Another Unit</button>
             </div>
           </div>
         </div>
