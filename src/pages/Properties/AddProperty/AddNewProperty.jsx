@@ -1290,19 +1290,8 @@ function AccountCard({ categoryId, accountData, onChange, onSaved, reserveExtras
 }
 
 // ── BankAccountTab — top-level ────────────────────────────────────────────────
-function BankAccountTab() {
+function BankAccountTab({ accounts, setAccounts, reserveExtras, setReserveExtras, activeId, setActiveId }) {
   const allIds = ACCOUNT_CATEGORIES.flatMap(s => s.items.map(i => i.id));
-
-  // One state object per account slot
-  const [accounts, setAccounts] = React.useState(() =>
-    Object.fromEntries(allIds.map(id => [id, emptyAccountState()]))
-  );
-
-  // Reserve-specific extras
-  const [reserveExtras, setReserveExtras] = React.useState(emptyReserveExtras);
-
-  // Which category is active in the left nav
-  const [activeId, setActiveId] = React.useState('prop_operating');
 
   const savedCount = Object.values(accounts).filter(a => a.saved).length;
   const totalCount = allIds.length;
@@ -1395,6 +1384,20 @@ export default function AddNewProperty({ persona = 'INDEPENDENT_PM' }) {
   const [unitLocked, setUnitLocked] = useState(true);
   const [showMore, setShowMore]     = useState(false);
   const [unitCount, setUnitCount]   = useState(0);
+  const [unitSaved, setUnitSaved] = useState(false);
+  const [pendingNewUnit, setPendingNewUnit] = useState(null);
+  const firstUnit                      = React.useMemo(() => emptyUnit(''), []);
+  const [units, setUnits]              = useState([firstUnit]);
+  const [activeUnitId, setActiveUnitId] = useState(firstUnit.id);  
+  const [bankAccounts, setBankAccounts]         = useState(() => Object.fromEntries(['prop_operating','prop_reserve','pm_operating','pm_trust','rent','security'].map(id => [id, emptyAccountState()])));
+  const [bankReserveExtras, setBankReserveExtras] = useState(() => emptyReserveExtras());
+  const [bankActiveId, setBankActiveId]           = useState('prop_operating');
+
+  const activeUnit = units.find(u => u.id === activeUnitId) || units[0];
+  const propBankComplete = Object.values(bankAccounts).every(a => a.saved);
+  const unitBankComplete = activeUnit
+  ? Object.values(activeUnit.unitBankAccounts || {}).every(a => a.saved || a.skipped)
+  : false;
 
   const [propName, setPropName]     = useState('');
   const [propType, setPropType]     = useState('');
@@ -1419,9 +1422,6 @@ export default function AddNewProperty({ persona = 'INDEPENDENT_PM' }) {
   const [galleryVideos, setGalleryVideos]         = useState([]);
   const [owners, setOwners]                       = useState([]);
   const [selfOwner, setSelfOwner]                 = useState(null);
-  const firstUnit                      = React.useMemo(() => emptyUnit(''), []);
-  const [units, setUnits]              = useState([firstUnit]);
-  const [activeUnitId, setActiveUnitId] = useState(firstUnit.id);  
 
   const selfUser = { firstName: userName.split(' ')[0] || 'User', lastName: userName.split(' ').slice(1).join(' ') || '', email: '' };
   const currentTabs  = mainTab === 'property' ? PROP_SUBTABS : UNIT_SUBTABS;
@@ -1468,8 +1468,6 @@ export default function AddNewProperty({ persona = 'INDEPENDENT_PM' }) {
   const isLastTab = currentTabs.indexOf(subTab) === currentTabs.length - 1;
   const meta = PAGE_META[subTab] || { title: subTab, sub: '' };
 
-  const activeUnit = units.find(u => u.id === activeUnitId) || units[0];
-
   function updateActiveUnit(data) {
   setUnits(prev => prev.map(u => u.id === activeUnitId ? data : u));
   }
@@ -1479,11 +1477,15 @@ export default function AddNewProperty({ persona = 'INDEPENDENT_PM' }) {
   setUnits(prev => [...prev, newUnit]);
   setActiveUnitId(newUnit.id);
   setSubTab('Unit/Home Info');
+  setUnitSaved(false);
+  setPendingNewUnit(newUnit.id);
   }
 
   function handleSwitchUnit(id) {
   setActiveUnitId(id);
   setSubTab('Unit/Home Info');
+  setUnitSaved(false);
+  setPendingNewUnit(null);
   }
 
   return (
@@ -1602,16 +1604,20 @@ export default function AddNewProperty({ persona = 'INDEPENDENT_PM' }) {
                 <AmenitiesTab selectedAmenities={selectedAmenities} setSelectedAmenities={setSelectedAmenities} />
               )}
 
-              {subTab === 'Gallery' && mainTab === 'unit' && (
-                <GalleryTab images={galleryImages} setImages={setGalleryImages} videos={galleryVideos} setVideos={setGalleryVideos} />
-              )}
-
               {subTab === 'Ownership' && mainTab === 'property' && (
                 <OwnershipTab selfUser={selfUser} owners={owners} setOwners={setOwners} selfOwner={selfOwner} setSelfOwner={setSelfOwner} />
               )}
 
-              {subTab === 'Bank Account' && mainTab === 'property' && ( <BankAccountTab />
-              )}  
+              {subTab === 'Bank Account' && mainTab === 'property' && (
+                <BankAccountTab
+                 accounts={bankAccounts}
+                 setAccounts={setBankAccounts}
+                 reserveExtras={bankReserveExtras}
+                 setReserveExtras={setBankReserveExtras}
+                 activeId={bankActiveId}
+                 setActiveId={setBankActiveId}
+                />
+              )}   
 
               {(subTab !== 'Primary Info' && subTab !== 'Amenities' && subTab !== 'Ownership' && subTab !== 'Bank Account' && mainTab === 'property')  && (
                 <div style={{ background: C.cardBg, borderRadius: 10, border: `1.5px dashed ${C.border}`, padding: '56px 24px', textAlign: 'center' }}>
@@ -1632,29 +1638,47 @@ export default function AddNewProperty({ persona = 'INDEPENDENT_PM' }) {
                   activeUnitId={activeUnitId}
                   onSwitchUnit={handleSwitchUnit}
                   onAddUnit={handleAddUnit}
+                  propOwners={owners}
+                  propSelfOwner={selfOwner}
+                  selfUser={selfUser}
                 />
               )}  
             
             </div>
 
             {/* Footer */}
+
             <div style={{ position: 'sticky', bottom: 0, background: C.cardBg, borderTop: `1px solid ${C.border}`, padding: `13px ${PAGE_PX}px`, display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 12, zIndex: 10, boxShadow: '0 -2px 8px rgba(0,0,0,0.05)', fontFamily: F.body, marginTop: 'auto' }}>
               {subTab === 'Bank Account' && (
                 <div style={{ marginRight: 'auto', display: 'flex', alignItems: 'center', gap: 7, fontSize: 12, color: C.textSec }}>
-                  <i className="ti ti-lock" style={{ fontSize: 13 }} /> Secure Transaction Encryption
+                 <i className="ti ti-lock" style={{ fontSize: 13 }} /> Secure Transaction Encryption
                 </div>
               )}
-              <button onClick={() => navigate(-1)} style={{ padding: '9px 24px', fontSize: 13, fontWeight: 600, background: 'transparent', border: `1.5px solid ${C.borderMed}`, borderRadius: 7, color: C.textSec, cursor: 'pointer', fontFamily: F.body, outline: 'none' }}>Cancel</button>
+              <button onClick={() => {
+                if (mainTab === 'unit' && pendingNewUnit && activeUnitId === pendingNewUnit) {
+                    const remaining = units.filter(u => u.id !== pendingNewUnit);
+                    setUnits(remaining);
+                    setActiveUnitId(remaining[remaining.length - 1].id);
+                    setSubTab('Unit/Home Info');
+                    setUnitSaved(true);
+                    setPendingNewUnit(null);
+                } else {
+                    navigate(-1);
+                }
+              }} style={{ padding: '9px 24px', fontSize: 13, fontWeight: 600, background: 'transparent', border: `1.5px solid ${C.borderMed}`, borderRadius: 7, color: C.textSec, cursor: 'pointer', fontFamily: F.body, outline: 'none' }}>Cancel</button>
+              
               {isLastTab && mainTab === 'property' ? (
-                <button onClick={() => { setMainTab('unit'); setSubTab('Unit/Home Info'); }} style={{ padding: '9px 24px', fontSize: 13, fontWeight: 700, background: C.primary, border: 'none', borderRadius: 7, color: '#fff', cursor: 'pointer', fontFamily: F.body, outline: 'none' }}>Go to Unit Details →</button>
-              ) : isLastTab && mainTab === 'unit' ? (
-                <button onClick={() => { setUnitCount(units.length); setShowMore(true); }} style={{ padding: '9px 24px', fontSize: 13, fontWeight: 700, background: C.primary, border: 'none', borderRadius: 7, color: '#fff', cursor: 'pointer', fontFamily: F.body, outline: 'none' }}>Save Unit Details</button>
+                 <button onClick={() => { if (!propBankComplete) return; setMainTab('unit'); setSubTab('Unit/Home Info'); }} disabled={!propBankComplete} style={{ padding: '9px 24px', fontSize: 13, fontWeight: 700, background: propBankComplete ? C.primary : C.borderMed, border: 'none', borderRadius: 7, color: '#fff', cursor: propBankComplete ? 'pointer' : 'not-allowed', fontFamily: F.body, outline: 'none' }}>Go to Unit Details →</button>                
+              ) : mainTab === 'unit' && unitSaved ? (
+                 <button onClick={() => alert('Final Submit')} style={{ padding: '9px 24px', fontSize: 13, fontWeight: 700, background: C.success, border: 'none', borderRadius: 7, color: '#fff', cursor: 'pointer', fontFamily: F.body, outline: 'none' }}>Final Submit</button>
+              ) : isLastTab && mainTab === 'unit' && !unitSaved ? (
+                 <button onClick={() => { if (!unitBankComplete) return; setUnitCount(units.length); setUnitSaved(true); setSubTab('Unit/Home Info'); setPendingNewUnit(null); }} disabled={!unitBankComplete} style={{ padding: '9px 24px', fontSize: 13, fontWeight: 700, background: unitBankComplete ? C.primary : C.borderMed, border: 'none', borderRadius: 7, color: '#fff', cursor: unitBankComplete ? 'pointer' : 'not-allowed', fontFamily: F.body, outline: 'none' }}>Save Unit</button>
               ) : (
-                <button onClick={handleNext} style={{ padding: '9px 24px', fontSize: 13, fontWeight: 700, background: C.primary, border: 'none', borderRadius: 7, color: '#fff', cursor: 'pointer', fontFamily: F.body, outline: 'none' }}>
-                  {subTab === 'Primary Info' ? 'Save & Continue' : 'Next →'}
-                </button>
+                 <button onClick={handleNext} style={{ padding: '9px 24px', fontSize: 13, fontWeight: 700, background: C.primary, border: 'none', borderRadius: 7, color: '#fff', cursor: 'pointer', fontFamily: F.body, outline: 'none' }}>
+                    {subTab === 'Primary Info' ? 'Save & Continue' : 'Next →'}
+                 </button>
               )}
-            </div>
+            </div>    
 
           </div>
         </div>
