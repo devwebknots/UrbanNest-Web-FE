@@ -5,7 +5,7 @@
  * Source of truth: UrbanNest Design System §9 — Custom Dropdown Standard
  *
  * Updated: Session 19 —
- *   - Height 38px, bg #F8F9FA, border always #E8ECF0 (no dark border on open)
+ *   - Height 38px, bg #fdfeff, border always #E8ECF0 (no dark border on open)
  *   - No blue focus ring
  *   - Border radius 6px
  *   - Font Nunito Sans 13px

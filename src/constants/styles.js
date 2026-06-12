@@ -33,7 +33,7 @@ export const inputStyle = (focused = false) => ({
 // ── Primary button ────────────────────────────
 export const primaryBtnStyle = {
   width: '100%',
-  height: 50,
+  height: 40,
   background: C.primary,
   color: C.white,
   border: 'none',

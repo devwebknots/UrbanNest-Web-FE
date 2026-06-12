@@ -50,29 +50,6 @@ const F = {
 
 const PAGE_PX = 24;
 
-const PROPERTY_AMENITIES = [
-  { id: 'ac',        icon: 'ti-air-conditioning',   label: 'Air Condition' },
-  { id: 'balcony',   icon: 'ti-building',            label: 'Balcony' },
-  { id: 'kitchen',   icon: 'ti-tools-kitchen-2',     label: 'Mobile Kitchen' },
-  { id: 'gated',     icon: 'ti-fence',               label: 'Gated Community' },
-  { id: 'wifi',      icon: 'ti-wifi',                label: 'WiFi' },
-  { id: 'parking',   icon: 'ti-parking',             label: 'Parking' },
-  { id: 'pet',       icon: 'ti-paw',                 label: 'Pet Friendly' },
-  { id: 'cctv',      icon: 'ti-video',               label: 'CCTV' },
-  { id: 'garbage',   icon: 'ti-trash',               label: 'Garbage Disposal' },
-  { id: 'hall',      icon: 'ti-building-community',  label: 'Community Hall' },
-  { id: 'power',     icon: 'ti-plug',                label: 'Power Backup' },
-  { id: 'water',     icon: 'ti-droplet',             label: 'Water Supply' },
-  { id: 'gym',       icon: 'ti-barbell',             label: 'Gym' },
-  { id: 'pool',      icon: 'ti-swimming',            label: 'Swimming Pool' },
-  { id: 'lift',      icon: 'ti-elevator',            label: 'Elevator / Lift' },
-  { id: 'garden',    icon: 'ti-plant-2',             label: 'Garden / Lawn' },
-  { id: 'security',  icon: 'ti-shield-check',        label: 'Security' },
-  { id: 'intercom',  icon: 'ti-phone-call',          label: 'Intercom' },
-  { id: 'laundry',   icon: 'ti-wash-machine',        label: 'Laundry Room' },
-  { id: 'rooftop',   icon: 'ti-building-skyscraper', label: 'Rooftop Access' },
-];
-
 const PROPERTY_TYPE_OPTIONS = [
   'Apartment Complex','Individual House','Multi-Family','Condominium',
   'Townhome','Student Housing','Villa','Serviced Apartment','Commercial','Mixed Use',
@@ -300,14 +277,16 @@ function AccessCard({ amenity, checked, onToggle }) {
   );
 }
 
-function AmenitiesTab({ selectedAmenities, setSelectedAmenities }) {
+function AmenitiesTab({ selectedAmenities, setSelectedAmenities, propertyAmenities  }) {
   const [searchQuery, setSearchQuery] = useState('');
   const [generated, setGenerated]     = useState(false);
   const [accessMode, setAccessMode]   = useState('all');
   const [accessChecked, setAccessChecked] = useState(new Set());
 
-  const filtered = searchQuery.trim() ? PROPERTY_AMENITIES.filter(a => a.label.toLowerCase().includes(searchQuery.toLowerCase())) : PROPERTY_AMENITIES;
-  const selectedList = PROPERTY_AMENITIES.filter(a => selectedAmenities.has(a.id));
+  const filtered = searchQuery.trim()
+  ? propertyAmenities.filter(a => a.label.toLowerCase().includes(searchQuery.toLowerCase()))
+  : propertyAmenities;
+  const selectedList = propertyAmenities.filter(a => selectedAmenities.has(a.id));
   const selectedCount = selectedList.length;
 
   function toggleAmenity(id) {
@@ -939,6 +918,12 @@ const ACCOUNT_CATEGORIES = [
       { id: 'security',     label: 'Security Deposit Account',   sub: 'Escrow holding account',    icon: 'ti-lock-dollar'   },
     ],
   },
+  {
+    section: 'OWNER ACCOUNTS',
+    items: [
+      { id: 'owner_settlement', label: 'Owner Settlement Account', sub: 'Property owner disbursement (optional)', icon: 'ti-user-dollar' },
+    ],
+  },
 ];
 
 const ACCOUNT_DESCRIPTIONS = {
@@ -948,6 +933,7 @@ const ACCOUNT_DESCRIPTIONS = {
   pm_trust:       'Segregated trust account holding client funds in compliance with property management regulations. Must remain separate from PM operating funds.',
   rent:           'Dedicated account where tenants route rent payments. Provides clean reconciliation between collected rent and owner disbursements.',
   security:       'Escrow account holding tenant security deposits. Regulated in most jurisdictions — funds must be kept separate and accounted for individually.',
+  owner_settlement: 'Account where collected rent is disbursed to the property owner after deducting management fees. The owner provides this via the Landlord Portal after accepting their ownership invite.',
 };
 
 // Mock existing accounts — replace with API fetch when Financials is built
@@ -1214,6 +1200,7 @@ function ReserveExtras({ extras, onChange }) {
 // ── AccountCard — right panel ─────────────────────────────────────────────────
 function AccountCard({ categoryId, accountData, onChange, onSaved, reserveExtras, onReserveExtrasChange }) {
   const isReserve = categoryId === 'prop_reserve';
+  const isOptional  = categoryId === 'prop_reserve' || categoryId === 'owner_settlement';
   const desc = ACCOUNT_DESCRIPTIONS[categoryId] || '';
 
   // Find category meta
@@ -1259,8 +1246,8 @@ function AccountCard({ categoryId, accountData, onChange, onSaved, reserveExtras
         </div>
       </div>
 
-      {/* Card body */}
-      <div style={{ padding: '20px 20px 0' }}>
+      {/* Card body — hidden when skipped */}
+      {!accountData.skipped && <div style={{ padding: '20px 20px 0' }}>  
         <ModeToggle mode={accountData.mode} onChange={v => onChange({ ...accountData, mode: v, saved: false })} />
 
         {accountData.mode === 'existing'
@@ -1272,10 +1259,41 @@ function AccountCard({ categoryId, accountData, onChange, onSaved, reserveExtras
         {isReserve && (
           <ReserveExtras extras={reserveExtras} onChange={onReserveExtrasChange} />
         )}
-      </div>
+      </div>}
+
+        {/* Skip banner for optional accounts (owner_settlement) */}
+        {isOptional && !accountData.saved && !accountData.skipped && (
+          <div style={{ margin: '16px 20px 0', background: '#FFFBEB', border: '1px solid #FDE68A', borderRadius: 8, padding: '10px 14px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12 }}>
+            <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8 }}>
+               <i className="ti ti-info-circle" style={{ fontSize: 14, color: '#D97706', flexShrink: 0, marginTop: 1 }} />
+               <div style={{ fontSize: 12, color: '#92400E', fontFamily: F.body, lineHeight: 1.5 }}>
+                 {categoryId === 'owner_settlement'
+                    ? 'This account is optional. The property owner will provide it after accepting their ownership invite via the Landlord Portal.'
+                    : 'This account is optional. You can skip it and manage reserves at the property level instead.'
+                 }
+              </div>
+            </div>
+            <button onClick={() => onChange({ ...accountData, skipped: true })}
+              style={{ height: 32, padding: '0 14px', border: '1px solid #FDE68A', borderRadius: 6, background: '#FEF3C7', fontSize: 12, fontWeight: 600, color: '#92400E', cursor: 'pointer', fontFamily: F.body, whiteSpace: 'nowrap', flexShrink: 0 }}>
+              Skip this account
+            </button>
+          </div>
+        )}
+
+        {/* Skipped state */}
+        {accountData.skipped && (
+            <div style={{ padding: '20px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10 }}>
+                <i className="ti ti-circle-dashed" style={{ fontSize: 32, color: '#CBD5E1' }} />
+                <div style={{ fontSize: 13, color: '#64748B', fontFamily: F.body }}>This account has been skipped.</div>
+                <button onClick={() => onChange({ ...accountData, skipped: false })}
+                    style={{ height: 34, padding: '0 16px', border: '1px solid #CBD5E1', borderRadius: 6, background: '#fff', fontSize: 12, fontWeight: 600, color: '#64748B', cursor: 'pointer', fontFamily: F.body }}>
+                    Set up this account
+                </button>
+            </div>
+        )}
 
       {/* Card footer */}
-      <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, padding: '16px 20px', marginTop: 16, borderTop: `1px solid ${C.border}`, background: '#fafbfc' }}>
+      {!accountData.skipped && <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, padding: '16px 20px', marginTop: 16, borderTop: `1px solid ${C.border}`, background: '#fafbfc' }}>
         <button onClick={handleCancel}
           style={{ height: 36, padding: '0 20px', border: `1px solid ${C.borderMed}`, borderRadius: 7, background: C.cardBg, fontSize: 13, fontWeight: 600, color: C.textSec, cursor: 'pointer', fontFamily: F.body }}>
           Cancel
@@ -1284,7 +1302,7 @@ function AccountCard({ categoryId, accountData, onChange, onSaved, reserveExtras
           style={{ height: 36, padding: '0 20px', background: canSave ? C.primary : C.borderMed, border: 'none', borderRadius: 7, fontSize: 13, fontWeight: 700, color: '#fff', cursor: canSave ? 'pointer' : 'not-allowed', fontFamily: F.body, transition: 'background 0.15s' }}>
           Save Changes
         </button>
-      </div>
+      </div>}
     </div>
   );
 }
@@ -1374,6 +1392,38 @@ function BankAccountTab({ accounts, setAccounts, reserveExtras, setReserveExtras
   );
 }
 
+function SavePropertyModal({ propName, onAddUnit, onNoUnits }) {
+  return (
+    <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 999 }}>
+      <div style={{ background: '#fff', borderRadius: 12, padding: 32, width: 440, boxShadow: '0 24px 60px rgba(0,0,0,0.2)', fontFamily: "'Nunito Sans', sans-serif" }}>
+        <div style={{ width: 48, height: 48, borderRadius: '50%', background: '#F0FDF4', border: '2px solid #BBF7D0', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 16 }}>
+          <i className="ti ti-circle-check" style={{ fontSize: 24, color: '#16A34A' }} />
+        </div>
+        <div style={{ fontSize: 18, fontWeight: 700, color: '#0F172A', marginBottom: 6, fontFamily: "'Noto Serif', serif" }}>
+          Property Saved Successfully
+        </div>
+        <div style={{ fontSize: 13, color: '#64748B', marginBottom: 8, lineHeight: 1.6 }}>
+          <strong style={{ color: '#0F172A' }}>{propName || 'Your property'}</strong> has been registered. An ownership verification email has been sent to the property owner.
+        </div>
+        <div style={{ fontSize: 13, color: '#0F172A', fontWeight: 600, marginBottom: 20 }}>
+          Would you like to add units now?
+        </div>
+        <div style={{ display: 'flex', gap: 10 }}>
+          <button
+            onClick={onAddUnit}
+            style={{ flex: 1, height: 40, background: '#002D5B', border: 'none', borderRadius: 8, fontSize: 13, fontWeight: 700, color: '#fff', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6 }}>
+            <i className="ti ti-plus" style={{ fontSize: 14 }} /> Add Unit
+          </button>
+          <button
+            onClick={onNoUnits}
+            style={{ flex: 1, height: 40, background: 'transparent', border: '1.5px solid #CBD5E1', borderRadius: 8, fontSize: 13, fontWeight: 600, color: '#64748B', cursor: 'pointer' }}>
+            No Units Yet
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
 // ─── Main component ────────────────────────────────────────────────────────────
 export default function AddNewProperty({ persona = 'INDEPENDENT_PM' }) {
   const navigate = useNavigate();
@@ -1383,18 +1433,21 @@ export default function AddNewProperty({ persona = 'INDEPENDENT_PM' }) {
   const [subTab, setSubTab]         = useState('Primary Info');
   const [unitLocked, setUnitLocked] = useState(true);
   const [showMore, setShowMore]     = useState(false);
+  const [showSaveModal, setShowSaveModal] = useState(false);
+  const [propId, setPropId]     = useState(null);
+  const [saving, setSaving]     = useState(false);  
   const [unitCount, setUnitCount]   = useState(0);
   const [unitSaved, setUnitSaved] = useState(false);
   const [pendingNewUnit, setPendingNewUnit] = useState(null);
   const firstUnit                      = React.useMemo(() => emptyUnit(''), []);
   const [units, setUnits]              = useState([firstUnit]);
   const [activeUnitId, setActiveUnitId] = useState(firstUnit.id);  
-  const [bankAccounts, setBankAccounts]         = useState(() => Object.fromEntries(['prop_operating','prop_reserve','pm_operating','pm_trust','rent','security'].map(id => [id, emptyAccountState()])));
+  const [bankAccounts, setBankAccounts]         = useState(() => Object.fromEntries(['prop_operating','prop_reserve','pm_operating','pm_trust','rent','security','owner_settlement'].map(id => [id, emptyAccountState()])));
   const [bankReserveExtras, setBankReserveExtras] = useState(() => emptyReserveExtras());
   const [bankActiveId, setBankActiveId]           = useState('prop_operating');
 
   const activeUnit = units.find(u => u.id === activeUnitId) || units[0];
-  const propBankComplete = Object.values(bankAccounts).every(a => a.saved);
+  const propBankComplete = Object.values(bankAccounts).every(a => a.saved  || a.skipped);
   const unitBankComplete = activeUnit
   ? Object.values(activeUnit.unitBankAccounts || {}).every(a => a.saved || a.skipped)
   : false;
@@ -1418,6 +1471,8 @@ export default function AddNewProperty({ persona = 'INDEPENDENT_PM' }) {
   const [errors, setErrors]         = useState({});
 
   const [selectedAmenities, setSelectedAmenities] = useState(new Set());
+  const [propertyAmenities, setPropertyAmenities] = useState([]);
+  const [unitAmenities, setUnitAmenities]         = useState([]);
   const [galleryImages, setGalleryImages]         = useState([]);
   const [galleryVideos, setGalleryVideos]         = useState([]);
   const [owners, setOwners]                       = useState([]);
@@ -1440,6 +1495,18 @@ export default function AddNewProperty({ persona = 'INDEPENDENT_PM' }) {
         }
       }).catch(() => {});
   }, [navigate, persona]);
+  
+  useEffect(() => {
+    const token = localStorage.getItem('access_token');
+    if (!token) return;
+    Promise.all([
+    fetch('http://localhost:8001/api/admin/amenities/?category=PROPERTY', { headers: { Authorization: 'Bearer ' + token } }).then(r => r.json()),
+    fetch('http://localhost:8001/api/admin/amenities/?category=UNIT',     { headers: { Authorization: 'Bearer ' + token } }).then(r => r.json()),
+     ]).then(([prop, unit]) => {
+    setPropertyAmenities((prop || []).map(a => ({ id: a.id, icon: a.icon, label: a.name })));
+    setUnitAmenities((unit || []).map(a => ({ id: a.id, icon: a.icon, label: a.name })));
+     }).catch(() => {});
+  }, []);
 
   useEffect(() => { setState(''); }, [country]);
 
@@ -1480,6 +1547,95 @@ export default function AddNewProperty({ persona = 'INDEPENDENT_PM' }) {
   setUnitSaved(false);
   setPendingNewUnit(newUnit.id);
   }
+
+  async function handleSaveProperty() {
+  if (!propBankComplete || saving) return;
+  setSaving(true);
+  try {
+    const token = localStorage.getItem('access_token');
+
+     // ← ADD HERE, before the fetch
+    console.log('Sending:', {
+      name:           propName,
+      property_type:  propType.toUpperCase().replace(/ /g, '_'),
+      ownership_type: ownerType.toUpperCase().replace(/ /g, '_'),
+    });
+
+    // Step 1 — Create property
+    const createRes = await fetch('http://localhost:8001/api/properties/', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`,
+      },
+      body: JSON.stringify({
+        name:           propName,
+        property_type: {
+            'Apartment Complex':  'APARTMENT_COMPLEX',
+            'Individual House':   'INDIVIDUAL_HOUSE',
+            'Multi-Family':       'MULTI_FAMILY',
+            'Condominium':        'CONDOMINIUM',
+            'Townhome':           'TOWNHOME',
+            'Student Housing':    'STUDENT_HOUSING',
+            'Villa':              'VILLA',
+            'Serviced Apartment': 'SERVICED_APARTMENT',
+            'Commercial':         'COMMERCIAL',
+            'Mixed Use':          'MIXED_USE',
+        }[propType] || propType.toUpperCase().replace(/ /g, '_'),
+        ownership_type: {
+        'Self-Owned':     'SELF_OWNED',
+        'Co-Owned':       'CO_OWNED',
+        'Corporate / LLC':'CORPORATE',
+        'Leasehold':      'LEASEHOLD',
+        }[ownerType] || ownerType.toUpperCase().replace(/ /g, '_'),
+        description:    desc,
+        country,
+        street1,
+        street2,
+        landmark,
+        city,
+        state,
+        zip_code:       zip,
+        value:          propValue || null,
+        build_year:     buildYear || null,
+      }),
+    });
+
+    if (!createRes.ok) {
+      const err = await createRes.json();
+      console.error('Create property failed:', err);
+      setSaving(false);
+      return;
+    }
+
+    const created = await createRes.json();
+    const newPropId = created.id;
+    setPropId(newPropId);
+
+    // Step 2 — Submit property (fires ownership invites)
+    const submitRes = await fetch(`http://localhost:8001/api/properties/${newPropId}/submit/`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`,
+      },
+      body: JSON.stringify({ invite_expiry_days: 7 }),
+    });
+
+    if (!submitRes.ok) {
+      console.error('Submit property failed');
+      setSaving(false);
+      return;
+    }
+
+    // Step 3 — Show success modal
+    setShowSaveModal(true);
+
+  } catch (err) {
+    console.error('Save property error:', err);
+  }
+  setSaving(false);
+}
 
   function handleSwitchUnit(id) {
   setActiveUnitId(id);
@@ -1599,9 +1755,9 @@ export default function AddNewProperty({ persona = 'INDEPENDENT_PM' }) {
                   </div>
                 </div>
               )}
-
+          
               {subTab === 'Amenities' && mainTab === 'property' && (
-                <AmenitiesTab selectedAmenities={selectedAmenities} setSelectedAmenities={setSelectedAmenities} />
+                <AmenitiesTab selectedAmenities={selectedAmenities} setSelectedAmenities={setSelectedAmenities} propertyAmenities={propertyAmenities} />
               )}
 
               {subTab === 'Ownership' && mainTab === 'property' && (
@@ -1641,6 +1797,7 @@ export default function AddNewProperty({ persona = 'INDEPENDENT_PM' }) {
                   propOwners={owners}
                   propSelfOwner={selfOwner}
                   selfUser={selfUser}
+                  unitAmenities={unitAmenities}
                 />
               )}  
             
@@ -1668,12 +1825,14 @@ export default function AddNewProperty({ persona = 'INDEPENDENT_PM' }) {
               }} style={{ padding: '9px 24px', fontSize: 13, fontWeight: 600, background: 'transparent', border: `1.5px solid ${C.borderMed}`, borderRadius: 7, color: C.textSec, cursor: 'pointer', fontFamily: F.body, outline: 'none' }}>Cancel</button>
               
               {isLastTab && mainTab === 'property' ? (
-                 <button onClick={() => { if (!propBankComplete) return; setMainTab('unit'); setSubTab('Unit/Home Info'); }} disabled={!propBankComplete} style={{ padding: '9px 24px', fontSize: 13, fontWeight: 700, background: propBankComplete ? C.primary : C.borderMed, border: 'none', borderRadius: 7, color: '#fff', cursor: propBankComplete ? 'pointer' : 'not-allowed', fontFamily: F.body, outline: 'none' }}>Go to Unit Details →</button>                
-              ) : mainTab === 'unit' && unitSaved ? (
-                 <button onClick={() => alert('Final Submit')} style={{ padding: '9px 24px', fontSize: 13, fontWeight: 700, background: C.success, border: 'none', borderRadius: 7, color: '#fff', cursor: 'pointer', fontFamily: F.body, outline: 'none' }}>Final Submit</button>
-              ) : isLastTab && mainTab === 'unit' && !unitSaved ? (
-                 <button onClick={() => { if (!unitBankComplete) return; setUnitCount(units.length); setUnitSaved(true); setSubTab('Unit/Home Info'); setPendingNewUnit(null); }} disabled={!unitBankComplete} style={{ padding: '9px 24px', fontSize: 13, fontWeight: 700, background: unitBankComplete ? C.primary : C.borderMed, border: 'none', borderRadius: 7, color: '#fff', cursor: unitBankComplete ? 'pointer' : 'not-allowed', fontFamily: F.body, outline: 'none' }}>Save Unit</button>
-              ) : (
+                <button onClick={handleSaveProperty} disabled={!propBankComplete || saving} style={{ padding: '9px 24px', fontSize: 13, fontWeight: 700, background: propBankComplete && !saving ? C.primary : C.borderMed, border: 'none', borderRadius: 7, color: '#fff', cursor: propBankComplete && !saving ? 'pointer' : 'not-allowed', fontFamily: F.body, outline: 'none' }}>
+                    {saving ? 'Saving...' : 'Save Property'}
+                </button>
+                ) : mainTab === 'unit' && unitSaved ? (
+                    <button onClick={() => navigate('/pm-portal/properties')} style={{ padding: '9px 24px', fontSize: 13, fontWeight: 600, background: C.success, border: 'none', borderRadius: 7, color: '#fff', cursor: 'pointer', fontFamily: F.body, outline: 'none' }}>Done</button>
+                ) : isLastTab && mainTab === 'unit' && !unitSaved ? (
+                    <button onClick={() => { if (!unitBankComplete) return; setUnitCount(units.length); setUnitSaved(true); setSubTab('Unit/Home Info'); setPendingNewUnit(null); }} disabled={!unitBankComplete} style={{ padding: '9px 24px', fontSize: 13, fontWeight: 700, background: unitBankComplete ? C.primary : C.borderMed, border: 'none', borderRadius: 7, color: '#fff', cursor: unitBankComplete ? 'pointer' : 'not-allowed', fontFamily: F.body, outline: 'none' }}>Save Unit & Send Invite</button>
+                ) : (
                  <button onClick={handleNext} style={{ padding: '9px 24px', fontSize: 13, fontWeight: 700, background: C.primary, border: 'none', borderRadius: 7, color: '#fff', cursor: 'pointer', fontFamily: F.body, outline: 'none' }}>
                     {subTab === 'Primary Info' ? 'Save & Continue' : 'Next →'}
                  </button>
@@ -1683,6 +1842,22 @@ export default function AddNewProperty({ persona = 'INDEPENDENT_PM' }) {
           </div>
         </div>
       </div>
+
+    {showSaveModal && (
+      <SavePropertyModal
+        propName={propName}
+        onAddUnit={() => {
+            setShowSaveModal(false);
+            setUnitLocked(false);
+            setMainTab('unit');
+            setSubTab('Unit/Home Info');
+        }}
+        onNoUnits={() => {
+            setShowSaveModal(false);
+            navigate('/pm-portal/properties');
+        }}
+      />
+    )}
 
       {showMore && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 999 }}>
