@@ -845,26 +845,6 @@ export function UnitSwitcher({ units, activeUnitId, onSwitch, onAddUnit }) {
   );
 }
 
-// ─── Unit Amenities Tab ───────────────────────────────────────────────────────
-const UNIT_AMENITIES = [
-  { id: 'ac',        icon: 'ti-air-conditioning',   label: 'Air Condition'    },
-  { id: 'balcony',   icon: 'ti-building',            label: 'Balcony'          },
-  { id: 'kitchen',   icon: 'ti-tools-kitchen-2',     label: 'Kitchen'          },
-  { id: 'wifi',      icon: 'ti-wifi',                label: 'WiFi'             },
-  { id: 'parking',   icon: 'ti-parking',             label: 'Parking'          },
-  { id: 'pet',       icon: 'ti-paw',                 label: 'Pet Friendly'     },
-  { id: 'washer',    icon: 'ti-wash-machine',        label: 'Washer / Dryer'   },
-  { id: 'dishwasher',icon: 'ti-tools-kitchen-2',     label: 'Dishwasher'       },
-  { id: 'furnished', icon: 'ti-armchair',            label: 'Furnished'        },
-  { id: 'storage',   icon: 'ti-box',                 label: 'Storage'          },
-  { id: 'fireplace', icon: 'ti-flame',               label: 'Fireplace'        },
-  { id: 'patio',     icon: 'ti-door',                label: 'Patio / Deck'     },
-  { id: 'heating',   icon: 'ti-temperature',         label: 'Heating'          },
-  { id: 'cctv',      icon: 'ti-video',               label: 'CCTV'             },
-  { id: 'intercom',  icon: 'ti-phone-call',          label: 'Intercom'         },
-  { id: 'water',     icon: 'ti-droplet',             label: 'Water Supply'     },
-];
-
 function UnitAmenityTile({ amenity, selected, onToggle }) {
   const [hover, setHover] = useState(false);
   return (
@@ -882,7 +862,7 @@ function UnitAmenityTile({ amenity, selected, onToggle }) {
   );
 }
 
-function UnitAmenitiesTab({ unit, onChange }) {
+function UnitAmenitiesTab({ unit, onChange, unitAmenities = []  }) {
   const [searchQuery, setSearchQuery] = useState('');
 
   const selectedAmenities = unit.amenities || new Set();
@@ -892,10 +872,10 @@ function UnitAmenitiesTab({ unit, onChange }) {
   }
 
   const filtered = searchQuery.trim()
-    ? UNIT_AMENITIES.filter(a => a.label.toLowerCase().includes(searchQuery.toLowerCase()))
-    : UNIT_AMENITIES;
+   ? unitAmenities.filter(a => a.label.toLowerCase().includes(searchQuery.toLowerCase()))
+   : unitAmenities;
+  const selectedList = unitAmenities.filter(a => selectedAmenities.has(a.id));
 
-  const selectedList = UNIT_AMENITIES.filter(a => selectedAmenities.has(a.id));
   const selectedCount = selectedList.length;
 
   function toggleAmenity(id) {
@@ -1973,7 +1953,7 @@ function UnitBankAccountTab({ unit, onChange }) {
 }
 
 // ─── Main export ──────────────────────────────────────────────────────────────
-export default function UnitTabContent({ subTab, unit, onChange, propName, propType, units, activeUnitId, onSwitchUnit, onAddUnit, propOwners, propSelfOwner, selfUser }) {
+export default function UnitTabContent({ subTab, unit, onChange, propName, propType, units, activeUnitId, onSwitchUnit, onAddUnit, propOwners, propSelfOwner, selfUser, unitAmenities = [] }) {
   if (subTab === 'Unit/Home Info') {
     return <UnitHomeInfoTab unit={unit} onChange={onChange} propName={propName} propType={propType} units={units} activeUnitId={activeUnitId} onSwitchUnit={onSwitchUnit} onAddUnit={onAddUnit}  />;
   }
@@ -1981,7 +1961,7 @@ export default function UnitTabContent({ subTab, unit, onChange, propName, propT
   // Placeholder for other unit sub-tabs (Amenities, Gallery, Ownership, Bank Account)
 
   if (subTab === 'Amenities') {
-    return <UnitAmenitiesTab unit={unit} onChange={onChange} />;
+    return <UnitAmenitiesTab unit={unit} onChange={onChange}  unitAmenities={unitAmenities}/>;
   }
 
   if (subTab === 'Gallery') {

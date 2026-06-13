@@ -1433,6 +1433,8 @@ export default function AddNewProperty({ persona = 'INDEPENDENT_PM' }) {
   const [subTab, setSubTab]         = useState('Primary Info');
   const [unitLocked, setUnitLocked] = useState(true);
   const [showMore, setShowMore]     = useState(false);
+  const [userEmail, setUserEmail]         = useState('');
+  const [userId, setUserId] = useState(null);
   const [showSaveModal, setShowSaveModal] = useState(false);
   const [propId, setPropId]     = useState(null);
   const [saving, setSaving]     = useState(false);  
@@ -1478,7 +1480,7 @@ export default function AddNewProperty({ persona = 'INDEPENDENT_PM' }) {
   const [owners, setOwners]                       = useState([]);
   const [selfOwner, setSelfOwner]                 = useState(null);
 
-  const selfUser = { firstName: userName.split(' ')[0] || 'User', lastName: userName.split(' ').slice(1).join(' ') || '', email: '' };
+  const selfUser = { firstName: userName.split(' ')[0] || 'User', lastName: userName.split(' ').slice(1).join(' ') || '', email: userEmail };
   const currentTabs  = mainTab === 'property' ? PROP_SUBTABS : UNIT_SUBTABS;
   const stateOptions = (STATES[country] || []).map(s => ({ value: s, label: s }));
 
@@ -1490,6 +1492,8 @@ export default function AddNewProperty({ persona = 'INDEPENDENT_PM' }) {
       .then(data => {
         if (data) {
           setUserName(((data.first_name || '') + ' ' + (data.last_name || '')).trim() || data.email || 'User');
+          setUserEmail(data.email || '');
+          setUserId(data.id || null);
           const roleMap = { INDEPENDENT_PM: 'Independent PM', ORGANIZATIONAL_PM: 'Org PMS Admin', LANDLORD: 'Landlord', RENTER: 'Renter' };
           setUserRole(roleMap[persona || data.active_persona] || 'Independent PM');
         }
@@ -1612,7 +1616,91 @@ export default function AddNewProperty({ persona = 'INDEPENDENT_PM' }) {
     const newPropId = created.id;
     setPropId(newPropId);
 
-    // Step 2 — Submit property (fires ownership invites)
+// Step 2 — Save ownership records
+    const allOwners = [
+        ...(selfOwner ? [{
+        first_name:            selfOwner.firstName,
+        last_name:             selfOwner.lastName,
+        email:                 selfOwner.email,
+        phone:                 selfOwner.phone || '',
+        ownership_role:        (selfOwner.ownershipRole || 'individual_owner').toUpperCase(),
+        ownership_pct:         parseFloat(selfOwner.ownershipPct) || 0,
+        involvement:           (selfOwner.involvement || 'active').toUpperCase(),
+        is_lease_signatory:    selfOwner.involvementType?.leaseSig    ?? false,
+        is_maintenance:        selfOwner.involvementType?.maintenance ?? true,
+        is_info_only:          selfOwner.involvementType?.infoOnly    ?? false,
+        maintenance_threshold: parseFloat(selfOwner.maintenanceThreshold) || 0,
+        is_corporate:          false,
+        owner: userId,
+    }] : []),
+    ...owners.map(o => ({
+        first_name:            o.firstName,
+        last_name:             o.lastName,
+        email:                 o.email,
+        phone:                 o.phone || '',
+        ownership_role:        (o.ownershipRole || 'individual_owner').toUpperCase(),
+        ownership_pct:         parseFloat(o.ownershipPct) || 0,
+        involvement:           (o.involvement || 'active').toUpperCase(),
+        is_lease_signatory:    o.involvementType?.leaseSig    ?? false,
+        is_maintenance:        o.involvementType?.maintenance ?? true,
+        is_info_only:          o.involvementType?.infoOnly    ?? false,
+        maintenance_threshold: parseFloat(o.maintenanceThreshold) || 0,
+        is_corporate:          o.ownershipRole === 'corporate',
+        company_name:          o.companyName || '',
+        company_reg_number:    o.companyRegNumber || '',
+    })),
+    ];
+
+    for (const ownerPayload of allOwners) {
+    const owRes = await fetch(`http://localhost:8001/api/properties/${newPropId}/ownerships/`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        body: JSON.stringify(ownerPayload),
+    });
+    if (!owRes.ok) { const e = await owRes.json(); console.error('Ownership failed:', e); }
+    else console.log('Ownership saved');
+    }
+
+    // Step 3 — Save bank account config
+    const bankModuleMap = {
+    prop_operating:   'OPERATIONAL',
+    prop_reserve:     'RESERVE',
+    pm_operating:     'PM_OPERATING',
+    pm_trust:         'PM_TRUST',
+    rent:             'RENT',
+    security:         'SECURITY',
+    owner_settlement: 'OWNER_SETTLEMENT',
+    };
+
+    for (const [moduleKey, moduleVal] of Object.entries(bankModuleMap)) {
+    const acct = bankAccounts[moduleKey];
+    if (!acct || acct.skipped) continue;
+    if (!acct.saved) continue;
+    const owRes = await fetch(`http://localhost:8001/api/properties/${newPropId}/bank-accounts/`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        body: JSON.stringify({
+        module:        moduleVal,
+        is_default:    true,
+        min_threshold: parseFloat(bankReserveExtras?.minThreshold) || null,
+        }),
+    });
+    if (!owRes.ok) { const e = await owRes.json(); console.error('Bank Account failed:', e); }
+    else console.log('Bank Account saved');
+    }
+
+    // Step 4 — Save amenity selections
+    for (const amenityId of selectedAmenities) {
+       const owRes = await fetch(`http://localhost:8001/api/properties/${newPropId}/amenities/`, {
+       method: 'POST',
+       headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        body: JSON.stringify({ amenity: amenityId, access_type: 'ALL' }),
+        });
+    if (!owRes.ok) { const e = await owRes.json(); console.error('Property Amentity failed:', e); }
+    else console.log('Property Amenity saved');    
+    }
+
+    // Step 5 — Submit property (fires ownership invites)
     const submitRes = await fetch(`http://localhost:8001/api/properties/${newPropId}/submit/`, {
       method: 'POST',
       headers: {
@@ -1830,8 +1918,101 @@ export default function AddNewProperty({ persona = 'INDEPENDENT_PM' }) {
                 </button>
                 ) : mainTab === 'unit' && unitSaved ? (
                     <button onClick={() => navigate('/pm-portal/properties')} style={{ padding: '9px 24px', fontSize: 13, fontWeight: 600, background: C.success, border: 'none', borderRadius: 7, color: '#fff', cursor: 'pointer', fontFamily: F.body, outline: 'none' }}>Done</button>
-                ) : isLastTab && mainTab === 'unit' && !unitSaved ? (
-                    <button onClick={() => { if (!unitBankComplete) return; setUnitCount(units.length); setUnitSaved(true); setSubTab('Unit/Home Info'); setPendingNewUnit(null); }} disabled={!unitBankComplete} style={{ padding: '9px 24px', fontSize: 13, fontWeight: 700, background: unitBankComplete ? C.primary : C.borderMed, border: 'none', borderRadius: 7, color: '#fff', cursor: unitBankComplete ? 'pointer' : 'not-allowed', fontFamily: F.body, outline: 'none' }}>Save Unit & Send Invite</button>
+                ) : isLastTab && mainTab === 'unit' && !unitSaved ? (                    
+                    <button onClick={async () => {
+                    if (!unitBankComplete) return;
+                    const token = localStorage.getItem('access_token');
+                    if (!propId) { setUnitCount(units.length); setUnitSaved(true); setSubTab('Unit/Home Info'); setPendingNewUnit(null); return; }
+
+                    const unitRes = await fetch(`http://localhost:8001/api/properties/${propId}/units/`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                        body: JSON.stringify({
+                        unit_number:      activeUnit.unitNumber,
+                        tower:            activeUnit.tower || '',
+                        unit_type:        activeUnit.unitType,
+                        ownership_type:   activeUnit.ownershipType,
+                        lease_type:       activeUnit.leaseType || '',
+                        management_model: activeUnit.managementModel || '',
+                        carpet_area:      parseFloat(activeUnit.carpetArea) || null,
+                        total_area:       parseFloat(activeUnit.totalArea) || null,
+                        total_rooms: activeUnit.totalRooms ? Math.max(0, parseInt(activeUnit.totalRooms)) : null,
+                        floor:       activeUnit.floor ? Math.max(0, parseInt(activeUnit.floor)) : null,
+                        total_baths: activeUnit.totalBathrooms ? Math.max(0, parseInt(activeUnit.totalBathrooms)) : null,
+                        student_housing:  activeUnit.studentHousing || false,
+                        rent_amount:      parseFloat(activeUnit.rentAmount) || null,
+                        security_deposit: parseFloat(activeUnit.securityDeposit) || null,
+                        }),
+                    });
+
+                    
+                    if (!unitRes.ok) {
+                    const err = await unitRes.json();
+                    console.error('Unit create failed:', err);
+                    return;
+                    }
+                    const createdUnit = await unitRes.json();
+                    const newUnitId = createdUnit.id;
+
+                    const unitAllOwners = [
+                        ...(activeUnit.sameAsProperty
+                        ? [...(selfOwner ? [selfOwner] : []), ...owners]
+                        : [...(activeUnit.selfOwner ? [activeUnit.selfOwner] : []), ...(activeUnit.owners || [])]
+                        ),
+                    ];
+
+                    for (const o of unitAllOwners) {
+                        await fetch(`http://localhost:8001/api/properties/${propId}/units/${newUnitId}/ownerships/`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                        body: JSON.stringify({
+                            first_name:            o.firstName,
+                            last_name:             o.lastName,
+                            email:                 o.email,
+                            phone:                 o.phone || '',
+                            ownership_role: (o.ownershipRole || 'individual_owner').toUpperCase(),
+                            ownership_pct:         parseFloat(o.ownershipPct) || 0,
+                            involvement: (o.involvement || 'active').toUpperCase(),
+                            is_lease_signatory:    o.involvementType?.leaseSig    ?? false,
+                            is_maintenance:        o.involvementType?.maintenance ?? true,
+                            is_info_only:          o.involvementType?.infoOnly    ?? false,
+                            maintenance_threshold: parseFloat(o.maintenanceThreshold) || 0,
+                            is_corporate:          o.ownershipRole === 'corporate',
+                            copied_from_property:  activeUnit.sameAsProperty || false,
+                            owner: activeUnit.sameAsProperty ? userId : (o.id === 'self' ? userId : null),
+                        }),
+                        });
+                    }
+
+                    for (const [moduleKey, moduleVal] of Object.entries({ owner_settlement: 'OWNER_SETTLEMENT', unit_reserve: 'UNIT_RESERVE' })) {
+                        const acct = activeUnit.unitBankAccounts?.[moduleKey];
+                        if (!acct) continue;
+                        await fetch(`http://localhost:8001/api/properties/${propId}/units/${newUnitId}/bank-accounts/`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                        body: JSON.stringify({ module: moduleVal, is_skipped: acct.skipped || false }),
+                        });
+                    }
+
+                    for (const amenityId of (activeUnit.amenities || new Set())) {
+                        await fetch(`http://localhost:8001/api/properties/${propId}/units/${newUnitId}/amenities/`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                        body: JSON.stringify({ amenity: amenityId }),
+                        });
+                    }
+
+                    await fetch(`http://localhost:8001/api/properties/${propId}/units/${newUnitId}/submit/`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                        body: JSON.stringify({ invite_expiry_days: 7 }),
+                    });
+
+                    setUnitCount(units.length);
+                    setUnitSaved(true);
+                    setSubTab('Unit/Home Info');
+                    setPendingNewUnit(null);
+                    }} disabled={!unitBankComplete} style={{ padding: '9px 24px', fontSize: 13, fontWeight: 700, background: unitBankComplete ? C.primary : C.borderMed, border: 'none', borderRadius: 7, color: '#fff', cursor: unitBankComplete ? 'pointer' : 'not-allowed', fontFamily: F.body, outline: 'none' }}>Save Unit & Send Invite</button>
                 ) : (
                  <button onClick={handleNext} style={{ padding: '9px 24px', fontSize: 13, fontWeight: 700, background: C.primary, border: 'none', borderRadius: 7, color: '#fff', cursor: 'pointer', fontFamily: F.body, outline: 'none' }}>
                     {subTab === 'Primary Info' ? 'Save & Continue' : 'Next →'}
