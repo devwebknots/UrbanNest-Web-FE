@@ -41,6 +41,9 @@ import OrgPMS_PendingStatus            from './pages/OrgPMSOnboarding/OrgPMS_Pen
 
 // Properties
 import AddNewProperty from "./pages/Properties/AddProperty/AddNewProperty";
+import PMPropertiesPage from './pages/Properties/PMPropertiesPage';
+import PMPortfolioPage from './pages/Properties/PMPortfolioPage';
+
 
 function AppRoutes() {
   const navigate = useNavigate();
@@ -127,9 +130,11 @@ function AppRoutes() {
       <Route path="/org-onboarding/pending"  element={<OrgPMS_PendingStatus />} />
 
       {/* ── Properties  ──────────────────────────── */}  
+      <Route path="/pm-portal/properties" element={<PMPropertiesPage />} />
       <Route path="/pm-portal/properties/add" element={<AddNewProperty persona="INDEPENDENT_PM" />} />
       <Route path="/org-portal/properties/add"  element={<AddNewProperty persona="ORGANIZATIONAL_PM" />} />
-   
+      <Route path="/pm-portal/properties/portfolio/:propertyType" element={<PMPortfolioPage />} />
+
     </Routes>
   );
 }

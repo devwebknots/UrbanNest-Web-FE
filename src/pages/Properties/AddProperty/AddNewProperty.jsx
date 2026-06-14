@@ -1273,7 +1273,7 @@ function AccountCard({ categoryId, accountData, onChange, onSaved, reserveExtras
                  }
               </div>
             </div>
-            <button onClick={() => onChange({ ...accountData, skipped: true })}
+            <button onClick={() => { onChange({ ...accountData, skipped: true }); if (onSaved) onSaved(); }}
               style={{ height: 32, padding: '0 14px', border: '1px solid #FDE68A', borderRadius: 6, background: '#FEF3C7', fontSize: 12, fontWeight: 600, color: '#92400E', cursor: 'pointer', fontFamily: F.body, whiteSpace: 'nowrap', flexShrink: 0 }}>
               Skip this account
             </button>
@@ -1344,7 +1344,7 @@ function BankAccountTab({ accounts, setAccounts, reserveExtras, setReserveExtras
                   onMouseEnter={e => { if (!isActive) e.currentTarget.style.background = '#f8faff'; }}
                   onMouseLeave={e => { if (!isActive) e.currentTarget.style.background = 'transparent'; }}>
                   {/* Status dot */}
-                  <div style={{ width: 10, height: 10, borderRadius: '50%', flexShrink: 0, background: isSaved ? C.success : isActive ? C.primary : C.borderMed, border: `2px solid ${isSaved ? C.success : isActive ? C.primary : C.borderMed}`, transition: 'all 0.15s' }} />
+                  <div style={{ width: 10, height: 10, borderRadius: '50%', flexShrink: 0, background: isSaved ? C.success : accounts[item.id]?.skipped ? '#F59E0B' : isActive ? C.primary : C.borderMed, border: `2px solid ${isSaved ? C.success : accounts[item.id]?.skipped ? '#F59E0B' : isActive ? C.primary : C.borderMed}`, transition: 'all 0.15s' }} />                 
                   <div style={{ flex: 1, minWidth: 0 }}>
                     <div style={{ fontSize: 13, fontWeight: isActive ? 700 : 500, color: isActive ? C.primary : C.textPrimary, fontFamily: F.body, lineHeight: 1.3 }}>{item.label}</div>
                     <div style={{ fontSize: 11, color: C.textTert, fontFamily: F.body, marginTop: 1 }}>{item.sub}</div>
@@ -1674,19 +1674,22 @@ export default function AddNewProperty({ persona = 'INDEPENDENT_PM' }) {
 
     for (const [moduleKey, moduleVal] of Object.entries(bankModuleMap)) {
     const acct = bankAccounts[moduleKey];
-    if (!acct || acct.skipped) continue;
-    if (!acct.saved) continue;
+    if (!acct) continue;
+    // POST every module — saved ones and skipped ones. Skip only if neither.
+    if (!acct.saved && !acct.skipped) continue;
+
     const owRes = await fetch(`http://localhost:8001/api/properties/${newPropId}/bank-accounts/`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
         body: JSON.stringify({
-        module:        moduleVal,
-        is_default:    true,
-        min_threshold: parseFloat(bankReserveExtras?.minThreshold) || null,
+            module:        moduleVal,
+            is_default:    true,
+            is_skipped:    acct.skipped || false,
+            min_threshold: parseFloat(bankReserveExtras?.minThreshold) || null,
         }),
     });
     if (!owRes.ok) { const e = await owRes.json(); console.error('Bank Account failed:', e); }
-    else console.log('Bank Account saved');
+    else console.log('Bank Account saved:', moduleVal, acct.skipped ? '(skipped)' : '(configured)');
     }
 
     // Step 4 — Save amenity selections
@@ -2007,6 +2010,74 @@ export default function AddNewProperty({ persona = 'INDEPENDENT_PM' }) {
                         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
                         body: JSON.stringify({ invite_expiry_days: 7 }),
                     });
+
+                    // ── Save rooms + beds (student housing only) ──────────────────────────────────
+                    if (activeUnit.studentHousing && (activeUnit.rooms || []).length > 0) {
+                        for (const room of activeUnit.rooms) {
+                            const roomRes = await fetch(
+                                `http://localhost:8001/api/properties/${propId}/units/${newUnitId}/rooms/`,
+                                {
+                                    method: 'POST',
+                                    headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                                    body: JSON.stringify({
+                                        room_number:    room.roomNo,
+                                        room_type:      room.roomType      || '',
+                                        bed_count:      parseInt(room.bedCount)      || 0,
+                                        bathroom_count: parseInt(room.bathroomCount) || 0,
+                                        bathroom_type:  room.bathroomType  || '',
+                                        status:         room.status        || 'vacant',
+                                    }),
+                                }
+                            );
+                            if (!roomRes.ok) {
+                                console.error('Room save failed:', await roomRes.json());
+                                continue;
+                            }
+                            const savedRoom = await roomRes.json();
+                            console.log('Room saved:', room.roomNo);
+
+                            for (const bed of (room.beds || [])) {
+                                const bedRes = await fetch(
+                                    `http://localhost:8001/api/properties/${propId}/units/${newUnitId}/rooms/${savedRoom.id}/beds/`,
+                                    {
+                                        method: 'POST',
+                                        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                                        body: JSON.stringify({
+                                            bed_number: bed.bedNumber || '',
+                                            status:     bed.status    || 'vacant',
+                                        }),
+                                    }
+                                );
+                                if (!bedRes.ok) {
+                                    console.error('Bed save failed:', await bedRes.json());
+                                } else {
+                                    const savedBed = await bedRes.json();
+                                    console.log('Bed saved:', bed.bedNumber);
+
+                                    // POST bed rent if values provided
+                                    if (parseFloat(bed.rent_amount) > 0 || parseFloat(bed.security_deposit) > 0) {
+                                        const rentRes = await fetch(
+                                            `http://localhost:8001/api/properties/${propId}/units/${newUnitId}/rooms/${savedRoom.id}/beds/${savedBed.id}/rent/`,
+                                            {
+                                                method: 'POST',
+                                                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                                                body: JSON.stringify({
+                                                    rent_amount:      bed.rent_amount      ? parseFloat(bed.rent_amount)      : null,
+                                                    security_deposit: bed.security_deposit ? parseFloat(bed.security_deposit) : null,
+                                                }),
+                                            }
+                                        );
+                                        if (!rentRes.ok) {
+                                            console.error('Bed rent save failed:', await rentRes.json());
+                                        } else {
+                                            console.log('Bed rent saved for:', bed.bedNumber);
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                    // ─────────────────────────────────────────────────────────────────────────────
 
                     setUnitCount(units.length);
                     setUnitSaved(true);

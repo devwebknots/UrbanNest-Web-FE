@@ -51,7 +51,6 @@ const NAV_STRUCTURE = [
       { id: 'properties', label: 'Properties', icon: 'ti-building',
         children: [
           { id: 'all-props', label: 'All Properties',           route: '/pm-portal/properties' },
-          { id: 'add-new',   label: 'Add New',                  route: '/pm-portal/properties/add' },
           { id: 'drafts',    label: 'Drafts',                   route: '/pm-portal/properties/drafts' },
           { id: 'occupancy', label: 'Occupancy & Availability', route: '/pm-portal/properties/occupancy' },
         ],

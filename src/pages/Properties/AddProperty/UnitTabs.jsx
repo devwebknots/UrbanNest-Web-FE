@@ -381,7 +381,7 @@ function AddRoomModal({ onSave, onCancel, existingRoom = null }) {
 
   function addBed() {
     if (!canAddBed) return;
-    setBeds(prev => [...prev, { id: Math.random().toString(36).slice(2), bedNumber: `B${prev.length + 1}`, status: 'vacant' }]);
+    setBeds(prev => [...prev, { id: Math.random().toString(36).slice(2), bedNumber: `B${prev.length + 1}`, status: 'vacant', rent_amount: '', security_deposit: '', }]);
   }
   function updateBed(id, patch) { setBeds(prev => prev.map(b => b.id === id ? { ...b, ...patch } : b)); }
   function removeBed(id)         { setBeds(prev => prev.filter(b => b.id !== id)); }
@@ -466,19 +466,23 @@ function AddRoomModal({ onSave, onCancel, existingRoom = null }) {
               <div style={{ flex: 1, overflowY: 'auto' }}>
                 {/* Header row */}
                 {beds.length > 0 && (
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 36px', gap: '0 12px', marginBottom: 6 }}>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr 36px', gap: '0 10px', marginBottom: 6 }}>
                     <div style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em', color: C.textTert, fontFamily: F.body }}>Bed Number</div>
-                    <div style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em', color: C.textTert, fontFamily: F.body }}>Bed Status</div>
+                    <div style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em', color: C.textTert, fontFamily: F.body }}>Status</div>
+                    <div style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em', color: C.textTert, fontFamily: F.body }}>Rent/mo</div>
+                    <div style={{ fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em', color: C.textTert, fontFamily: F.body }}>Security Dep.</div>
                     <div />
                   </div>
-                )}
+                )}    
 
                 {beds.map((bed, idx) => (
-                  <div key={bed.id} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 36px', gap: '0 12px', marginBottom: 8, alignItems: 'center' }}>
+                  <div key={bed.id} style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr 36px', gap: '0 10px', marginBottom: 8, alignItems: 'center' }}>
                     <UInput value={bed.bedNumber} onChange={v => updateBed(bed.id, { bedNumber: v })} placeholder={`Bed ${idx + 1}`} />
                     <div style={{ height: 38, border: `1px solid ${C.inputBorder}`, borderRadius: 6, background: C.inputBg, display: 'flex', alignItems: 'center', padding: '0 11px', fontSize: 13, color: C.textSec, fontFamily: F.body }}>
                       Vacant
                     </div>
+                    <UInput value={bed.rent_amount || ''} onChange={v => updateBed(bed.id, { rent_amount: v })} placeholder="0.00" prefix="$" type="number" />
+                    <UInput value={bed.security_deposit || ''} onChange={v => updateBed(bed.id, { security_deposit: v })} placeholder="0.00" prefix="$" type="number" />
                     <button onClick={() => removeBed(bed.id)}
                       style={{ width: 32, height: 32, borderRadius: 6, border: `1px solid ${C.border}`, background: C.cardBg, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
                       <i className="ti ti-trash" style={{ fontSize: 13, color: C.danger }} />
@@ -663,20 +667,34 @@ function UnitHomeInfoTab({ unit, onChange, propName, propType, units, activeUnit
         </div>
 
         {/* Card 3 — Financials */}
-        <div style={{ background: C.cardBg, borderRadius: 10, border: `1px solid ${C.border}`, padding: 20, boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
-          <SectionHead icon="ti-currency-dollar" title="Financials" color="#92400E" bg="#FEF3C7" />
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px 16px' }}>
-            <div>
-              <ULabel required>Rent Amount</ULabel>
-              <UInput value={unit.rentAmount} onChange={v => upd({ rentAmount: v })} placeholder="0.00" prefix="$" type="number" />
-            </div>
-            <div>
-              <ULabel>Security Deposit</ULabel>
-              <UInput value={unit.securityDeposit} onChange={v => upd({ securityDeposit: v })} placeholder="0.00" prefix="$" type="number" />
-            </div>
+          <div style={{ background: C.cardBg, borderRadius: 10, border: `1px solid ${C.border}`, padding: 20, boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
+            <SectionHead icon="ti-currency-dollar" title="Financials" color="#92400E" bg="#FEF3C7" />
+            {(() => {
+              const isAuto = unit.studentHousing && unit.rooms.length > 0;
+              const totalRent = isAuto ? unit.rooms.reduce((s, r) =>
+                s + (r.beds || []).reduce((bs, b) => bs + (parseFloat(b.rent_amount) || 0), 0), 0) : 0;
+              const totalSD = isAuto ? unit.rooms.reduce((s, r) =>
+                s + (r.beds || []).reduce((bs, b) => bs + (parseFloat(b.security_deposit) || 0), 0), 0) : 0;
+              return isAuto ? (
+                <>
+                  <div style={{ background: '#EFF6FF', border: '1px solid #BFDBFE', borderRadius: 8, padding: '10px 14px', marginBottom: 14, fontSize: 12, color: '#1D4ED8', fontFamily: F.body, display: 'flex', alignItems: 'center', gap: 7 }}>
+                    <i className="ti ti-info-circle" style={{ fontSize: 13, flexShrink: 0 }} />
+                    Auto-calculated from bed-level rent. Edit values in the room/bed configuration above.
+                  </div>
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px 16px' }}>
+                    <div><ULabel>Rent Amount</ULabel><UInput value={totalRent.toFixed(2)} disabled prefix="$" /></div>
+                    <div><ULabel>Security Deposit</ULabel><UInput value={totalSD.toFixed(2)} disabled prefix="$" /></div>
+                  </div>
+                </>
+              ) : (
+                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '14px 16px' }}>
+                  <div><ULabel required>Rent Amount</ULabel><UInput value={unit.rentAmount} onChange={v => upd({ rentAmount: v })} placeholder="0.00" prefix="$" type="number" /></div>
+                  <div><ULabel>Security Deposit</ULabel><UInput value={unit.securityDeposit} onChange={v => upd({ securityDeposit: v })} placeholder="0.00" prefix="$" type="number" /></div>
+                </div>
+              );
+            })()}
           </div>
-        </div>
-
+       
         {/* Card 4 — Unit Services */}
         <div style={{ background: C.cardBg, borderRadius: 10, border: `1px solid ${C.border}`, padding: 20, boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
           <SectionHead icon="ti-settings" title="Unit Services" color="#7C3AED" bg="#EDE9FE" />
@@ -1896,7 +1914,7 @@ function UnitBankAccountTab({ unit, onChange }) {
               style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 16px', cursor: 'pointer', background: isActive ? C.primaryLight : 'transparent', borderLeft: `3px solid ${isActive ? C.primary : 'transparent'}`, transition: 'all 0.12s' }}
               onMouseEnter={e => { if (!isActive) e.currentTarget.style.background = '#f8faff'; }}
               onMouseLeave={e => { if (!isActive) e.currentTarget.style.background = 'transparent'; }}>
-              <div style={{ width: 10, height: 10, borderRadius: '50%', flexShrink: 0, background: isSaved ? C.success : isSkipped ? C.borderMed : isActive ? C.primary : C.borderMed, border: `2px solid ${isSaved ? C.success : isSkipped ? C.borderMed : isActive ? C.primary : C.borderMed}`, transition: 'all 0.15s' }} />
+              <div style={{ width: 10, height: 10, borderRadius: '50%', flexShrink: 0, background: isSaved ? C.success : isSkipped ? '#F59E0B' : isActive ? C.primary : C.borderMed, border: `2px solid ${isSaved ? C.success : isSkipped ? '#F59E0B' : isActive ? C.primary : C.borderMed}`, transition: 'all 0.15s' }} />
               <div style={{ flex: 1, minWidth: 0 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                   <div style={{ fontSize: 13, fontWeight: isActive ? 700 : 500, color: isActive ? C.primary : C.textPrimary, fontFamily: F.body, lineHeight: 1.3 }}>{cat.label}</div>
