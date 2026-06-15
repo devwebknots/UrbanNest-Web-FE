@@ -192,6 +192,7 @@ export function emptyUnit(unitNumber = '') {
     unitReserveExtras: emptyUnitReserveExtras(),
     floorPlanMain:    null,
     floorPlanThumbs:  [null, null, null],
+    description: '',
     status:           'draft',
   };
 }
@@ -247,6 +248,37 @@ function UInput({ value, onChange, placeholder, prefix, suffix, type = 'text', d
       />
       {suffix && <span style={{ padding: '0 10px', fontSize: 12, color: C.textSec, borderLeft: `1px solid ${C.inputBorder}`, background: '#f1f5f9', alignSelf: 'stretch', display: 'flex', alignItems: 'center', fontFamily: F.body, flexShrink: 0 }}>{suffix}</span>}
     </div>
+  );
+}
+
+function UTextarea({ value, onChange, placeholder, rows = 4 }) {
+  const [f, sf] = useState(false);
+  return (
+    <textarea
+      value={value}
+      placeholder={placeholder}
+      rows={rows}
+      onChange={e => onChange && onChange(e.target.value)}
+      onFocus={() => sf(true)}
+      onBlur={() => sf(false)}
+      style={{
+        width: '100%',
+        padding: '9px 11px',
+        fontSize: 13,
+        fontFamily: "'Nunito Sans', sans-serif",
+        color: '#0F172A',
+        background: '#F8F9FA',
+        border: `1px solid ${f ? '#002D5B' : '#E8ECF0'}`,
+        borderRadius: 6,
+        outline: 'none',
+        resize: 'vertical',
+        lineHeight: 1.6,
+        boxSizing: 'border-box',
+        boxShadow: f ? '0 0 0 2px #dbeafe' : 'none',
+        transition: 'all 0.15s',
+        minHeight: 90,
+      }}
+    />
   );
 }
 
@@ -588,6 +620,16 @@ function UnitHomeInfoTab({ unit, onChange, propName, propType, units, activeUnit
             <div>
               <ULabel>Management Model</ULabel>
               <CustomDropdown options={MANAGEMENT_MODEL_OPTIONS} value={unit.managementModel} onChange={v => upd({ managementModel: v })} placeholder="Select model…" />
+            </div>
+            {/* Unit Description — full width below grid */}
+            <div style={{ marginTop: 4 }}>
+              <ULabel>Unit Description</ULabel>
+              <UTextarea
+                value={unit.description || ''}
+                onChange={v => upd({ description: v })}
+                placeholder="Describe this unit — layout highlights, unique features, recent upgrades, views, etc."
+                rows={4}
+              />
             </div>
           </div>
         </div>

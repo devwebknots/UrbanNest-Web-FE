@@ -1,5 +1,5 @@
 /**
- * PMPortfolioPage.jsx — Session 25
+ * PMPortfolioPage.jsx — Session 25 (updated)
  * Route: /pm-portal/properties/portfolio/:propertyType
  */
 
@@ -40,6 +40,8 @@ const PROPERTY_TYPE_CONFIG = {
   MIXED_USE:          { label: 'Mixed Use',        icon: 'ti-layout-grid'         },
 };
 
+const PROPERTIES_PER_PAGE = 5;
+
 function getUnitPhoto(unit) {
   if (unit.primary_image) return unit.primary_image;
   const photos = [
@@ -56,18 +58,13 @@ function getUnitPhoto(unit) {
   return photos[isNaN(idx) ? 0 : idx];
 }
 
-function UnitCard({ unit }) {
+function UnitCard({ unit, propertyId }) {
   const [hover, setHover] = useState(false);
-  const isOccupied = ['OCCUPIED', 'occupied'].includes(unit.status);
-
-  const unitTypeLabel = {
-    studio: 'Studio', '1br': '1 Bed', '2br': '2 Bed', '3br': '3 Bed',
-    '4br_plus': '4 Bed+', penthouse: 'Penthouse', student_room: 'Student Room',
-    serviced: 'Serviced', commercial: 'Commercial',
-  }[unit.unit_type] || unit.unit_type || 'Unit';
+  const navigate = useNavigate();
 
   return (
     <div
+      onClick={() => navigate(`/pm-portal/properties/${propertyId}/units/${unit.id}`)}    
       onMouseEnter={() => setHover(true)}
       onMouseLeave={() => setHover(false)}
       style={{
@@ -97,66 +94,85 @@ function UnitCard({ unit }) {
 
       {/* Body */}
       <div style={{ padding: '11px 13px' }}>
-        {/* Unit number + occupancy circle */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 7 }}>
+        {/* Unit number */}
+        <div style={{ marginBottom: 7 }}>
           <span style={{ fontSize: 14, fontWeight: 700, color: C.textPrimary, fontFamily: F.headline }}>
             Unit {unit.unit_number}
           </span>
-          <div style={{
-            width: 18, height: 18, borderRadius: '50%', flexShrink: 0,
-            background: isOccupied ? C.success : 'transparent',
-            border: `2px solid ${isOccupied ? C.success : C.borderMed}`,
-          }} />
         </div>
 
-        {/* Bed / Bath / Sqft */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 9 }}>
-          {unit.total_rooms ? (
-            <div style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
-              <i className="ti ti-bed" style={{ fontSize: 11, color: C.textTert }} />
+        {/* Bed / Bath / Area — icon + value, no dots */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: 20, marginBottom: 9 }}>
+          {(unit.total_rooms !== null && unit.total_rooms !== undefined) ? (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+              <i className="ti ti-bed" style={{ fontSize: 12, color: C.textTert }} />
               <span style={{ fontSize: 11, color: C.textSec, fontFamily: F.body }}>{unit.total_rooms}</span>
             </div>
           ) : null}
-          {unit.total_baths ? (
-            <div style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
-              <i className="ti ti-bath" style={{ fontSize: 11, color: C.textTert }} />
+          {(unit.total_baths !== null && unit.total_baths !== undefined) ? (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+              <i className="ti ti-bath" style={{ fontSize: 12, color: C.textTert }} />
               <span style={{ fontSize: 11, color: C.textSec, fontFamily: F.body }}>{unit.total_baths}</span>
             </div>
           ) : null}
-          {unit.total_area ? (
-            <div style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
-              <i className="ti ti-ruler-2" style={{ fontSize: 11, color: C.textTert }} />
+          {(unit.total_area !== null && unit.total_area !== undefined) ? (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+              <i className="ti ti-ruler-2" style={{ fontSize: 12, color: C.textTert }} />
               <span style={{ fontSize: 11, color: C.textSec, fontFamily: F.body }}>{unit.total_area}</span>
             </div>
+          ) : (unit.carpet_area !== null && unit.carpet_area !== undefined) ? (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+              <i className="ti ti-ruler-2" style={{ fontSize: 12, color: C.textTert }} />
+              <span style={{ fontSize: 11, color: C.textSec, fontFamily: F.body }}>{unit.carpet_area}</span>
+            </div>
           ) : null}
-          {!unit.total_rooms && !unit.total_baths && !unit.total_area && (
-            <span style={{ fontSize: 11, color: C.textTert, fontFamily: F.body }}>{unitTypeLabel}</span>
-          )}
+          {/* Fallback — show unit type if no dimensions available */}
+          {(unit.total_rooms === null || unit.total_rooms === undefined) &&
+           (unit.total_baths === null || unit.total_baths === undefined) &&
+           (unit.total_area === null || unit.total_area === undefined) && unit.unit_type ? (
+            <span style={{ fontSize: 11, color: C.textTert, fontFamily: F.body, textTransform: 'capitalize' }}>
+              {unit.unit_type.replace(/_/g, ' ')}
+            </span>
+          ) : null}
         </div>
 
         {/* Rent + status badge */}
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <span style={{ fontSize: 13, fontWeight: 700, color: C.textPrimary, fontFamily: F.body }}>
-            {unit.rent_amount ? `$${Number(unit.rent_amount).toLocaleString()} /mo` : '—'}
-          </span>
-          <span style={{
-            fontSize: 10, fontWeight: 600, padding: '2px 7px', borderRadius: 4,
-            fontFamily: F.body,
-            background: isOccupied ? '#DCFCE7' : '#F1F5F9',
-            color: isOccupied ? '#166534' : C.textSec,
-            border: `1px solid ${isOccupied ? '#BBF7D0' : C.border}`,
-          }}>
-            {isOccupied ? 'Occupied' : 'Available'}
-          </span>
-        </div>
+        {(() => {
+          const STATUS_MAP = {
+            OCCUPIED:                        { label: 'Occupied',    bg: '#DCFCE7', color: '#166534', border: '#BBF7D0' },
+            VACANT:                          { label: 'Vacant',      bg: '#F1F5F9', color: C.textSec,  border: C.border  },
+            ACTIVE:                          { label: 'Active',      bg: '#DBEAFE', color: '#05247a', border: '#BFDBFE' },
+            DRAFT:                           { label: 'Draft',       bg: '#FEF3C7', color: '#92400E', border: '#FCD34D' },
+            PENDING_OWNERSHIP_SUBMISSION:    { label: 'Pending',     bg: '#EFF6FF', color: '#05247a', border: '#BFDBFE' },
+            PENDING_OWNERSHIP_VERIFICATION:  { label: 'Verifying',   bg: '#EFF6FF', color: '#05247a', border: '#BFDBFE' },
+            MAINTENANCE:                     { label: 'Maintenance', bg: '#FEF3C7', color: '#92400E', border: '#FCD34D' },
+            RESERVED:                        { label: 'Reserved',    bg: '#F3E8FF', color: '#6D28D9', border: '#DDD6FE' },
+          };
+          const s = STATUS_MAP[unit.status] || { label: unit.status || 'Unknown', bg: '#F1F5F9', color: C.textSec, border: C.border };
+          return (
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <span style={{ fontSize: 13, fontWeight: 700, color: C.textPrimary, fontFamily: F.body }}>
+                {unit.rent_amount ? `$${Number(unit.rent_amount).toLocaleString()} /mo` : '—'}
+              </span>
+              <span style={{
+                fontSize: 10, fontWeight: 600, padding: '2px 7px', borderRadius: 4,
+                fontFamily: F.body, background: s.bg, color: s.color, border: `1px solid ${s.border}`,
+              }}>
+                {s.label}
+              </span>
+            </div>
+          );
+        })()}
       </div>
     </div>
   );
 }
 
 function PropertySection({ property }) {
+  const navigate = useNavigate();
   const [units, setUnits]     = useState([]);
   const [loading, setLoading] = useState(true);
+  const [tooltipVisible, setTooltipVisible] = useState(false);
 
   useEffect(() => {
     const token = localStorage.getItem('access_token');
@@ -172,12 +188,54 @@ function PropertySection({ property }) {
   const isVerified = property.status === 'ACTIVE';
 
   return (
-    <div style={{ marginBottom: 36 }}>
-      {/* Property name row — just text + divider, no card */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 16 }}>
+    <div style={{ marginBottom: 32 }}>
+      {/* Property name row */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
         <span style={{ fontSize: 22, fontWeight: 700, color: C.textPrimary, fontFamily: F.headline, whiteSpace: 'nowrap' }}>
           {property.name}
         </span>
+
+        {/* Eye icon + tooltip */}
+        <div style={{ position: 'relative', flexShrink: 0 }}>
+          <button
+            onClick={() => navigate(`/pm-portal/properties/${property.id}`)}
+            onMouseEnter={() => setTooltipVisible(true)}
+            onMouseLeave={() => setTooltipVisible(false)}
+            style={{
+              width: 28, height: 28, borderRadius: 6,
+              border: `1px solid ${C.border}`,
+              background: tooltipVisible ? '#EFF6FF' : C.cardBg,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              cursor: 'pointer', transition: 'all 0.15s',
+              outline: 'none',
+            }}
+          >
+            <i className="ti ti-eye" style={{ fontSize: 13, color: tooltipVisible ? C.primary : C.textSec }} />
+          </button>
+          {/* Tooltip */}
+          {tooltipVisible && (
+            <div style={{
+              position: 'absolute', bottom: '110%', left: '50%',
+              transform: 'translateX(-50%)',
+              background: '#0F172A', color: '#fff',
+              fontSize: 11, fontWeight: 600, fontFamily: F.body,
+              padding: '4px 10px', borderRadius: 5,
+              whiteSpace: 'nowrap', pointerEvents: 'none', zIndex: 10,
+            }}>
+              View Property Detail
+              <div style={{
+                position: 'absolute', top: '100%', left: '50%',
+                transform: 'translateX(-50%)',
+                width: 0, height: 0,
+                borderLeft: '4px solid transparent',
+                borderRight: '4px solid transparent',
+                borderTop: '4px solid #0F172A',
+              }} />
+            </div>
+          )}
+        </div>
+
+        {/* Badges */}
         {isVerified && (
           <span style={{
             fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.07em',
@@ -198,24 +256,96 @@ function PropertySection({ property }) {
             Draft
           </span>
         )}
+
         {/* Divider line */}
         <div style={{ flex: 1, height: 1, background: C.border }} />
       </div>
 
       {/* Units horizontal scroll */}
       {loading ? (
-        <div style={{ fontSize: 12, color: C.textTert, fontFamily: F.body, padding: '20px 0' }}>
+        <div style={{ fontSize: 12, color: C.textTert, fontFamily: F.body, padding: '12px 0' }}>
           Loading units…
         </div>
       ) : units.length === 0 ? (
-        <div style={{ fontSize: 12, color: C.textTert, fontFamily: F.body, padding: '20px 0', display: 'flex', alignItems: 'center', gap: 8 }}>
+        <div style={{ fontSize: 12, color: C.textTert, fontFamily: F.body, padding: '12px 0', display: 'flex', alignItems: 'center', gap: 8 }}>
           <i className="ti ti-door-off" style={{ fontSize: 16 }} /> No units added yet
         </div>
       ) : (
-        <div style={{ display: 'flex', gap: 14, overflowX: 'auto', paddingBottom: 4, scrollbarWidth: 'thin' }}>
-          {units.map(unit => <UnitCard key={unit.id} unit={unit} />)}
+        <div className="port-scroll" style={{ display: 'flex', gap: 14, overflowX: 'auto', paddingBottom: 4 }}>
+          {units.map(unit => <UnitCard key={unit.id} unit={unit} propertyId={property.id} />)}
         </div>
       )}
+    </div>
+  );
+}
+
+
+// Pagination component
+function Pagination({ currentPage, totalPages, onPageChange }) {
+  if (totalPages <= 1) return null;
+
+  function getPages() {
+    const pages = [];
+    if (totalPages <= 5) {
+      for (let i = 1; i <= totalPages; i++) pages.push(i);
+    } else {
+      pages.push(1);
+      if (currentPage > 3) pages.push('...');
+      for (let i = Math.max(2, currentPage - 1); i <= Math.min(totalPages - 1, currentPage + 1); i++) {
+        pages.push(i);
+      }
+      if (currentPage < totalPages - 2) pages.push('...');
+      pages.push(totalPages);
+    }
+    return pages;
+  }
+
+  const btnBase = {
+    width: 36, height: 36, borderRadius: 8, display: 'flex',
+    alignItems: 'center', justifyContent: 'center',
+    fontSize: 13, fontFamily: F.body, fontWeight: 600,
+    cursor: 'pointer', border: `1px solid ${C.border}`,
+    transition: 'all 0.15s',
+  };
+
+  return (
+    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 6, paddingTop: 8 }}>
+      {/* Prev */}
+      <button
+        onClick={() => onPageChange(currentPage - 1)}
+        disabled={currentPage === 1}
+        style={{ ...btnBase, background: C.cardBg, color: currentPage === 1 ? C.textTert : C.textSec, opacity: currentPage === 1 ? 0.5 : 1 }}
+      >
+        <i className="ti ti-chevron-left" style={{ fontSize: 14 }} />
+      </button>
+
+      {getPages().map((p, i) => (
+        p === '...' ? (
+          <span key={`dots-${i}`} style={{ width: 36, textAlign: 'center', fontSize: 13, color: C.textTert, fontFamily: F.body }}>…</span>
+        ) : (
+          <button
+            key={p}
+            onClick={() => onPageChange(p)}
+            style={{
+              ...btnBase,
+              background: p === currentPage ? C.primary : C.cardBg,
+              color: p === currentPage ? C.white : C.textSec,
+              border: `1px solid ${p === currentPage ? C.primary : C.border}`,
+            }}
+          >
+            {p}
+          </button>
+        )
+      ))}
+
+      {/* Next */}
+      <button
+        onClick={() => onPageChange(currentPage + 1)}
+        disabled={currentPage === totalPages}
+        style={{ ...btnBase, background: C.cardBg, color: currentPage === totalPages ? C.textTert : C.textSec, opacity: currentPage === totalPages ? 0.5 : 1 }}
+      >
+        <i className="ti ti-chevron-right" style={{ fontSize: 14 }} />
+      </button>
     </div>
   );
 }
@@ -229,6 +359,7 @@ export default function PMPortfolioPage() {
   const [userName, setUserName]           = useState('');
   const [userRole, setUserRole]           = useState('Independent PM');
   const [availableTypes, setAvailableTypes] = useState([]);
+  const [currentPage, setCurrentPage]     = useState(1);
 
   useEffect(() => {
     const token = localStorage.getItem('access_token');
@@ -262,19 +393,33 @@ export default function PMPortfolioPage() {
   }, [navigate]);
 
   useEffect(() => {
-    if (propertyType) setActiveType(propertyType);
+    if (propertyType) { setActiveType(propertyType); setCurrentPage(1); }
   }, [propertyType]);
 
   const filteredProperties = allProperties.filter(p => p.property_type === activeType);
+  const totalPages = Math.ceil(filteredProperties.length / PROPERTIES_PER_PAGE);
+  const pagedProperties = filteredProperties.slice(
+    (currentPage - 1) * PROPERTIES_PER_PAGE,
+    currentPage * PROPERTIES_PER_PAGE
+  );
+
+  function handleTabChange(type) {
+    setActiveType(type);
+    setCurrentPage(1);
+    navigate(`/pm-portal/properties/portfolio/${type}`);
+  }
 
   return (
     <>
       <style>{`
         * { box-sizing: border-box; }
         html, body, #root { height: 100%; margin: 0; padding: 0; overflow: hidden; }
-        .port-scroll::-webkit-scrollbar { width: 5px; height: 4px; }
+        .port-scroll::-webkit-scrollbar { height: 4px; }
         .port-scroll::-webkit-scrollbar-track { background: transparent; }
         .port-scroll::-webkit-scrollbar-thumb { background: #CBD5E1; border-radius: 99px; }
+        .main-scroll::-webkit-scrollbar { width: 5px; }
+        .main-scroll::-webkit-scrollbar-track { background: transparent; }
+        .main-scroll::-webkit-scrollbar-thumb { background: #CBD5E1; border-radius: 99px; }
       `}</style>
 
       <div style={{ display: 'flex', height: '100vh', overflow: 'hidden', background: C.pageBg, fontFamily: F.body }}>
@@ -283,13 +428,14 @@ export default function PMPortfolioPage() {
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0, overflow: 'hidden' }}>
           <Header userName={userName} userRole={userRole} />
 
-          <div className="port-scroll" style={{ flex: 1, overflowY: 'auto' }}>
+          <div className="main-scroll" style={{ flex: 1, overflowY: 'auto' }}>
 
-            {/* Category filter tabs + single filter icon */}
+            {/* Category filter tabs — no border bottom, padding top for breathing room */}
             <div style={{
               background: C.cardBg,
-              borderBottom: `1px solid ${C.border}`,
-              padding: '0 28px',
+              paddingTop: 16,
+              paddingLeft: 28,
+              paddingRight: 28,
               display: 'flex', alignItems: 'center',
               flexShrink: 0,
             }}>
@@ -303,17 +449,14 @@ export default function PMPortfolioPage() {
                   return (
                     <button
                       key={type}
-                      onClick={() => {
-                        setActiveType(type);
-                        navigate(`/pm-portal/properties/portfolio/${type}`);
-                      }}
+                      onClick={() => handleTabChange(type)}
                       style={{
                         display: 'flex', alignItems: 'center', gap: 6,
-                        padding: '14px 16px', border: 'none', background: 'transparent',
+                        padding: '12px 16px', border: 'none', background: 'transparent',
                         fontFamily: F.body, fontSize: 13,
                         fontWeight: isActive ? 700 : 500,
-                        color: isActive ? C.success : C.textSec,
-                        borderBottom: isActive ? `2.5px solid ${C.success}` : '2.5px solid transparent',
+                        color: isActive ? C.primary : C.textSec,
+                        borderBottom: isActive ? `2.5px solid ${C.primary}` : '2.5px solid transparent',
                         cursor: 'pointer', outline: 'none',
                         transition: 'all 0.15s', whiteSpace: 'nowrap',
                         marginBottom: -1,
@@ -326,7 +469,7 @@ export default function PMPortfolioPage() {
                 })}
               </div>
 
-              {/* Single filter icon — top right */}
+              {/* Single filter icon */}
               <button style={{
                 width: 34, height: 34, borderRadius: 7,
                 border: `1px solid ${C.border}`,
@@ -339,7 +482,7 @@ export default function PMPortfolioPage() {
             </div>
 
             {/* Content area */}
-            <div style={{ padding: '28px 28px 60px' }}>
+            <div style={{ padding: '24px 28px 60px' }}>
 
               {/* Loading */}
               {loading && (
@@ -356,10 +499,30 @@ export default function PMPortfolioPage() {
                 </div>
               )}
 
-              {/* Property sections — no wrapper cards, just name + divider + unit row */}
-              {!loading && filteredProperties.map(property => (
-                <PropertySection key={property.id} property={property} />
-              ))}
+              {/* Single white container wrapping ALL property sections on current page */}
+              {!loading && pagedProperties.length > 0 && (
+                <div style={{
+                  background: C.cardBg,
+                  border: `1px solid ${C.border}`,
+                  borderRadius: 12,
+                  padding: '28px 28px 8px',
+                  boxShadow: '0 1px 4px rgba(0,0,0,0.05)',
+                  marginBottom: 24,
+                }}>
+                  {pagedProperties.map(property => (
+                    <PropertySection key={property.id} property={property} />
+                  ))}
+                </div>
+              )}
+
+              {/* Pagination */}
+              {!loading && totalPages > 1 && (
+                <Pagination
+                  currentPage={currentPage}
+                  totalPages={totalPages}
+                  onPageChange={page => { setCurrentPage(page); }}
+                />
+              )}
 
             </div>
           </div>

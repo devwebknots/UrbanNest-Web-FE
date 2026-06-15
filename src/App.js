@@ -43,6 +43,9 @@ import OrgPMS_PendingStatus            from './pages/OrgPMSOnboarding/OrgPMS_Pen
 import AddNewProperty from "./pages/Properties/AddProperty/AddNewProperty";
 import PMPropertiesPage from './pages/Properties/PMPropertiesPage';
 import PMPortfolioPage from './pages/Properties/PMPortfolioPage';
+import PMPropertyDetailPage from './pages/Properties/PMPropertyDetailPage';
+import PMUnitDetailPage from './pages/Properties/PMUnitDetailPage';
+
 
 
 function AppRoutes() {
@@ -134,6 +137,15 @@ function AppRoutes() {
       <Route path="/pm-portal/properties/add" element={<AddNewProperty persona="INDEPENDENT_PM" />} />
       <Route path="/org-portal/properties/add"  element={<AddNewProperty persona="ORGANIZATIONAL_PM" />} />
       <Route path="/pm-portal/properties/portfolio/:propertyType" element={<PMPortfolioPage />} />
+      <Route path="/pm-portal/properties/:id" element={<PMPropertyDetailPage />} />
+      <Route path="/pm-portal/properties/:id/units/:unitId" element={<PMUnitDetailPage />} />
+
+      // Temporary placeholder — replace with PMPropertyDetailPage when built
+      <Route path="/pm-portal/properties/:id" element={
+        <div style={{ padding: 40, fontFamily: 'Nunito Sans, sans-serif', color: '#0F172A' }}>
+          Property Detail page — coming soon
+        </div>
+      } />
 
     </Routes>
   );
