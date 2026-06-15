@@ -368,7 +368,7 @@ function OwnerDetails({ propertyId, currentOwnerships }) {
     setTab(t);
     if (t === 'historical' && !loaded) {
       setLoading(true);
-      const token = localStorage.getItem('accessToken') || sessionStorage.getItem('accessToken');
+      const token = localStorage.getItem('access_Token') || sessionStorage.getItem('access_Token');
       fetch(
         `${process.env.REACT_APP_API_URL || 'http://localhost:8001'}/api/properties/${propertyId}/ownerships/history/`,
         { headers: { Authorization: `Bearer ${token}` } }
@@ -877,10 +877,9 @@ export default function PMPropertyDetailPage() {
   const [units,    setUnits]    = useState([]);
 
   useEffect(() => {
-    const token = localStorage.getItem('accessToken') || sessionStorage.getItem('accessToken');
     setLoading(true);
     fetch(`${API}/api/properties/${id}/`, {
-      headers: { Authorization: `Bearer ${token}` },
+      headers: { Authorization: `Bearer ${localStorage.getItem('access_token')}` },
     })
       .then(r => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.json(); })
       .then(data => { setProperty(data); setLoading(false); })
@@ -888,9 +887,9 @@ export default function PMPropertyDetailPage() {
 
     // Fetch units for Units Summary sidebar card
     fetch(`${API}/api/properties/${id}/units/`, {
-      headers: { Authorization: `Bearer ${token}` },
+      headers: { Authorization: `Bearer ${localStorage.getItem('access_token')}` },
     })
-      .then(r => r.ok ? r.json() : [])
+        .then(r => r.ok ? r.json() : [])
       .then(data => setUnits(Array.isArray(data) ? data : []))
       .catch(() => {});
   }, [id, API]);

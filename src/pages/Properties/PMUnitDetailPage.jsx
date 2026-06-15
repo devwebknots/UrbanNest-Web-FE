@@ -444,9 +444,9 @@ function OwnerDetails({ unitId, currentOwnerships }) {
     setTab(t);
     if (t === 'historical' && !loaded) {
       setLoading(true);
-      const token = localStorage.getItem('accessToken') || sessionStorage.getItem('accessToken');
+      const token = localStorage.getItem('access_Token') || sessionStorage.getItem('access_Token');
       fetch(`${API}/api/units/${unitId}/ownerships/history/`, {
-        headers: { Authorization: `Bearer ${token}` },
+        headers: { Authorization: `Bearer ${localStorage.getItem('access_token')}` },
       })
         .then(r => r.ok ? r.json() : [])
         .then(data => { setHistory(Array.isArray(data) ? data : data.results || []); setLoaded(true); })
@@ -573,9 +573,9 @@ function TenantDetails({ unitId, currentTenants, isStudentHousing }) {
     setTab(t);
     if (t === 'historical' && !loaded) {
       setLoading(true);
-      const token = localStorage.getItem('accessToken') || sessionStorage.getItem('accessToken');
+      const token = localStorage.getItem('access_Token') || sessionStorage.getItem('access_Token');
       fetch(`${API}/api/units/${unitId}/tenants/history/`, {
-        headers: { Authorization: `Bearer ${token}` },
+        headers: { Authorization: `Bearer ${localStorage.getItem('access_token')}` },
       })
         .then(r => r.ok ? r.json() : [])
         .then(data => { setHistory(Array.isArray(data) ? data : data.results || []); setLoaded(true); })
@@ -816,10 +816,9 @@ export default function PMUnitDetailPage() {
   const [error,   setError]   = useState(null);
 
   useEffect(() => {
-    const token = localStorage.getItem('accessToken') || sessionStorage.getItem('accessToken');
     setLoading(true);
     fetch(`${API}/api/properties/${id}/units/${unitId}/`, {
-      headers: { Authorization: `Bearer ${token}` },
+      headers: { Authorization: `Bearer ${localStorage.getItem('access_token')}` },
     })
       .then(r => { if (!r.ok) throw new Error(`HTTP ${r.status}`); return r.json(); })
       .then(data => { setUnit(data); setLoading(false); })
