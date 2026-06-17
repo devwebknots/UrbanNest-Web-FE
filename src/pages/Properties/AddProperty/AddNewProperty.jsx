@@ -1425,7 +1425,7 @@ function SavePropertyModal({ propName, onAddUnit, onNoUnits }) {
   );
 }
 // ─── Main component ────────────────────────────────────────────────────────────
-export default function AddNewProperty({ persona = 'INDEPENDENT_PM' }) {
+export default function AddNewProperty({ persona = 'INDEPENDENT_PM',initialPropertyId }) {
   const navigate = useNavigate();
   const [userName, setUserName]     = useState('');
   const [userRole, setUserRole]     = useState('Independent PM');
@@ -1497,7 +1497,46 @@ export default function AddNewProperty({ persona = 'INDEPENDENT_PM' }) {
           const roleMap = { INDEPENDENT_PM: 'Independent PM', ORGANIZATIONAL_PM: 'Org PMS Admin', LANDLORD: 'Landlord', RENTER: 'Renter' };
           setUserRole(roleMap[persona || data.active_persona] || 'Independent PM');
         }
-      }).catch(() => {});
+        }).catch(() => {});
+        if (initialPropertyId) {
+        setPropId(Number(initialPropertyId));
+        setUnitLocked(false);
+        setMainTab('unit');
+        setSubTab('Unit/Home Info');
+
+        // Fetch existing property owners so unit ownership "same as property" works
+        fetch(`http://localhost:8001/api/properties/${initialPropertyId}/`, {
+          headers: { Authorization: 'Bearer ' + token }
+        })
+          .then(r => r.ok ? r.json() : null)
+          .then(propData => {
+            if (!propData) return;
+            setPropName(propData.property_name || propData.name || '');
+            setPropType(propData.property_type || '');
+            if (Array.isArray(propData.ownerships)) {
+              const mapped = propData.ownerships.map(o => ({
+                id:                   o.id,
+                firstName:            o.first_name || '',
+                lastName:             o.last_name  || '',
+                email:                o.email      || '',
+                phone:                o.phone      || '',
+                ownershipRole:        (o.ownership_role || 'individual_owner').toLowerCase(),
+                ownershipPct:         o.ownership_pct   || '',
+                involvement:          (o.involvement || 'active').toLowerCase(),
+                involvementType: {
+                  leaseSig:    o.is_lease_signatory ?? false,
+                  maintenance: o.is_maintenance     ?? true,
+                  infoOnly:    o.is_info_only       ?? false,
+                },
+                maintenanceThreshold: o.maintenance_threshold || '',
+                inUN:   false,
+                status: (o.status || 'pending').toLowerCase(),
+              }));
+              setOwners(mapped);
+            }
+          })
+          .catch(() => {});
+      }
   }, [navigate, persona]);
   
   useEffect(() => {

@@ -45,8 +45,19 @@ import PMPropertiesPage from './pages/Properties/PMPropertiesPage';
 import PMPortfolioPage from './pages/Properties/PMPortfolioPage';
 import PMPropertyDetailPage from './pages/Properties/PMPropertyDetailPage';
 import PMUnitDetailPage from './pages/Properties/PMUnitDetailPage';
+import EditPropertyPage from './pages/Properties/EditProperty/EditPropertyPage';
+import EditUnitPage     from './pages/Properties/EditProperty/EditUnitPage';
+import { useParams } from 'react-router-dom';
 
-
+function AddUnitWrapper() {
+  const { id } = useParams();
+  return (
+    <AddNewProperty
+      persona="INDEPENDENT_PM"
+      initialPropertyId={id}
+    />
+  );
+}
 
 function AppRoutes() {
   const navigate = useNavigate();
@@ -139,6 +150,10 @@ function AppRoutes() {
       <Route path="/pm-portal/properties/portfolio/:propertyType" element={<PMPortfolioPage />} />
       <Route path="/pm-portal/properties/:id" element={<PMPropertyDetailPage />} />
       <Route path="/pm-portal/properties/:id/units/:unitId" element={<PMUnitDetailPage />} />
+      <Route path="/pm-portal/properties/:id/edit"                    element={<EditPropertyPage />} />
+      <Route path="/pm-portal/properties/:id/units/:unitId/edit"      element={<EditUnitPage />} />
+      <Route path="/pm-portal/properties/:id/add-unit" element={<AddUnitWrapper />} />
+
 
       // Temporary placeholder — replace with PMPropertyDetailPage when built
       <Route path="/pm-portal/properties/:id" element={
