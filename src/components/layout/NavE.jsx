@@ -34,6 +34,7 @@
  *   config-emails                → /admin-portal/config/emails
  *   config-reference             → /admin-portal/config/reference
  *   config-rules                 → /admin-portal/config/rules
+ *   config-miscellaneous         → /admin-portal/config/miscellaneous 
  *
  * Design specs:
  *   Width: 220px fixed
@@ -158,6 +159,7 @@ const NAV_SECTIONS = [
       { id: 'config-onboard-docs', label: 'Onboard Docs', route: '/admin-portal/config/onboard-docs' },
       { id: 'config-emails',     label: 'Email Templates',  route: '/admin-portal/config/emails' },
       { id: 'config-reference',  label: 'Reference Data',   route: '/admin-portal/config/reference' },
+      { id: 'config-miscellaneous',label: 'Miscellaneous',           route: '/admin-portal/config/miscellaneous' },
       { id: 'config-rules',      label: 'Business Rules',   route: '/admin-portal/config/rules' },
     ],
   },

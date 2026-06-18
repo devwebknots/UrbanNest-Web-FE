@@ -25,6 +25,8 @@ import UNAdminServiceCatalog from './pages/UNAdminPortal/Services/Catalog/UNAdmi
 import UNAdminPlanCatalog    from './pages/UNAdminPortal/Plans/UNAdminPlanCatalog';
 import UNAdminOnboardDocs    from './pages/UNAdminPortal/OnboardDocs/UNAdminOnboardDocs';
 import UNAdminApplicationReview from './pages/UNAdminPortal/Applications/UNAdminApplicationReview';
+import UNAdminReferenceData from './pages/UNAdminPortal/Configurations/References/UNAdminReferenceData';
+import UNAdminMiscConfig from './pages/UNAdminPortal/Configurations/Miscellaneous/UNAdminMiscConfig';
 
 // PMS Onboarding (existing — pending refactor)
 import PMSOnboardingStep1   from './PMS_Onboarding_Step1';
@@ -123,6 +125,16 @@ function AppRoutes() {
       <Route path="/admin-portal/operations/applications" element={
         <UNAdminShell activeId="operations-applications" title="Application Review">
           <UNAdminApplicationReview />
+        </UNAdminShell>
+      } />
+      <Route path="/admin-portal/config/reference" element={
+        <UNAdminShell activeId="reference-data" title="Reference Data">
+          <UNAdminReferenceData />
+        </UNAdminShell>
+      } />
+      <Route path="/admin-portal/config/miscellaneous" element={
+        <UNAdminShell activeId="misc-config" title="Miscellaneous Configurations">
+          <UNAdminMiscConfig />
         </UNAdminShell>
       } />
 
