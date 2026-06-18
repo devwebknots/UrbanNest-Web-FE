@@ -52,6 +52,9 @@ import EditPropertyPage from './pages/Properties/EditProperty/EditPropertyPage';
 import EditUnitPage     from './pages/Properties/EditProperty/EditUnitPage';
 import { useParams } from 'react-router-dom';
 
+// Invite for all email/phone verifications
+import VerifyOwnershipPage from './pages/Invite/VerifyOwnershipPage';
+
 function AddUnitWrapper() {
   const { id } = useParams();
   return (
@@ -176,6 +179,9 @@ function AppRoutes() {
         </div>
       } />
 
+      {/* ── Invites ──────────────────────────────────────────────────── */}
+      <Route path="/verify-ownership" element={<VerifyOwnershipPage />} />
+      
     </Routes>
   );
 }

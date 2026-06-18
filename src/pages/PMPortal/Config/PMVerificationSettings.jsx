@@ -531,8 +531,25 @@ function DocumentsTab({ pmCountry }) {
 // ─── Main Page ────────────────────────────────────────────────────────────────
 export default function PMVerificationSettings() {
   const [activeTab, setActiveTab] = useState('documents');
-  const pmCountry = 'US'; // TODO: fetch from /api/auth/me/
+  const [pmCountry, setPmCountry] = useState(null);
 
+  useEffect(() => {
+    fetch(`${API}/auth/me/`, { headers: authH() })
+        .then(r => r.json())
+        .then(data => setPmCountry(data.country || 'US'))
+        .catch(() => setPmCountry('US'));
+  }, []);
+
+  if (!pmCountry) {
+    return (
+        <div style={{ display:'flex', minHeight:'100vh', background:C.pageBg, fontFamily:F.body }}>
+        <NavB activeId="verification-settings" />
+        <div style={{ flex:1, display:'flex', alignItems:'center', justifyContent:'center' }}>
+            <span style={{ fontFamily:F.body, fontSize:13, color:C.textTertiary }}>Loading...</span>
+        </div>
+        </div>
+    );
+    }
   return (
     <div style={{ display:'flex',minHeight:'100vh',background:C.pageBg,fontFamily:F.body }}>
       <NavB activeId="verification-settings" />
