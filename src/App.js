@@ -17,6 +17,7 @@ import IndependentPM_Step3  from './pages/IndependentPM/IndependentPM_Step3';
 import PMDashboard          from './pages/PMPortal/Dashboard/PMDashboard';
 import PMWelcomePage        from './pages/PMPortal/Dashboard/PMWelcomePage';
 import PMProfileView        from './pages/PMPortal/Profile/PMProfileView';
+import PMVerificationSettings from './pages/PMPortal/Config/PMVerificationSettings';
 
 // UN Admin Portal
 import UNAdminShell          from './pages/UNAdminPortal/UNAdminShell';
@@ -96,6 +97,7 @@ function AppRoutes() {
       <Route path="/pm-portal/dashboard/welcome"      element={<PMWelcomePage persona="INDEPENDENT_PM" />} />
       <Route path="/pm-portal/dashboard/my-dashboard" element={<PMDashboard   persona="INDEPENDENT_PM" />} />
       <Route path="/pm-portal/profile/persona"        element={<PMProfileView />} />
+      <Route path="/pm-portal/config/verification-settings" element={<PMVerificationSettings />} />
 
       {/* ── Org PMS Portal — reuses PM dashboard (NavD when Org-specific nav needed) ── */}
       <Route path="/org-portal/dashboard/welcome"      element={<PMWelcomePage persona="ORGANIZATIONAL_PM" />} />

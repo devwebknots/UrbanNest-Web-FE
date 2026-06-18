@@ -153,7 +153,7 @@ const NAV_STRUCTURE = [
           { id: 'screening-rules',    label: 'Screening Rules',    route: '/pm-portal/config/screening' },
           { id: 'financial-settings', label: 'Financial Settings', route: '/pm-portal/config/financial' },
           { id: 'lease-rent',         label: 'Lease & Rent',       route: '/pm-portal/config/lease' },
-          { id: 'verification',       label: 'Verification',       route: '/pm-portal/config/verification' },
+          { id: 'verification-settings', label: 'Verification Settings', route: '/pm-portal/config/verification-settings' },
           { id: 'partners',           label: 'Partners',           route: '/pm-portal/config/partners' },
           { id: 'communication',      label: 'Communication',      route: '/pm-portal/config/communication' },
           { id: 'data-ai',            label: 'Data & AI',          route: '/pm-portal/config/data-ai' },
