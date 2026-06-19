@@ -2,9 +2,11 @@
 // UrbanNest — Verify Ownership Page
 // Route: /verify-ownership?token=XXX
 // Public — no auth required
-// Scenario A (NEW_USER):        Registration + OTP + Done
-// Scenario B (EXISTING_USER):   Registration + Done (no OTP, no password)
-// Scenario C (EXISTING_LANDLORD): Registration (docs only) + Done
+//
+// Scenario A (NEW_USER):          Registration + OTP + Done
+// Scenario B (EXISTING_USER):     Registration (no password) + Done
+// Scenario C (PENDING_LANDLORD):  Docs only (all fields locked) + Done
+// Scenario D (EXISTING_LANDLORD): Registration (pre-filled, editable) + Done
 // ─────────────────────────────────────────────
 
 import { useState, useEffect, useRef } from 'react';
@@ -36,6 +38,8 @@ const ICONS = {
   shield:   "M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z",
   db:       "M12 2a9 3 0 1 0 0 6 9 3 0 0 0 0-6z M3 5v4a9 3 0 0 0 18 0V5 M3 13v4a9 3 0 0 0 18 0v-4",
   cert:     "M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6z M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z",
+  hourglass: "M5 3h14 M5 21h14 M8 3v4l8 5-8 5v4",
+  info:     "M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20z M12 8h.01 M12 12v4",
 };
 
 function Icon({ d, size = 16, color = C.textTertiary, style = {} }) {
@@ -66,13 +70,71 @@ const inputBase = (hasError = false, hasValue = false, locked = false) => ({
   borderStyle: locked ? 'dashed' : 'solid',
 });
 
-// ─── Stepper ──────────────────────────────────
-// NEW_USER:            Registration → OTP → Done
-// EXISTING_USER/LANDLORD: Registration → Done
-function Stepper({ step, scenario }) {
-  const isNew   = scenario === 'NEW_USER';
-  const steps   = isNew ? ['Registration', 'OTP', 'Done'] : ['Registration', 'Done'];
+// ─── Scenario config ──────────────────────────
+// Central place defining behaviour per scenario
+const SCENARIO_CONFIG = {
+  NEW_USER: {
+    badgeLabel: 'New registration',
+    badgeBg: 'rgba(0,45,91,0.07)', badgeColor: C.primary,
+    title: 'Create your account',
+    subtitle: (propName) => <>Register to claim your ownership of <strong style={{ color: C.textPrimary }}>{propName}</strong>.</>,
+    phoneLocked: false,
+    showPassword: true,
+    addrEditable: true,
+    occupationLocked: false,
+    allFieldsLocked: false,
+    requiresOtp: true,
+    ctaLabel: 'Continue to verification',
+    stepperSteps: ['Registration', 'OTP', 'Done'],
+  },
+  EXISTING_USER: {
+    badgeLabel: 'Existing account',
+    badgeBg: 'rgba(22,163,74,0.08)', badgeColor: C.green,
+    title: 'Verify your ownership',
+    subtitle: (propName) => <>Complete your landlord profile and upload ownership documents for <strong style={{ color: C.textPrimary }}>{propName}</strong>.</>,
+    phoneLocked: true,
+    showPassword: false,
+    addrEditable: true,
+    occupationLocked: false,
+    allFieldsLocked: false,
+    requiresOtp: false,
+    ctaLabel: 'Verify & Submit',
+    stepperSteps: ['Registration', 'Done'],
+  },
+  PENDING_LANDLORD: {
+    badgeLabel: 'Pending approval',
+    badgeBg: '#FEF3C7', badgeColor: '#92400E',
+    title: 'Submit ownership documents',
+    subtitle: (propName) => <>Upload your ownership documents for <strong style={{ color: C.textPrimary }}>{propName}</strong>. Your profile details are locked while your landlord application is under review.</>,
+    phoneLocked: true,
+    showPassword: false,
+    addrEditable: false,
+    occupationLocked: true,
+    allFieldsLocked: true,   // all personal + address fields locked
+    requiresOtp: false,
+    ctaLabel: 'Submit documents',
+    stepperSteps: ['Registration', 'Done'],
+  },
+  EXISTING_LANDLORD: {
+    badgeLabel: 'Existing landlord',
+    badgeBg: '#FEF3C7', badgeColor: '#92400E',
+    title: 'Add property ownership',
+    subtitle: (propName) => <>Upload your ownership documents for <strong style={{ color: C.textPrimary }}>{propName}</strong>. Your details are pre-filled from your existing profile.</>,
+    phoneLocked: true,
+    showPassword: false,
+    addrEditable: true,
+    occupationLocked: false,
+    allFieldsLocked: false,
+    requiresOtp: false,
+    ctaLabel: 'Verify & Submit',
+    stepperSteps: ['Registration', 'Done'],
+  },
+};
 
+// ─── Stepper ──────────────────────────────────
+function Stepper({ step, scenario }) {
+  const cfg   = SCENARIO_CONFIG[scenario] || SCENARIO_CONFIG.NEW_USER;
+  const steps = cfg.stepperSteps;
   return (
     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '14px 0 12px', borderBottom: `1px solid rgba(0,0,0,0.06)`, flexShrink: 0 }}>
       {steps.map((label, i) => {
@@ -178,7 +240,7 @@ function PasswordStrength({ password }) {
   );
 }
 
-// ─── Locked field helper ──────────────────────
+// ─── Locked field ─────────────────────────────
 function LockedField({ label, value, icon }) {
   return (
     <div style={{ marginBottom: 12 }}>
@@ -246,8 +308,7 @@ function OtpInput({ value, onChange }) {
   }
   function handleChange(i, e) {
     const v = e.target.value.replace(/\D/g, '').slice(-1);
-    const next = [...digits];
-    next[i] = v;
+    const next = [...digits]; next[i] = v;
     const joined = next.join('').slice(0, 6);
     onChange(joined);
     if (v && i < 5) inputs.current[i + 1]?.focus();
@@ -280,21 +341,34 @@ function OtpInput({ value, onChange }) {
   );
 }
 
+// ─── Section header ───────────────────────────
+function SectionHeader({ num, label }) {
+  return (
+    <div style={{ fontFamily: F.body, fontSize: 10, fontWeight: 700, color: C.textTertiary, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 12, display: 'flex', alignItems: 'center', gap: 8 }}>
+      <span style={{ background: 'rgba(0,45,91,0.08)', color: C.primary, borderRadius: 4, padding: '1px 7px', fontSize: 10 }}>{num}</span>
+      {label}
+    </div>
+  );
+}
+
 // ─── Step 3 — Under Review ────────────────────
 function Step3UnderReview({ invite, userName, scenario }) {
-  const isExistingLandlord = scenario === 'EXISTING_LANDLORD';
+  const isPending  = scenario === 'PENDING_LANDLORD';
+  const isLandlord = scenario === 'EXISTING_LANDLORD';
   return (
     <div style={{ padding: '32px 40px', textAlign: 'center' }}>
       <div style={{ width: 60, height: 60, borderRadius: '50%', background: '#F0FDF4', border: '1px solid #BBF7D0', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px' }}>
         <Icon d={ICONS.check} size={26} color={C.green} />
       </div>
       <h2 style={{ fontFamily: F.headline, fontSize: 22, fontWeight: 700, color: C.textPrimary, margin: '0 0 8px' }}>
-        {isExistingLandlord ? 'Ownership application submitted!' : 'Details submitted!'}
+        {isPending ? 'Documents submitted!' : 'Details submitted!'}
       </h2>
       <p style={{ fontFamily: F.body, fontSize: 13, color: C.textSecondary, lineHeight: 1.7, margin: '0 0 28px', maxWidth: 380, marginLeft: 'auto', marginRight: 'auto' }}>
-        {isExistingLandlord
+        {isPending
           ? <>Hi {userName}, your ownership documents for <strong style={{ color: C.primary }}>{invite?.property_name}</strong> have been submitted. Your PM will review and verify the ownership.</>
-          : <>Hi {userName}, your ownership details for <strong style={{ color: C.primary }}>{invite?.property_name}</strong> have been submitted. Your property manager will review and verify your application.</>
+          : isLandlord
+            ? <>Hi {userName}, your ownership application for <strong style={{ color: C.primary }}>{invite?.property_name}</strong> has been submitted. Your PM will review the documents.</>
+            : <>Hi {userName}, your ownership details for <strong style={{ color: C.primary }}>{invite?.property_name}</strong> have been submitted. Your property manager will review and verify your application.</>
         }
       </p>
 
@@ -323,7 +397,7 @@ function Step3UnderReview({ invite, userName, scenario }) {
           { icon: ICONS.clock,    color: '#B45309', tag: 'Pending PM review',  text: 'Your PM will verify your documents and approve your ownership application.' },
           { icon: ICONS.mail,     color: C.primary, tag: 'Email notification', text: "You'll receive an email once your application is approved or if more info is needed." },
           { icon: ICONS.building, color: C.primary, tag: 'After approval',
-            text: isExistingLandlord
+            text: (isPending || isLandlord)
               ? 'The property will be added to your Owner Portal portfolio.'
               : 'Your Owner Portal will unlock — view property details, income reports, and set up your bank account.'
           },
@@ -356,30 +430,6 @@ function Step3UnderReview({ invite, userName, scenario }) {
   );
 }
 
-// ─── Section header ───────────────────────────
-function SectionHeader({ num, label }) {
-  return (
-    <div style={{ fontFamily: F.body, fontSize: 10, fontWeight: 700, color: C.textTertiary, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: 12, display: 'flex', alignItems: 'center', gap: 8 }}>
-      <span style={{ background: 'rgba(0,45,91,0.08)', color: C.primary, borderRadius: 4, padding: '1px 7px', fontSize: 10 }}>{num}</span>
-      {label}
-    </div>
-  );
-}
-
-// ─── Scenario badge ───────────────────────────
-function ScenarioBadge({ scenario }) {
-  const cfg = {
-    NEW_USER:           { label: 'New registration',          bg: 'rgba(0,45,91,0.07)',  color: C.primary },
-    EXISTING_USER:      { label: 'Existing account',          bg: 'rgba(22,163,74,0.08)', color: C.green },
-    EXISTING_LANDLORD:  { label: 'Existing landlord',         bg: '#FEF3C7',              color: '#92400E' },
-  }[scenario] || {};
-  return (
-    <span style={{ fontFamily: F.body, fontSize: 9, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', padding: '2px 8px', borderRadius: 4, background: cfg.bg, color: cfg.color }}>
-      {cfg.label}
-    </span>
-  );
-}
-
 // ─── MAIN COMPONENT ───────────────────────────
 export default function VerifyOwnershipPage() {
   const [searchParams] = useSearchParams();
@@ -387,18 +437,16 @@ export default function VerifyOwnershipPage() {
 
   const [loadingInvite, setLoadingInvite] = useState(true);
   const [errorType, setErrorType]         = useState(null);
-  const [invite, setInvite]               = useState(null);       // full API response
-  const [scenario, setScenario]           = useState(null);       // NEW_USER | EXISTING_USER | EXISTING_LANDLORD
-  const [existingUser, setExistingUser]   = useState(null);       // pre-filled user data
+  const [invite, setInvite]               = useState(null);
+  const [scenario, setScenario]           = useState(null);
+  const [existingUser, setExistingUser]   = useState(null);
   const [step, setStep]                   = useState(1);
 
-  // Form state — pre-populated from existingUser where applicable
   const [form, setForm] = useState({
     firstName: '', lastName: '', phone: '', occupation: '',
     password: '', confirmPassword: '',
     street1: '', street2: '', city: '', state: '', zipCode: '', country: 'United States',
   });
-
   const [showPw, setShowPw]         = useState(false);
   const [showCPw, setShowCPw]       = useState(false);
   const [docFiles, setDocFiles]     = useState({});
@@ -411,21 +459,17 @@ export default function VerifyOwnershipPage() {
   const [verifying, setVerifying]   = useState(false);
   const [userName, setUserName]     = useState('');
 
-  // ── Fetch invite on mount ──
   useEffect(() => {
     if (!token) { setErrorType('TOKEN_INVALID'); setLoadingInvite(false); return; }
     fetch(`${API}/invites/verify/?token=${token}`)
       .then(r => r.json().then(d => ({ ok: r.ok, data: d })))
       .then(({ ok, data }) => {
-        if (!ok) {
-          setErrorType(data.error || 'TOKEN_INVALID');
-          setInvite(data);
-        } else {
+        if (!ok) { setErrorType(data.error || 'TOKEN_INVALID'); setInvite(data); }
+        else {
           setInvite(data);
           setScenario(data.scenario);
           const eu = data.existing_user;
           if (eu) {
-            // Pre-populate form from existing user data
             setForm(prev => ({
               ...prev,
               firstName:  eu.first_name  || '',
@@ -447,7 +491,6 @@ export default function VerifyOwnershipPage() {
       .finally(() => setLoadingInvite(false));
   }, [token]);
 
-  // ── Loading ──
   if (loadingInvite) {
     return (
       <div style={{ ...dotGridBg, minHeight: '100vh' }}>
@@ -461,25 +504,19 @@ export default function VerifyOwnershipPage() {
 
   if (errorType) return <ErrorScreen type={errorType} invite={invite} />;
 
+  const cfg        = SCENARIO_CONFIG[scenario] || SCENARIO_CONFIG.NEW_USER;
   const isNew      = scenario === 'NEW_USER';
-  const isExisting = scenario === 'EXISTING_USER';
-  const isLandlord = scenario === 'EXISTING_LANDLORD';
+  const isPending  = scenario === 'PENDING_LANDLORD';
+  const doneStep   = cfg.stepperSteps.length; // last step index
 
-  // Fields that are always locked (from invite or existing user)
-  const nameLocked  = !isNew || true;        // always locked — pre-filled from invite
-  const phoneLocked = !isNew;                // locked for existing users
-  const addrLocked  = false;                 // never fully locked — editable always
-  const addrPreFill = isExisting || isLandlord; // pre-filled but editable
-
-  // ── Step 1 submit ──
   async function handleStep1Submit() {
     const e = {};
     if (!form.firstName.trim()) e.firstName = 'Required';
     if (!form.lastName.trim())  e.lastName  = 'Required';
     if (!form.phone.trim())     e.phone     = 'Required';
     if (isNew) {
-      if (!form.password)              e.password        = 'Required';
-      else if (form.password.length < 8) e.password      = 'Min 8 characters';
+      if (!form.password)                    e.password        = 'Required';
+      else if (form.password.length < 8)     e.password        = 'Min 8 characters';
       if (form.password !== form.confirmPassword) e.confirmPassword = 'Passwords do not match';
     }
     if (Object.keys(e).length) { setErrors(e); return; }
@@ -488,21 +525,23 @@ export default function VerifyOwnershipPage() {
     setApiError('');
 
     try {
-      const body = {
-        token,
-        occupation: form.occupation.trim(),
-        street1:    form.street1.trim(),
-        street2:    form.street2.trim(),
-        city:       form.city.trim(),
-        state:      form.state.trim(),
-        zip_code:   form.zipCode.trim(),
-        country:    form.country.trim(),
-      };
+      const body = { token };
+      // Only send editable fields — locked fields come from existing user on backend
       if (isNew) {
         body.first_name = form.firstName.trim();
         body.last_name  = form.lastName.trim();
         body.phone      = form.phone.trim();
         body.password   = form.password;
+      }
+      if (!isPending) {
+        // PENDING_LANDLORD — don't send any profile fields, docs only
+        body.occupation = form.occupation.trim();
+        body.street1    = form.street1.trim();
+        body.street2    = form.street2.trim();
+        body.city       = form.city.trim();
+        body.state      = form.state.trim();
+        body.zip_code   = form.zipCode.trim();
+        body.country    = form.country.trim();
       }
 
       const res  = await fetch(`${API}/invites/accept/`, {
@@ -513,18 +552,16 @@ export default function VerifyOwnershipPage() {
       const data = await res.json();
       if (!res.ok) { setApiError(data.message || 'Something went wrong. Please try again.'); return; }
 
-      setUserName(form.firstName.trim());
+      setUserName(form.firstName.trim() || existingUser?.first_name || '');
 
       if (data.requires_otp) {
-        // NEW_USER → go to OTP step
         setStep(2);
       } else {
-        // EXISTING_USER / EXISTING_LANDLORD → store tokens + skip to Done
         if (data.tokens?.access) {
           localStorage.setItem('access_token',  data.tokens.access);
           localStorage.setItem('refresh_token', data.tokens.refresh);
         }
-        setStep(2); // step 2 = "Done" in 2-step stepper
+        setStep(doneStep);
       }
     } catch {
       setApiError('Unable to connect. Please check your connection.');
@@ -533,7 +570,6 @@ export default function VerifyOwnershipPage() {
     }
   }
 
-  // ── Step 2 OTP submit (NEW_USER only) ──
   async function handleOtpSubmit() {
     if (otp.length < 6) { setOtpError('Please enter the full 6-digit code.'); return; }
     setOtpError('');
@@ -548,7 +584,7 @@ export default function VerifyOwnershipPage() {
       if (!res.ok) { setOtpError(data.detail || data.message || 'Incorrect code. Please try again.'); return; }
       localStorage.setItem('access_token',  data.tokens?.access  || data.access);
       localStorage.setItem('refresh_token', data.tokens?.refresh || data.refresh);
-      setStep(3);
+      setStep(doneStep);
     } catch {
       setOtpError('Unable to connect. Please try again.');
     } finally {
@@ -571,11 +607,6 @@ export default function VerifyOwnershipPage() {
     setForm(p => ({ ...p, [field]: e.target.value }));
     if (errors[field]) setErrors(p => ({ ...p, [field]: '' }));
   };
-
-  // ── Which step is "Done" ──
-  // NEW_USER:   step 1=Registration, step 2=OTP, step 3=Done
-  // Others:     step 1=Registration, step 2=Done
-  const doneStep = isNew ? 3 : 2;
 
   return (
     <>
@@ -601,7 +632,6 @@ export default function VerifyOwnershipPage() {
                   <div style={{ fontFamily: F.body, fontSize: 9, color: 'rgba(255,255,255,0.35)', textTransform: 'uppercase', letterSpacing: '0.1em' }}>Platform</div>
                 </div>
               </div>
-
               <h2 style={{ fontFamily: F.headline, fontSize: 22, fontWeight: 700, color: C.white, lineHeight: 1.35, margin: '0 0 12px' }}>Verify your ownership</h2>
               <p style={{ fontFamily: F.body, fontSize: 12, color: 'rgba(255,255,255,0.5)', lineHeight: 1.7, margin: '0 0 20px' }}>
                 Complete your registration to claim your ownership stake and access your Owner Portal once approved.
@@ -625,9 +655,9 @@ export default function VerifyOwnershipPage() {
               {/* Trust badges */}
               <div style={{ borderTop: '1px solid rgba(255,255,255,0.08)', paddingTop: 20 }}>
                 {[
-                  { icon: ICONS.shield, label: 'Secure',   sub: 'Military-grade encryption' },
-                  { icon: ICONS.db,     label: 'Vault',    sub: 'Data safely stored' },
-                  { icon: ICONS.cert,   label: 'Verified', sub: 'Audited processes' },
+                  { icon: ICONS.shield,    label: 'Secure',   sub: 'Military-grade encryption' },
+                  { icon: ICONS.db,        label: 'Vault',    sub: 'Data safely stored' },
+                  { icon: ICONS.cert,      label: 'Verified', sub: 'Audited processes' },
                 ].map(({ icon, label, sub }) => (
                   <div key={label} style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
                     <div style={{ width: 28, height: 28, borderRadius: '50%', background: 'rgba(255,255,255,0.07)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
@@ -646,30 +676,34 @@ export default function VerifyOwnershipPage() {
 
           {/* ── RIGHT PANEL ── */}
           <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0, minHeight: 0 }}>
-
             <Stepper step={step} scenario={scenario} />
 
             <div style={{ flex: 1, overflowY: 'auto', padding: step === doneStep ? '0' : '28px 40px 32px', minHeight: 0 }}>
 
-              {/* ══════════════════════════════════════════════════
-                  STEP 1 — Registration
-              ══════════════════════════════════════════════════ */}
+              {/* ══ STEP 1 — Registration ══ */}
               {step === 1 && (
                 <div style={{ maxWidth: 480 }}>
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
-                    <h1 style={{ fontFamily: F.headline, fontSize: 24, fontWeight: 700, color: C.primary, margin: 0 }}>
-                      {isNew ? 'Create your account' : 'Verify your ownership'}
-                    </h1>
-                    <ScenarioBadge scenario={scenario} />
+                  {/* Title + scenario badge */}
+                  <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12, marginBottom: 4 }}>
+                    <h1 style={{ fontFamily: F.headline, fontSize: 24, fontWeight: 700, color: C.primary, margin: 0 }}>{cfg.title}</h1>
+                    <span style={{ fontFamily: F.body, fontSize: 9, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.06em', padding: '3px 8px', borderRadius: 4, background: cfg.badgeBg, color: cfg.badgeColor, flexShrink: 0, marginTop: 4 }}>
+                      {cfg.badgeLabel}
+                    </span>
                   </div>
-                  <p style={{ fontFamily: F.body, fontSize: 13, color: C.textSecondary, margin: '0 0 24px', lineHeight: 1.6 }}>
-                    {isNew
-                      ? <>Register to claim your ownership of <strong style={{ color: C.textPrimary }}>{invite?.property_name}</strong>.</>
-                      : isLandlord
-                        ? <>Upload your ownership documents for <strong style={{ color: C.textPrimary }}>{invite?.property_name}</strong>. Your details are pre-filled from your existing account.</>
-                        : <>Complete your landlord profile and upload ownership documents for <strong style={{ color: C.textPrimary }}>{invite?.property_name}</strong>.</>
-                    }
+                  <p style={{ fontFamily: F.body, fontSize: 13, color: C.textSecondary, margin: '0 0 20px', lineHeight: 1.6 }}>
+                    {cfg.subtitle(invite?.property_name)}
                   </p>
+
+                  {/* PENDING_LANDLORD info banner */}
+                  {isPending && (
+                    <div style={{ background: '#FEF3C7', border: '1px solid #FCD34D', borderRadius: 8, padding: '10px 14px', marginBottom: 20, display: 'flex', gap: 10, alignItems: 'flex-start' }}>
+                      <Icon d={ICONS.hourglass} size={15} color="#92400E" style={{ marginTop: 1 }} />
+                      <div>
+                        <div style={{ fontFamily: F.body, fontSize: 12, fontWeight: 700, color: '#92400E', marginBottom: 2 }}>Landlord application under review</div>
+                        <div style={{ fontFamily: F.body, fontSize: 11, color: '#92400E', lineHeight: 1.5 }}>Your profile details are locked while your application is pending PM approval. You can still upload ownership documents for this property.</div>
+                      </div>
+                    </div>
+                  )}
 
                   {apiError && (
                     <div style={{ background: '#FEF2F2', border: '1px solid #FECACA', borderRadius: 8, padding: '10px 14px', marginBottom: 16, fontFamily: F.body, fontSize: 12, color: C.danger, display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -682,31 +716,29 @@ export default function VerifyOwnershipPage() {
                   <SectionHeader num="01" label="Personal details" />
 
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 12 }}>
-                    {/* First name — always locked/pre-filled from invite */}
                     <div>
                       <label style={fieldLabel}>First name</label>
-                      <input value={form.firstName} readOnly style={{ ...inputBase(false, true, true) }} />
+                      <input value={form.firstName} readOnly style={inputBase(false, true, true)} />
                     </div>
                     <div>
                       <label style={fieldLabel}>Last name</label>
-                      <input value={form.lastName} readOnly style={{ ...inputBase(false, true, true) }} />
+                      <input value={form.lastName} readOnly style={inputBase(false, true, true)} />
                     </div>
                   </div>
 
-                  {/* Email — always locked */}
                   <LockedField label="Email address" value={invite?.owner_email} icon={ICONS.lock} />
                   <p style={{ fontFamily: F.body, fontSize: 10, color: C.textTertiary, margin: '-8px 0 12px' }}>Pre-filled from your invite — cannot be changed</p>
 
-                  {/* Phone — editable for NEW_USER, locked for existing */}
+                  {/* Phone */}
                   <div style={{ marginBottom: 12 }}>
                     <label style={fieldLabel}>Phone number *</label>
                     <div style={{ position: 'relative' }}>
                       <input
                         value={form.phone}
-                        onChange={phoneLocked ? undefined : set('phone')}
-                        readOnly={phoneLocked}
-                        placeholder={phoneLocked ? '' : '+1 555 000 0000'}
-                        style={{ ...inputBase(errors.phone, form.phone, phoneLocked), paddingLeft: 36 }}
+                        onChange={cfg.phoneLocked ? undefined : set('phone')}
+                        readOnly={cfg.phoneLocked}
+                        placeholder={cfg.phoneLocked ? '' : '+1 555 000 0000'}
+                        style={{ ...inputBase(errors.phone, form.phone, cfg.phoneLocked), paddingLeft: 36 }}
                       />
                       <div style={{ position: 'absolute', left: 11, top: '50%', transform: 'translateY(-50%)' }}>
                         <Icon d={ICONS.phone} size={13} color={C.textTertiary} />
@@ -718,14 +750,20 @@ export default function VerifyOwnershipPage() {
                     }
                   </div>
 
-                  {/* Occupation — always editable */}
+                  {/* Occupation */}
                   <div style={{ marginBottom: 12 }}>
                     <label style={fieldLabel}>Occupation <span style={{ textTransform: 'none', letterSpacing: 0, fontWeight: 400, color: C.textTertiary }}>(optional)</span></label>
-                    <input value={form.occupation} onChange={set('occupation')} placeholder="e.g. Architect, Developer, Investor" style={inputBase(false, form.occupation)} />
+                    <input
+                      value={form.occupation}
+                      onChange={cfg.occupationLocked ? undefined : set('occupation')}
+                      readOnly={cfg.occupationLocked}
+                      placeholder={cfg.occupationLocked ? '' : 'e.g. Architect, Developer, Investor'}
+                      style={inputBase(false, form.occupation, cfg.occupationLocked)}
+                    />
                   </div>
 
                   {/* Password — NEW_USER only */}
-                  {isNew && (
+                  {cfg.showPassword && (
                     <>
                       <div style={{ marginBottom: 4 }}>
                         <label style={fieldLabel}>Password *</label>
@@ -751,43 +789,50 @@ export default function VerifyOwnershipPage() {
                     </>
                   )}
 
-                  {/* ── Section 02: Residential address ── */}
+                  {/* ── Section 02: Address ── */}
                   <SectionHeader num="02" label="Residential address" />
 
-                  <div style={{ marginBottom: 12 }}>
-                    <label style={fieldLabel}>Street address 01 *</label>
-                    <input value={form.street1} onChange={set('street1')} placeholder="Property number, street name" style={inputBase(errors.street1, form.street1)} />
-                  </div>
-                  <div style={{ marginBottom: 12 }}>
-                    <label style={fieldLabel}>Street address 02 <span style={{ textTransform: 'none', letterSpacing: 0, fontWeight: 400, color: C.textTertiary }}>(optional)</span></label>
-                    <input value={form.street2} onChange={set('street2')} placeholder="Suite, floor, or apartment" style={inputBase(false, form.street2)} />
-                  </div>
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 12 }}>
-                    <div>
-                      <label style={fieldLabel}>City *</label>
-                      <input value={form.city} onChange={set('city')} placeholder="City" style={inputBase(errors.city, form.city)} />
-                    </div>
-                    <div>
-                      <label style={fieldLabel}>State *</label>
-                      <input value={form.state} onChange={set('state')} placeholder="State" style={inputBase(errors.state, form.state)} />
-                    </div>
-                  </div>
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 24 }}>
-                    <div>
-                      <label style={fieldLabel}>Zip code *</label>
-                      <input value={form.zipCode} onChange={set('zipCode')} placeholder="000000" style={inputBase(errors.zipCode, form.zipCode)} />
-                    </div>
-                    <div>
-                      <label style={fieldLabel}>Country</label>
-                      <input value={form.country} onChange={set('country')} style={inputBase(false, true)} />
-                    </div>
-                  </div>
+                  {isPending ? (
+                    // PENDING_LANDLORD — all address fields locked
+                    <>
+                      <LockedField label="Street address 01" value={form.street1} />
+                      {form.street2 && <LockedField label="Street address 02" value={form.street2} />}
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 12 }}>
+                        <LockedField label="City" value={form.city} />
+                        <LockedField label="State" value={form.state} />
+                      </div>
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 24 }}>
+                        <LockedField label="Zip code" value={form.zipCode} />
+                        <LockedField label="Country" value={form.country} />
+                      </div>
+                    </>
+                  ) : (
+                    // All other scenarios — editable address
+                    <>
+                      <div style={{ marginBottom: 12 }}>
+                        <label style={fieldLabel}>Street address 01 *</label>
+                        <input value={form.street1} onChange={set('street1')} placeholder="Property number, street name" style={inputBase(errors.street1, form.street1)} />
+                      </div>
+                      <div style={{ marginBottom: 12 }}>
+                        <label style={fieldLabel}>Street address 02 <span style={{ textTransform: 'none', letterSpacing: 0, fontWeight: 400, color: C.textTertiary }}>(optional)</span></label>
+                        <input value={form.street2} onChange={set('street2')} placeholder="Suite, floor, or apartment" style={inputBase(false, form.street2)} />
+                      </div>
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 12 }}>
+                        <div><label style={fieldLabel}>City *</label><input value={form.city} onChange={set('city')} placeholder="City" style={inputBase(errors.city, form.city)} /></div>
+                        <div><label style={fieldLabel}>State *</label><input value={form.state} onChange={set('state')} placeholder="State" style={inputBase(errors.state, form.state)} /></div>
+                      </div>
+                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 24 }}>
+                        <div><label style={fieldLabel}>Zip code *</label><input value={form.zipCode} onChange={set('zipCode')} placeholder="000000" style={inputBase(errors.zipCode, form.zipCode)} /></div>
+                        <div><label style={fieldLabel}>Country</label><input value={form.country} onChange={set('country')} style={inputBase(false, true)} /></div>
+                      </div>
+                    </>
+                  )}
 
                   {/* ── Section 03: Documents ── */}
                   <SectionHeader num="03" label="Ownership documents" />
                   <p style={{ fontFamily: F.body, fontSize: 12, color: C.textSecondary, margin: '0 0 12px', lineHeight: 1.6 }}>
-                    {isLandlord
-                      ? 'Upload documents to verify your ownership of this specific property.'
+                    {isPending
+                      ? 'Upload documents to verify your ownership of this specific property. Your existing profile will be used for this application.'
                       : 'Upload documents required by your property manager. Accepted: PDF, JPG, PNG · Max 10MB each.'
                     }
                   </p>
@@ -818,17 +863,13 @@ export default function VerifyOwnershipPage() {
                   }}>
                     {submitting
                       ? <><div style={{ width: 16, height: 16, border: '2px solid rgba(255,255,255,0.3)', borderTopColor: C.white, borderRadius: '50%', animation: 'un-spin 0.7s linear infinite' }} />Submitting…</>
-                      : isNew
-                        ? <>Continue to verification <Icon d={ICONS.arrow} size={16} color={C.white} /></>
-                        : <>Verify & Submit <Icon d={ICONS.arrow} size={16} color={C.white} /></>
+                      : <>{cfg.ctaLabel} <Icon d={ICONS.arrow} size={16} color={C.white} /></>
                     }
                   </button>
                 </div>
               )}
 
-              {/* ══════════════════════════════════════════════════
-                  STEP 2 — OTP (NEW_USER only) or Done screen
-              ══════════════════════════════════════════════════ */}
+              {/* ══ STEP 2 — OTP (NEW_USER only) ══ */}
               {step === 2 && isNew && (
                 <div style={{ maxWidth: 400, margin: '0 auto', textAlign: 'center', paddingTop: 8 }}>
                   <div style={{ width: 56, height: 56, borderRadius: '50%', background: 'rgba(0,45,91,0.07)', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 20px' }}>
@@ -891,9 +932,7 @@ export default function VerifyOwnershipPage() {
                 </div>
               )}
 
-              {/* ══════════════════════════════════════════════════
-                  DONE — Step 3 for NEW_USER, Step 2 for others
-              ══════════════════════════════════════════════════ */}
+              {/* ══ DONE SCREEN ══ */}
               {step === doneStep && <Step3UnderReview invite={invite} userName={userName} scenario={scenario} />}
 
             </div>
