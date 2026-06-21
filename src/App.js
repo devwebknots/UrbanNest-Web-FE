@@ -52,6 +52,10 @@ import EditPropertyPage from './pages/Properties/EditProperty/EditPropertyPage';
 import EditUnitPage     from './pages/Properties/EditProperty/EditUnitPage';
 import { useParams } from 'react-router-dom';
 
+// PM-Portal/Approvals
+import PMApprovalsOverview  from './pages/PMPortal/Approvals/PMApprovalsOverview';
+import PMApprovalsOwnership from './pages/PMPortal/Approvals/PMApprovalsOwnership';
+
 // Invite for all email/phone verifications
 import VerifyOwnershipPage from './pages/Invite/VerifyOwnershipPage';
 
@@ -102,6 +106,10 @@ function AppRoutes() {
       <Route path="/pm-portal/profile/persona"        element={<PMProfileView />} />
       <Route path="/pm-portal/config/verification-settings" element={<PMVerificationSettings />} />
 
+      {/* ── PM Portal/ Approvals ─────────────────────────────────────────────────────── */}
+      <Route path="/pm-portal/approvals"           element={<PMApprovalsOverview />} />
+      <Route path="/pm-portal/approvals/ownership" element={<PMApprovalsOwnership />} />
+     
       {/* ── Org PMS Portal — reuses PM dashboard (NavD when Org-specific nav needed) ── */}
       <Route path="/org-portal/dashboard/welcome"      element={<PMWelcomePage persona="ORGANIZATIONAL_PM" />} />
       <Route path="/org-portal/dashboard/my-dashboard" element={<PMDashboard persona="ORGANIZATIONAL_PM" />} />

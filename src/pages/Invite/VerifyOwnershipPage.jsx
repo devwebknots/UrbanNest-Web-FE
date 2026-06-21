@@ -78,7 +78,7 @@ const SCENARIO_CONFIG = {
     badgeBg: 'rgba(0,45,91,0.07)', badgeColor: C.primary,
     title: 'Create your account',
     subtitle: (propName) => <>Register to claim your ownership of <strong style={{ color: C.textPrimary }}>{propName}</strong>.</>,
-    phoneLocked: false,
+    phoneLocked: true,
     showPassword: true,
     addrEditable: true,
     occupationLocked: false,
@@ -468,6 +468,14 @@ export default function VerifyOwnershipPage() {
         else {
           setInvite(data);
           setScenario(data.scenario);
+
+          // Pre-fill first/last from ownership record for ALL scenarios
+             setForm(prev => ({
+                ...prev,
+                firstName: data.first_name || '',
+                lastName:  data.last_name  || '',
+                phone:     data.phone      || '',
+             }));
           const eu = data.existing_user;
           if (eu) {
             setForm(prev => ({

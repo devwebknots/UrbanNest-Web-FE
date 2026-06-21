@@ -55,6 +55,12 @@ const NAV_STRUCTURE = [
           { id: 'occupancy', label: 'Occupancy & Availability', route: '/pm-portal/properties/occupancy' },
         ],
       },
+      { id: 'approvals-nav', label: 'Approvals', icon: 'ti-circle-check',
+        children: [
+          { id: 'approvals-overview',  label: 'Overview',  route: '/pm-portal/approvals' },
+          { id: 'approvals-ownership', label: 'Ownership', route: '/pm-portal/approvals/ownership' },
+        ],
+      },
       { id: 'leasing', label: 'Leasing', icon: 'ti-file-text',
         children: [
           { id: 'prospects',     label: 'Prospects & Leads', route: '/pm-portal/leasing/prospects' },
