@@ -1,6 +1,8 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import NavB from '../../../components/layout/NavB';
+import UNPopup from '../../../components/common/UNPopup';
+
 
 const C = {
   primary:      '#002D5B',
@@ -242,6 +244,7 @@ const PMApprovalsOwnership = () => {
   const [error, setError]             = useState(null);
   const [actionLoading, setActionLoading] = useState(false);
   const [showRejectModal, setShowRejectModal] = useState(false);
+  const [popup, setPopup]             = useState(null);
 
   const token = localStorage.getItem('access_token');
   const headers = { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` };
@@ -264,20 +267,32 @@ const PMApprovalsOwnership = () => {
 
   useEffect(() => { fetchDetail(); }, [fetchDetail]);
 
-  const handleApprove = async () => {
-    if (!window.confirm('Approve this ownership application? This will activate the landlord account and send an email to the owner.')) return;
-    setActionLoading(true);
-    try {
-      const res = await fetch(`${API}/approvals/${approvalId}/approve/`, { method: 'POST', headers });
-      if (!res.ok) throw new Error('Approval failed');
-      await fetchDetail();
-    } catch (e) {
-      alert(e.message);
-    } finally {
-      setActionLoading(false);
-    }
+  const handleApprove = () => {
+    setPopup({
+      type:         'warning',
+      title:        'Approve ownership',
+      message:      'This will activate the landlord account and send a confirmation email to the owner. Are you sure?',
+      confirmLabel: 'Yes, approve',
+      onConfirm:    async () => {
+        setPopup(null);
+        setActionLoading(true);
+        try {
+          const res = await fetch(`${API}/approvals/${approvalId}/approve/`, { method: 'POST', headers });
+          if (!res.ok) {
+            const err = await res.json();
+            throw new Error(err.message || 'Approval failed');
+          }
+          await fetchDetail();
+          setPopup({ type:'success', title:'Ownership approved', message:'The landlord account has been activated and the owner has been notified.' });
+        } catch (e) {
+          setPopup({ type:'error', title:'Action not allowed', message: e.message });
+        } finally {
+          setActionLoading(false);
+        }
+      },
+    });
   };
-
+  
   const handleReject = async (reason) => {
     setShowRejectModal(false);
     setActionLoading(true);
@@ -286,10 +301,14 @@ const PMApprovalsOwnership = () => {
         method: 'POST', headers,
         body: JSON.stringify({ reason }),
       });
-      if (!res.ok) throw new Error('Rejection failed');
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.message || 'Rejection failed');
+      }
       await fetchDetail();
+      setPopup({ type:'success', title:'Application rejected', message:'The owner has been notified of the rejection.' });
     } catch (e) {
-      alert(e.message);
+      setPopup({ type:'error', title:'Action not allowed', message: e.message });
     } finally {
       setActionLoading(false);
     }
@@ -582,6 +601,17 @@ const PMApprovalsOwnership = () => {
           )}
         </div>
       </div>
+      {popup && (
+        <UNPopup
+          type={popup.type}
+          title={popup.title}
+          message={popup.message}
+          onClose={() => setPopup(null)}
+          onConfirm={popup.onConfirm}
+          confirmLabel={popup.confirmLabel}
+          loading={actionLoading}
+        />
+      )}
     </div>
   );
 };

@@ -108,8 +108,10 @@ const NAV_STRUCTURE = [
       },
       { id: 'roles-access', label: 'Roles & Access', icon: 'ti-settings',
         children: [
-          { id: 'user-roles',  label: 'User Roles',  route: '/pm-portal/roles' },
-          { id: 'permissions', label: 'Permissions', route: '/pm-portal/roles/permissions' },
+          { id: 'rbac-roles',   label: 'Roles',         route: '/pm-portal/rbac/roles' },
+          { id: 'rbac-assign',  label: 'Assign Role',   route: '/pm-portal/rbac/assign' },
+          { id: 'rbac-members', label: 'Team Members',  route: '/pm-portal/rbac/members' },
+          { id: 'rbac-org',     label: 'Organisation',  route: '/pm-portal/rbac/org' },
         ],
       },
     ],

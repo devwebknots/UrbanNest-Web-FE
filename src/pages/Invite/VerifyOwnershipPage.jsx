@@ -41,6 +41,26 @@ const ICONS = {
   hourglass: "M5 3h14 M5 21h14 M8 3v4l8 5-8 5v4",
   info:     "M12 22a10 10 0 1 0 0-20 10 10 0 0 0 0 20z M12 8h.01 M12 12v4",
 };
+const COUNTRIES = [
+  { code: 'US', name: 'United States' },
+  { code: 'IN', name: 'India' },
+  { code: 'GB', name: 'United Kingdom' },
+  { code: 'AU', name: 'Australia' },
+  { code: 'CA', name: 'Canada' },
+  { code: 'AE', name: 'United Arab Emirates' },
+  { code: 'SG', name: 'Singapore' },
+  { code: 'NZ', name: 'New Zealand' },
+  { code: 'ZA', name: 'South Africa' },
+  { code: 'NG', name: 'Nigeria' },
+  { code: 'DE', name: 'Germany' },
+  { code: 'FR', name: 'France' },
+  { code: 'IE', name: 'Ireland' },
+  { code: 'PH', name: 'Philippines' },
+  { code: 'PK', name: 'Pakistan' },
+  { code: 'MY', name: 'Malaysia' },
+  { code: 'MX', name: 'Mexico' },
+  { code: 'BR', name: 'Brazil' },
+];
 
 function Icon({ d, size = 16, color = C.textTertiary, style = {} }) {
   return (
@@ -445,7 +465,7 @@ export default function VerifyOwnershipPage() {
   const [form, setForm] = useState({
     firstName: '', lastName: '', phone: '', occupation: '',
     password: '', confirmPassword: '',
-    street1: '', street2: '', city: '', state: '', zipCode: '', country: 'United States',
+    street1: '', street2: '', city: '', state: '', zipCode: '', country: 'US',
   });
   const [showPw, setShowPw]         = useState(false);
   const [showCPw, setShowCPw]       = useState(false);
@@ -489,7 +509,7 @@ export default function VerifyOwnershipPage() {
               city:       eu.city        || '',
               state:      eu.state       || '',
               zipCode:    eu.zip_code    || '',
-              country:    eu.country     || 'United States',
+              country:    eu.country     || 'US',
             }));
             setExistingUser(eu);
           }
@@ -586,7 +606,7 @@ export default function VerifyOwnershipPage() {
       const res  = await fetch(`${API}/auth/verify-otp/`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: invite.owner_email, otp }),
+        body: JSON.stringify({ email: invite.owner_email, code: otp, otp_type: 'EMAIL' }),
       });
       const data = await res.json();
       if (!res.ok) { setOtpError(data.detail || data.message || 'Incorrect code. Please try again.'); return; }
@@ -811,7 +831,7 @@ export default function VerifyOwnershipPage() {
                       </div>
                       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 24 }}>
                         <LockedField label="Zip code" value={form.zipCode} />
-                        <LockedField label="Country" value={form.country} />
+                        <LockedField label="Country" value={COUNTRIES.find(c => c.code === form.country)?.name || form.country} />
                       </div>
                     </>
                   ) : (
@@ -831,7 +851,13 @@ export default function VerifyOwnershipPage() {
                       </div>
                       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 24 }}>
                         <div><label style={fieldLabel}>Zip code *</label><input value={form.zipCode} onChange={set('zipCode')} placeholder="000000" style={inputBase(errors.zipCode, form.zipCode)} /></div>
-                        <div><label style={fieldLabel}>Country</label><input value={form.country} onChange={set('country')} style={inputBase(false, true)} /></div>
+                        <div>
+                          <label style={fieldLabel}>Country</label>
+                          <select value={form.country} onChange={set('country')}
+                            style={{ ...inputBase(false, form.country), paddingRight: 8 }}>
+                            {COUNTRIES.map(c => <option key={c.code} value={c.code}>{c.name}</option>)}
+                          </select>
+                        </div>
                       </div>
                     </>
                   )}

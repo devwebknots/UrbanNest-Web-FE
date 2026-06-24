@@ -5,6 +5,7 @@ import {
   LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip,
   ResponsiveContainer, PieChart, Pie, Cell,
 } from 'recharts';
+import UNPopup from '../../../components/common/UNPopup';
 
 const C = {
   primary:     '#002D5B',
@@ -39,6 +40,7 @@ const STATUS_CFG = {
   SUBMITTED: { bg: '#FEF3C7', color: '#92400E', dot: '#D97706',  label: 'Submitted'     },
   PENDING:   { bg: '#F1F5F9', color: '#64748B', dot: '#94A3B8',  label: 'Pending invite' },
   ACCEPTED:  { bg: '#F0FDF4', color: '#166534', dot: '#16A34A',  label: 'Accepted'      },
+  VERIFIED:  { bg: '#F0FDF4', color: '#166534', dot: '#16A34A',  label: 'Verified'},
   REJECTED:  { bg: '#FEF2F2', color: '#991B1B', dot: '#DC2626',  label: 'Rejected'      },
   EXPIRED:   { bg: '#F1F5F9', color: '#94A3B8', dot: '#CBD5E1',  label: 'Expired'       },
   CANCELLED: { bg: '#F1F5F9', color: '#94A3B8', dot: '#CBD5E1',  label: 'Cancelled'     },
@@ -413,6 +415,7 @@ export default function PMApprovalsOverview() {
   const [properties,      setProperties]      = useState([]);
   const [actionLoading,   setActionLoading]   = useState(false);
   const [successMsg,      setSuccessMsg]      = useState('');
+  const [popup,           setPopup]           = useState(null);
 
   // Panel + modal state
   const [panelRecord,   setPanelRecord]   = useState(null);
@@ -452,17 +455,22 @@ export default function PMApprovalsOverview() {
   useEffect(() => { fetchApprovals(); },  [fetchApprovals]);
   useEffect(() => { fetchProperties(); }, [fetchProperties]);
 
-  const showSuccess = (msg) => { setSuccessMsg(msg); setTimeout(() => setSuccessMsg(''), 4000); };
+  
+  const showSuccess = (msg) => setPopup({ type:'success', title:'Action successful', message:msg });
+  const showError   = (msg) => setPopup({ type:'error',   title:'Action not allowed', message:msg });
 
   const handleApprove = async (id) => {
     setActionLoading(true);
     try {
       const res = await fetch(`${API}/approvals/${id}/approve/`, { method:'POST', headers });
-      if (!res.ok) throw new Error('Approval failed');
+      if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.message || 'Approval failed');
+      }
       showSuccess('Ownership approved successfully.');
       setPanelRecord(null);
       fetchApprovals();
-    } catch (e) { alert(e.message); }
+    } catch (e) { showError(e.message); }  
     finally { setActionLoading(false); }
   };
 
@@ -478,7 +486,7 @@ export default function PMApprovalsOverview() {
       setRejectTarget(null);
       setPanelRecord(null);
       fetchApprovals();
-    } catch (e) { alert(e.message); }
+    } catch (e) { showError(e.message); }  
     finally { setActionLoading(false); }
   };
 
@@ -562,13 +570,6 @@ export default function PMApprovalsOverview() {
 
         <div style={{ flex:1, overflowY:'auto', padding:24 }}>
 
-          {/* Success banner */}
-          {successMsg && (
-            <div style={{ display:'flex', alignItems:'center', gap:8, background:'#F0FDF4', border:'1px solid #BBF7D0', borderRadius:8, padding:'10px 14px', marginBottom:16, animation:'fadein 0.25s ease' }}>
-              <i className="ti ti-circle-check" style={{ fontSize:15, color:C.success, flexShrink:0 }} />
-              <span style={{ fontFamily:F.body, fontSize:12, color:'#166534' }}>{successMsg}</span>
-            </div>
-          )}
 
           {/* Breadcrumb + heading */}
           <p style={{ margin:'0 0 4px', fontFamily:F.body, fontSize:11, color:C.textTert }}>PM Portal / Approvals</p>
@@ -713,7 +714,7 @@ export default function PMApprovalsOverview() {
               </div>
             </div>
             {[
-              { label:'Status', value:statusFilter, onChange:setStatusFilter, options:[{v:'',l:'All statuses'},{v:'SUBMITTED',l:'Submitted'},{v:'PENDING',l:'Pending invite'},{v:'ACCEPTED',l:'Accepted'},{v:'REJECTED',l:'Rejected'}] },
+              { label:'Status', value:statusFilter, onChange:setStatusFilter, options:[{v:'',l:'All statuses'},{v:'SUBMITTED',l:'Submitted'},{v:'PENDING',l:'Pending invite'},{v:'VERIFIED',l:'Verified'},{v:'REJECTED',l:'Rejected'}] },
               { label:'Property', value:propertyFilter, onChange:setPropertyFilter, options:[{v:'',l:'All properties'},...properties.map(p=>({v:String(p.id),l:p.name}))] },
               { label:'Sort', value:sortOrder, onChange:setSortOrder, options:[{v:'newest',l:'Newest first'},{v:'oldest',l:'Oldest first'}] },
             ].map(({ label, value, onChange, options }) => (
@@ -850,6 +851,20 @@ export default function PMApprovalsOverview() {
           onCancel={() => setRejectTarget(null)}
         />
       )}
+
+      {/* System popup */}
+      {popup && (
+        <UNPopup
+          type={popup.type}
+          title={popup.title}
+          message={popup.message}
+          onClose={() => setPopup(null)}
+          onConfirm={popup.onConfirm}
+          confirmLabel={popup.confirmLabel}
+          loading={actionLoading}
+        />
+      )}
+
     </div>
   );
 }

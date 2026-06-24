@@ -56,6 +56,12 @@ import { useParams } from 'react-router-dom';
 import PMApprovalsOverview  from './pages/PMPortal/Approvals/PMApprovalsOverview';
 import PMApprovalsOwnership from './pages/PMPortal/Approvals/PMApprovalsOwnership';
 
+// PM-Portal/RBAC
+import PMRolesPage    from './pages/PMPortal/RBAC/PMRolesPage';
+import PMAssignPage   from './pages/PMPortal/RBAC/PMAssignPage';
+import PMMembersPage  from './pages/PMPortal/RBAC/PMMembersPage';
+import PMOrgPage      from './pages/PMPortal/RBAC/PMOrgPage';
+
 // Invite for all email/phone verifications
 import VerifyOwnershipPage from './pages/Invite/VerifyOwnershipPage';
 
@@ -109,6 +115,12 @@ function AppRoutes() {
       {/* ── PM Portal/ Approvals ─────────────────────────────────────────────────────── */}
       <Route path="/pm-portal/approvals"           element={<PMApprovalsOverview />} />
       <Route path="/pm-portal/approvals/ownership" element={<PMApprovalsOwnership />} />
+
+      {/* ── PM Portal/ RBAC ─────────────────────────────────────────────────────── */}
+      <Route path="/pm-portal/rbac/roles"   element={<PMRolesPage />} />
+      <Route path="/pm-portal/rbac/assign"  element={<PMAssignPage />} />
+      <Route path="/pm-portal/rbac/members" element={<PMMembersPage />} />
+      <Route path="/pm-portal/rbac/org"     element={<PMOrgPage />} />
      
       {/* ── Org PMS Portal — reuses PM dashboard (NavD when Org-specific nav needed) ── */}
       <Route path="/org-portal/dashboard/welcome"      element={<PMWelcomePage persona="ORGANIZATIONAL_PM" />} />
