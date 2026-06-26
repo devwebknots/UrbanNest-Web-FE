@@ -61,6 +61,7 @@ import PMRolesPage    from './pages/PMPortal/RBAC/PMRolesPage';
 import PMAssignPage   from './pages/PMPortal/RBAC/PMAssignPage';
 import PMMembersPage  from './pages/PMPortal/RBAC/PMMembersPage';
 import PMOrgPage      from './pages/PMPortal/RBAC/PMOrgPage';
+import PMStaffSignupPage from './pages/PMPortal/RBAC/PMStaffSignupPage';
 
 // Invite for all email/phone verifications
 import VerifyOwnershipPage from './pages/Invite/VerifyOwnershipPage';
@@ -100,6 +101,8 @@ function AppRoutes() {
         />
       } />
       <Route path="/persona-select" element={<PersonaSelectPage />} />
+      <Route path="/pm-staff-signup" element={<PMStaffSignupPage />} />
+
 
       {/* ── Independent PM registration wizard ────────────────────────────── */}
       <Route path="/pm-registration"        element={<IndependentPM_Step1 />} />
@@ -121,6 +124,7 @@ function AppRoutes() {
       <Route path="/pm-portal/rbac/assign"  element={<PMAssignPage />} />
       <Route path="/pm-portal/rbac/members" element={<PMMembersPage />} />
       <Route path="/pm-portal/rbac/org"     element={<PMOrgPage />} />
+
      
       {/* ── Org PMS Portal — reuses PM dashboard (NavD when Org-specific nav needed) ── */}
       <Route path="/org-portal/dashboard/welcome"      element={<PMWelcomePage persona="ORGANIZATIONAL_PM" />} />
