@@ -1,3 +1,8 @@
+/**
+ * NavB.jsx — PM Portal Left Navigation (Nav B)
+ * Updated: Session 35 — member slide-in panel + member_count fix
+ */
+
 // ─────────────────────────────────────────────────────────────
 // UrbanNest — PM Portal — HR — Organisation
 // Route:   /pm-portal/rbac/org
@@ -7,6 +12,7 @@
 // Layout:
 //   Left  (flex)   — org tree canvas
 //   Right (300px)  — selected node detail panel
+//   Slide-in       — member detail (appears over right panel)
 //
 // API:
 //   GET    /api/pm/rbac/nodes/              — all nodes
@@ -14,6 +20,7 @@
 //   PATCH  /api/pm/rbac/nodes/<id>/         — update node
 //   DELETE /api/pm/rbac/nodes/<id>/         — delete node
 //   GET    /api/pm/rbac/members/?node=<id>  — members at node
+//   GET    /api/pm/rbac/members/<id>/       — member detail + effective perms
 //   POST   /api/pm/rbac/members/assign/     — assign member to node
 // ─────────────────────────────────────────────────────────────
 
@@ -22,7 +29,7 @@ import { useNavigate } from 'react-router-dom';
 import NavB from '../../../components/layout/NavB';
 import UNPopup from '../../../components/common/UNPopup';
 
-const API = 'http://localhost:8001/api';
+const API = process.env.REACT_APP_API_BASE_URL || 'http://localhost:8001/api';
 
 const C = {
   primary:     '#002D5B',
@@ -35,6 +42,7 @@ const C = {
   borderMed:   '#CBD5E1',
   success:     '#16A34A',
   danger:      '#DC2626',
+  amber:       '#D97706',
 };
 
 const F = {
@@ -43,15 +51,227 @@ const F = {
 };
 
 const LEVEL_COLORS = [
-  { bg: C.primary,  border: C.primary,  text: '#fff',      icon: '#fff'      },  // Level 0 — root
-  { bg: '#EEF2FF',  border: '#C7D2FE',  text: '#3730A3',   icon: '#3730A3'   },  // Level 1
-  { bg: '#FEF9C3',  border: '#FDE68A',  text: '#92400E',   icon: '#92400E'   },  // Level 2
-  { bg: '#F0FDF4',  border: '#BBF7D0',  text: '#166534',   icon: '#166534'   },  // Level 3
-  { bg: '#FEF3C7',  border: '#FCD34D',  text: '#B45309',   icon: '#B45309'   },  // Level 4+
+  { bg: '#002D5B', border: '#002D5B', text: '#fff',    icon: '#fff'    },
+  { bg: '#EEF2FF', border: '#C7D2FE', text: '#3730A3', icon: '#3730A3' },
+  { bg: '#FEF9C3', border: '#FDE68A', text: '#92400E', icon: '#92400E' },
+  { bg: '#F0FDF4', border: '#BBF7D0', text: '#166534', icon: '#166534' },
+  { bg: '#FEF3C7', border: '#FCD34D', text: '#B45309', icon: '#B45309' },
 ];
 
 function getLevelColor(level) {
   return LEVEL_COLORS[Math.min(level, LEVEL_COLORS.length - 1)];
+}
+
+// ─── Member Slide-in Panel ────────────────────────────────────
+function MemberSlideIn({ memberId, onClose, onViewFull, token }) {
+  const [member,  setMember]  = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (!memberId) return;
+    setLoading(true);
+    setMember(null);
+    fetch(`${API}/pm/rbac/members/${memberId}/`, {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+      .then(r => r.json())
+      .then(data => { setMember(data); setLoading(false); })
+      .catch(() => setLoading(false));
+  }, [memberId, token]);
+
+  const initials = (name) =>
+    name ? name.split(' ').map(n => n[0]).join('').slice(0, 2).toUpperCase() : '?';
+
+  const fullName = member?.user
+    ? `${member.user.first_name} ${member.user.last_name}`.trim() || member.email
+    : member?.email || '—';
+
+  // Only show modules where member has at least one permission
+  const activePerms = (member?.effective_permissions || []).filter(p =>
+    p.role_can_view || p.role_can_add || p.role_can_edit || p.role_can_delete ||
+    p.override_can_view || p.override_can_add || p.override_can_edit || p.override_can_delete
+  );
+
+  return (
+    <>
+      {/* Backdrop */}
+      <div
+        onClick={onClose}
+        style={{
+          position: 'fixed', inset: 0, zIndex: 300,
+          background: 'rgba(0,0,0,0.25)',
+        }}
+      />
+
+      {/* Panel */}
+      <div style={{
+        position: 'fixed', top: 0, right: 0, bottom: 0,
+        width: 380, zIndex: 301,
+        background: C.white,
+        borderLeft: `1px solid ${C.border}`,
+        display: 'flex', flexDirection: 'column',
+        boxShadow: '-4px 0 24px rgba(0,0,0,0.1)',
+        overflowY: 'auto',
+      }}>
+        {/* Header */}
+        <div style={{
+          padding: '14px 16px',
+          borderBottom: `1px solid ${C.border}`,
+          display: 'flex', alignItems: 'center', gap: 10,
+          flexShrink: 0,
+        }}>
+          <div style={{ fontSize: 10, fontWeight: 700, color: C.textTert, textTransform: 'uppercase', letterSpacing: '0.07em', flex: 1 }}>
+            Member detail
+          </div>
+          <button
+            onClick={onViewFull}
+            title="View in Team Members"
+            style={{ height: 26, padding: '0 10px', background: '#EEF2FF', border: 'none', borderRadius: 5, fontSize: 11, fontWeight: 600, color: '#3730A3', cursor: 'pointer', fontFamily: F.body }}
+          >
+            View full profile →
+          </button>
+          <button
+            onClick={onClose}
+            style={{ background: 'none', border: 'none', cursor: 'pointer', color: C.textTert, fontSize: 16, display: 'flex', padding: 4 }}
+          >
+            <i className="ti ti-x" aria-hidden="true" />
+          </button>
+        </div>
+
+        {loading ? (
+          <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 }}>
+            <div style={{ width: 16, height: 16, border: `2px solid ${C.border}`, borderTopColor: C.primary, borderRadius: '50%', animation: 'spin 0.7s linear infinite' }} />
+            <span style={{ fontSize: 12, color: C.textSec, fontFamily: F.body }}>Loading…</span>
+          </div>
+        ) : !member ? (
+          <div style={{ flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <span style={{ fontSize: 12, color: C.textTert, fontFamily: F.body }}>Failed to load member</span>
+          </div>
+        ) : (
+          <>
+            {/* Identity */}
+            <div style={{ padding: '16px', borderBottom: `0.5px solid ${C.border}` }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 12 }}>
+                <div style={{
+                  width: 44, height: 44, borderRadius: '50%',
+                  background: C.primary,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  fontSize: 14, fontWeight: 700, color: C.white, flexShrink: 0,
+                }}>
+                  {initials(fullName)}
+                </div>
+                <div>
+                  <div style={{ fontSize: 14, fontWeight: 700, color: C.textPrimary, fontFamily: F.body }}>{fullName}</div>
+                  <div style={{ fontSize: 11, color: C.textSec, fontFamily: F.body }}>{member.email}</div>
+                </div>
+                <span style={{
+                  marginLeft: 'auto', fontSize: 10, fontWeight: 700,
+                  padding: '3px 8px', borderRadius: 99,
+                  background: member.is_active ? '#F0FDF4' : '#F1F5F9',
+                  color: member.is_active ? C.success : C.textSec,
+                  flexShrink: 0,
+                }}>
+                  {member.is_active ? 'Active' : 'Inactive'}
+                </span>
+              </div>
+
+              {/* Details grid */}
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '8px 12px' }}>
+                {[
+                  { label: 'Role',     value: member.role || '—' },
+                  { label: 'Node',     value: member.node_name || '—' },
+                  { label: 'Invited by', value: member.assigned_by_name || '—' },
+                  { label: 'Since',    value: member.assigned_at ? new Date(member.assigned_at).toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' }) : '—' },
+                ].map(({ label, value }) => (
+                  <div key={label}>
+                    <div style={{ fontSize: 9, fontWeight: 700, color: C.textTert, textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 2, fontFamily: F.body }}>{label}</div>
+                    <div style={{ fontSize: 12, fontWeight: 600, color: C.textPrimary, fontFamily: F.body }}>{value}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Permissions */}
+            <div style={{ padding: '12px 16px', flex: 1 }}>
+              <div style={{ fontSize: 10, fontWeight: 700, color: C.textTert, textTransform: 'uppercase', letterSpacing: '0.07em', marginBottom: 10, fontFamily: F.body }}>
+                Effective permissions
+              </div>
+
+              {activePerms.length === 0 ? (
+                <div style={{ textAlign: 'center', padding: '20px 0' }}>
+                  <i className="ti ti-lock-off" style={{ fontSize: 24, color: C.borderMed }} aria-hidden="true" />
+                  <p style={{ fontSize: 11, color: C.textTert, margin: '6px 0 0', fontFamily: F.body }}>No permissions assigned</p>
+                </div>
+              ) : (
+                <>
+                  {activePerms.map(p => {
+                    const hasOverride = p.override_can_view || p.override_can_add || p.override_can_edit || p.override_can_delete;
+                    return (
+                      <div key={p.module_code} style={{
+                        display: 'flex', alignItems: 'center', gap: 8,
+                        padding: '6px 0',
+                        borderBottom: `0.5px solid rgba(0,0,0,0.04)`,
+                      }}>
+                        <div style={{ flex: 1 }}>
+                          <span style={{ fontSize: 11, fontWeight: 600, color: C.textPrimary, fontFamily: F.body }}>
+                            {p.module_code.replace(/_/g, ' ')}
+                          </span>
+                          {hasOverride && (
+                            <span style={{ marginLeft: 6, fontSize: 9, fontWeight: 700, padding: '1px 5px', borderRadius: 99, background: '#F0FDF4', color: C.success }}>
+                              +override
+                            </span>
+                          )}
+                        </div>
+                        <div style={{ display: 'flex', gap: 3 }}>
+                          {[
+                            { key: 'view',   label: 'V', role: p.role_can_view,   ov: p.override_can_view },
+                            { key: 'add',    label: 'A', role: p.role_can_add,    ov: p.override_can_add },
+                            { key: 'edit',   label: 'E', role: p.role_can_edit,   ov: p.override_can_edit },
+                            { key: 'delete', label: 'D', role: p.role_can_delete, ov: p.override_can_delete },
+                          ].map(({ key, label, role, ov }) => {
+                            const active = role || ov;
+                            const isOverride = !role && ov;
+                            return (
+                              <div key={key} title={`${label === 'V' ? 'View' : label === 'A' ? 'Add' : label === 'E' ? 'Edit' : 'Delete'}${isOverride ? ' (override)' : role ? ' (role)' : ''}`} style={{
+                                width: 18, height: 18, borderRadius: 4,
+                                background: !active ? '#F1F5F9' : isOverride ? '#F0FDF4' : '#EFF6FF',
+                                border: `0.5px solid ${!active ? C.border : isOverride ? '#BBF7D0' : '#BFDBFE'}`,
+                                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                fontSize: 8, fontWeight: 700,
+                                color: !active ? C.textTert : isOverride ? C.success : '#1D4ED8',
+                              }}>
+                                {active ? label : '—'}
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    );
+                  })}
+
+                  {/* Legend */}
+                  <div style={{ display: 'flex', gap: 10, marginTop: 12, flexWrap: 'wrap' }}>
+                    {[
+                      { bg: '#EFF6FF', border: '#BFDBFE', color: '#1D4ED8', label: 'From role' },
+                      { bg: '#F0FDF4', border: '#BBF7D0', color: C.success,  label: 'Override' },
+                    ].map(({ bg, border, color, label }) => (
+                      <div key={label} style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
+                        <div style={{ width: 12, height: 12, borderRadius: 3, background: bg, border: `0.5px solid ${border}` }} />
+                        <span style={{ fontSize: 9, color: C.textSec, fontFamily: F.body }}>{label}</span>
+                      </div>
+                    ))}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 3 }}>
+                      <span style={{ fontSize: 9, color: C.textTert, fontFamily: F.body }}>V=View A=Add E=Edit D=Delete</span>
+                    </div>
+                  </div>
+                </>
+              )}
+            </div>
+          </>
+        )}
+      </div>
+    </>
+  );
 }
 
 // ─── Add/Edit Node Modal ──────────────────────────────────────
@@ -264,12 +484,11 @@ function NodeCard({ node, isSelected, isRoot, onSelect, onAddChild, onEdit, onDe
 
 // ─── Tree Renderer ────────────────────────────────────────────
 function TreeLevel({ nodes, parentId, allNodes, selectedNode, onSelect, onAddChild, onEdit, onDelete }) {
-  const children = allNodes.filter(n => String(n.parent) === String(parentId));
-  if (children.length === 0 && parentId !== null) return null;
-
   const levelNodes = parentId === null
     ? allNodes.filter(n => !n.parent)
-    : children;
+    : allNodes.filter(n => String(n.parent) === String(parentId));
+
+  if (levelNodes.length === 0) return null;
 
   return (
     <div style={{ display: 'flex', gap: 24, alignItems: 'flex-start', justifyContent: 'center' }}>
@@ -284,7 +503,6 @@ function TreeLevel({ nodes, parentId, allNodes, selectedNode, onSelect, onAddChi
             onEdit={onEdit}
             onDelete={onDelete}
           />
-          {/* Children */}
           {allNodes.some(n => String(n.parent) === String(node.id)) && (
             <>
               <div style={{ width: 1.5, height: 24, background: C.borderMed }} />
@@ -299,11 +517,6 @@ function TreeLevel({ nodes, parentId, allNodes, selectedNode, onSelect, onAddChi
                 onDelete={onDelete}
               />
             </>
-          )}
-          {/* Add child placeholder */}
-          {!allNodes.some(n => String(n.parent) === String(node.id)) && node.parent && (
-            <div style={{ marginTop: 4 }}>
-            </div>
           )}
         </div>
       ))}
@@ -325,7 +538,7 @@ export default function PMOrgPage() {
   const [saving,       setSaving]       = useState(false);
   const [popup,        setPopup]        = useState(null);
   const [modal,        setModal]        = useState(null);
-  // modal: null | { type: 'add', parent: node } | { type: 'edit', node } | { type: 'assign', node }
+  const [slideInId,    setSlideInId]    = useState(null); // ← NEW: member slide-in
 
   const fetchNodes = useCallback(async () => {
     try {
@@ -339,9 +552,8 @@ export default function PMOrgPage() {
     try {
       const res  = await fetch(`${API}/pm/rbac/roles/`, { headers });
       const data = await res.json();
-      console.log('Roles response:', res.status, data);
       setRoles(Array.isArray(data) ? data : (data.results ?? []));
-    } catch (e) { console.error('fetchRoles error:', e); }
+    } catch (_) {}
   }, []);
 
   const fetchMembers = useCallback(async (nodeId) => {
@@ -359,10 +571,11 @@ export default function PMOrgPage() {
 
   function handleSelectNode(node) {
     setSelectedNode(node);
+    setSlideInId(null); // close any open slide-in when switching nodes
     fetchMembers(node.id);
   }
 
-  // ── Create node ────────────────────────────────────────────
+  // ── Create / edit node ─────────────────────────────────────
   async function handleSaveNode(data) {
     setSaving(true);
     try {
@@ -427,6 +640,7 @@ export default function PMOrgPage() {
       });
       if (!res.ok) { const e = await res.json(); throw new Error(e.message || 'Assignment failed'); }
       await fetchMembers(modal.node.id);
+      await fetchNodes(); // refresh member_count on cards
       setModal(null);
       setPopup({ type: 'success', title: 'Member added', message: `${data.email} has been added to ${modal.node.node_name}.` });
     } catch (e) {
@@ -459,14 +673,12 @@ export default function PMOrgPage() {
             <h1 style={{ fontFamily: F.headline, fontSize: 24, fontWeight: 700, color: C.primary, margin: '0 0 3px' }}>Organisation</h1>
             <p style={{ fontSize: 12, color: C.textSec, margin: 0 }}>Build your organisational hierarchy. Click any node to view details and manage members.</p>
           </div>
-          <div style={{ display: 'flex', gap: 8 }}>
-            <button
-              onClick={() => setModal({ type: 'add', parent: null })}
-              style={{ height: 32, padding: '0 14px', background: C.primary, border: 'none', borderRadius: 6, fontSize: 11, fontWeight: 700, color: C.white, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 5 }}
-            >
-              <i className="ti ti-plus" style={{ fontSize: 12 }} aria-hidden="true" />Add node
-            </button>
-          </div>
+          <button
+            onClick={() => setModal({ type: 'add', parent: null })}
+            style={{ height: 32, padding: '0 14px', background: C.primary, border: 'none', borderRadius: 6, fontSize: 11, fontWeight: 700, color: C.white, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 5 }}
+          >
+            <i className="ti ti-plus" style={{ fontSize: 12 }} aria-hidden="true" />Add node
+          </button>
         </div>
 
         {/* Main content */}
@@ -488,7 +700,7 @@ export default function PMOrgPage() {
                 </button>
               </div>
             ) : (
-              <div style={{ minWidth: 'fit-content', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 0 }}>
+              <div style={{ minWidth: 'fit-content', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
                 <TreeLevel
                   nodes={nodes}
                   parentId={null}
@@ -529,7 +741,7 @@ export default function PMOrgPage() {
               <div style={{ padding: '12px 14px', borderBottom: `0.5px solid ${C.border}` }}>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
                   <div style={{ fontSize: 10, fontWeight: 700, color: C.textTert, textTransform: 'uppercase', letterSpacing: '0.07em' }}>Selected node</div>
-                  <button onClick={() => setSelectedNode(null)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: C.textTert, fontSize: 14, display: 'flex' }}>
+                  <button onClick={() => { setSelectedNode(null); setSlideInId(null); }} style={{ background: 'none', border: 'none', cursor: 'pointer', color: C.textTert, fontSize: 14, display: 'flex' }}>
                     <i className="ti ti-x" aria-hidden="true" />
                   </button>
                 </div>
@@ -570,20 +782,44 @@ export default function PMOrgPage() {
                     <i className="ti ti-users" style={{ fontSize: 24, color: C.borderMed }} aria-hidden="true" />
                     <p style={{ fontSize: 11, color: C.textTert, margin: '6px 0 0', fontFamily: F.body }}>No members yet</p>
                   </div>
-                ) : members.map(m => (
-                  <div key={m.id} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '7px 10px', background: '#F8FAFC', borderRadius: 7, border: `0.5px solid ${C.border}`, marginBottom: 6 }}>
-                    <div style={{ width: 28, height: 28, borderRadius: '50%', background: C.primary, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 9, fontWeight: 700, color: C.white, flexShrink: 0 }}>
-                      {initials(m.user_name)}
+                ) : members.map(m => {
+                  const name = m.user
+                    ? `${m.user.first_name} ${m.user.last_name}`.trim() || m.email
+                    : m.email;
+                  const isActive = m.is_active;
+                  return (
+                    <div
+                      key={m.id}
+                      onClick={() => setSlideInId(m.id)} // ← NEW: open slide-in on click
+                      style={{
+                        display: 'flex', alignItems: 'center', gap: 8,
+                        padding: '7px 10px',
+                        background: slideInId === m.id ? '#EEF2FF' : '#F8FAFC',
+                        borderRadius: 7,
+                        border: `0.5px solid ${slideInId === m.id ? '#C7D2FE' : C.border}`,
+                        marginBottom: 6,
+                        cursor: 'pointer',
+                        transition: 'all 0.12s',
+                      }}
+                      onMouseEnter={e => { if (slideInId !== m.id) e.currentTarget.style.background = '#F1F5F9'; }}
+                      onMouseLeave={e => { if (slideInId !== m.id) e.currentTarget.style.background = '#F8FAFC'; }}
+                    >
+                      <div style={{ width: 28, height: 28, borderRadius: '50%', background: C.primary, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 9, fontWeight: 700, color: C.white, flexShrink: 0 }}>
+                        {initials(name)}
+                      </div>
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{ fontSize: 11, fontWeight: 600, color: C.textPrimary, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{name}</div>
+                        <div style={{ fontSize: 10, color: C.textSec }}>{m.role}</div>
+                      </div>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 4, flexShrink: 0 }}>
+                        <span style={{ fontSize: 9, fontWeight: 700, padding: '2px 6px', borderRadius: 99, background: isActive ? '#F0FDF4' : '#F1F5F9', color: isActive ? C.success : C.textSec }}>
+                          {isActive ? 'Active' : 'Inactive'}
+                        </span>
+                        <i className="ti ti-chevron-right" style={{ fontSize: 10, color: C.textTert }} aria-hidden="true" />
+                      </div>
                     </div>
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ fontSize: 11, fontWeight: 600, color: C.textPrimary, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{m.user_name || m.user_email}</div>
-                      <div style={{ fontSize: 10, color: C.textSec }}>{m.role}</div>
-                    </div>
-                    <span style={{ fontSize: 9, fontWeight: 700, padding: '2px 6px', borderRadius: 99, background: m.is_active ? '#F0FDF4' : '#F1F5F9', color: m.is_active ? C.success : C.textSec, flexShrink: 0 }}>
-                      {m.is_active ? 'Active' : 'Inactive'}
-                    </span>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
 
               {/* Actions */}
@@ -607,6 +843,16 @@ export default function PMOrgPage() {
           )}
         </div>
       </div>
+
+      {/* ── Member slide-in panel ── */}
+      {slideInId && (
+        <MemberSlideIn
+          memberId={slideInId}
+          token={token}
+          onClose={() => setSlideInId(null)}
+          onViewFull={() => navigate('/pm-portal/rbac/members', { state: { memberId: slideInId } })}
+        />
+      )}
 
       {/* Node modal */}
       {modal && modal.type !== 'assign' && (
