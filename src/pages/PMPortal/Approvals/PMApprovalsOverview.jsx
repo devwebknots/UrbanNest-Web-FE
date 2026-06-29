@@ -6,6 +6,7 @@ import {
   ResponsiveContainer, PieChart, Pie, Cell,
 } from 'recharts';
 import UNPopup from '../../../components/common/UNPopup';
+import PMTopBar from '../../../components/layout/PMTopBar';
 
 const C = {
   primary:     '#002D5B',
@@ -557,6 +558,7 @@ export default function PMApprovalsOverview() {
       <div style={{ flex:1, display:'flex', flexDirection:'column', minWidth:0, overflow:'hidden' }}>
 
         {/* Topbar */}
+        <PMTopBar />
         <div style={{ height:52, background:C.white, borderBottom:'1px solid '+C.border, display:'flex', alignItems:'center', padding:'0 24px', gap:12, flexShrink:0 }}>
           <div style={{ display:'flex', alignItems:'center', gap:6, border:'1px solid '+C.borderMed, borderRadius:7, padding:'0 10px', height:32, background:'#F8FAFC', flex:1, maxWidth:300 }}>
             <i className="ti ti-search" style={{ fontSize:13, color:C.textTert, flexShrink:0 }} />

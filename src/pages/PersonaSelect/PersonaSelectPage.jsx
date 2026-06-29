@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../../context/AuthContext';
 
 if (!document.getElementById('tabler-icons-cdn')) {
   const link = document.createElement('link');
@@ -43,6 +44,7 @@ const ALL_PERSONAS = [
   { key:'ORGANIZATIONAL_PM', label:'PMS Company',       sub:'Organisational PM',  icon:'ti-building-skyscraper', color:'#BE123C',  route:'/org-onboarding/step-1',  portal:'/org-onboarding/step-1' },
   { key:'REAL_ESTATE_AGENT', label:'Real Estate Agent', sub:'Agent Portal',       icon:'ti-id-badge',            color:'#7C3AED',  route:'/coming-soon',            portal:'/coming-soon' },
   { key:'UN_ADMIN',          label:'UN Admin',          sub:'Lead Administrator', icon:'ti-shield-lock',         color:C.primary,  route:'/admin-portal/dashboard', portal:'/admin-portal/dashboard' },
+  { key:'PM_STAFF',          label:'PM Staff',          sub:'Team Member',        icon:'ti-users',               color:'#0F766E', route:'/pm-portal/dashboard/welcome', portal:'/pm-portal/dashboard/my-dashboard' },
 ];
 
 function TestimonialCarousel() {
@@ -145,6 +147,25 @@ function AddPersonaCard({ onClick }) {
 export default function PersonaSelectPage() {
   const navigate = useNavigate();
 
+  const { refreshAuth } = useAuth();
+
+  const activatePersona = async (personaKey) => {
+    const token = localStorage.getItem('access_token');
+    try {
+      await fetch(`${API_BASE}/api/auth/switch-persona/`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ persona: personaKey }),
+      });
+      await refreshAuth(); // reload permissions with new active_persona
+    } catch {
+      // Non-blocking — navigate anyway
+    }
+  };
+
   const [user,                 setUser]                 = useState(null);
   const [activeKeys,           setActiveKeys]           = useState([]);
   const [inactiveKeys,         setInactiveKeys]         = useState([]);
@@ -233,12 +254,10 @@ export default function PersonaSelectPage() {
   // Suppress ORGANIZATIONAL_PM from "Add Persona" list if user has active application
   const orgPmsAvailableToAdd = !orgPmsRecord || orgPmsStatus === 'REJECTED';
 
-  const handlePersonaClick = (persona) => {
+  const handlePersonaClick = async (persona) => {
     if (persona.key === 'ORGANIZATIONAL_PM') {
-      // ── Org PMS routing is status-aware ─────────────────────────────────
       switch (orgPmsStatus) {
         case 'DRAFT':
-          // Pre-populate localStorage with the org id so Step 1 fetches existing data
           if (orgPmsRecord?.id) localStorage.setItem('org_pms_id', orgPmsRecord.id);
           navigate('/org-onboarding/step-1');
           break;
@@ -246,37 +265,53 @@ export default function PersonaSelectPage() {
           navigate('/org-onboarding/pending');
           break;
         case 'APPROVED':
+          await activatePersona('ORGANIZATIONAL_PM');
           navigate('/org-portal/dashboard/welcome');
           break;
         case 'SUSPENDED':
           navigate('/coming-soon');
           break;
         default:
-          // No record or REJECTED — handled by Add Persona flow, not card click
           break;
       }
       return;
     }
 
-    // ── All other personas — existing logic untouched ────────────────────
+    // ── All other personas ────────────────────────────────────
     if (activeKeys.includes(persona.key)) {
       switch (persona.key) {
-        case 'INDEPENDENT_PM':    navigate('/pm-portal/dashboard/welcome'); break;
-        case 'UN_ADMIN':          navigate('/admin-portal/dashboard'); break;
-        case 'LANDLORD':          navigate('/coming-soon'); break;
-        case 'TENANT':            navigate('/coming-soon'); break;
-        case 'RENTER':            navigate('/coming-soon'); break;
-        default:                  navigate('/coming-soon');
+        case 'INDEPENDENT_PM':
+          await activatePersona('INDEPENDENT_PM');
+          navigate('/pm-portal/dashboard/welcome');
+          break;
+        case 'PM_STAFF':
+          await activatePersona('PM_STAFF');
+          navigate('/pm-portal/dashboard/my-dashboard');
+          break;
+        case 'UN_ADMIN':
+          await activatePersona('UN_ADMIN');
+          navigate('/admin-portal/dashboard');
+          break;
+        case 'LANDLORD':
+          navigate('/coming-soon');
+          break;
+        case 'TENANT':
+          navigate('/coming-soon');
+          break;
+        case 'RENTER':
+          navigate('/coming-soon');
+          break;
+        default:
+          navigate('/coming-soon');
       }
     } else if (inactiveKeys.includes(persona.key)) {
       setPendingReactivateKey(persona.key);
       setShowReactivateModal(true);
     } else {
-      // Unregistered persona — navigate to registration route
       navigate(persona.route);
     }
   };
-
+  
   const handleAddPersonaClick = () => {
     setShowAll(true);
   };

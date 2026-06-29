@@ -19,6 +19,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import NavB from '../../../components/layout/NavB';
 import UNPopup from '../../../components/common/UNPopup';
+import PMTopBar from '../../../components/layout/PMTopBar';
 
 const API = 'http://localhost:8001/api';
 
@@ -222,16 +223,8 @@ export default function PMAssignPage() {
 
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0, overflow: 'hidden' }}>
 
-        <div style={{ height: 52, background: C.white, borderBottom: `1px solid ${C.border}`, display: 'flex', alignItems: 'center', padding: '0 24px', gap: 12, flexShrink: 0 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6, border: `1px solid ${C.borderMed}`, borderRadius: 7, padding: '0 10px', height: 32, background: '#F8FAFC', flex: 1, maxWidth: 300 }}>
-            <i className="ti ti-search" style={{ fontSize: 13, color: C.textTert }} aria-hidden="true" />
-            <input style={{ border: 'none', background: 'transparent', fontSize: 12, color: C.textPrimary, outline: 'none', width: '100%', fontFamily: F.body }} placeholder="Search..." />
-          </div>
-          <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 12 }}>
-            <i className="ti ti-bell" style={{ fontSize: 18, color: C.textSec }} aria-hidden="true" />
-            <span style={{ fontSize: 12, color: C.textSec }}>PM User</span>
-          </div>
-        </div>
+        {/* Topbar */}
+        <PMTopBar />
 
         <div style={{ padding: '16px 24px 0', background: C.pageBg, flexShrink: 0 }}>
           <div style={{ fontSize: 11, color: C.textTert, marginBottom: 4 }}>HR / Roles & Access</div>

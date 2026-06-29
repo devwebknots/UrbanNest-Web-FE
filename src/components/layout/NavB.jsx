@@ -1,10 +1,11 @@
 /**
  * NavB.jsx — PM Portal Left Navigation (Nav B)
- * Updated: Session 19 — wider nav, larger fonts, py-[22px] item spacing
+ * Updated: Session 36 — RBAC enforcement (hide sections with no_access)
  */
 
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../../context/AuthContext';
 
 if (typeof document !== 'undefined' && !document.getElementById('tabler-icons-cdn')) {
   const l = document.createElement('link');
@@ -26,16 +27,37 @@ const F = {
   body:     "'Nunito Sans', sans-serif",
 };
 
+// ── Maps NavB item id → permission module code ──────────────────
+// If an id is not listed here, it is always visible (no restriction)
+const MODULE_MAP = {
+  'dashboard':        'DASHBOARD',
+  'my-profile':       'MY_PROFILE',
+  'properties':       'PROPERTIES',
+  'approvals-nav':    'APPROVALS',
+  'leasing':          'LEASING',
+  'maintenance':      'MAINTENANCE',
+  'tenants':          'TENANTS',
+  'owners':           'OWNERS',
+  'communications':   'COMMUNICATIONS',
+  'roles-access':     'ROLES_ACCESS',
+  'financials':       'FINANCIALS',
+  'marketing':        'MARKETING',
+  'analytics':        'ANALYTICS',
+  'configuration':    'CONFIG',
+  'account-settings': 'ACCOUNT_SETTINGS',
+  'help-resources':   'SUPPORT',
+};
+
 const NAV_STRUCTURE = [
   {
     type: 'standalone', id: 'dashboard', label: 'Dashboard', icon: 'ti-layout-dashboard',
     children: [
-      { id: 'my-dashboard',      label: 'My Dashboard',     icon: 'ti-home',      route: '/pm-portal/dashboard/my-dashboard' },
-      { id: 'portfolio-health',  label: 'Portfolio Health', icon: 'ti-building',  route: '/pm-portal/dashboard/portfolio-health' },
-      { id: 'financial-pulse',   label: 'Financial Pulse',  icon: 'ti-cash',      route: '/pm-portal/dashboard/financial-pulse' },
-      { id: 'leasing-pipeline',  label: 'Leasing Pipeline', icon: 'ti-file-text', route: '/pm-portal/dashboard/leasing-pipeline' },
-      { id: 'maintenance-watch', label: 'Maintenance Watch',icon: 'ti-tool',      route: '/pm-portal/dashboard/maintenance-watch' },
-      { id: 'my-team',           label: 'My Team',          icon: 'ti-users',     route: '/pm-portal/dashboard/my-team' },
+      { id: 'my-dashboard',      label: 'My Dashboard',      icon: 'ti-home',      route: '/pm-portal/dashboard/my-dashboard' },
+      { id: 'portfolio-health',  label: 'Portfolio Health',  icon: 'ti-building',  route: '/pm-portal/dashboard/portfolio-health' },
+      { id: 'financial-pulse',   label: 'Financial Pulse',   icon: 'ti-cash',      route: '/pm-portal/dashboard/financial-pulse' },
+      { id: 'leasing-pipeline',  label: 'Leasing Pipeline',  icon: 'ti-file-text', route: '/pm-portal/dashboard/leasing-pipeline' },
+      { id: 'maintenance-watch', label: 'Maintenance Watch', icon: 'ti-tool',      route: '/pm-portal/dashboard/maintenance-watch' },
+      { id: 'my-team',           label: 'My Team',           icon: 'ti-users',     route: '/pm-portal/dashboard/my-team' },
     ],
   },
   {
@@ -108,10 +130,10 @@ const NAV_STRUCTURE = [
       },
       { id: 'roles-access', label: 'Roles & Access', icon: 'ti-settings',
         children: [
-          { id: 'rbac-roles',   label: 'Roles',         route: '/pm-portal/rbac/roles' },
-          { id: 'rbac-assign',  label: 'Assign Role',   route: '/pm-portal/rbac/assign' },
-          { id: 'rbac-members', label: 'Team Members',  route: '/pm-portal/rbac/members' },
-          { id: 'rbac-org',     label: 'Organisation',  route: '/pm-portal/rbac/org' },
+          { id: 'rbac-roles',   label: 'Roles',        route: '/pm-portal/rbac/roles' },
+          { id: 'rbac-assign',  label: 'Assign Role',  route: '/pm-portal/rbac/assign' },
+          { id: 'rbac-members', label: 'Team Members', route: '/pm-portal/rbac/members' },
+          { id: 'rbac-org',     label: 'Organisation', route: '/pm-portal/rbac/org' },
         ],
       },
     ],
@@ -158,13 +180,13 @@ const NAV_STRUCTURE = [
     items: [
       { id: 'configuration', label: 'Configuration', icon: 'ti-adjustments',
         children: [
-          { id: 'screening-rules',    label: 'Screening Rules',    route: '/pm-portal/config/screening' },
-          { id: 'financial-settings', label: 'Financial Settings', route: '/pm-portal/config/financial' },
-          { id: 'lease-rent',         label: 'Lease & Rent',       route: '/pm-portal/config/lease' },
+          { id: 'screening-rules',       label: 'Screening Rules',       route: '/pm-portal/config/screening' },
+          { id: 'financial-settings',    label: 'Financial Settings',    route: '/pm-portal/config/financial' },
+          { id: 'lease-rent',            label: 'Lease & Rent',          route: '/pm-portal/config/lease' },
           { id: 'verification-settings', label: 'Verification Settings', route: '/pm-portal/config/verification-settings' },
-          { id: 'partners',           label: 'Partners',           route: '/pm-portal/config/partners' },
-          { id: 'communication',      label: 'Communication',      route: '/pm-portal/config/communication' },
-          { id: 'data-ai',            label: 'Data & AI',          route: '/pm-portal/config/data-ai' },
+          { id: 'partners',              label: 'Partners',              route: '/pm-portal/config/partners' },
+          { id: 'communication',         label: 'Communication',         route: '/pm-portal/config/communication' },
+          { id: 'data-ai',               label: 'Data & AI',             route: '/pm-portal/config/data-ai' },
         ],
       },
       { id: 'account-settings', label: 'Account Settings', icon: 'ti-settings',
@@ -206,13 +228,21 @@ function findDefaultExpanded(activeId) {
 
 export default function NavB({ activeId = 'my-dashboard' }) {
   const navigate = useNavigate();
+  const { hasAccess } = useAuth();
   const [expandedId, setExpandedId] = useState(() => findDefaultExpanded(activeId));
   const toggle = id => setExpandedId(prev => prev === id ? null : id);
+
+  // ── Check if a nav item should be visible ──────────────────
+  function isVisible(itemId) {
+    const moduleCode = MODULE_MAP[itemId];
+    if (!moduleCode) return true;       // not mapped = always visible
+    return hasAccess(moduleCode);       // check permission
+  }
 
   const renderChildren = (children, subHeader) => (
     <div style={{
       borderLeft: '1px solid rgba(255,255,255,0.08)',
-      marginLeft: '20px',        // ← slightly more indent
+      marginLeft: '20px',
       marginTop: '2px',
       paddingBottom: '4px',
     }}>
@@ -232,7 +262,6 @@ export default function NavB({ activeId = 'my-dashboard' }) {
           <div key={child.id} onClick={() => navigate(child.route)}
             style={{
               display: 'flex', alignItems: 'center', gap: '8px',
-              // ── FIX 1: py-[22px] = 11px top+bottom ──
               padding: '9px 10px',
               margin: '1px 6px 1px 0',
               borderRadius: '5px', cursor: 'pointer',
@@ -244,7 +273,6 @@ export default function NavB({ activeId = 'my-dashboard' }) {
           >
             {child.icon && (
               <i className={`ti ${child.icon}`} style={{
-                // ── FIX 1: larger icon ──
                 fontSize: '14px',
                 color: isActive ? C.white : 'rgba(255,255,255,0.5)',
                 flexShrink: 0,
@@ -252,7 +280,6 @@ export default function NavB({ activeId = 'my-dashboard' }) {
             )}
             <span style={{
               fontFamily: F.body,
-              // ── FIX 1: larger font ──
               fontSize: '13.5px',
               fontWeight: isActive ? 600 : 400,
               color: isActive ? C.white : 'rgba(255,255,255,0.65)',
@@ -267,6 +294,9 @@ export default function NavB({ activeId = 'my-dashboard' }) {
   );
 
   const renderL1 = (item, isStandalone = false) => {
+    // ── RBAC check — skip rendering if no access ──
+    if (!isVisible(item.id)) return null;
+
     const isExpanded = expandedId === item.id;
     const hasActive  = item.children?.some(c => c.id === activeId);
     return (
@@ -274,7 +304,6 @@ export default function NavB({ activeId = 'my-dashboard' }) {
         <div onClick={() => toggle(item.id)}
           style={{
             display: 'flex', alignItems: 'center', gap: '10px',
-            // ── FIX 1: py-[22px] = 11px each side ──
             padding: '11px 14px',
             margin: isStandalone ? '2px 8px' : '1px 8px',
             borderRadius: '6px', cursor: 'pointer',
@@ -286,7 +315,6 @@ export default function NavB({ activeId = 'my-dashboard' }) {
           onMouseLeave={e => { if (!isExpanded && !hasActive) e.currentTarget.style.background = 'transparent'; }}
         >
           <i className={`ti ${item.icon}`} style={{
-            // ── FIX 1: larger icon ──
             fontSize: '17px',
             color: isExpanded || hasActive ? C.white : 'rgba(255,255,255,0.6)',
             flexShrink: 0,
@@ -294,7 +322,6 @@ export default function NavB({ activeId = 'my-dashboard' }) {
           <span style={{
             flex: 1,
             fontFamily: F.body,
-            // ── FIX 1: larger font ──
             fontSize: '14px',
             fontWeight: isExpanded || hasActive ? 600 : 500,
             color: isExpanded || hasActive ? C.white : 'rgba(255,255,255,0.75)',
@@ -312,7 +339,6 @@ export default function NavB({ activeId = 'my-dashboard' }) {
   };
 
   return (
-    // ── FIX 1: wider nav — 220px ──
     <div style={{
       width: '220px', minWidth: '220px', flexShrink: 0,
       background: C.navBg,
@@ -321,7 +347,6 @@ export default function NavB({ activeId = 'my-dashboard' }) {
     }}>
       {/* Logo */}
       <div style={{
-        // ── FIX 1: taller logo area ──
         height: '68px', flexShrink: 0,
         display: 'flex', flexDirection: 'column',
         justifyContent: 'center', padding: '0 18px',
@@ -355,13 +380,18 @@ export default function NavB({ activeId = 'my-dashboard' }) {
       <div style={{ flex: 1, paddingTop: '10px', paddingBottom: '10px' }}>
         {NAV_STRUCTURE.map((group, gIdx) => {
           if (group.type === 'standalone') {
+            // ── RBAC check on standalone items ──
+            if (!isVisible(group.id)) return null;
             return <div key={group.id} style={{ marginBottom: '2px' }}>{renderL1(group, true)}</div>;
           }
           if (group.type === 'section') {
+            // Filter visible items first
+            const visibleItems = group.items.filter(item => isVisible(item.id));
+            // If no visible items in section → hide entire section label too
+            if (visibleItems.length === 0) return null;
             return (
               <div key={gIdx} style={{ marginTop: '14px' }}>
                 <div style={{
-                  // ── FIX 1: section label slightly larger + more padding ──
                   padding: '0 20px 5px',
                   fontFamily: F.body, fontSize: '10px', fontWeight: 700,
                   color: 'rgba(255,255,255,0.3)',
@@ -369,7 +399,7 @@ export default function NavB({ activeId = 'my-dashboard' }) {
                 }}>
                   {group.label}
                 </div>
-                {group.items.map(item => renderL1(item))}
+                {visibleItems.map(item => renderL1(item))}
               </div>
             );
           }

@@ -9,6 +9,7 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import NavB from '../../components/layout/NavB';
 import Header from '../../components/layout/Header';
+import { useAuth } from '../../context/AuthContext';
 
 const C = {
   primary:      '#002D5B',
@@ -105,6 +106,7 @@ function getOccupancyConfig(pct) {
 
 export default function PMPropertiesPage() {
   const navigate = useNavigate();
+  const { can } = useAuth();  
   const [properties, setProperties] = useState([]);
   const [loading, setLoading]       = useState(true);
   const [error, setError]           = useState(null);
@@ -175,10 +177,18 @@ export default function PMPropertiesPage() {
                     </p>
                 </div>
                 <button
-                    onClick={() => navigate('/pm-portal/properties/add')}
-                    onMouseEnter={e => e.currentTarget.style.background = C.primaryHover}
+                    onClick={() => can('PROPERTIES', 'add') && navigate('/pm-portal/properties/add')}
+                    onMouseEnter={e => { if (can('PROPERTIES', 'add')) e.currentTarget.style.background = C.primaryHover; }}
                     onMouseLeave={e => e.currentTarget.style.background = C.primary}
-                    style={{ background: C.primary, color: C.white, border: 'none', borderRadius: 8, padding: '10px 20px', fontFamily: F.body, fontSize: 13, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, transition: 'background 0.15s', flexShrink: 0 }}>
+                    title={!can('PROPERTIES', 'add') ? 'You do not have permission to add properties' : ''}
+                    style={{
+                      background: C.primary, color: C.white, border: 'none', borderRadius: 8,
+                      padding: '10px 20px', fontFamily: F.body, fontSize: 13, fontWeight: 700,
+                      cursor: can('PROPERTIES', 'add') ? 'pointer' : 'not-allowed',
+                      opacity: can('PROPERTIES', 'add') ? 1 : 0.5,
+                      display: 'flex', alignItems: 'center', gap: 6,
+                      transition: 'background 0.15s', flexShrink: 0,
+                    }}>
                     <i className="ti ti-plus" style={{ fontSize: 14 }} /> Add Property
                 </button>
                 </div>
@@ -227,9 +237,18 @@ export default function PMPropertiesPage() {
                 </div>
                 <div style={{ fontSize: 16, fontWeight: 700, color: C.textPrimary, fontFamily: F.headline, marginBottom: 6 }}>No properties yet</div>
                 <div style={{ fontSize: 13, color: C.textSec, fontFamily: F.body, marginBottom: 24, lineHeight: 1.6 }}>Add your first property to start building your portfolio.</div>
-                <button onClick={() => navigate('/pm-portal/properties/add')} style={{ background: C.primary, color: C.white, border: 'none', borderRadius: 8, padding: '10px 24px', fontFamily: F.body, fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>
-                  + Add Property
-                </button>
+                  <button 
+                    onClick={() => can('PROPERTIES', 'add') && navigate('/pm-portal/properties/add')}
+                    title={!can('PROPERTIES', 'add') ? 'You do not have permission to add properties' : ''}
+                    style={{
+                      background: C.primary, color: C.white, border: 'none', borderRadius: 8,
+                      padding: '9px 20px', fontFamily: F.body, fontSize: 13, fontWeight: 700,
+                      cursor: can('PROPERTIES', 'add') ? 'pointer' : 'not-allowed',
+                      opacity: can('PROPERTIES', 'add') ? 1 : 0.5,
+                    }}
+                  >
+                    + Add Property
+                  </button>
               </div>
             )}
 
@@ -238,10 +257,19 @@ export default function PMPropertiesPage() {
               <div style={{ textAlign: 'center', padding: '60px 0', color: C.textSec, fontFamily: F.body, fontSize: 13 }}>
                 <i className="ti ti-building-off" style={{ fontSize: 28, display: 'block', marginBottom: 10, color: C.textTert }} />
                 No {activeTab} properties in your portfolio yet.
-                <div style={{ marginTop: 16 }}>
-                  <button onClick={() => navigate('/pm-portal/properties/add')} style={{ background: C.primary, color: C.white, border: 'none', borderRadius: 8, padding: '9px 20px', fontFamily: F.body, fontSize: 13, fontWeight: 700, cursor: 'pointer' }}>
-                    + Add Property
-                  </button>
+                <div style={{ marginTop: 16 }}> 
+                    <button 
+                      onClick={() => can('PROPERTIES', 'add') && navigate('/pm-portal/properties/add')}
+                      title={!can('PROPERTIES', 'add') ? 'You do not have permission to add properties' : ''}
+                      style={{
+                        background: C.primary, color: C.white, border: 'none', borderRadius: 8,
+                        padding: '10px 24px', fontFamily: F.body, fontSize: 13, fontWeight: 700,
+                        cursor: can('PROPERTIES', 'add') ? 'pointer' : 'not-allowed',
+                        opacity: can('PROPERTIES', 'add') ? 1 : 0.5,
+                      }}
+                    >                      
+                      + Add Property
+                    </button>
                 </div>
               </div>
             )}

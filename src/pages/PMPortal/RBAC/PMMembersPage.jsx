@@ -9,6 +9,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useLocation } from 'react-router-dom';
 import NavB from '../../../components/layout/NavB';
 import UNPopup from '../../../components/common/UNPopup';
+import PMTopBar from '../../../components/layout/PMTopBar';
 
 const API = process.env.REACT_APP_API_BASE_URL || 'http://localhost:8001/api';
 
@@ -612,12 +613,7 @@ export default function PMMembersPage() {
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
 
         {/* ── Topbar ── */}
-        <div style={{ height: 52, background: C.white, borderBottom: `1px solid ${C.border}`, display: 'flex', alignItems: 'center', padding: '0 24px', flexShrink: 0 }}>
-          <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 12 }}>
-            <i className="ti ti-bell" style={{ fontSize: 18, color: C.gray500 }} />
-            <span style={{ fontFamily: F.sans, fontSize: 12, color: C.gray500 }}>PM User</span>
-          </div>
-        </div>
+        <PMTopBar />
 
         {/* ── Main area ── */}
         <div style={{ flex: 1, display: 'flex', overflow: 'hidden' }}>

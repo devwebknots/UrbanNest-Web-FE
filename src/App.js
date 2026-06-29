@@ -1,4 +1,6 @@
+import { AuthProvider } from './context/AuthContext';
 import { BrowserRouter, Routes, Route, useNavigate, useLocation } from 'react-router-dom';
+import PermissionGuard from './components/common/PermissionGuard';
 
 // Auth
 import LoginModal           from './pages/Login/LoginModal';
@@ -116,14 +118,14 @@ function AppRoutes() {
       <Route path="/pm-portal/config/verification-settings" element={<PMVerificationSettings />} />
 
       {/* ── PM Portal/ Approvals ─────────────────────────────────────────────────────── */}
-      <Route path="/pm-portal/approvals"           element={<PMApprovalsOverview />} />
-      <Route path="/pm-portal/approvals/ownership" element={<PMApprovalsOwnership />} />
+      <Route path="/pm-portal/approvals"           element={<PermissionGuard module="APPROVALS"><PMApprovalsOverview /></PermissionGuard>} />
+      <Route path="/pm-portal/approvals/ownership" element={<PermissionGuard module="APPROVALS"><PMApprovalsOwnership /></PermissionGuard>} />
 
       {/* ── PM Portal/ RBAC ─────────────────────────────────────────────────────── */}
-      <Route path="/pm-portal/rbac/roles"   element={<PMRolesPage />} />
-      <Route path="/pm-portal/rbac/assign"  element={<PMAssignPage />} />
-      <Route path="/pm-portal/rbac/members" element={<PMMembersPage />} />
-      <Route path="/pm-portal/rbac/org"     element={<PMOrgPage />} />
+      <Route path="/pm-portal/rbac/roles"   element={<PermissionGuard module="ROLES_ACCESS"><PMRolesPage /></PermissionGuard>} />
+      <Route path="/pm-portal/rbac/assign"  element={<PermissionGuard module="ROLES_ACCESS"><PMAssignPage /></PermissionGuard>} />
+      <Route path="/pm-portal/rbac/members" element={<PermissionGuard module="ROLES_ACCESS"><PMMembersPage /></PermissionGuard>} />
+      <Route path="/pm-portal/rbac/org"     element={<PermissionGuard module="ROLES_ACCESS"><PMOrgPage /></PermissionGuard>} />
 
      
       {/* ── Org PMS Portal — reuses PM dashboard (NavD when Org-specific nav needed) ── */}
@@ -185,8 +187,8 @@ function AppRoutes() {
       <Route path="/org-onboarding/pending"  element={<OrgPMS_PendingStatus />} />
 
       {/* ── Properties  ──────────────────────────── */}  
-      <Route path="/pm-portal/properties" element={<PMPropertiesPage />} />
-      <Route path="/pm-portal/properties/add" element={<AddNewProperty persona="INDEPENDENT_PM" />} />
+      <Route path="/pm-portal/properties"     element={<PermissionGuard module="PROPERTIES"><PMPropertiesPage /></PermissionGuard>} />
+      <Route path="/pm-portal/properties/add" element={<PermissionGuard module="PROPERTIES"><AddNewProperty persona="INDEPENDENT_PM" /></PermissionGuard>} />
       <Route path="/org-portal/properties/add"  element={<AddNewProperty persona="ORGANIZATIONAL_PM" />} />
       <Route path="/pm-portal/properties/portfolio/:propertyType" element={<PMPortfolioPage />} />
       <Route path="/pm-portal/properties/:id" element={<PMPropertyDetailPage />} />
@@ -212,9 +214,11 @@ function AppRoutes() {
 
 function App() {
   return (
-    <BrowserRouter>
-      <AppRoutes />
-    </BrowserRouter>
+    <AuthProvider>
+      <BrowserRouter>
+        <AppRoutes />
+      </BrowserRouter>
+    </AuthProvider>  
   );
 }
 

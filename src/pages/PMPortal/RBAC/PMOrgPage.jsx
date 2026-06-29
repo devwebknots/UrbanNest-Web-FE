@@ -28,6 +28,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import NavB from '../../../components/layout/NavB';
 import UNPopup from '../../../components/common/UNPopup';
+import PMTopBar from '../../../components/layout/PMTopBar';
 
 const API = process.env.REACT_APP_API_BASE_URL || 'http://localhost:8001/api';
 
@@ -659,12 +660,7 @@ export default function PMOrgPage() {
       <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0, overflow: 'hidden' }}>
 
         {/* Topbar */}
-        <div style={{ height: 52, background: C.white, borderBottom: `1px solid ${C.border}`, display: 'flex', alignItems: 'center', padding: '0 24px', gap: 12, flexShrink: 0 }}>
-          <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 12 }}>
-            <i className="ti ti-bell" style={{ fontSize: 18, color: C.textSec }} aria-hidden="true" />
-            <span style={{ fontSize: 12, color: C.textSec }}>PM User</span>
-          </div>
-        </div>
+        <PMTopBar />
 
         {/* Page heading */}
         <div style={{ padding: '16px 24px 12px', background: C.white, borderBottom: `1px solid ${C.border}`, flexShrink: 0, display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between' }}>
