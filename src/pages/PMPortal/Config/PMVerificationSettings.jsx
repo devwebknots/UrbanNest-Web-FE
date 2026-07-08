@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import NavB from '../../../components/layout/NavB';
+import PMTopBar from '../../../components/layout/PMTopBar';
 
 const C = {
   primary:      '#002D5B',
@@ -554,20 +555,8 @@ export default function PMVerificationSettings() {
     <div style={{ display:'flex',minHeight:'100vh',background:C.pageBg,fontFamily:F.body }}>
       <NavB activeId="verification-settings" />
       <div style={{ flex:1,display:'flex',flexDirection:'column',minWidth:0 }}>
-        <div style={{ height:56,background:C.white,borderBottom:`1px solid ${C.borderLight}`,display:'flex',alignItems:'center',padding:'0 28px',flexShrink:0 }}>
-          <div style={{ flex:1,maxWidth:340,height:36,background:C.neutral,borderRadius:8,display:'flex',alignItems:'center',gap:8,padding:'0 12px' }}>
-            <i className="ti ti-search" style={{ fontSize:14,color:C.textTertiary }} />
-            <span style={{ fontSize:13,color:C.textTertiary }}>Search properties, tenants, or help...</span>
-          </div>
-          <div style={{ display:'flex',alignItems:'center',gap:10,marginLeft:'auto' }}>
-            <div style={{ textAlign:'right' }}>
-              <div style={{ fontSize:13,fontWeight:700,color:C.textPrimary }}>Test User34</div>
-              <div style={{ fontSize:11,color:C.textSecondary }}>ORG PMS ADMIN</div>
-            </div>
-            <div style={{ width:34,height:34,borderRadius:'50%',background:C.primary,display:'flex',alignItems:'center',justifyContent:'center',fontSize:13,fontWeight:700,color:C.white }}>T</div>
-          </div>
-        </div>
-
+        <PMTopBar />
+       
         <div style={{ flex:1,padding:'28px 32px',overflowY:'auto' }}>
           <div style={{ fontSize:12,color:C.textTertiary,marginBottom:6,display:'flex',alignItems:'center',gap:5 }}>
             Configuration <i className="ti ti-chevron-right" style={{ fontSize:12 }} />

@@ -293,7 +293,7 @@ export default function PersonaSelectPage() {
           navigate('/admin-portal/dashboard');
           break;
         case 'LANDLORD':
-          navigate('/coming-soon');
+          navigate('/landlord-portal/dashboard');
           break;
         case 'TENANT':
           navigate('/coming-soon');

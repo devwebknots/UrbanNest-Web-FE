@@ -65,6 +65,11 @@ import PMMembersPage  from './pages/PMPortal/RBAC/PMMembersPage';
 import PMOrgPage      from './pages/PMPortal/RBAC/PMOrgPage';
 import PMStaffSignupPage from './pages/PMPortal/RBAC/PMStaffSignupPage';
 
+// Landlord Portals
+import LandlordDashboard from './pages/Landlord/LandlordDashboard';
+import LandlordPortfolioPage from './pages/Landlord/LandlordPortfolioPage';
+import LandlordPropertyDetailPage from './pages/Landlord/LandlordPropertyDetailPage';
+
 // Invite for all email/phone verifications
 import VerifyOwnershipPage from './pages/Invite/VerifyOwnershipPage';
 
@@ -131,6 +136,11 @@ function AppRoutes() {
       {/* ── Org PMS Portal — reuses PM dashboard (NavD when Org-specific nav needed) ── */}
       <Route path="/org-portal/dashboard/welcome"      element={<PMWelcomePage persona="ORGANIZATIONAL_PM" />} />
       <Route path="/org-portal/dashboard/my-dashboard" element={<PMDashboard persona="ORGANIZATIONAL_PM" />} />
+
+      {/* ── Landlord Portals ── */}
+      <Route path="/landlord-portal/dashboard" element={<LandlordDashboard />} />
+      <Route path="/landlord-portal/portfolio" element={<LandlordPortfolioPage />} />
+      <Route path="/landlord-portal/property/:id" element={<LandlordPropertyDetailPage />} />
 
       {/* ── UN Admin Portal ───────────────────────────────────────────────── */}
       <Route path="/admin-portal/dashboard" element={
