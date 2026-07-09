@@ -69,6 +69,7 @@ import PMStaffSignupPage from './pages/PMPortal/RBAC/PMStaffSignupPage';
 import LandlordDashboard from './pages/Landlord/LandlordDashboard';
 import LandlordPortfolioPage from './pages/Landlord/LandlordPortfolioPage';
 import LandlordPropertyDetailPage from './pages/Landlord/LandlordPropertyDetailPage';
+import LandlordUnitDetailPage from './pages/Landlord/LandlordUnitDetailPage';
 
 // Invite for all email/phone verifications
 import VerifyOwnershipPage from './pages/Invite/VerifyOwnershipPage';
@@ -141,6 +142,7 @@ function AppRoutes() {
       <Route path="/landlord-portal/dashboard" element={<LandlordDashboard />} />
       <Route path="/landlord-portal/portfolio" element={<LandlordPortfolioPage />} />
       <Route path="/landlord-portal/property/:id" element={<LandlordPropertyDetailPage />} />
+      <Route path="/landlord-portal/property/:id/unit/:uid" element={<LandlordUnitDetailPage />} />
 
       {/* ── UN Admin Portal ───────────────────────────────────────────────── */}
       <Route path="/admin-portal/dashboard" element={
