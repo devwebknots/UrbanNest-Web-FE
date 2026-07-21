@@ -15,6 +15,11 @@ import IndependentPM_Step1  from './pages/IndependentPM/IndependentPM_Step1';
 import IndependentPM_Step2  from './pages/IndependentPM/IndependentPM_Step2';
 import IndependentPM_Step3  from './pages/IndependentPM/IndependentPM_Step3';
 
+// Landlord registration wizard
+import LandlordOnboarding_Step1 from './pages/Landlord/Onboarding/LandlordOnboarding_Step1';
+import LandlordOnboarding_Step2 from './pages/Landlord/Onboarding/LandlordOnboarding_Step2';
+import LandlordOnboarding_Step3 from './pages/Landlord/Onboarding/LandlordOnboarding_Step3';
+
 // PM Portal
 import PMDashboard          from './pages/PMPortal/Dashboard/PMDashboard';
 import PMWelcomePage        from './pages/PMPortal/Dashboard/PMWelcomePage';
@@ -116,6 +121,11 @@ function AppRoutes() {
       <Route path="/pm-registration"        element={<IndependentPM_Step1 />} />
       <Route path="/pm-registration/step-2" element={<IndependentPM_Step2 />} />
       <Route path="/pm-registration/step-3" element={<IndependentPM_Step3 />} />
+
+      {/* ── Landlord registration wizard ────────────────────────────── */}
+      <Route path="/landlord-registration/step-1" element={<LandlordOnboarding_Step1 />} />
+      <Route path="/landlord-registration/step-2" element={<LandlordOnboarding_Step2 />} />
+      <Route path="/landlord-registration/step-3" element={<LandlordOnboarding_Step3 />} />
 
       {/* ── PM Portal ─────────────────────────────────────────────────────── */}
       <Route path="/pm-portal/dashboard/welcome"      element={<PMWelcomePage persona="INDEPENDENT_PM" />} />

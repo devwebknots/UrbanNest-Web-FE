@@ -39,7 +39,7 @@ const ORG_PMS_BADGE = {
 const ALL_PERSONAS = [
   { key:'RENTER',            label:'Renter',            sub:'Main Account',       icon:'ti-home',                color:C.primary,  route:'/coming-soon',            portal:'/coming-soon' },
   { key:'TENANT',            label:'Tenant',            sub:'Active Tenancy',     icon:'ti-users',               color:'#1D4ED8',  route:'/coming-soon',            portal:'/coming-soon' },
-  { key:'LANDLORD',          label:'Landlord',          sub:'Property Owner',     icon:'ti-building',            color:'#064E3B',  route:'/coming-soon',            portal:'/coming-soon' },
+  { key:'LANDLORD',          label:'Landlord',          sub:'Property Owner',     icon:'ti-building',            color:'#064E3B',  route:'/landlord-registration/step-1', portal:'/landlord-portal/dashboard' },
   { key:'INDEPENDENT_PM',    label:'Property Manager',  sub:'Independent PM',     icon:'ti-briefcase',           color:'#B45309',  route:'/pm-registration',        portal:'/pm-portal/dashboard/welcome' },
   { key:'ORGANIZATIONAL_PM', label:'PMS Company',       sub:'Organisational PM',  icon:'ti-building-skyscraper', color:'#BE123C',  route:'/org-onboarding/step-1',  portal:'/org-onboarding/step-1' },
   { key:'REAL_ESTATE_AGENT', label:'Real Estate Agent', sub:'Agent Portal',       icon:'ti-id-badge',            color:'#7C3AED',  route:'/coming-soon',            portal:'/coming-soon' },
@@ -341,6 +341,7 @@ export default function PersonaSelectPage() {
   const handleReactivateConfirm = () => {
     setShowReactivateModal(false);
     if (pendingReactivateKey === 'INDEPENDENT_PM') navigate('/pm-portal/profile/persona?mode=edit');
+    if (pendingReactivateKey === 'LANDLORD') navigate('/landlord-registration/step-1');
     setPendingReactivateKey(null);
   };
   const handleReactivateCancel = () => { setShowReactivateModal(false); setPendingReactivateKey(null); };
@@ -476,7 +477,7 @@ export default function PersonaSelectPage() {
               <i className="ti ti-refresh" style={{ fontSize:'20px', color:'#F59E0B' }} />
             </div>
             <h2 style={{ margin:'0 0 8px', fontFamily:F.headline, fontSize:'18px', fontWeight:700, color:'#0F172A' }}>Reactivate Profile?</h2>
-            <p style={{ margin:'0 0 24px', fontFamily:F.body, fontSize:'13px', color:'#64748B', lineHeight:1.6 }}>Your Independent PM profile is currently inactive. Would you like to reactivate it? You'll need to review and resubmit your details.</p>
+            <p style={{ margin:'0 0 24px', fontFamily:F.body, fontSize:'13px', color:'#64748B', lineHeight:1.6 }}>Your {pendingReactivateKey === 'LANDLORD' ? 'Landlord' : 'Independent PM'}  profile is currently inactive. Would you like to reactivate it? You'll need to review and resubmit your details.</p>
             <div style={{ display:'flex', gap:'10px' }}>
               <button onClick={handleReactivateCancel} style={{ flex:1, height:'42px', background:C.white, border:'1.5px solid #CBD5E1', borderRadius:'9px', fontFamily:F.body, fontSize:'13px', fontWeight:600, color:'#64748B', cursor:'pointer' }}>Cancel</button>
               <button onClick={handleReactivateConfirm} style={{ flex:1, height:'42px', background:'#002D5B', border:'none', borderRadius:'9px', fontFamily:F.body, fontSize:'13px', fontWeight:700, color:C.white, cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', gap:'6px' }}
