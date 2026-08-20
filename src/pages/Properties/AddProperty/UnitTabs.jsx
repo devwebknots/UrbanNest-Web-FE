@@ -1,8 +1,13 @@
 /**
- * UnitTabs.jsx — Session 21
+ * UnitTabs.jsx — Session 21 + Session 39 landlord-mode changes
  * Unit tab content for AddNewProperty.jsx
  * Handles: multi-unit state, Unit/Home Info tab (Basic sub-tab)
  * Place at: src/pages/Properties/AddProperty/UnitTabs.jsx
+ *
+ * Session 39: isLandlord threaded through UnitTabContent -> UnitHomeInfoTab
+ * to hide Card 4 (Unit Services) — services are never picked at
+ * unit-creation time for a landlord, only later via the separate
+ * "Add Service" action (Phase 3 scope, not this wizard).
  */
 
 import React, { useState, useRef } from 'react';
@@ -560,7 +565,8 @@ function AddRoomModal({ onSave, onCancel, existingRoom = null }) {
 }
 
 // ─── Unit/Home Info Tab ───────────────────────────────────────────────────────
-function UnitHomeInfoTab({ unit, onChange, propName, propType, units, activeUnitId, onSwitchUnit, onAddUnit }) {
+// Session 39 — accepts isLandlord (default false), used to hide Card 4 below
+function UnitHomeInfoTab({ unit, onChange, propName, propType, units, activeUnitId, onSwitchUnit, onAddUnit, isLandlord = false }) {
   const upd = patch => onChange({ ...unit, ...patch });
   const [showRoomModal, setShowRoomModal] = useState(false);
   const [editingRoom, setEditingRoom]     = useState(null);
@@ -736,28 +742,35 @@ function UnitHomeInfoTab({ unit, onChange, propName, propType, units, activeUnit
               );
             })()}
           </div>
-       
+
         {/* Card 4 — Unit Services */}
-        <div style={{ background: C.cardBg, borderRadius: 10, border: `1px solid ${C.border}`, padding: 20, boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
-          <SectionHead icon="ti-settings" title="Unit Services" color="#7C3AED" bg="#EDE9FE" />
-          <div style={{ fontSize: 11, color: C.textSec, fontFamily: F.body, marginBottom: 14, marginTop: -8 }}>
-            Based on your plan and add-ons. Select services applicable to this unit.
-          </div>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '10px 16px' }}>
-            {UNIT_SERVICES.map(svc => {
-              const checked = unit.services.has(svc.id);
-              return (
-                <div key={svc.id} onClick={() => toggleService(svc.id)}
-                  style={{ display: 'flex', alignItems: 'center', gap: 9, cursor: 'pointer', userSelect: 'none' }}>
-                  <div style={{ width: 16, height: 16, borderRadius: 4, border: `1.5px solid ${checked ? C.primary : C.borderMed}`, background: checked ? C.primary : C.cardBg, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, transition: 'all 0.15s' }}>
-                    {checked && <i className="ti ti-check" style={{ fontSize: 10, color: '#fff', lineHeight: 1 }} />}
+        {/* Session 39 — hidden entirely for landlord self-registration. Services
+            are never picked at unit-creation time; they're added later via the
+            separate "Add Service" action (Unit Detail / Property Detail pages,
+            Phase 3 scope). This card and UNIT_SERVICES stay untouched for the
+            PM path. */}
+        {!isLandlord && (
+          <div style={{ background: C.cardBg, borderRadius: 10, border: `1px solid ${C.border}`, padding: 20, boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
+            <SectionHead icon="ti-settings" title="Unit Services" color="#7C3AED" bg="#EDE9FE" />
+            <div style={{ fontSize: 11, color: C.textSec, fontFamily: F.body, marginBottom: 14, marginTop: -8 }}>
+              Based on your plan and add-ons. Select services applicable to this unit.
+            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '10px 16px' }}>
+              {UNIT_SERVICES.map(svc => {
+                const checked = unit.services.has(svc.id);
+                return (
+                  <div key={svc.id} onClick={() => toggleService(svc.id)}
+                    style={{ display: 'flex', alignItems: 'center', gap: 9, cursor: 'pointer', userSelect: 'none' }}>
+                    <div style={{ width: 16, height: 16, borderRadius: 4, border: `1.5px solid ${checked ? C.primary : C.borderMed}`, background: checked ? C.primary : C.cardBg, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, transition: 'all 0.15s' }}>
+                      {checked && <i className="ti ti-check" style={{ fontSize: 10, color: '#fff', lineHeight: 1 }} />}
+                    </div>
+                    <span style={{ fontSize: 13, color: C.textPrimary, fontFamily: F.body }}>{svc.label}</span>
                   </div>
-                  <span style={{ fontSize: 13, color: C.textPrimary, fontFamily: F.body }}>{svc.label}</span>
-                </div>
-              );
-            })}
+                );
+              })}
+            </div>
           </div>
-        </div>
+        )}
       </div>
 
       {/* ── Right panel ── */}
@@ -2013,9 +2026,13 @@ function UnitBankAccountTab({ unit, onChange }) {
 }
 
 // ─── Main export ──────────────────────────────────────────────────────────────
-export default function UnitTabContent({ subTab, unit, onChange, propName, propType, units, activeUnitId, onSwitchUnit, onAddUnit, propOwners, propSelfOwner, selfUser, unitAmenities = [] }) {
+// Session 39 — accepts isLandlord, passes through to UnitHomeInfoTab only
+// (Amenities/Gallery/Ownership/Bank Account tabs unchanged — Ownership and
+// Bank Account simply never get rendered for a landlord because
+// AddNewProperty.jsx's landlord tab list no longer includes them)
+export default function UnitTabContent({ subTab, unit, onChange, propName, propType, units, activeUnitId, onSwitchUnit, onAddUnit, propOwners, propSelfOwner, selfUser, unitAmenities = [], isLandlord = false }) {
   if (subTab === 'Unit/Home Info') {
-    return <UnitHomeInfoTab unit={unit} onChange={onChange} propName={propName} propType={propType} units={units} activeUnitId={activeUnitId} onSwitchUnit={onSwitchUnit} onAddUnit={onAddUnit}  />;
+    return <UnitHomeInfoTab unit={unit} onChange={onChange} propName={propName} propType={propType} units={units} activeUnitId={activeUnitId} onSwitchUnit={onSwitchUnit} onAddUnit={onAddUnit} isLandlord={isLandlord} />;
   }
 
   // Placeholder for other unit sub-tabs (Amenities, Gallery, Ownership, Bank Account)

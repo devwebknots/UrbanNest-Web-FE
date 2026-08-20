@@ -65,7 +65,7 @@ const S = {
   cardTitle:  { fontSize:14, fontWeight:600, color:C.txtPrimary },
   propCard:   { display:'grid', gridTemplateColumns:'80px 1fr', gap:12, padding:'13px 18px', borderBottom:`1px solid ${C.cardBdr}`, alignItems:'start' },
   propImg:    { width:80, height:60, borderRadius:6, background:'#d1d9e8', display:'flex', alignItems:'center', justifyContent:'center', fontSize:22, color:'#8898b0', flexShrink:0 },
-  propBadge: (bg,col) => ({ fontSize:9, fontWeight:700, padding:'2px 6px', borderRadius:3, background:bg, color:col, letterSpacing:0.4, display:'inline-block', marginBottom:4 }),
+  propBadge: (bg,col) => ({ fontSize:9, fontWeight:700, padding:'2px 6px', borderRadius:3, background:bg, color:col, letterSpacing:0.4, display:'inline-block' }),
   propName:   { fontSize:13.5, fontWeight:600, color:C.txtPrimary, display:'flex', alignItems:'center', gap:6 },
   propAddr:   { fontSize:11, color:C.txtMuted, marginBottom:6, marginTop:1 },
   propMeta:   { display:'flex', gap:14, fontSize:11.5, color:C.txtSec, marginBottom:8 },
@@ -149,6 +149,17 @@ const AVATAR_COLORS = [
 ];
 const initials = (name='') => name.split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2) || '??';
 const fmtCurrency = n => '$' + Number(n).toLocaleString('en-US', { minimumFractionDigits:2, maximumFractionDigits:2 });
+
+// ─── Session 39 — management-mode badge config ─────────────────────────────
+// Light-chip style, matching the existing STABILIZED/ELITE LISTING badges
+// this sits next to (same S.propBadge(bg, col) renderer, just a second
+// badge in the row). Colors: gray=self, blue=PM-active, amber=PM-passive
+// — consistent with the app's existing semantic color pairs.
+const MGMT_BADGE = {
+  SELF:       { bg: '#F1F5F9',   col: '#475569', label: 'SELF' },
+  PM_ACTIVE:  { bg: undefined,   col: undefined, label: 'PM · ACTIVE' },  // bg/col filled in at render (needs C in scope)
+  PM_PASSIVE: { bg: undefined,   col: undefined, label: 'PM · PASSIVE' },
+};
 
 // ─── Chart components ─────────────────────────────────────────────────────────
 function RentSparkline({ data = [] }) {
@@ -289,6 +300,15 @@ export default function LandlordDashboard() {
 
   const landlordName   = landlord.name || 'Landlord';
   const avatarInitials = initials(landlordName);
+
+  // Session 39 — resolved here (not in the module-level MGMT_BADGE object)
+  // since it needs C (landlordTokens) in scope.
+  function mgmtBadgeFor(tag) {
+    if (tag === 'SELF') return MGMT_BADGE.SELF;
+    if (tag === 'PM_ACTIVE')  return { bg: C.blueLight,  col: C.blueDark, label: 'PM · ACTIVE' };
+    if (tag === 'PM_PASSIVE') return { bg: C.amberLight, col: C.amber,    label: 'PM · PASSIVE' };
+    return null;
+  }
 
   return (
     <div style={S.shell}>
@@ -440,13 +460,24 @@ export default function LandlordDashboard() {
                 const badge  = prop.badge === 'ELITE LISTING'
                   ? { bg: C.amberLight, col:'#92400e', label:'ELITE LISTING' }
                   : { bg: C.greenLight, col:'#14532d', label: prop.badge || 'STABILIZED' };
+                // Session 39 — management-mode badge, rendered alongside
+                // the status badge above (not replacing it — different
+                // question: health vs who's running it)
+                const mgmtBadge = mgmtBadgeFor(prop.management_tag);
                 return (
                   <div key={prop.id || idx} style={{ ...S.propCard, ...(isLast ? { borderBottom:'none' } : {}) }}>
                     <div style={S.propImg}>
                       <i className="ti ti-building" aria-hidden="true" />
                     </div>
                     <div>
-                      {prop.name && <div style={S.propBadge(badge.bg, badge.col)}>{badge.label}</div>}
+                      {prop.name && (
+                        <div style={{ display:'flex', gap:6, alignItems:'center', marginBottom:4 }}>
+                          <div style={S.propBadge(badge.bg, badge.col)}>{badge.label}</div>
+                          {mgmtBadge && (
+                            <div style={S.propBadge(mgmtBadge.bg, mgmtBadge.col)}>{mgmtBadge.label}</div>
+                          )}
+                        </div>
+                      )}
                       <div style={S.propName}>
                         {prop.name || <span style={{ ...S.skeleton, display:'inline-block', width:140, height:16 }} />}
                         {prop.name && (

@@ -44,6 +44,18 @@ const RENT_BADGE = {
   OVERDUE: { bg: C.redLight,   col: C.red,        label: 'OVERDUE' },
 };
 
+// ─── Session 39 — management-mode badge config ─────────────────────────────
+// This one sits on top of a photo (same treatment as propTypeBadge — dark
+// translucent overlay, white text) rather than the light-chip style used
+// on the Dashboard, since it's rendered in propImgWrap here, not inline
+// text. Colors still carry the same meaning: gray=self, blue=PM-active,
+// amber=PM-passive.
+const MGMT_BADGE = {
+  SELF:       { bg: 'rgba(71,85,105,0.85)', label: 'SELF' },
+  PM_ACTIVE:  { bg: 'rgba(37,99,235,0.85)', label: 'PM · ACTIVE' },
+  PM_PASSIVE: { bg: 'rgba(217,119,6,0.85)', label: 'PM · PASSIVE' },
+};
+
 const fmtCurrency = n =>
   '$' + Number(n).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
 
@@ -106,6 +118,8 @@ const S = {
   propImg: { width: '100%', height: '100%', objectFit: 'cover' },
   propImgFallback: { width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'linear-gradient(135deg, #1a2d4a 0%, #0d1b2e 100%)' },
   propTypeBadge: { position: 'absolute', top: 10, left: 10, background: 'rgba(0,0,0,0.65)', backdropFilter: 'blur(4px)', color: '#fff', fontSize: 9.5, fontWeight: 700, padding: '3px 8px', borderRadius: 4, letterSpacing: 0.5, textTransform: 'uppercase' },
+  // Session 39 — mirrors propTypeBadge, opposite corner
+  propMgmtBadge: (bg) => ({ position: 'absolute', top: 10, right: 10, background: bg, backdropFilter: 'blur(4px)', color: '#fff', fontSize: 9.5, fontWeight: 700, padding: '3px 8px', borderRadius: 4, letterSpacing: 0.5, textTransform: 'uppercase' }),
   propBody: { padding: '14px 16px', flex: 1, display: 'flex', flexDirection: 'column' },
   propName: { fontSize: 15, fontWeight: 700, color: C.txtPrimary, marginBottom: 3, letterSpacing: -0.2 },
   propAddr: { fontSize: 11, color: C.txtMuted, display: 'flex', alignItems: 'center', gap: 4, marginBottom: 12 },
@@ -333,6 +347,9 @@ export default function LandlordPortfolioPage() {
                 const maintColor   = prop.maint_open > 0 ? C.red : C.greenDark;
                 const maintLabel   = prop.maint_open > 0 ? `${prop.maint_open} Open` : '0 Open';
                 const occColor     = prop.occupancy_pct >= 80 ? C.greenDark : prop.occupancy_pct >= 50 ? C.amber : C.red;
+                // Session 39 — management-mode overlay badge, top-right,
+                // mirroring the existing property-type badge at top-left
+                const mgmtBadge = MGMT_BADGE[prop.management_tag];
 
                 return (
                   <div key={prop.id} style={S.propCard}>
@@ -353,6 +370,12 @@ export default function LandlordPortfolioPage() {
                       <div style={S.propTypeBadge}>
                         {PROP_TYPE_LABEL[prop.property_type] || prop.property_type}
                       </div>
+
+                      {mgmtBadge && (
+                        <div style={S.propMgmtBadge(mgmtBadge.bg)}>
+                          {mgmtBadge.label}
+                        </div>
+                      )}
                     </div>
 
                     {/* Card body */}

@@ -1,17 +1,31 @@
 /**
- * AddNewProperty.jsx — Session 20 FINAL
+ * AddNewProperty.jsx — Session 20 FINAL + Session 39 landlord-mode changes
  * Source: document index 5 (latest authoritative file)
  * Applied on top:
  *   - Banner replaced with per-tab page header (module title + green page title + subtitle)
  *   - Gallery already removed from PROP_SUBTABS in source
+ *   - Session 39: landlord self-registration branch — simplified tabs
+ *     (no Ownership/Bank Account), no PM invite loops, Ownership
+ *     Declaration modal gates Submit, NavF/inline topbar shell swap.
+ *     Every landlord-specific line is marked "Session 39" in a comment.
+ *
+ * ⚠️ UNVERIFIED ASSUMPTION (flagged, not silently applied):
+ * isLandlord below is derived from the `persona` prop, matching this
+ * file's existing pattern for INDEPENDENT_PM/ORGANIZATIONAL_PM/LANDLORD.
+ * This assumes /landlord-portal/add-property renders
+ * <AddNewProperty persona="LANDLORD" />. Not confirmed against the
+ * actual route file — confirm before relying on this in production.
  */
 
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import NavB from '../../../components/layout/NavB';
+import NavF from '../../../components/layout/NavF'; // Session 39
 import Header from '../../../components/layout/Header';
 import { CustomDropdown } from '../../../components/ui';
 import UnitTabContent, { UnitSwitcher, emptyUnit } from './UnitTabs';
+import OwnershipDeclarationModal from '../../../components/common/OwnershipDeclarationModal'; // Session 39
+import { C as LC, F as LF } from '../../Landlord/landlordTokens'; // Session 39 — aliased, this file has its own C/F below
 
 if (typeof document !== 'undefined' && !document.getElementById('tabler-icons-cdn')) {
   const l = document.createElement('link');
@@ -81,6 +95,11 @@ const STATES = {
 
 const PROP_SUBTABS = ['Primary Info', 'Amenities', 'Ownership', 'Bank Account'];
 const UNIT_SUBTABS = ['Unit/Home Info', 'Amenities', 'Gallery', 'Ownership', 'Bank Account'];
+// Session 39 — landlord self-registration never shows Ownership or Bank
+// Account tabs (landlord IS the verified owner, no invite needed; bank
+// accounts are configured later via Add Service, never at creation time)
+const PROP_SUBTABS_LANDLORD = ['Primary Info', 'Amenities'];
+const UNIT_SUBTABS_LANDLORD = ['Unit/Home Info', 'Amenities', 'Gallery'];
 
 const OWNERSHIP_ROLE_OPTIONS = [
   { value: 'individual_owner', label: 'Individual Owner' },
@@ -1392,7 +1411,8 @@ function BankAccountTab({ accounts, setAccounts, reserveExtras, setReserveExtras
   );
 }
 
-function SavePropertyModal({ propName, onAddUnit, onNoUnits }) {
+// Session 39 — SavePropertyModal now accepts isLandlord and branches copy
+function SavePropertyModal({ propName, onAddUnit, onNoUnits, isLandlord }) {
   return (
     <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 999 }}>
       <div style={{ background: '#fff', borderRadius: 12, padding: 32, width: 440, boxShadow: '0 24px 60px rgba(0,0,0,0.2)', fontFamily: "'Nunito Sans', sans-serif" }}>
@@ -1403,7 +1423,10 @@ function SavePropertyModal({ propName, onAddUnit, onNoUnits }) {
           Property Saved Successfully
         </div>
         <div style={{ fontSize: 13, color: '#64748B', marginBottom: 8, lineHeight: 1.6 }}>
-          <strong style={{ color: '#0F172A' }}>{propName || 'Your property'}</strong> has been registered. An ownership verification email has been sent to the property owner.
+          <strong style={{ color: '#0F172A' }}>{propName || 'Your property'}</strong>{' '}
+          {isLandlord
+            ? 'is now live on UrbanNest.'
+            : 'has been registered. An ownership verification email has been sent to the property owner.'}
         </div>
         <div style={{ fontSize: 13, color: '#0F172A', fontWeight: 600, marginBottom: 20 }}>
           Would you like to add units now?
@@ -1427,6 +1450,15 @@ function SavePropertyModal({ propName, onAddUnit, onNoUnits }) {
 // ─── Main component ────────────────────────────────────────────────────────────
 export default function AddNewProperty({ persona = 'INDEPENDENT_PM',initialPropertyId }) {
   const navigate = useNavigate();
+
+  // Session 39 — derived directly from the persona prop, matching this
+  // file's existing pattern for INDEPENDENT_PM/ORGANIZATIONAL_PM/LANDLORD
+  // (see the roleMap inside the useEffect below). Assumes the route that
+  // mounts this component for landlords passes persona="LANDLORD" —
+  // NOT verified against the actual route file, flagged per our
+  // conversation rather than silently assumed as fact.
+  const isLandlord = persona === 'LANDLORD';
+
   const [userName, setUserName]     = useState('');
   const [userRole, setUserRole]     = useState('Independent PM');
   const [mainTab, setMainTab]       = useState('property');
@@ -1436,6 +1468,8 @@ export default function AddNewProperty({ persona = 'INDEPENDENT_PM',initialPrope
   const [userEmail, setUserEmail]         = useState('');
   const [userId, setUserId] = useState(null);
   const [showSaveModal, setShowSaveModal] = useState(false);
+  const [showDeclaration, setShowDeclaration] = useState(false); // Session 39
+  const [pendingDeclarationTarget, setPendingDeclarationTarget] = useState(null); // Session 39 — 'property' | 'unit'
   const [propId, setPropId]     = useState(null);
   const [saving, setSaving]     = useState(false);  
   const [unitCount, setUnitCount]   = useState(0);
@@ -1449,10 +1483,15 @@ export default function AddNewProperty({ persona = 'INDEPENDENT_PM',initialPrope
   const [bankActiveId, setBankActiveId]           = useState('prop_operating');
 
   const activeUnit = units.find(u => u.id === activeUnitId) || units[0];
-  const propBankComplete = Object.values(bankAccounts).every(a => a.saved  || a.skipped);
-  const unitBankComplete = activeUnit
-  ? Object.values(activeUnit.unitBankAccounts || {}).every(a => a.saved || a.skipped)
-  : false;
+  // Session 39 — landlord has nothing to configure here, gate defaults true
+  const propBankComplete = isLandlord
+    ? true
+    : Object.values(bankAccounts).every(a => a.saved  || a.skipped);
+  const unitBankComplete = isLandlord
+    ? true
+    : (activeUnit
+        ? Object.values(activeUnit.unitBankAccounts || {}).every(a => a.saved || a.skipped)
+        : false);
 
   const [propName, setPropName]     = useState('');
   const [propType, setPropType]     = useState('');
@@ -1481,7 +1520,10 @@ export default function AddNewProperty({ persona = 'INDEPENDENT_PM',initialPrope
   const [selfOwner, setSelfOwner]                 = useState(null);
 
   const selfUser = { firstName: userName.split(' ')[0] || 'User', lastName: userName.split(' ').slice(1).join(' ') || '', email: userEmail };
-  const currentTabs  = mainTab === 'property' ? PROP_SUBTABS : UNIT_SUBTABS;
+  // Session 39 — landlord uses the simplified tab lists
+  const currentTabs = mainTab === 'property'
+    ? (isLandlord ? PROP_SUBTABS_LANDLORD : PROP_SUBTABS)
+    : (isLandlord ? UNIT_SUBTABS_LANDLORD : UNIT_SUBTABS);
   const stateOptions = (STATES[country] || []).map(s => ({ value: s, label: s }));
 
   useEffect(() => {
@@ -1767,6 +1809,214 @@ export default function AddNewProperty({ persona = 'INDEPENDENT_PM',initialPrope
   setSaving(false);
 }
 
+  // ── Session 39 — landlord save functions (used instead of handleSaveProperty
+  // and the inline PM Save Unit handler when isLandlord is true) ─────────────
+
+  async function handleLandlordSaveProperty(declarationText) {
+    if (saving) return;
+    setSaving(true);
+    try {
+      const token = localStorage.getItem('access_token');
+
+      const createRes = await fetch('http://localhost:8001/api/properties/', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        body: JSON.stringify({
+          name: propName,
+          property_type: {
+            'Apartment Complex':  'APARTMENT_COMPLEX',
+            'Individual House':   'INDIVIDUAL_HOUSE',
+            'Multi-Family':       'MULTI_FAMILY',
+            'Condominium':        'CONDOMINIUM',
+            'Townhome':           'TOWNHOME',
+            'Student Housing':    'STUDENT_HOUSING',
+            'Villa':              'VILLA',
+            'Serviced Apartment': 'SERVICED_APARTMENT',
+            'Commercial':         'COMMERCIAL',
+            'Mixed Use':          'MIXED_USE',
+          }[propType] || propType.toUpperCase().replace(/ /g, '_'),
+          ownership_type: {
+            'Self-Owned':      'SELF_OWNED',
+            'Co-Owned':        'CO_OWNED',
+            'Corporate / LLC': 'CORPORATE',
+            'Leasehold':       'LEASEHOLD',
+          }[ownerType] || (ownerType || 'SELF_OWNED').toUpperCase().replace(/ /g, '_'),
+          description: desc,
+          country, street1, street2, landmark, city, state,
+          zip_code: zip,
+          value: propValue || null,
+          build_year: buildYear || null,
+        }),
+      });
+
+      if (!createRes.ok) {
+        const err = await createRes.json();
+        console.error('Create property failed:', err);
+        setSaving(false);
+        return;
+      }
+
+      const created = await createRes.json();
+      const newPropId = created.id;
+      setPropId(newPropId);
+
+      // Amenities only — no ownership loop, no bank-account loop.
+      // Landlord self-service: no owners to invite, no accounts to
+      // configure at creation time (per Session 39 design).
+      for (const amenityId of selectedAmenities) {
+        const amRes = await fetch(`http://localhost:8001/api/properties/${newPropId}/amenities/`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+          body: JSON.stringify({ amenity: amenityId, access_type: 'ALL' }),
+        });
+        if (!amRes.ok) console.error('Amenity failed:', await amRes.json());
+      }
+
+      const submitRes = await fetch(`http://localhost:8001/api/properties/${newPropId}/submit/`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        body: JSON.stringify({
+          ownership_declaration_accepted: true,
+          ownership_declaration_text: declarationText,
+        }),
+      });
+
+      if (!submitRes.ok) {
+        const err = await submitRes.json();
+        console.error('Submit property failed:', err);
+        setSaving(false);
+        return;
+      }
+
+      setShowSaveModal(true);
+    } catch (err) {
+      console.error('Landlord save property error:', err);
+    }
+    setSaving(false);
+  }
+
+  async function handleLandlordSaveUnit(declarationText) {
+    setSaving(true);
+    try {
+      const token = localStorage.getItem('access_token');
+      if (!propId) {
+        setUnitCount(units.length);
+        setUnitSaved(true);
+        setSubTab('Unit/Home Info');
+        setPendingNewUnit(null);
+        setSaving(false);
+        return;
+      }
+
+      const unitRes = await fetch(`http://localhost:8001/api/properties/${propId}/units/`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        body: JSON.stringify({
+          unit_number:      activeUnit.unitNumber,
+          tower:             activeUnit.tower || '',
+          unit_type:         activeUnit.unitType,
+          ownership_type:    activeUnit.ownershipType,
+          lease_type:        activeUnit.leaseType || '',
+          management_model:  activeUnit.managementModel || '',
+          carpet_area:       parseFloat(activeUnit.carpetArea) || null,
+          total_area:        parseFloat(activeUnit.totalArea) || null,
+          total_rooms:  activeUnit.totalRooms ? Math.max(0, parseInt(activeUnit.totalRooms)) : null,
+          floor:        activeUnit.floor ? Math.max(0, parseInt(activeUnit.floor)) : null,
+          total_baths:  activeUnit.totalBathrooms ? Math.max(0, parseInt(activeUnit.totalBathrooms)) : null,
+          student_housing:   activeUnit.studentHousing || false,
+          rent_amount:       parseFloat(activeUnit.rentAmount) || null,
+          security_deposit:  parseFloat(activeUnit.securityDeposit) || null,
+        }),
+      });
+
+      if (!unitRes.ok) {
+        console.error('Unit create failed:', await unitRes.json());
+        setSaving(false);
+        return;
+      }
+      const createdUnit = await unitRes.json();
+      const newUnitId = createdUnit.id;
+
+      // No ownership loop, no bank-account loop — landlord self-service.
+
+      for (const amenityId of (activeUnit.amenities || new Set())) {
+        await fetch(`http://localhost:8001/api/properties/${propId}/units/${newUnitId}/amenities/`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+          body: JSON.stringify({ amenity: amenityId }),
+        });
+      }
+
+      await fetch(`http://localhost:8001/api/properties/${propId}/units/${newUnitId}/submit/`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+        body: JSON.stringify({
+          ownership_declaration_accepted: true,
+          ownership_declaration_text: declarationText,
+        }),
+      });
+
+      // Rooms + beds (student housing only) — unchanged from PM path,
+      // still valid for a landlord's own unit.
+      if (activeUnit.studentHousing && (activeUnit.rooms || []).length > 0) {
+        for (const room of activeUnit.rooms) {
+          const roomRes = await fetch(
+            `http://localhost:8001/api/properties/${propId}/units/${newUnitId}/rooms/`,
+            {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+              body: JSON.stringify({
+                room_number:    room.roomNo,
+                room_type:      room.roomType      || '',
+                bed_count:      parseInt(room.bedCount)      || 0,
+                bathroom_count: parseInt(room.bathroomCount) || 0,
+                bathroom_type:  room.bathroomType  || '',
+                status:         room.status        || 'vacant',
+              }),
+            }
+          );
+          if (!roomRes.ok) { console.error('Room save failed:', await roomRes.json()); continue; }
+          const savedRoom = await roomRes.json();
+
+          for (const bed of (room.beds || [])) {
+            const bedRes = await fetch(
+              `http://localhost:8001/api/properties/${propId}/units/${newUnitId}/rooms/${savedRoom.id}/beds/`,
+              {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                body: JSON.stringify({ bed_number: bed.bedNumber || '', status: bed.status || 'vacant' }),
+              }
+            );
+            if (!bedRes.ok) { console.error('Bed save failed:', await bedRes.json()); continue; }
+            const savedBed = await bedRes.json();
+
+            if (parseFloat(bed.rent_amount) > 0 || parseFloat(bed.security_deposit) > 0) {
+              await fetch(
+                `http://localhost:8001/api/properties/${propId}/units/${newUnitId}/rooms/${savedRoom.id}/beds/${savedBed.id}/rent/`,
+                {
+                  method: 'POST',
+                  headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
+                  body: JSON.stringify({
+                    rent_amount:      bed.rent_amount      ? parseFloat(bed.rent_amount)      : null,
+                    security_deposit: bed.security_deposit ? parseFloat(bed.security_deposit) : null,
+                  }),
+                }
+              );
+            }
+          }
+        }
+      }
+
+      setUnitCount(units.length);
+      setUnitSaved(true);
+      setSubTab('Unit/Home Info');
+      setPendingNewUnit(null);
+    } catch (err) {
+      console.error('Landlord save unit error:', err);
+    }
+    setSaving(false);
+  }
+
   function handleSwitchUnit(id) {
   setActiveUnitId(id);
   setSubTab('Unit/Home Info');
@@ -1785,9 +2035,28 @@ export default function AddNewProperty({ persona = 'INDEPENDENT_PM',initialPrope
       `}</style>
 
       <div style={{ display: 'flex', height: '100vh', overflow: 'hidden', background: C.pageBg, fontFamily: F.body }}>
-        <NavB activeId="add-new" />
+        {/* Session 39 — NavF/NavB shell swap */}
+        {isLandlord ? <NavF activePage="properties" /> : <NavB activeId="add-new" />}
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0, overflow: 'hidden' }}>
-          <Header userName={userName} userRole={userRole} />
+          {/* Session 39 — inline landlord topbar, matching LandlordDashboard.jsx's pattern */}
+          {isLandlord ? (
+            <header style={{ background: LC.topbarBg, borderBottom: `1px solid ${LC.topbarBdr}`, padding: '0 24px', height: 52, display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0, fontFamily: LF.sans }}>
+              <div style={{ fontSize: 14, fontWeight: 600, color: LC.txtPrimary, letterSpacing: 0.1 }}>UrbanNest Landlord</div>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <button style={{ width: 32, height: 32, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: LC.txtSec, cursor: 'pointer', background: 'transparent', border: 'none', fontSize: 16 }} aria-label="Notifications">
+                  <i className="ti ti-bell" />
+                </button>
+                <button style={{ width: 32, height: 32, borderRadius: '50%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: LC.txtSec, cursor: 'pointer', background: 'transparent', border: 'none', fontSize: 16 }} aria-label="Help">
+                  <i className="ti ti-help-circle" />
+                </button>
+                <div style={{ width: 32, height: 32, borderRadius: '50%', background: LC.navBg, color: '#fff', fontSize: 11, fontWeight: 600, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  {(userName || 'U').split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2)}
+                </div>
+              </div>
+            </header>
+          ) : (
+            <Header userName={userName} userRole={userRole} />
+          )}
           <div className="anp-scroll" style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', minHeight: 0 }}>
 
             {/* Page header — module title + per-tab page title + subtitle */}
@@ -1928,6 +2197,7 @@ export default function AddNewProperty({ persona = 'INDEPENDENT_PM',initialPrope
                   propSelfOwner={selfOwner}
                   selfUser={selfUser}
                   unitAmenities={unitAmenities}
+                  isLandlord={isLandlord}
                 />
               )}  
             
@@ -1955,13 +2225,21 @@ export default function AddNewProperty({ persona = 'INDEPENDENT_PM',initialPrope
               }} style={{ padding: '9px 24px', fontSize: 13, fontWeight: 600, background: 'transparent', border: `1.5px solid ${C.borderMed}`, borderRadius: 7, color: C.textSec, cursor: 'pointer', fontFamily: F.body, outline: 'none' }}>Cancel</button>
               
               {isLastTab && mainTab === 'property' ? (
-                <button onClick={handleSaveProperty} disabled={!propBankComplete || saving} style={{ padding: '9px 24px', fontSize: 13, fontWeight: 700, background: propBankComplete && !saving ? C.primary : C.borderMed, border: 'none', borderRadius: 7, color: '#fff', cursor: propBankComplete && !saving ? 'pointer' : 'not-allowed', fontFamily: F.body, outline: 'none' }}>
+                // Session 39 — onClick branches to the declaration modal for landlords
+                <button onClick={() => {
+                  if (isLandlord) { setPendingDeclarationTarget('property'); setShowDeclaration(true); }
+                  else handleSaveProperty();
+                }} disabled={!propBankComplete || saving} style={{ padding: '9px 24px', fontSize: 13, fontWeight: 700, background: propBankComplete && !saving ? C.primary : C.borderMed, border: 'none', borderRadius: 7, color: '#fff', cursor: propBankComplete && !saving ? 'pointer' : 'not-allowed', fontFamily: F.body, outline: 'none' }}>
                     {saving ? 'Saving...' : 'Save Property'}
                 </button>
                 ) : mainTab === 'unit' && unitSaved ? (
-                    <button onClick={() => navigate('/pm-portal/properties')} style={{ padding: '9px 24px', fontSize: 13, fontWeight: 600, background: C.success, border: 'none', borderRadius: 7, color: '#fff', cursor: 'pointer', fontFamily: F.body, outline: 'none' }}>Done</button>
+                    // Session 39 — landlord redirect target
+                    <button onClick={() => navigate(isLandlord ? '/landlord-portal/portfolio' : '/pm-portal/properties')} style={{ padding: '9px 24px', fontSize: 13, fontWeight: 600, background: C.success, border: 'none', borderRadius: 7, color: '#fff', cursor: 'pointer', fontFamily: F.body, outline: 'none' }}>Done</button>
                 ) : isLastTab && mainTab === 'unit' && !unitSaved ? (                    
                     <button onClick={async () => {
+                    // Session 39 — landlord branches to the declaration modal instead
+                    // of running the PM ownership/bank-account/rooms logic below
+                    if (isLandlord) { setPendingDeclarationTarget('unit'); setShowDeclaration(true); return; }
                     if (!unitBankComplete) return;
                     const token = localStorage.getItem('access_token');
                     if (!propId) { setUnitCount(units.length); setUnitSaved(true); setSubTab('Unit/Home Info'); setPendingNewUnit(null); return; }
@@ -2137,6 +2415,7 @@ export default function AddNewProperty({ persona = 'INDEPENDENT_PM',initialPrope
     {showSaveModal && (
       <SavePropertyModal
         propName={propName}
+        isLandlord={isLandlord}
         onAddUnit={() => {
             setShowSaveModal(false);
             setUnitLocked(false);
@@ -2145,10 +2424,22 @@ export default function AddNewProperty({ persona = 'INDEPENDENT_PM',initialPrope
         }}
         onNoUnits={() => {
             setShowSaveModal(false);
-            navigate('/pm-portal/properties');
+            navigate(isLandlord ? '/landlord-portal/portfolio' : '/pm-portal/properties');
         }}
       />
     )}
+
+    {/* Session 39 — gates every landlord Property/Unit submission */}
+    <OwnershipDeclarationModal
+      open={showDeclaration}
+      submitting={saving}
+      onCancel={() => setShowDeclaration(false)}
+      onAccept={(text) => {
+        setShowDeclaration(false);
+        if (pendingDeclarationTarget === 'property') handleLandlordSaveProperty(text);
+        else if (pendingDeclarationTarget === 'unit') handleLandlordSaveUnit(text);
+      }}
+    />
 
       {showMore && (
         <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 999 }}>

@@ -153,6 +153,8 @@ function AppRoutes() {
       <Route path="/landlord-portal/portfolio" element={<LandlordPortfolioPage />} />
       <Route path="/landlord-portal/property/:id" element={<LandlordPropertyDetailPage />} />
       <Route path="/landlord-portal/property/:id/unit/:uid" element={<LandlordUnitDetailPage />} />
+      <Route path="/landlord-portal/add-property" element={<AddNewProperty persona="LANDLORD" />} />
+      <Route path="/landlord-portal/property/:id/add-unit" element={<AddUnitWrapper persona="LANDLORD" />} />
 
       {/* ── UN Admin Portal ───────────────────────────────────────────────── */}
       <Route path="/admin-portal/dashboard" element={
