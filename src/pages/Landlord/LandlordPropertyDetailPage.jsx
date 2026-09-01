@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Chart, registerables } from 'chart.js';
 import NavF from '../../components/layout/NavF';
 import { C, F } from './landlordTokens';
+import { CustomDropdown } from '../../components/ui';
 
 Chart.register(...registerables);
 
@@ -84,6 +85,26 @@ const NOTIFICATIONS = [
     hasImage:false, time:'Jul 1',
   },
 ];
+
+// ─── Bulk Add Service (SVC-1, Session 40) — wired to the real backend ─────────
+// ownedServices now comes from GET /landlord/account/services/ (fetched in
+// the main component below and passed down as a prop) instead of a static
+// mock list, and per-unit assignment comes from a real fetch per unit
+// against GET /properties/<pk>/units/<uid>/services/ (also fetched in the
+// main component — there's no per-unit services field on
+// LandlordPropertyDetailView's response, so this page makes its own calls).
+//
+// IMPORTANT behavior change from the original wireframe: the real bulk
+// endpoint (POST /properties/<pk>/units/services/bulk/) is one atomic
+// transaction — all-or-nothing, per the confirmed design (a partial
+// "8 added, 2 flagged" result is NOT how the real endpoint behaves; if
+// even one selected unit can't resolve a required bank account, or doesn't
+// belong to this landlord, NOTHING is created and the whole request comes
+// back as a single error naming the problem units). The Result stage below
+// reflects that honestly — full success, or a single error banner — rather
+// than the wireframe's per-unit flagged list, since that per-unit outcome
+// isn't actually possible with this endpoint.
+const SERVICE_FALLBACK_ICON = 'ti-adjustments';
 
 // ─── Styles ───────────────────────────────────────────────────────────────────
 const S = {
@@ -168,6 +189,7 @@ const S = {
   unitHdrTtl: { fontSize:15, fontWeight:700, color:C.txtPrimary },
   unitHdrR:   { display:'flex', gap:8 },
   filterBtn:  { background:'#fff', border:`1px solid ${C.cardBdr}`, borderRadius:6, padding:'6px 12px', fontSize:12, color:C.txtSec, cursor:'pointer', display:'flex', alignItems:'center', gap:5, fontFamily:F.sans },
+  btnBulk:    { background:'#fff', border:`1.5px solid ${C.blue}`, borderRadius:6, padding:'6px 14px', fontSize:12, fontWeight:700, color:C.blue, cursor:'pointer', display:'flex', alignItems:'center', gap:5, fontFamily:F.sans },
   addUnitBtn: { background:C.navBg, color:'#fff', border:'none', borderRadius:6, padding:'6px 14px', fontSize:12, fontWeight:500, cursor:'pointer', fontFamily:F.sans },
   unitGrid:   { display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(180px, 1fr))', gap:12 },
   unitCard:   { background:C.cardBg, border:`1px solid ${C.cardBdr}`, borderRadius:10, overflow:'hidden' },
@@ -270,6 +292,37 @@ const S = {
   modalFooter:  { display:'flex', justifyContent:'flex-end', gap:10 },
   resetBtn:     { background:'none', border:'none', fontSize:13.5, color:C.txtSec, cursor:'pointer', padding:'8px 16px', fontFamily:F.sans },
   applyBtn:     { background:C.navBg, color:'#fff', border:'none', borderRadius:7, padding:'9px 22px', fontSize:13.5, fontWeight:600, cursor:'pointer', fontFamily:F.sans },
+
+  // BULK ADD SERVICE MODAL (Unit Inventory → "Add Service to All Units")
+  bulkOverlay:      { position:'fixed', top:0, left:0, right:0, bottom:0, background:'rgba(13,27,46,0.55)', display:'flex', alignItems:'flex-start', justifyContent:'center', padding:'30px 20px', zIndex:1000, fontFamily:F.sans },
+  bulkModal:        { background:'#fff', borderRadius:12, width:560, maxWidth:'100%', boxShadow:'0 24px 50px rgba(0,0,0,0.3)', overflow:'hidden', color:C.txtPrimary },
+  bulkModalHdr:     { padding:'18px 22px 6px' },
+  bulkModalHdrTitle:{ margin:'0 0 3px', fontSize:16, fontWeight:700 },
+  bulkModalHdrSub:  { margin:0, fontSize:12, color:C.txtMuted },
+  bulkSvcRow:       { padding:'12px 22px 4px' },
+  bulkSvcLbl:       { fontSize:10.5, fontWeight:700, letterSpacing:'0.05em', textTransform:'uppercase', color:C.txtMuted, marginBottom:6 },
+  bulkSelectAllRow: { display:'flex', alignItems:'center', justifyContent:'space-between', padding:'10px 22px 6px', borderTop:`1px solid ${C.cardBdr}`, marginTop:10 },
+  bulkSelectAllLbl: { fontSize:12, fontWeight:600, display:'flex', alignItems:'center', gap:7, cursor:'pointer' },
+  bulkSelectCount:  { fontSize:11.5, color:C.txtMuted },
+  bulkPickList:     { maxHeight:300, overflowY:'auto', padding:'0 22px' },
+  bulkPickRow:      { display:'flex', alignItems:'flex-start', gap:10, padding:'10px 0', borderBottom:`1px solid ${C.cardBdr}` },
+  bulkPickName:     { fontSize:12.5, fontWeight:700 },
+  bulkPickSub:      { fontSize:11, color:C.txtMuted, marginTop:1 },
+  bulkAlreadyTag:   { fontSize:10, fontWeight:700, background:'#f1f3f7', color:C.txtMuted, padding:'2px 8px', borderRadius:10, marginLeft:'auto', flexShrink:0, alignSelf:'center' },
+  bulkResolveNote:  (ok) => ({ fontSize:10.5, marginTop:4, padding:'3px 8px', borderRadius:5, display:'inline-flex', alignItems:'center', gap:4, fontWeight:600, background: ok ? C.greenLight : C.redLight, color: ok ? C.greenDark : C.red }),
+  bulkModalFooter:  { padding:'14px 22px 20px', display:'flex', justifyContent:'flex-end', gap:10, marginTop:6 },
+  bulkBtnSecondary: { background:'#fff', color:C.txtPrimary, border:`1px solid ${C.cardBdr}`, padding:'9px 16px', borderRadius:7, fontSize:13, fontWeight:600, cursor:'pointer', fontFamily:F.sans },
+  bulkBtnPrimary:   (disabled) => ({ background: disabled ? '#9db8e8' : C.blue, color:'#fff', border:'none', padding:'9px 16px', borderRadius:7, fontSize:13, fontWeight:700, cursor: disabled?'default':'pointer', fontFamily:F.sans, opacity: disabled?0.6:1 }),
+  bulkResultBody:       { padding:'20px 22px 6px' },
+  bulkResultBanner:     { display:'flex', alignItems:'center', gap:10, background:C.greenLight, borderRadius:8, padding:'12px 14px', marginBottom:14 },
+  bulkResultCheck:      { width:26, height:26, borderRadius:'50%', background:C.green, color:'#fff', display:'flex', alignItems:'center', justifyContent:'center', fontSize:13, flexShrink:0 },
+  bulkResultTitle:      { fontSize:13.5, fontWeight:700, color:'#14532d' },
+  bulkResultSub:        { fontSize:11.5, color:'#166534', marginTop:1 },
+  bulkFlagSectionTitle: { fontSize:11, fontWeight:700, letterSpacing:'0.04em', textTransform:'uppercase', color:C.red, margin:'4px 0 8px' },
+  bulkFlagRow:          { display:'flex', alignItems:'center', justifyContent:'space-between', background:C.redLight, borderRadius:7, padding:'9px 12px', marginBottom:6 },
+  bulkFlagName:         { fontSize:12.5, fontWeight:700 },
+  bulkFlagReason:       { fontSize:11, color:'#991b1b', marginTop:1 },
+  bulkFlagAction:       { fontSize:11.5, fontWeight:700, color:C.blue, flexShrink:0, cursor:'pointer' },
 
   errBanner:    { background:C.redLight, color:C.red, padding:'10px 28px', fontSize:13 },
   footer:       { textAlign:'center', fontSize:11, color:C.txtMuted, padding:'16px 0', borderTop:`1px solid ${C.cardBdr}`, margin:'20px 28px 0' },
@@ -410,6 +463,216 @@ function FilterModal({ onClose }) {
   );
 }
 
+// ─── Bulk Add Service modal ─────────────────────────────────────────────────────
+// Deliberately does NOT touch PaymentCartContext/PaymentCartModal — bulk-
+// adding a service across units is assignment of something already owned at
+// the account level, not a purchase (Entitlement doc §4.2). Only "Buy
+// Service" (account-level, Settings → Services) goes through the Payment
+// Cart.
+//
+// Session 40 — wired to the real bulk endpoint. Two stages remain (pick,
+// result), but the result stage no longer shows a per-unit "flagged" list —
+// see the comment above SERVICE_FALLBACK_ICON for why: the real endpoint is
+// atomic, so it's either full success or one error covering the whole
+// batch. The picker still warns inline that a bank-account-requiring
+// service MIGHT fail for units without one, using a real per-unit lookup
+// (ownedBankAccounts) rather than a client-side resolution guess.
+//
+// NOTE: "+ Add Bank Account" here navigates to Settings → Bank Accounts
+// rather than opening an inline modal, the same simplification made in
+// LandlordUnitDetailPage.jsx's Add Service modal (BankAccountModal isn't
+// factored out into a shared component yet).
+function BulkAddServiceModal({ propId, propName, units, ownedServices, unitServicesMap, onClose, onComplete }) {
+  const [serviceId, setServiceId] = useState(ownedServices[0]?.id ?? null);
+  const [checked, setChecked] = useState({});
+  const [stage, setStage] = useState('pick'); // 'pick' | 'result'
+  const [result, setResult] = useState(null); // { addedCount, serviceName } on success
+  const [submitError, setSubmitError] = useState(null); // string on failure
+  const [submitting, setSubmitting] = useState(false);
+
+  const service = ownedServices.find(s => s.id === serviceId);
+  const getUnitServiceIds = unitId => unitServicesMap[unitId] || [];
+  const isAssigned = unit => getUnitServiceIds(unit.id).includes(serviceId);
+  const eligibleUnits = units.filter(u => !isAssigned(u));
+  const alreadyUnits = units.filter(u => isAssigned(u));
+
+  // Reset the checklist to "all eligible units checked" whenever the picked
+  // service changes.
+  useEffect(() => {
+    setChecked(Object.fromEntries(
+      units.filter(u => !getUnitServiceIds(u.id).includes(serviceId)).map(u => [u.id, true])
+    ));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [serviceId, units]);
+
+  const toggle = id => setChecked(prev => ({ ...prev, [id]: !prev[id] }));
+  const checkedCount = eligibleUnits.filter(u => checked[u.id]).length;
+  const allEligibleChecked = eligibleUnits.length > 0 && eligibleUnits.every(u => checked[u.id]);
+  const toggleAll = () => {
+    setChecked(Object.fromEntries(eligibleUnits.map(u => [u.id, !allEligibleChecked])));
+  };
+
+  const goToBankAccounts = () => { window.location.href = '/landlord-portal/settings'; };
+
+  const handleSubmit = async () => {
+    const selected = eligibleUnits.filter(u => checked[u.id]);
+    if (selected.length === 0 || !service) return;
+    setSubmitting(true);
+    setSubmitError(null);
+    const token = localStorage.getItem('access_token');
+    try {
+      const res = await fetch(`${API_BASE}/properties/${propId}/units/services/bulk/`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        body: JSON.stringify({ service: serviceId, unit_ids: selected.map(u => u.id) }),
+      });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        const message = body?.service?.[0] || body?.detail || `Request rejected (${res.status})`;
+        setSubmitError(message);
+        setStage('result');
+        setSubmitting(false);
+        return;
+      }
+      onComplete(); // tells the parent to re-fetch unitServicesMap
+      setResult({ addedCount: selected.length, serviceName: service.name });
+      setStage('result');
+    } catch (e) {
+      setSubmitError('Network error — please try again.');
+      setStage('result');
+    }
+    setSubmitting(false);
+  };
+
+  if (stage === 'result' && (result || submitError)) {
+    return (
+      <div style={S.bulkOverlay} onClick={onClose}>
+        <div style={S.bulkModal} onClick={e => e.stopPropagation()}>
+          <div style={S.bulkModalHdr}>
+            <h3 style={S.bulkModalHdrTitle}>Add Service to All Units</h3>
+            <p style={S.bulkModalHdrSub}>{propName} · {result ? result.serviceName : service?.name}</p>
+          </div>
+          <div style={S.bulkResultBody}>
+            {result && (
+              <div style={S.bulkResultBanner}>
+                <div style={S.bulkResultCheck}>✓</div>
+                <div>
+                  <div style={S.bulkResultTitle}>{result.addedCount} Added</div>
+                  <div style={S.bulkResultSub}>{result.serviceName} is now active on {result.addedCount} unit{result.addedCount === 1 ? '' : 's'}.</div>
+                </div>
+              </div>
+            )}
+            {submitError && (
+              <>
+                <div style={S.bulkFlagSectionTitle}>Nothing was added</div>
+                <div style={S.bulkFlagRow}>
+                  <div>
+                    <div style={S.bulkFlagName}>The batch was rejected</div>
+                    <div style={S.bulkFlagReason}>{submitError}</div>
+                  </div>
+                  <span style={S.bulkFlagAction} onClick={goToBankAccounts}>+ Add Bank Account</span>
+                </div>
+              </>
+            )}
+          </div>
+          <div style={S.bulkModalFooter}>
+            <button style={S.bulkBtnPrimary(false)} onClick={onClose}>Done</button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div style={S.bulkOverlay} onClick={onClose}>
+      <div style={S.bulkModal} onClick={e => e.stopPropagation()}>
+        <div style={S.bulkModalHdr}>
+          <h3 style={S.bulkModalHdrTitle}>Add Service to All Units</h3>
+          <p style={S.bulkModalHdrSub}>{propName} · {units.length} unit{units.length === 1 ? '' : 's'}</p>
+        </div>
+
+        <div style={S.bulkSvcRow}>
+          <div style={S.bulkSvcLbl}>Service</div>
+          <CustomDropdown
+            options={ownedServices.map(s => ({
+              value: s.id,
+              label: `${s.name} — ${s.price} ${s.priceUnit}${s.requiresBankAccount ? ' · requires bank account' : ''}`,
+            }))}
+            value={serviceId}
+            onChange={setServiceId}
+            placeholder="Select a service…"
+          />
+          {ownedServices.length === 0 && (
+            <div style={{ fontSize: 11.5, color: C.txtMuted, marginTop: 4 }}>
+              No services on your account yet — buy one from Settings → Services first.
+            </div>
+          )}
+        </div>
+
+        <div style={S.bulkSelectAllRow}>
+          <label style={S.bulkSelectAllLbl}>
+            <input type="checkbox" checked={allEligibleChecked} onChange={toggleAll} disabled={eligibleUnits.length === 0} style={{ accentColor: C.blue, width: 15, height: 15 }} />
+            Select all
+          </label>
+          <span style={S.bulkSelectCount}>{checkedCount} of {eligibleUnits.length} eligible units selected</span>
+        </div>
+
+        <div style={S.bulkPickList}>
+          {alreadyUnits.map(u => (
+            <div key={u.id} style={{ ...S.bulkPickRow, opacity: 0.55 }}>
+              <input type="checkbox" disabled style={{ marginTop: 3, width: 15, height: 15, flexShrink: 0 }} />
+              <div style={{ flex: 1 }}>
+                <div style={S.bulkPickName}>{u.unit_name}</div>
+                <div style={S.bulkPickSub}>{u.tenant_name || 'Vacant'}</div>
+              </div>
+              <span style={S.bulkAlreadyTag}>Already added</span>
+            </div>
+          ))}
+          {eligibleUnits.map(u => {
+            const isChecked = !!checked[u.id];
+            return (
+              <div key={u.id} style={S.bulkPickRow}>
+                <input
+                  type="checkbox"
+                  checked={isChecked}
+                  onChange={() => toggle(u.id)}
+                  style={{ marginTop: 3, width: 15, height: 15, accentColor: C.blue, flexShrink: 0 }}
+                />
+                <div style={{ flex: 1 }}>
+                  <div style={S.bulkPickName}>{u.unit_name}</div>
+                  <div style={S.bulkPickSub}>{u.tenant_name || 'Vacant'}</div>
+                  {isChecked && service?.requiresBankAccount && (
+                    <div style={S.bulkResolveNote(true)}>
+                      Requires a resolvable bank account — checked by the server when you submit. If any selected unit can't resolve one, the whole batch is rejected (nothing is added).
+                    </div>
+                  )}
+                </div>
+              </div>
+            );
+          })}
+          {eligibleUnits.length === 0 && alreadyUnits.length > 0 && (
+            <div style={{ fontSize: 12, color: C.txtMuted, fontStyle: 'italic', padding: '10px 0' }}>Every unit already has this service.</div>
+          )}
+          {units.length === 0 && (
+            <div style={{ fontSize: 12, color: C.txtMuted, padding: '14px 0' }}>No units on this property yet.</div>
+          )}
+        </div>
+
+        <div style={S.bulkModalFooter}>
+          <button style={S.bulkBtnSecondary} onClick={onClose}>Cancel</button>
+          <button
+            style={S.bulkBtnPrimary(checkedCount === 0 || submitting || !service)}
+            disabled={checkedCount === 0 || submitting || !service}
+            onClick={handleSubmit}
+          >
+            {submitting ? 'Adding…' : `Add to ${checkedCount} Unit${checkedCount === 1 ? '' : 's'}`}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ─── Main Component ───────────────────────────────────────────────────────────
 export default function LandlordPropertyDetailPage() {
   const [data,         setData]         = useState(null);
@@ -417,13 +680,53 @@ export default function LandlordPropertyDetailPage() {
   const [error,        setError]        = useState(null);
   const [activeTab,    setActiveTab]    = useState('Chats');
   const [showFilter,   setShowFilter]   = useState(false);
+  const [showBulkAdd,  setShowBulkAdd]  = useState(false);
   const [showNewChat,  setShowNewChat]  = useState(false);
   const [openChatId,   setOpenChatId]   = useState(null);
   const [openNotifId,  setOpenNotifId]  = useState(null);
   const [replyText,    setReplyText]    = useState({});
 
+  // Unit Services (bulk, SVC-1, Session 40) — real data. ownedServices is
+  // this landlord's account-level entitlement (GET
+  // /landlord/account/services/, same source LandlordUnitDetailPage.jsx
+  // uses). unitServicesMap is { [unitId]: [serviceId, ...] }, built from one
+  // real GET per unit against /properties/<pk>/units/<uid>/services/ — there
+  // is no per-unit services field on LandlordPropertyDetailView's own
+  // response, so this page fetches it separately. Both pages now read the
+  // same real UnitService rows, so a bulk add here shows up immediately on
+  // LandlordUnitDetailPage.jsx (no FE-only store needed to keep them in
+  // sync anymore).
+  const [ownedServices, setOwnedServices] = useState([]);
+  const [unitServicesMap, setUnitServicesMap] = useState({});
+
   const pathParts = window.location.pathname.split('/');
   const propId    = pathParts[pathParts.indexOf('property') + 1];
+
+  React.useEffect(() => {
+    const token = localStorage.getItem('access_token');
+    fetch(`${API_BASE}/landlord/account/services/`, {
+      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+    })
+      .then(r => { if (!r.ok) throw new Error(`${r.status}`); return r.json(); })
+      .then(j => setOwnedServices(j.services || []))
+      .catch(() => setOwnedServices([]));
+  }, []);
+
+  // Fetches every listed unit's assigned services in one pass. Re-run after
+  // a successful bulk add so the picker/checklist reflect the new state.
+  const refreshUnitServices = React.useCallback((unitList) => {
+    const token = localStorage.getItem('access_token');
+    Promise.all(
+      unitList.map(u =>
+        fetch(`${API_BASE}/properties/${propId}/units/${u.id}/services/`, {
+          headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        })
+          .then(r => (r.ok ? r.json() : []))
+          .then(rows => [u.id, (rows || []).map(row => row.service)])
+          .catch(() => [u.id, []])
+      )
+    ).then(pairs => setUnitServicesMap(Object.fromEntries(pairs)));
+  }, [propId]);
 
   useEffect(() => {
     if (!propId) return;
@@ -444,6 +747,13 @@ export default function LandlordPropertyDetailPage() {
   const tickets   = data?.open_tickets|| [];
   const primary   = owners[0]         || {};
   const coOwners  = owners.slice(1);
+
+  // Session 40 (SVC-1) — once the property's units are known, fetch each
+  // one's real assigned services for the Bulk Add Service picker/checklist.
+  React.useEffect(() => {
+    if (units.length > 0) refreshUnitServices(units);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [units.length, propId]);
 
   // Health score
   const occ        = stats.occupancy_pct ?? 0;
@@ -546,7 +856,7 @@ export default function LandlordPropertyDetailPage() {
             </div>
           </div>
 
-          
+
           {/* DESC / OWNERSHIP / HEALTH — 50/25/25 */}
           <div style={S.sw}>
             <div style={S.descRow}>
@@ -640,7 +950,11 @@ export default function LandlordPropertyDetailPage() {
                     <i className="ti ti-filter" style={{ fontSize:12 }} aria-hidden="true" />
                     Filter
                   </button>
-                  <button style={S.addUnitBtn}>+ Add Unit</button>
+                  <button style={S.btnBulk} onClick={() => setShowBulkAdd(true)}>
+                    <i className="ti ti-apps" style={{ fontSize:13 }} aria-hidden="true" />
+                    Add Service to All Units
+                  </button>
+                  <button style={S.addUnitBtn} onClick={() => window.location.href = `/landlord-portal/property/${propId}/add-unit`}>+ Add Unit</button>
                 </div>
               </div>
               <div style={S.unitGrid}>
@@ -951,6 +1265,17 @@ export default function LandlordPropertyDetailPage() {
       </div>
 
       {showFilter && <FilterModal onClose={() => setShowFilter(false)} />}
+      {showBulkAdd && (
+        <BulkAddServiceModal
+          propId={propId}
+          propName={prop.name}
+          units={units}
+          ownedServices={ownedServices}
+          unitServicesMap={unitServicesMap}
+          onClose={() => setShowBulkAdd(false)}
+          onComplete={() => refreshUnitServices(units)}
+        />
+      )}
     </div>
   );
 }

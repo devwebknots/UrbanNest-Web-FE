@@ -38,6 +38,22 @@ const DOC_ITEMS = [
   { icon: 'ti-shield-check', bg: C.amberLight, col: C.amber,     name: 'Tenant insurance certificate', meta: 'PDF · 0.8 MB · Valid' },
 ];
 
+// ─── Unit Services (SVC-1, Session 40) — wired to the real backend ────────────
+// Owned-services catalog now comes from GET /landlord/account/services/
+// (this landlord's real LandlordAccountService rows), and this unit's
+// assigned services come from GET /properties/<pk>/units/<uid>/services/ —
+// both fetched in the component below. The backend has no icon field for a
+// service, so every real service falls back to this generic glyph.
+const SERVICE_FALLBACK_ICON = 'ti-adjustments';
+
+// The live "will this be blocked by a missing bank account" preview that
+// used to run against MOCK_RESOLVED_BANK_ACCOUNT has been removed — it
+// can't be faithfully replicated client-side without also having the
+// landlord-side bank-account endpoints (not built yet). Instead, submitting
+// a service that needs a bank account and has none resolvable now relies on
+// the real backend's §4.3 check, which returns a real error message shown
+// in the modal below (see AddServiceModal's `submitError` state).
+
 const S = {
   shell:    { display: 'flex', height: '100vh', fontFamily: F.sans, background: C.pageBg, overflow: 'hidden' },
   main:     { flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' },
@@ -97,6 +113,44 @@ const S = {
   amenityGrid: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 8, marginTop: 10, maxHeight: 138, overflowY: 'auto', paddingRight: 4 },
   amenityItem: { display: 'flex', alignItems: 'center', gap: 7, background: '#f8f9fb', borderRadius: 6, padding: '8px 9px', fontSize: 12 },
   amenityIcon: { width: 20, height: 20, borderRadius: 4, background: '#e8f5f0', display: 'flex', alignItems: 'center', justifyContent: 'center', color: C.teal, fontSize: 11, flexShrink: 0 },
+
+  // UNIT SERVICES — 4 per row, narrower chip than an amenity chip; name
+  // truncates with ellipsis rather than wrapping/growing the row.
+  serviceGrid:     { display: 'grid', gridTemplateColumns: '1fr 1fr 1fr 1fr', gap: 8, marginTop: 10 },
+  serviceItem:     { position: 'relative', display: 'flex', alignItems: 'center', gap: 7, background: '#f8f9fb', borderRadius: 6, padding: '8px 9px', fontSize: 12, fontWeight: 500, minWidth: 0 },
+  serviceItemName: { overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' },
+  serviceIcon:     { width: 20, height: 20, borderRadius: 5, background: '#e8f5f0', color: C.teal, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 11, flexShrink: 0 },
+  serviceIconBank: { background: C.amberLight, color: C.amber },
+  // Small corner dot instead of a text pill — a full "Bank-linked" label
+  // doesn't fit a 4-up chip without forcing the service name to truncate.
+  bankDot:         { position: 'absolute', top: 5, right: 6, width: 7, height: 7, borderRadius: '50%', background: C.amber, border: '1.5px solid #f8f9fb' },
+  serviceLegend:   { display: 'flex', alignItems: 'center', gap: 6, marginTop: 10, fontSize: 11, color: C.txtMuted },
+  serviceLegendDot:{ width: 7, height: 7, borderRadius: '50%', background: C.amber, flexShrink: 0 },
+  serviceEmpty:    { fontSize: 12, color: C.txtMuted, fontStyle: 'italic', marginTop: 10 },
+
+  // ADD SERVICE MODAL
+  modalOverlay: { position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(13,27,46,0.55)', display: 'flex', alignItems: 'flex-start', justifyContent: 'center', padding: '44px 20px', zIndex: 1000, fontFamily: F.sans },
+  modal:        { background: C.cardBg, borderRadius: 12, width: 460, maxWidth: '100%', boxShadow: '0 24px 50px rgba(0,0,0,0.3)', overflow: 'hidden', color: C.txtPrimary },
+  modalHdr:     { padding: '18px 22px 4px' },
+  modalHdrTitle:{ margin: '0 0 4px', fontSize: 16, fontWeight: 700 },
+  modalHdrSub:  { margin: 0, fontSize: 12.5, color: C.txtMuted },
+  modalBody:    { padding: '8px 22px 4px', maxHeight: 380, overflowY: 'auto' },
+  pickRow:      { display: 'flex', alignItems: 'flex-start', gap: 10, padding: '12px 0', borderBottom: `1px solid ${C.cardBdr}` },
+  pickIcon:     { width: 26, height: 26, borderRadius: 6, background: '#e8f5f0', color: C.teal, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, flexShrink: 0 },
+  pickIconBank: { background: C.amberLight, color: C.amber },
+  pickName:     { fontSize: 13, fontWeight: 700 },
+  pickSub:      { fontSize: 11.5, color: C.txtMuted, marginTop: 1 },
+  resolveNote:  (ok) => ({ fontSize: 11, marginTop: 6, padding: '5px 9px', borderRadius: 6, display: 'inline-flex', alignItems: 'center', gap: 5, fontWeight: 600, background: ok ? C.greenLight : C.redLight, color: ok ? C.greenDark : C.red }),
+  inlineAddBank:    { marginTop: 8, background: C.redLight, border: '1px dashed #f3b3b3', borderRadius: 8, padding: '10px 12px' },
+  inlineAddBankMsg: { fontSize: 11.5, color: '#991b1b', marginBottom: 6 },
+  inlineAddBankLink:{ fontSize: 11.5, fontWeight: 700, color: C.blue, cursor: 'pointer' },
+  modalFooter:  { padding: '14px 22px 20px', display: 'flex', justifyContent: 'flex-end', gap: 10 },
+  modalBtnSecondary: { background: '#fff', color: C.txtPrimary, border: `1px solid ${C.cardBdr}`, padding: '9px 16px', borderRadius: 7, fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: F.sans },
+  modalBtnPrimary:   (disabled) => ({ background: disabled ? '#9db8e8' : C.blue, color: '#fff', border: 'none', padding: '9px 16px', borderRadius: 7, fontSize: 13, fontWeight: 700, cursor: disabled ? 'default' : 'pointer', fontFamily: F.sans, opacity: disabled ? 0.6 : 1 }),
+  emptyModal:      { padding: '30px 22px 26px', textAlign: 'center' },
+  emptyModalIcon:  { width: 44, height: 44, borderRadius: '50%', background: '#f1f3f7', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 12px', fontSize: 18, color: C.txtMuted },
+  emptyModalTitle: { fontSize: 14, margin: '0 0 6px', fontWeight: 700 },
+  emptyModalBody:  { fontSize: 12, color: C.txtMuted, lineHeight: 1.6, maxWidth: 300, margin: '0 auto 16px' },
 
   // TENANT PROFILE
   tenantHdr: { display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 },
@@ -187,6 +241,141 @@ const amenityIcon = name => {
   return hit ? hit[1] : 'ti-check';
 };
 
+// ─── Add Service modal ─────────────────────────────────────────────────────────
+// Deliberately does NOT touch PaymentCartContext/PaymentCartModal — adding a
+// service to a unit is assignment of something already owned at the account
+// level, not a purchase (Entitlement doc §4.2). "Buy Service" (account-level,
+// Settings → Services) is the only flow that goes through the Payment Cart.
+//
+// Session 40 — wired to the real backend. Checking a row no longer shows a
+// client-side "will this resolve a bank account" preview (that logic lived
+// entirely in mock data before); instead, submitting fires one real POST
+// per checked service to /properties/<pk>/units/<uid>/services/, and any
+// row the backend rejects (unresolved entitlement, or — for a service
+// flagged requires_payment_collection — no resolvable OwnerBankAccount per
+// §4.3) shows up as a real per-service error below the checklist rather
+// than blocking submission up front. `submitting`/`submitError` are new;
+// everything else about the two remaining states (checklist, empty) is
+// unchanged from the wireframe.
+function AddServiceModal({ unitNumber, ownedServices, assignedIds, onClose, onAdd }) {
+  const available = ownedServices.filter(s => !assignedIds.includes(s.id));
+  const [checked, setChecked] = useState(() =>
+    Object.fromEntries(available.map(s => [s.id, true]))
+  );
+  const [submitting, setSubmitting] = useState(false);
+  const [submitErrors, setSubmitErrors] = useState([]); // [{ name, message }]
+
+  const toggle = id => setChecked(prev => ({ ...prev, [id]: !prev[id] }));
+
+  const checkedServices = available.filter(s => checked[s.id]);
+  const canSubmit = checkedServices.length > 0 && !submitting;
+
+  const handleSubmit = async () => {
+    if (!canSubmit) return;
+    setSubmitting(true);
+    setSubmitErrors([]);
+    const result = await onAdd(checkedServices);
+    setSubmitting(false);
+    if (result?.errors?.length) {
+      setSubmitErrors(result.errors);
+    } else {
+      onClose();
+    }
+  };
+
+  const goToBankAccounts = () => { window.location.href = '/landlord-portal/settings'; };
+
+  // State 2 — nothing left to add
+  if (available.length === 0) {
+    // Session 40 fix — this used to say "Nothing left to add" (implying
+    // everything is already assigned) for BOTH real causes: (a) the
+    // landlord genuinely owns zero services at the account level yet, and
+    // (b) they own some, but all of them are already on this unit. Those
+    // need different copy — (a) especially, since without it the modal
+    // reads as a bug ("it says no services are on the unit, but Add
+    // Service says there's nothing to add") rather than what's actually
+    // true: there's nothing to add because there's nothing bought yet.
+    const ownsNothing = ownedServices.length === 0;
+    return (
+      <div style={S.modalOverlay} onClick={onClose}>
+        <div style={S.modal} onClick={e => e.stopPropagation()}>
+          <div style={S.modalHdr}>
+            <h3 style={S.modalHdrTitle}>Add Service to Unit {unitNumber}</h3>
+          </div>
+          <div style={S.emptyModal}>
+            <div style={S.emptyModalIcon}>{ownsNothing ? '🛈' : '✓'}</div>
+            <h4 style={S.emptyModalTitle}>{ownsNothing ? 'No services on your account yet' : 'Nothing left to add'}</h4>
+            <p style={S.emptyModalBody}>
+              {ownsNothing
+                ? "You haven't bought any services at the account level yet. Buy one from Settings → Services, then come back here to assign it to this unit."
+                : 'Every service on your account is already assigned to this unit. Buy another service from Settings → Services to add more.'}
+            </p>
+            <div style={S.modalBtnSecondary} onClick={goToBankAccounts}>Go to Settings → Services</div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // State 1 — checklist
+  return (
+    <div style={S.modalOverlay} onClick={onClose}>
+      <div style={S.modal} onClick={e => e.stopPropagation()}>
+        <div style={S.modalHdr}>
+          <h3 style={S.modalHdrTitle}>Add Service to Unit {unitNumber}</h3>
+          <p style={S.modalHdrSub}>Choose from services already on your account. Only unassigned ones are shown.</p>
+        </div>
+
+        <div style={S.modalBody}>
+          {available.map(s => {
+            const isChecked = !!checked[s.id];
+            return (
+              <div key={s.id} style={S.pickRow}>
+                <input
+                  type="checkbox"
+                  checked={isChecked}
+                  onChange={() => toggle(s.id)}
+                  style={{ marginTop: 3, width: 15, height: 15, accentColor: C.blue, flexShrink: 0 }}
+                />
+                <div style={{ ...S.pickIcon, ...(s.requiresBankAccount ? S.pickIconBank : {}) }}>
+                  <i className={`ti ${s.icon}`} aria-hidden="true" />
+                </div>
+                <div style={{ flex: 1 }}>
+                  <div style={S.pickName}>{s.name}</div>
+                  <div style={S.pickSub}>
+                    {s.price} {s.priceUnit}{s.requiresBankAccount ? ' · requires bank account' : ' · no bank account needed'}
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+
+        {submitErrors.length > 0 && (
+          <div style={S.modalBody}>
+            {submitErrors.map((e, i) => (
+              <div key={i} style={S.resolveNote(false)}>✕ {e.name}: {e.message}</div>
+            ))}
+            <div style={S.inlineAddBank}>
+              <div style={S.inlineAddBankMsg}>A service listed above without a bank account may need one added first.</div>
+              <span style={S.inlineAddBankLink} onClick={goToBankAccounts}>+ Add Bank Account →</span>
+            </div>
+          </div>
+        )}
+
+        <div style={S.modalFooter}>
+          <div style={S.modalBtnSecondary} onClick={onClose}>Cancel</div>
+          <button style={S.modalBtnPrimary(!canSubmit)} disabled={!canSubmit} onClick={handleSubmit}>
+            {submitting
+              ? 'Adding…'
+              : `Add ${checkedServices.length || ''} Service${checkedServices.length === 1 ? '' : 's'}`}
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function LandlordUnitDetailPage() {
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -195,6 +384,17 @@ export default function LandlordUnitDetailPage() {
   const [currentUser, setCurrentUser] = useState(null);
   const [tenantTab, setTenantTab] = useState('current');
   const [pastIdx, setPastIdx] = useState(0);
+
+  // Unit Services (SVC-1, Session 40) — real data now. ownedServices is this
+  // landlord's account-level entitlement (GET /landlord/account/services/);
+  // assignedServices is what's actually on THIS unit (GET
+  // /properties/<pk>/units/<uid>/services/, the real UnitService rows —
+  // this is also what a bulk add on LandlordPropertyDetailPage.jsx now
+  // writes to, so the two pages agree without any FE-only shared store).
+  const [ownedServices, setOwnedServices] = useState([]);
+  const [assignedServices, setAssignedServices] = useState([]);
+  const [servicesLoading, setServicesLoading] = useState(true);
+  const [addServiceOpen, setAddServiceOpen] = useState(false);
 
   // Forces the amenities scrollbar to stay visible (webkit/Chrome hides
   // scrollbars until active-scroll by default on macOS) — can't target
@@ -234,6 +434,36 @@ export default function LandlordUnitDetailPage() {
       .catch(() => {});
   }, []);
 
+  // Session 40 (SVC-1) — this landlord's account-level entitlement. Fetched
+  // once; re-fetched on demand isn't needed here since Buy Service (the
+  // only thing that changes this list) doesn't exist in this FE yet.
+  React.useEffect(() => {
+    const token = localStorage.getItem('access_token');
+    fetch(`${API_BASE}/landlord/account/services/`, {
+      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+    })
+      .then(r => { if (!r.ok) throw new Error(`${r.status}`); return r.json(); })
+      .then(j => setOwnedServices(j.services || []))
+      .catch(() => setOwnedServices([]));
+  }, []);
+
+  // Session 40 (SVC-1) — this unit's actual assigned services. Pulled out
+  // into its own function so it can be re-run after a successful Add
+  // Service, not just on mount.
+  const fetchAssignedServices = React.useCallback(() => {
+    if (!propId || !unitId) return;
+    const token = localStorage.getItem('access_token');
+    setServicesLoading(true);
+    fetch(`${API_BASE}/properties/${propId}/units/${unitId}/services/`, {
+      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+    })
+      .then(r => { if (!r.ok) throw new Error(`${r.status}`); return r.json(); })
+      .then(j => { setAssignedServices(j); setServicesLoading(false); })
+      .catch(() => { setAssignedServices([]); setServicesLoading(false); });
+  }, [propId, unitId]);
+
+  React.useEffect(() => { fetchAssignedServices(); }, [fetchAssignedServices]);
+
   const prop   = data?.property || {};
   const unit   = data?.unit || {};
   const stats  = data?.stats || {};
@@ -267,6 +497,56 @@ export default function LandlordUnitDetailPage() {
   ];
 
   const rating = tenant.payment_rating || 0;
+
+  // Session 40 (SVC-1) — real data, shaped for the display/modal styles
+  // that were built against the old mock fields (icon, requiresBankAccount,
+  // priceUnit). No icon comes back from the backend, so every service uses
+  // the same fallback glyph.
+  const unitServices = assignedServices.map(row => ({
+    id: row.service,
+    name: row.service_name,
+    icon: SERVICE_FALLBACK_ICON,
+    requiresBankAccount: row.requires_payment_collection,
+  }));
+  const ownedServicesForModal = ownedServices.map(s => ({
+    id: s.id,
+    name: s.name,
+    icon: SERVICE_FALLBACK_ICON,
+    requiresBankAccount: s.requires_payment_collection,
+    price: s.price != null ? `$${s.price}` : '',
+    priceUnit: s.price_unit === 'PER_UNIT' ? '/ Unit' : s.price_unit === 'PER_PROPERTY' ? '/ Property' : s.price_unit === 'PER_MONTH' ? '/ Month' : '/ Flat Fee',
+  }));
+  const assignedServiceIds = assignedServices.map(row => row.service);
+
+  // Session 40 (SVC-1) — one real POST per checked service (the backend
+  // endpoint takes a single `service` id per call, unlike the checklist
+  // modal which lets you check several at once). All-settled rather than
+  // all-or-nothing on purpose: if 2 of 3 succeed, those 2 should stick
+  // rather than the whole batch rolling back — unlike the bulk "Add to All
+  // Units" endpoint, this isn't one atomic operation server-side, it's N
+  // independent single-unit calls from the FE's perspective.
+  const handleAddServices = async (services) => {
+    const token = localStorage.getItem('access_token');
+    const errors = [];
+    for (const s of services) {
+      try {
+        const res = await fetch(`${API_BASE}/properties/${propId}/units/${unitId}/services/`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+          body: JSON.stringify({ service: s.id }),
+        });
+        if (!res.ok) {
+          const body = await res.json().catch(() => ({}));
+          const message = body?.service?.[0] || body?.detail || `Failed (${res.status})`;
+          errors.push({ name: s.name, message });
+        }
+      } catch (e) {
+        errors.push({ name: s.name, message: 'Network error — please try again.' });
+      }
+    }
+    fetchAssignedServices();
+    return { errors };
+  };
 
   return (
     <div style={S.shell}>
@@ -394,6 +674,38 @@ export default function LandlordUnitDetailPage() {
                       </div>
                     ))}
                   </div>
+                )}
+              </div>
+            </div>
+
+            {/* UNIT SERVICES */}
+            <div style={{ ...S.row60_40, gridTemplateColumns: '1fr' }}>
+              <div style={S.card}>
+                <div style={S.cardHdr}>
+                  <div style={S.cardTitle}>Unit Services</div>
+                  <span style={S.cardLink} onClick={() => setAddServiceOpen(true)}>+ Add Service</span>
+                </div>
+                {servicesLoading && (
+                  <div style={S.serviceEmpty}>Loading services…</div>
+                )}
+                {!servicesLoading && unitServices.length === 0 && (
+                  <div style={S.serviceEmpty}>No services assigned to this unit yet.</div>
+                )}
+                {unitServices.length > 0 && (
+                  <div style={S.serviceGrid}>
+                    {unitServices.map(s => (
+                      <div key={s.id} style={S.serviceItem} title={s.name}>
+                        <div style={{ ...S.serviceIcon, ...(s.requiresBankAccount ? S.serviceIconBank : {}) }}>
+                          <i className={`ti ${s.icon}`} aria-hidden="true" />
+                        </div>
+                        <span style={S.serviceItemName}>{s.name}</span>
+                        {s.requiresBankAccount && <div style={S.bankDot} />}
+                      </div>
+                    ))}
+                  </div>
+                )}
+                {unitServices.some(s => s.requiresBankAccount) && (
+                  <div style={S.serviceLegend}><div style={S.serviceLegendDot} /> = requires a linked bank account</div>
                 )}
               </div>
             </div>
@@ -588,6 +900,16 @@ export default function LandlordUnitDetailPage() {
           </div>
         </main>
       </div>
+
+      {addServiceOpen && (
+        <AddServiceModal
+          unitNumber={loading ? '' : unit.unit_number}
+          ownedServices={ownedServicesForModal}
+          assignedIds={assignedServiceIds}
+          onClose={() => setAddServiceOpen(false)}
+          onAdd={handleAddServices}
+        />
+      )}
     </div>
   );
 }
