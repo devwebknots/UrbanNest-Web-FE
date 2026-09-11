@@ -75,15 +75,50 @@ import LandlordDashboard from './pages/Landlord/LandlordDashboard';
 import LandlordPortfolioPage from './pages/Landlord/LandlordPortfolioPage';
 import LandlordPropertyDetailPage from './pages/Landlord/LandlordPropertyDetailPage';
 import LandlordUnitDetailPage from './pages/Landlord/LandlordUnitDetailPage';
+import LandlordSettingsPage from './pages/Landlord/LandlordSettingsPage';
+
+// Landlord — Create Listing wizard (Session 41 FE build; wired to the real
+// `listings` backend Session 43 — see listingApi.js). Step 4 was built
+// Session 41 but never actually imported/routed here until now.
+import ListingStep1_Property from './pages/Landlord/Listing/ListingStep1_Property';
+import ListingStep2_Unit from './pages/Landlord/Listing/ListingStep2_Unit';
+import ListingStep3_Promote from './pages/Landlord/Listing/ListingStep3_Promote';
+import ListingStep4_Publish from './pages/Landlord/Listing/ListingStep4_Publish';
+import ListMultiStep1_Property from './pages/Landlord/Listing/ListMultiStep1_Property';
+import ListMultiUnits from './pages/Landlord/Listing/ListMultiUnits';
+import ListMultiStep3_Promote from './pages/Landlord/Listing/ListMultiStep3_Promote';
+import ListMultiStep4_Publish from './pages/Landlord/Listing/ListMultiStep4_Publish';
 
 // Invite for all email/phone verifications
 import VerifyOwnershipPage from './pages/Invite/VerifyOwnershipPage';
 
-function AddUnitWrapper() {
+// Payment- Cart/Payment Gateway
+import { PaymentCartProvider } from './pages/Payment/PaymentCartContext';
+
+// Session 40 — L-4 fix: AddUnitWrapper previously took no props and always
+// hardcoded persona="INDEPENDENT_PM" when calling AddNewProperty. The
+// Landlord standalone "+ Add Unit" route (added S39) already passed
+// persona="LANDLORD" into <AddUnitWrapper persona="LANDLORD" />, but since
+// this component never declared a `persona` param, that prop was silently
+// dropped — AddNewProperty always fell back to its own default
+// (persona = 'INDEPENDENT_PM'), rendering the PM-styled shell for landlords.
+// Fix: accept `persona` with the same default as before, so the existing
+// PM route (/pm-portal/properties/:id/add-unit, which renders
+// <AddUnitWrapper /> with no persona prop) is completely unaffected, while
+// the Landlord route's persona="LANDLORD" now actually reaches
+// AddNewProperty.
+//
+// NOTE (still open, not fixed here): the architecture doc also flags that
+// the property fetch inside AddNewProperty (GET /api/properties/:id/,
+// used to pre-load property name/owners when initialPropertyId is set)
+// 404s for self-managed landlord properties (managed_by IS NULL). That's a
+// backend-side scoping issue in the properties app view, not something
+// fixable from this file — needs properties/views.py to confirm.
+function AddUnitWrapper({ persona = 'INDEPENDENT_PM' }) {
   const { id } = useParams();
   return (
     <AddNewProperty
-      persona="INDEPENDENT_PM"
+      persona={persona}
       initialPropertyId={id}
     />
   );
@@ -143,7 +178,7 @@ function AppRoutes() {
       <Route path="/pm-portal/rbac/members" element={<PermissionGuard module="ROLES_ACCESS"><PMMembersPage /></PermissionGuard>} />
       <Route path="/pm-portal/rbac/org"     element={<PermissionGuard module="ROLES_ACCESS"><PMOrgPage /></PermissionGuard>} />
 
-     
+
       {/* ── Org PMS Portal — reuses PM dashboard (NavD when Org-specific nav needed) ── */}
       <Route path="/org-portal/dashboard/welcome"      element={<PMWelcomePage persona="ORGANIZATIONAL_PM" />} />
       <Route path="/org-portal/dashboard/my-dashboard" element={<PMDashboard persona="ORGANIZATIONAL_PM" />} />
@@ -155,6 +190,19 @@ function AppRoutes() {
       <Route path="/landlord-portal/property/:id/unit/:uid" element={<LandlordUnitDetailPage />} />
       <Route path="/landlord-portal/add-property" element={<AddNewProperty persona="LANDLORD" />} />
       <Route path="/landlord-portal/property/:id/add-unit" element={<AddUnitWrapper persona="LANDLORD" />} />
+      <Route path="/landlord-portal/settings" element={<LandlordSettingsPage />} />
+
+      {/* ── Landlord — Create Listing wizard (Session 41) ── */}
+      <Route path="/landlord-portal/property/:id/unit/:uid/list/step-1" element={<ListingStep1_Property />} />
+      <Route path="/landlord-portal/property/:id/unit/:uid/list/step-2" element={<ListingStep2_Unit />} />
+      <Route path="/landlord-portal/property/:id/unit/:uid/list/step-3" element={<ListingStep3_Promote />} />
+      <Route path="/landlord-portal/property/:id/unit/:uid/list/step-4" element={<ListingStep4_Publish />} />
+
+      {/* ── Landlord — Multi-Unit Listing (Session 44 — wired to /api/property-listings/, see propertyListingApi.js) ── */}
+      <Route path="/landlord-portal/property/:id/list-multi/step-1" element={<ListMultiStep1_Property />} />
+      <Route path="/landlord-portal/property/:id/list-multi/step-2" element={<ListMultiUnits />} />
+      <Route path="/landlord-portal/property/:id/list-multi/step-3" element={<ListMultiStep3_Promote />} />
+      <Route path="/landlord-portal/property/:id/list-multi/step-4" element={<ListMultiStep4_Publish />} />
 
       {/* ── UN Admin Portal ───────────────────────────────────────────────── */}
       <Route path="/admin-portal/dashboard" element={
@@ -210,7 +258,7 @@ function AppRoutes() {
       {/* Standalone pending/waiting screen — shown when user clicks PENDING persona card */}
       <Route path="/org-onboarding/pending"  element={<OrgPMS_PendingStatus />} />
 
-      {/* ── Properties  ──────────────────────────── */}  
+      {/* ── Properties  ──────────────────────────── */}
       <Route path="/pm-portal/properties"     element={<PermissionGuard module="PROPERTIES"><PMPropertiesPage /></PermissionGuard>} />
       <Route path="/pm-portal/properties/add" element={<PermissionGuard module="PROPERTIES"><AddNewProperty persona="INDEPENDENT_PM" /></PermissionGuard>} />
       <Route path="/org-portal/properties/add"  element={<AddNewProperty persona="ORGANIZATIONAL_PM" />} />
@@ -231,7 +279,7 @@ function AppRoutes() {
 
       {/* ── Invites ──────────────────────────────────────────────────── */}
       <Route path="/verify-ownership" element={<VerifyOwnershipPage />} />
-      
+
     </Routes>
   );
 }
@@ -239,11 +287,14 @@ function AppRoutes() {
 function App() {
   return (
     <AuthProvider>
-      <BrowserRouter>
-        <AppRoutes />
-      </BrowserRouter>
-    </AuthProvider>  
+      <PaymentCartProvider>
+        <BrowserRouter>
+          <AppRoutes />
+        </BrowserRouter>
+      </PaymentCartProvider>
+    </AuthProvider>
   );
 }
+
 
 export default App;
