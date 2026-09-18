@@ -184,6 +184,7 @@ const NAV_STRUCTURE = [
           { id: 'financial-settings',    label: 'Financial Settings',    route: '/pm-portal/config/financial' },
           { id: 'lease-rent',            label: 'Lease & Rent',          route: '/pm-portal/config/lease' },
           { id: 'verification-settings', label: 'Verification Settings', route: '/pm-portal/config/verification-settings' },
+          { id: 'listing-readiness',     label: 'Listing Readiness Rules', route: '/pm-portal/config/listing-readiness' },
           { id: 'partners',              label: 'Partners',              route: '/pm-portal/config/partners' },
           { id: 'communication',         label: 'Communication',         route: '/pm-portal/config/communication' },
           { id: 'data-ai',               label: 'Data & AI',             route: '/pm-portal/config/data-ai' },

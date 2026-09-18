@@ -3,6 +3,7 @@ import { Chart, registerables } from 'chart.js';
 import NavF from '../../components/layout/NavF';
 import { C, F } from './landlordTokens';
 import { CustomDropdown } from '../../components/ui';
+import LandlordUnitSelection from './Listing/LandlordUnitSelection';
 
 Chart.register(...registerables);
 
@@ -190,6 +191,11 @@ const S = {
   unitHdrR:   { display:'flex', gap:8 },
   filterBtn:  { background:'#fff', border:`1px solid ${C.cardBdr}`, borderRadius:6, padding:'6px 12px', fontSize:12, color:C.txtSec, cursor:'pointer', display:'flex', alignItems:'center', gap:5, fontFamily:F.sans },
   btnBulk:    { background:'#fff', border:`1.5px solid ${C.blue}`, borderRadius:6, padding:'6px 14px', fontSize:12, fontWeight:700, color:C.blue, cursor:'pointer', display:'flex', alignItems:'center', gap:5, fontFamily:F.sans },
+  // "List Multi Units" entry point (Session 42/43) — teal to distinguish it
+  // from the blue "Add Service to All Units" bulk action, matching the teal
+  // already used for amenity/marketplace accents elsewhere on this page.
+  btnMulti:   { background:'#fff', border:`1.5px solid ${C.teal}`, borderRadius:6, padding:'6px 14px', fontSize:12, fontWeight:700, color:C.teal, cursor:'pointer', display:'flex', alignItems:'center', gap:5, fontFamily:F.sans },
+  btnMultiDisabled: { opacity:0.5, cursor:'not-allowed' },
   addUnitBtn: { background:C.navBg, color:'#fff', border:'none', borderRadius:6, padding:'6px 14px', fontSize:12, fontWeight:500, cursor:'pointer', fontFamily:F.sans },
   unitGrid:   { display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(180px, 1fr))', gap:12 },
   unitCard:   { background:C.cardBg, border:`1px solid ${C.cardBdr}`, borderRadius:10, overflow:'hidden' },
@@ -681,6 +687,9 @@ export default function LandlordPropertyDetailPage() {
   const [activeTab,    setActiveTab]    = useState('Chats');
   const [showFilter,   setShowFilter]   = useState(false);
   const [showBulkAdd,  setShowBulkAdd]  = useState(false);
+  // LST-8's real "List Ready" gate — rendered as a modal (see that file's
+  // own header note for why), not a routed page, so it's just local state.
+  const [showUnitSelection, setShowUnitSelection] = useState(false);
   const [showNewChat,  setShowNewChat]  = useState(false);
   const [openChatId,   setOpenChatId]   = useState(null);
   const [openNotifId,  setOpenNotifId]  = useState(null);
@@ -953,6 +962,24 @@ export default function LandlordPropertyDetailPage() {
                   <button style={S.btnBulk} onClick={() => setShowBulkAdd(true)}>
                     <i className="ti ti-apps" style={{ fontSize:13 }} aria-hidden="true" />
                     Add Service to All Units
+                  </button>
+                  {/* "List Ready" gate (LST-8) — now the real thing: this button
+                      opens the Unit Selection modal (readiness pulled live
+                      from the A6 rules engine, GET .../units/<uid>/readiness/),
+                      where the landlord picks which units to include and it
+                      routes to the Individual or Multi-Unit wizard depending on
+                      how many List Ready units they check. The gate on THIS
+                      button is now just "is there anything to pick from" — the
+                      real per-unit readiness gate lives on that screen instead
+                      of here. Replaces the old `units.length < 2` placeholder. */}
+                  <button
+                    style={{ ...S.btnMulti, ...(units.length < 1 ? S.btnMultiDisabled : {}) }}
+                    disabled={units.length < 1}
+                    title={units.length < 1 ? 'Add a unit first to list it on the marketplace' : 'Choose which units to list on the marketplace'}
+                    onClick={() => setShowUnitSelection(true)}
+                  >
+                    <i className="ti ti-layout-grid" style={{ fontSize:13 }} aria-hidden="true" />
+                    List Multi Units
                   </button>
                   <button style={S.addUnitBtn} onClick={() => window.location.href = `/landlord-portal/property/${propId}/add-unit`}>+ Add Unit</button>
                 </div>
@@ -1265,6 +1292,9 @@ export default function LandlordPropertyDetailPage() {
       </div>
 
       {showFilter && <FilterModal onClose={() => setShowFilter(false)} />}
+      {showUnitSelection && (
+        <LandlordUnitSelection propId={propId} onClose={() => setShowUnitSelection(false)} />
+      )}
       {showBulkAdd && (
         <BulkAddServiceModal
           propId={propId}

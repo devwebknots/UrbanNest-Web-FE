@@ -159,6 +159,7 @@ const NAV_SECTIONS = [
       { id: 'config-onboard-docs', label: 'Onboard Docs', route: '/admin-portal/config/onboard-docs' },
       { id: 'config-emails',     label: 'Email Templates',  route: '/admin-portal/config/emails' },
       { id: 'config-reference',  label: 'Reference Data',   route: '/admin-portal/config/reference' },
+      { id: 'config-listing-readiness', label: 'Listing Readiness Rules', route: '/admin-portal/config/listing-readiness' },
       { id: 'config-miscellaneous',label: 'Miscellaneous',           route: '/admin-portal/config/miscellaneous' },
       { id: 'config-rules',      label: 'Business Rules',   route: '/admin-portal/config/rules' },
     ],
