@@ -8,7 +8,7 @@ import { C, F } from '../../pages/Landlord/landlordTokens';
 //   <NavF activePage="dashboard" />
 //
 // activePage values:
-//   'dashboard' | 'properties' | 'leases' | 'finances' |
+//   'dashboard' | 'properties' | 'listings' | 'leases' | 'finances' |
 //   'maintenance' | 'tenants' | 'documents' |
 //   'reports' | 'analytics' | 'insights' | 'settings'
 
@@ -16,6 +16,9 @@ import { C, F } from '../../pages/Landlord/landlordTokens';
 const NAV_MAIN = [
   { id: 'dashboard',   label: 'Dashboard',   icon: 'ti-layout-dashboard', route: '/landlord-portal/dashboard' },
   { id: 'properties',  label: 'Properties',  icon: 'ti-building',         route: '/landlord-portal/portfolio' },
+  // Added alongside LandlordListingsOverview.jsx — the Landlord Portal's
+  // own lean version of the PM Portal's Listings Overview dashboard.
+  { id: 'listings',    label: 'Listings',    icon: 'ti-list-check',       route: '/landlord-portal/listings' },
   { id: 'leases',      label: 'Leases',      icon: 'ti-file-text',        route: '/landlord-portal/leases' },
   { id: 'finances',    label: 'Finances',    icon: 'ti-wallet',           route: '/landlord-portal/finances' },
   { id: 'maintenance', label: 'Maintenance', icon: 'ti-tool',             route: '/landlord-portal/maintenance' },

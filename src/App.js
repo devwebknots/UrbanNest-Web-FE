@@ -25,6 +25,7 @@ import PMDashboard          from './pages/PMPortal/Dashboard/PMDashboard';
 import PMWelcomePage        from './pages/PMPortal/Dashboard/PMWelcomePage';
 import PMProfileView        from './pages/PMPortal/Profile/PMProfileView';
 import PMVerificationSettings from './pages/PMPortal/Config/PMVerificationSettings';
+import PMListingReadiness from './pages/PMPortal/Config/PMListingReadiness';
 
 // UN Admin Portal
 import UNAdminShell          from './pages/UNAdminPortal/UNAdminShell';
@@ -35,6 +36,7 @@ import UNAdminOnboardDocs    from './pages/UNAdminPortal/OnboardDocs/UNAdminOnbo
 import UNAdminApplicationReview from './pages/UNAdminPortal/Applications/UNAdminApplicationReview';
 import UNAdminReferenceData from './pages/UNAdminPortal/Configurations/References/UNAdminReferenceData';
 import UNAdminMiscConfig from './pages/UNAdminPortal/Configurations/Miscellaneous/UNAdminMiscConfig';
+import UNAdminListingReadiness from './pages/UNAdminPortal/Configurations/ListingReadiness/UNAdminListingReadiness';
 
 // PMS Onboarding (existing — pending refactor)
 import PMSOnboardingStep1   from './PMS_Onboarding_Step1';
@@ -70,6 +72,35 @@ import PMMembersPage  from './pages/PMPortal/RBAC/PMMembersPage';
 import PMOrgPage      from './pages/PMPortal/RBAC/PMOrgPage';
 import PMStaffSignupPage from './pages/PMPortal/RBAC/PMStaffSignupPage';
 
+// PM Portal — Create Listing wizard (Session 47 — Independent PM / Org PM
+// Listing capability. A deliberate duplicate of the Landlord wizard's
+// shell/tokens, not a persona-prop extension — see
+// pmListingWizardShared.jsx's header comment. Org PM live-testing was a
+// follow-up slice, done Session 47.
+import PMListingStep1_Property from './pages/PMPortal/Listing/PMListingStep1_Property';
+import PMListingStep2_Unit from './pages/PMPortal/Listing/PMListingStep2_Unit';
+import PMListingStep3_Promote from './pages/PMPortal/Listing/PMListingStep3_Promote';
+import PMListingStep4_Publish from './pages/PMPortal/Listing/PMListingStep4_Publish';
+
+// PM Portal — Multi-Unit Listing wizard (LST-12 — PM Portal entry point into
+// the Multi-Unit flow). A deliberate duplicate of the Landlord Multi-Unit
+// wizard's 4 step files, same reasoning as the Individual wizard above —
+// see PMListMultiStep1_Property.jsx's own header note. Entry point is
+// PMPropertyDetailPage.jsx's "List Multi Units" button →
+// PMUnitSelection.jsx (the real LST-8 readiness gate).
+import PMListMultiStep1_Property from './pages/PMPortal/Listing/PMListMultiStep1_Property';
+import PMListMultiStep2_Unit from './pages/PMPortal/Listing/PMListMultiStep2_Unit';
+import PMListMultiStep3_Promote from './pages/PMPortal/Listing/PMListMultiStep3_Promote';
+import PMListMultiStep4_Publish from './pages/PMPortal/Listing/PMListMultiStep4_Publish';
+
+// PM Portal — Marketing → Listings dashboard (Session 47 follow-up).
+// NavB.jsx's 'listings' nav item already pointed at
+// '/pm-portal/marketing/listings' with no route behind it — this is that
+// route. FE-first build per Listings_Overview_Design_Review.md §7: every
+// section renders off in-memory mock data for now (no backend wiring yet),
+// with "sample" sections carrying a permanent Sample Data watermark.
+import PMListingsOverview from './pages/PMPortal/Listing/PMListingsOverview';
+
 // Landlord Portals
 import LandlordDashboard from './pages/Landlord/LandlordDashboard';
 import LandlordPortfolioPage from './pages/Landlord/LandlordPortfolioPage';
@@ -88,6 +119,13 @@ import ListMultiStep1_Property from './pages/Landlord/Listing/ListMultiStep1_Pro
 import ListMultiUnits from './pages/Landlord/Listing/ListMultiUnits';
 import ListMultiStep3_Promote from './pages/Landlord/Listing/ListMultiStep3_Promote';
 import ListMultiStep4_Publish from './pages/Landlord/Listing/ListMultiStep4_Publish';
+
+// Landlord — Listings Overview dashboard. Lean counterpart to the PM
+// Portal's own PMListingsOverview above — same backend endpoint (pm-
+// overview is portal-agnostic despite the name — see that file's own
+// header comment), deliberately without the donut/opportunities/bulk-
+// select machinery a PM-scale dashboard needs.
+import LandlordListingsOverview from './pages/Landlord/Listing/LandlordListingsOverview';
 
 // Invite for all email/phone verifications
 import VerifyOwnershipPage from './pages/Invite/VerifyOwnershipPage';
@@ -167,10 +205,14 @@ function AppRoutes() {
       <Route path="/pm-portal/dashboard/my-dashboard" element={<PMDashboard   persona="INDEPENDENT_PM" />} />
       <Route path="/pm-portal/profile/persona"        element={<PMProfileView />} />
       <Route path="/pm-portal/config/verification-settings" element={<PMVerificationSettings />} />
+      <Route path="/pm-portal/config/listing-readiness"     element={<PMListingReadiness />} />
 
       {/* ── PM Portal/ Approvals ─────────────────────────────────────────────────────── */}
       <Route path="/pm-portal/approvals"           element={<PermissionGuard module="APPROVALS"><PMApprovalsOverview /></PermissionGuard>} />
       <Route path="/pm-portal/approvals/ownership" element={<PermissionGuard module="APPROVALS"><PMApprovalsOwnership /></PermissionGuard>} />
+
+      {/* ── PM Portal/ Marketing ─────────────────────────────────────────────────────── */}
+      <Route path="/pm-portal/marketing/listings" element={<PermissionGuard module="MARKETING"><PMListingsOverview /></PermissionGuard>} />
 
       {/* ── PM Portal/ RBAC ─────────────────────────────────────────────────────── */}
       <Route path="/pm-portal/rbac/roles"   element={<PermissionGuard module="ROLES_ACCESS"><PMRolesPage /></PermissionGuard>} />
@@ -191,6 +233,7 @@ function AppRoutes() {
       <Route path="/landlord-portal/add-property" element={<AddNewProperty persona="LANDLORD" />} />
       <Route path="/landlord-portal/property/:id/add-unit" element={<AddUnitWrapper persona="LANDLORD" />} />
       <Route path="/landlord-portal/settings" element={<LandlordSettingsPage />} />
+      <Route path="/landlord-portal/listings" element={<LandlordListingsOverview />} />
 
       {/* ── Landlord — Create Listing wizard (Session 41) ── */}
       <Route path="/landlord-portal/property/:id/unit/:uid/list/step-1" element={<ListingStep1_Property />} />
@@ -235,6 +278,11 @@ function AppRoutes() {
           <UNAdminReferenceData />
         </UNAdminShell>
       } />
+      <Route path="/admin-portal/config/listing-readiness" element={
+        <UNAdminShell activeId="config-listing-readiness" title="Listing Readiness Rules">
+          <UNAdminListingReadiness />
+        </UNAdminShell>
+      } />
       <Route path="/admin-portal/config/miscellaneous" element={
         <UNAdminShell activeId="misc-config" title="Miscellaneous Configurations">
           <UNAdminMiscConfig />
@@ -269,8 +317,27 @@ function AppRoutes() {
       <Route path="/pm-portal/properties/:id/units/:unitId/edit"      element={<EditUnitPage />} />
       <Route path="/pm-portal/properties/:id/add-unit" element={<AddUnitWrapper />} />
 
+      {/* ── PM Portal — Create Listing wizard (Session 47) ────────────────── */}
+      <Route path="/pm-portal/properties/:id/units/:unitId/list/step-1" element={<PermissionGuard module="MARKETING"><PMListingStep1_Property /></PermissionGuard>} />
+      <Route path="/pm-portal/properties/:id/units/:unitId/list/step-2" element={<PermissionGuard module="MARKETING"><PMListingStep2_Unit /></PermissionGuard>} />
+      <Route path="/pm-portal/properties/:id/units/:unitId/list/step-3" element={<PermissionGuard module="MARKETING"><PMListingStep3_Promote /></PermissionGuard>} />
+      <Route path="/pm-portal/properties/:id/units/:unitId/list/step-4" element={<PermissionGuard module="MARKETING"><PMListingStep4_Publish /></PermissionGuard>} />
+
+      {/* ── PM Portal — Multi-Unit Listing wizard (LST-12) ─────────────────── */}
+      <Route path="/pm-portal/properties/:id/list-multi/step-1" element={<PermissionGuard module="MARKETING"><PMListMultiStep1_Property /></PermissionGuard>} />
+      <Route path="/pm-portal/properties/:id/list-multi/step-2" element={<PermissionGuard module="MARKETING"><PMListMultiStep2_Unit /></PermissionGuard>} />
+      <Route path="/pm-portal/properties/:id/list-multi/step-3" element={<PermissionGuard module="MARKETING"><PMListMultiStep3_Promote /></PermissionGuard>} />
+      <Route path="/pm-portal/properties/:id/list-multi/step-4" element={<PermissionGuard module="MARKETING"><PMListMultiStep4_Publish /></PermissionGuard>} />
 
       // Temporary placeholder — replace with PMPropertyDetailPage when built
+      {/* NOTE (found, not fixed, this session — see LST-18 in the backlog):
+          this route is dead code. The real PMPropertyDetailPage route,
+          registered earlier under "── Properties ──"
+          (/pm-portal/properties/:id), already matches this exact path and
+          wins (React Router v6 takes the first match), so this placeholder
+          can never render. Left as-is per this session's own discipline —
+          out-of-scope cleanup gets flagged, not folded into the LST-12
+          routing change above. */}
       <Route path="/pm-portal/properties/:id" element={
         <div style={{ padding: 40, fontFamily: 'Nunito Sans, sans-serif', color: '#0F172A' }}>
           Property Detail page — coming soon

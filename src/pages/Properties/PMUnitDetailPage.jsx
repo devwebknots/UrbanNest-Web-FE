@@ -532,6 +532,33 @@ export default function PMUnitDetailPage() {
                   {prop.status&&<StatusBadge status={prop.status} />}
                 </div>
                 <div style={{ display:'flex',gap:8,flexShrink:0,marginLeft:16 }}>
+                  {/* Session 47 — Independent PM / Org PM Listing capability,
+                      first build slice. Entry point into PMListingStep1_Property.jsx
+                      (Individual Unit Listing wizard, PM Portal shell).
+                      UX-gap fix (Session 47 continuation): UnitDetailSerializer
+                      now exposes has_active_listing/active_listing_status,
+                      mirroring LandlordUnitDetailPage's equivalent button —
+                      disable + relabel once a DRAFT/PENDING_PAYMENT/ACTIVE
+                      Listing already exists for this unit, instead of always
+                      reading "List on Marketplace" and letting a second
+                      wizard start (creating a duplicate listing was already
+                      blocked server-side either way — this was a UX gap, not
+                      a data-integrity one). */}
+                  <button
+                    disabled={!!prop.has_active_listing}
+                    onClick={()=>{ if(prop.has_active_listing) return; navigate(`/pm-portal/properties/${id}/units/${unitId}/list/step-1`); }}
+                    title={prop.has_active_listing
+                      ? (prop.active_listing_status==='ACTIVE' ? 'This unit is already listed on the Marketplace.' : 'A listing is already in progress for this unit.')
+                      : undefined}
+                    style={prop.has_active_listing
+                      ? { height:36,padding:'0 16px',borderRadius:8,cursor:'not-allowed',background:'#F1F5F9',border:`1.5px solid ${C.border}`,display:'flex',alignItems:'center',gap:7,fontFamily:F.body,fontSize:12.5,fontWeight:700,color:C.textSec }
+                      : { height:36,padding:'0 16px',borderRadius:8,cursor:'pointer',background:C.primary,border:`1.5px solid ${C.primary}`,display:'flex',alignItems:'center',gap:7,fontFamily:F.body,fontSize:12.5,fontWeight:700,color:'#fff' }}
+                  >
+                    <i className="ti ti-building-store" style={{ fontSize:15 }} />
+                    {prop.has_active_listing
+                      ? (prop.active_listing_status==='ACTIVE' ? 'Listed' : 'Listing in Progress')
+                      : 'List on Marketplace'}
+                  </button>
                   <button style={{ width:36,height:36,borderRadius:8,cursor:'pointer',background:'#FEF2F2',border:'1.5px solid #FECACA',display:'flex',alignItems:'center',justifyContent:'center' }}><i className="ti ti-trash" style={{ fontSize:15,color:C.danger }} /></button>
                   <button onClick={()=>navigate(`/pm-portal/properties/${id}/units/${unitId}/edit`)} style={{ width:36,height:36,borderRadius:8,cursor:'pointer',background:C.textPrimary,border:`1.5px solid ${C.textPrimary}`,display:'flex',alignItems:'center',justifyContent:'center' }}><i className="ti ti-pencil" style={{ fontSize:15,color:'#fff' }} /></button>
                 </div>

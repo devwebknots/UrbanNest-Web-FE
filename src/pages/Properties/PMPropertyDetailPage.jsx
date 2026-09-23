@@ -1,6 +1,12 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import NavB from '../../components/layout/NavB';
+// LST-12 — PM Portal entry point into the Multi-Unit Listing flow, mirroring
+// LandlordPropertyDetailPage.jsx's "List Multi Units" button + the real
+// LST-8 "List Ready" readiness gate (see PMUnitSelection.jsx's own header
+// note for why this is a duplicate of LandlordUnitSelection.jsx rather than
+// a persona-prop extension of it).
+import PMUnitSelection from '../PMPortal/Listing/PMUnitSelection';
 
 const C = {
   primary:'#002D5B', primaryLight:'#EFF6FF', primaryBlue:'#0659b2',
@@ -313,6 +319,10 @@ function BankAccountsCard({ accounts }) {
 // FIX P4: Units Summary — "View All" left, "+ Add Unit" right
 function UnitsSummaryCard({ propertyId, units }) {
   const navigate = useNavigate();
+  // LST-12 — real "List Ready" gate (LST-8's readiness engine), same modal
+  // convention as LandlordPropertyDetailPage.jsx: mounted/unmounted via a
+  // boolean rather than routed, so there's no dedicated route for it.
+  const [showUnitSelection, setShowUnitSelection] = useState(false);
   const statusColors = { AVAILABLE:{ bg:'#DCFCE7',color:'#166534' },OCCUPIED:{ bg:'#FEE2E2',color:'#991B1B' },COMING_SOON:{ bg:'#EEF2FF',color:'#3730A3' },DRAFT:{ bg:'#FEF3C7',color:'#92400E' },PENDING_OWNERSHIP_SUBMISSION:{ bg:'#FEF3C7',color:'#92400E' },default:{ bg:'#F1F5F9',color:'#64748B' } };
   const displayed=(units||[]).slice(0,5);
   return (
@@ -342,17 +352,32 @@ function UnitsSummaryCard({ propertyId, units }) {
           );
         })}
         {/* FIX P4: View All left + Add Unit right */}
-        <div style={{ padding:'10px 18px',borderTop:`1px solid ${C.border}`,display:'flex',alignItems:'center',justifyContent:'space-between' }}>
+        <div style={{ padding:'10px 18px',borderTop:`1px solid ${C.border}`,display:'flex',alignItems:'center',justifyContent:'space-between',flexWrap:'wrap',gap:8 }}>
           <button onClick={()=>navigate(`/pm-portal/properties/${propertyId}`)}
             style={{ background:'none',border:'none',cursor:'pointer',fontFamily:F.body,fontSize:12,fontWeight:700,color:C.textSec,display:'flex',alignItems:'center',gap:4,padding:0 }}>
             View all units →
           </button>
-          <button onClick={()=>navigate(`/pm-portal/properties/${propertyId}/add-unit`)}
-            style={{ display:'flex',alignItems:'center',gap:5,padding:'6px 12px',background:C.primary,border:'none',borderRadius:7,cursor:'pointer',fontFamily:F.body,fontSize:12,fontWeight:700,color:'#fff' }}>
-            <i className="ti ti-plus" style={{ fontSize:12 }} /> Add Unit
-          </button>
+          <div style={{ display:'flex',alignItems:'center',gap:8 }}>
+            {/* LST-12 — "List Multi Units" entry point (mirrors
+                LandlordPropertyDetailPage.jsx's own btnMulti button, teal to
+                distinguish it from the primary "+ Add Unit" action). Always
+                enabled — the real "List Ready" gate is PMUnitSelection.jsx,
+                which shows per-unit readiness (or "no units yet") rather
+                than disabling this button on a placeholder count. */}
+            <button onClick={()=>setShowUnitSelection(true)}
+              style={{ display:'flex',alignItems:'center',gap:5,padding:'6px 12px',background:'#fff',border:'1.5px solid #2a9d7f',borderRadius:7,cursor:'pointer',fontFamily:F.body,fontSize:12,fontWeight:700,color:'#2a9d7f' }}>
+              <i className="ti ti-layout-grid" style={{ fontSize:12 }} /> List Multi Units
+            </button>
+            <button onClick={()=>navigate(`/pm-portal/properties/${propertyId}/add-unit`)}
+              style={{ display:'flex',alignItems:'center',gap:5,padding:'6px 12px',background:C.primary,border:'none',borderRadius:7,cursor:'pointer',fontFamily:F.body,fontSize:12,fontWeight:700,color:'#fff' }}>
+              <i className="ti ti-plus" style={{ fontSize:12 }} /> Add Unit
+            </button>
+          </div>
         </div>
       </div>
+      {showUnitSelection && (
+        <PMUnitSelection propId={propertyId} onClose={()=>setShowUnitSelection(false)} />
+      )}
     </div>
   );
 }

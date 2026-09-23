@@ -168,7 +168,20 @@ export default function ListingStep4_Publish() {
   const badgeLabel = plan.priceValue > 0 ? plan.name : null;
 
   // ── Compliance & Validation — mirrors the backend's own publish-time checks ──
-  const requiredFieldOk = listingType === 'RENT' ? Boolean(rentalTerms.security_deposit) : Boolean(saleTerms.asking_price);
+  // Session 47 fix: was Boolean(rentalTerms.security_deposit) /
+  // Boolean(saleTerms.asking_price). ListingRentalTermsView/ListingSaleTermsView
+  // get_or_create these rows with a numeric default of 0 the first time the
+  // wizard touches Step 2 — DRF serializes that Decimal(0) as the STRING
+  // "0.00", and Boolean("0.00") is true in JS (any non-empty string is
+  // truthy), so this check silently showed "Security deposit set"/"Asking
+  // price set" as passed even when the value was still genuinely 0/unset.
+  // The backend's own gate (rules_engine/listing_readiness/evaluators.py
+  // _eval_listing_terms_complete) never had this bug — it checks a real
+  // Python Decimal, where bool(Decimal('0.00')) is correctly False — so
+  // publishing was never actually let through on a zero deposit/price; only
+  // this checklist's display was wrong. Numeric comparison matches the
+  // backend's real semantics. (Same fix applied to PMListingStep4_Publish.jsx.)
+  const requiredFieldOk = listingType === 'RENT' ? Number(rentalTerms.security_deposit) > 0 : Number(saleTerms.asking_price) > 0;
   const requiredFieldCheck = {
     status: requiredFieldOk ? 'ok' : 'warn',
     title: requiredFieldOk
@@ -237,38 +250,20 @@ export default function ListingStep4_Publish() {
     }
   };
 
-  if (published) {
-    return (
-      <ListingPageShell
-        propertyName={propertyName}
-        unitLabel={`Unit ${unit.unit_number}`}
-        current={4}
-        pageSub="This listing is now live."
-        footer={
-          <ListingFooter
-            current={4}
-            onSaveExit={() => navigate(`/landlord-portal/property/${propId}/unit/${unitId}`)}
-            leftContent="Published"
-          />
-        }
-      >
-        <div style={{ ...LS.card, maxWidth: 520, margin: '40px auto', textAlign: 'center' }}>
-          <div style={{ width: 44, height: 44, borderRadius: '50%', background: C.greenLight, color: C.greenDark, display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 14px', fontSize: 20 }}>
-            <i className="ti ti-check" aria-hidden="true" />
-          </div>
-          <p style={{ fontSize: 17, fontWeight: 700, color: C.txtPrimary, margin: '0 0 6px' }}>Listing Published</p>
-          <p style={{ fontSize: 13, color: C.txtSec, margin: '0 0 4px' }}>
-            {listing.title || 'This listing'} is now live on the marketplace.
-          </p>
-          {publishedListing?.expires_at && (
-            <p style={{ fontSize: 12, color: C.txtMuted }}>Runs through {formatDateTime(publishedListing.expires_at)}</p>
-          )}
-        </div>
-      </ListingPageShell>
-    );
-  }
+  // Session 47 fix: this used to be a second, full-page render (an early
+  // return swapping the ENTIRE Step 4 page for a near-empty success screen)
+  // — reported directly by the user during live testing (of the PM Portal
+  // twin of this file) as disorienting ("shows the full page"). Now a small
+  // popup over the still-visible Step 4 page instead, naming the property/
+  // unit, with a single "Done" button that goes back to the unit page (same
+  // destination Save & Exit already used) — see the popup render, inserted
+  // as a sibling of ListingPageShell further down, right before the
+  // component's closing brace. Mirrors the identical fix in
+  // PMListingStep4_Publish.jsx.
+  const handleDone = () => navigate(`/landlord-portal/property/${propId}/unit/${unitId}`);
 
   return (
+    <>
     <ListingPageShell
       propertyName={propertyName}
       unitLabel={`Unit ${unit.unit_number}`}
@@ -281,7 +276,7 @@ export default function ListingStep4_Publish() {
           onSaveExit={handleSaveExit}
           onContinue={handlePublish}
           continueLabel={publishing ? 'Publishing…' : 'Pay & Publish'}
-          continueDisabled={hasBlockingIssues || publishing}
+          continueDisabled={hasBlockingIssues || publishing || published}
           leftContent={
             <>
               <span style={LS.footerTotalLbl}>Total Due Today</span>
@@ -435,5 +430,29 @@ export default function ListingStep4_Publish() {
 
       </div>
     </ListingPageShell>
+
+    {published && (
+      <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 999 }}>
+        <div style={{ ...LS.card, width: 400, maxWidth: '90vw', margin: 0, textAlign: 'center', boxShadow: '0 24px 60px rgba(0,0,0,0.2)' }}>
+          <div style={{ width: 44, height: 44, borderRadius: '50%', background: C.greenLight, color: C.greenDark, display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 14px', fontSize: 20 }}>
+            <i className="ti ti-check" aria-hidden="true" />
+          </div>
+          <p style={{ fontSize: 17, fontWeight: 700, color: C.txtPrimary, margin: '0 0 6px' }}>Listing Published</p>
+          <p style={{ fontSize: 13, color: C.txtSec, margin: '0 0 4px' }}>
+            {propertyName} · Unit {unit.unit_number} is now live on the marketplace.
+          </p>
+          {publishedListing?.expires_at && (
+            <p style={{ fontSize: 12, color: C.txtMuted, margin: '0 0 16px' }}>Runs through {formatDateTime(publishedListing.expires_at)}</p>
+          )}
+          <button
+            onClick={handleDone}
+            style={{ ...LS.btn, ...LS.btnPrimary, width: '100%', marginTop: 6, justifyContent: 'center' }}
+          >
+            Done
+          </button>
+        </div>
+      </div>
+    )}
+    </>
   );
 }

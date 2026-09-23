@@ -70,6 +70,11 @@ export default function ListMultiStep3_Promote() {
   const location = useLocation();
 
   const propertyListingId = location.state?.propertyListingId ?? null;
+  // Session 45 continuation — Step 2's Unit Matrix checkbox state, relayed
+  // through untouched (this step doesn't read or change unit membership).
+  // null means "no selection was passed" (e.g. a direct URL nav) — Step 4
+  // treats that as "include every unit currently in the group."
+  const includedUnitListingIds = location.state?.includedUnitListingIds ?? null;
 
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState('');
@@ -197,7 +202,9 @@ export default function ListMultiStep3_Promote() {
     setSaving(true);
     try {
       await persist();
-      navigate(`/landlord-portal/property/${propId}/list-multi/step-2`, { state: { propertyListingId } });
+      navigate(`/landlord-portal/property/${propId}/list-multi/step-2`, {
+        state: { propertyListingId, includedUnitListingIds },
+      });
     } catch (e) {
       setSaveError(e.message || 'Could not save promotion settings.');
     } finally {
@@ -226,7 +233,7 @@ export default function ListMultiStep3_Promote() {
     try {
       await persist();
       navigate(`/landlord-portal/property/${propId}/list-multi/step-4`, {
-        state: { propertyListingId, selectedPlanId },
+        state: { propertyListingId, selectedPlanId, includedUnitListingIds },
       });
     } catch (e) {
       setSaveError(e.message || 'Could not save promotion settings.');

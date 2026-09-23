@@ -37,11 +37,18 @@ import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { C } from '../landlordTokens';
 import { LS, ListingPageShell, ListingFooter, SectionHead, MULTI_STEPS } from './listingWizardShared';
 import { getProperty, getUnit, getRentalTerms, getSaleTerms, getListingMedia } from './listingApi';
-import { getPropertyListing, getPropertyListingPromotionPlans, publishPropertyListing } from './propertyListingApi';
+import { getPropertyListing, getPropertyListingPromotionPlans, publishPropertyListing, deleteUnitListing } from './propertyListingApi';
+import { MIN_REQUIRED_PHOTOS } from './mockListingData';
 
-// Reconciled with ListMultiUnits.jsx's Unit Matrix (Session 44) — see that
-// file's header comment for why 4, not the old mock's inconsistent 3.
-const MIN_REQUIRED_PHOTOS = 4;
+// Session 48 (continued) fix — this used to be a local, still-hardcoded
+// `const MIN_REQUIRED_PHOTOS = 4` (see mockListingData.js's own comment,
+// which called this file and ListMultiUnits.jsx out by name as NOT wired to
+// the Individual wizard's Session 47 photo-requirement relaxation). Reported
+// live: Step 4's Compliance & Validation still blocked every Multi-Unit
+// listing on "needs at least 4 photos" even though the Individual wizard
+// (Landlord and PM Portal) and Org PM have required 0 since Session 47 (no
+// real photo-upload endpoint exists yet — LST-3). Now imports the same
+// shared constant those pages already use, so all four wizards agree.
 
 const WEEKDAY_ORDER = ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN'];
 const DAY_LABELS = { MON: 'Mon', TUE: 'Tue', WED: 'Wed', THU: 'Thu', FRI: 'Fri', SAT: 'Sat', SUN: 'Sun' };
@@ -100,6 +107,13 @@ export default function ListMultiStep4_Publish() {
 
   const propertyListingId = location.state?.propertyListingId ?? null;
   const requestedPlanId = location.state?.selectedPlanId;
+  // Session 45 continuation — units the landlord left unchecked on Step 2's
+  // Unit Matrix are treated as excluded from THIS publish everywhere below
+  // (compliance checks, price range, unit list) even though their Listing
+  // rows haven't been deleted yet — handlePublish removes them for real,
+  // right before actually publishing the rest. null = nothing was passed
+  // (e.g. a direct URL nav) = include everyone, unchanged from before.
+  const includedUnitListingIds = location.state?.includedUnitListingIds ?? null;
 
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState('');
@@ -184,7 +198,12 @@ export default function ListMultiStep4_Publish() {
   const plan = selectedPlan || { name: 'Basic', priceValue: 0, durationDays: 30 };
   const badgeLabel = plan.priceValue > 0 ? plan.name : null;
 
-  const units = unitDetails;
+  const units = includedUnitListingIds
+    ? unitDetails.filter(u => includedUnitListingIds.includes(u.id))
+    : unitDetails;
+  const excludedUnits = includedUnitListingIds
+    ? unitDetails.filter(u => !includedUnitListingIds.includes(u.id))
+    : [];
   const readyCount = units.filter(u => u.photoCount >= MIN_REQUIRED_PHOTOS && u.depositOk).length;
   const prices = units.map(u => u.priceValue).filter(Boolean);
   const minPrice = prices.length ? Math.min(...prices) : null;
@@ -224,6 +243,17 @@ export default function ListMultiStep4_Publish() {
     fixStep: 3,
   };
 
+  const unitsCheck = {
+    status: units.length > 0 ? 'ok' : 'warn',
+    title: units.length > 0 ? `${units.length} unit${units.length === 1 ? '' : 's'} will be published` : 'No units left to publish',
+    sub: units.length > 0
+      ? (excludedUnits.length > 0
+          ? `${excludedUnits.map(u => u.unitName).join(', ')} — left unchecked on Step 2, so ${excludedUnits.length === 1 ? 'it' : 'they'} won't be published with this group and will return to List Ready.`
+          : null)
+      : 'Every unit in this group is unchecked — go back to Step 2 and check at least one unit.',
+    fixStep: 2,
+  };
+
   const checks = [
     {
       status: 'ok',
@@ -231,6 +261,7 @@ export default function ListMultiStep4_Publish() {
       sub: 'Confirmed when this property was originally submitted — re-checked by the server at publish time.',
       fixStep: null,
     },
+    unitsCheck,
     photosCheck,
     depositsCheck,
     contactCheck,
@@ -238,7 +269,7 @@ export default function ListMultiStep4_Publish() {
   const hasBlockingIssues = checks.some(c => c.status === 'warn');
 
   const goToStep = (step) => navigate(`/landlord-portal/property/${propId}/list-multi/step-${step}`, {
-    state: { propertyListingId },
+    state: { propertyListingId, includedUnitListingIds },
   });
   const handleBack = () => goToStep(3);
   const handleSaveExit = () => navigate(`/landlord-portal/property/${propId}`);
@@ -248,6 +279,18 @@ export default function ListMultiStep4_Publish() {
     setPublishError('');
     setPublishing(true);
     try {
+      // Session 45 continuation — anything still unchecked at this point
+      // gets removed for real, right before the group publishes. Same
+      // guarded DELETE the Step 2 trash icon uses; sequential (not
+      // Promise.all) so a failure partway through stops before publish
+      // runs, instead of publishing a group that doesn't match what the
+      // landlord saw on screen.
+      const excludedSummaries = includedUnitListingIds
+        ? (group.unit_listings || []).filter(s => !includedUnitListingIds.includes(s.id))
+        : [];
+      for (const summary of excludedSummaries) {
+        await deleteUnitListing(summary.id);
+      }
       const result = await publishPropertyListing(propertyListingId, plan.id);
       setPublishedGroup(result);
       setPublished(true);
@@ -258,40 +301,22 @@ export default function ListMultiStep4_Publish() {
     }
   };
 
-  if (published) {
-    return (
-      <ListingPageShell
-        propertyName={propertyName}
-        unitLabel="List Multiple Units"
-        title="List Multiple Units"
-        current={4}
-        steps={MULTI_STEPS}
-        pageSub="This listing is now live."
-        footer={
-          <ListingFooter
-            current={4}
-            onSaveExit={() => navigate(`/landlord-portal/property/${propId}`)}
-            leftContent="Published"
-          />
-        }
-      >
-        <div style={{ ...LS.card, maxWidth: 520, margin: '40px auto', textAlign: 'center' }}>
-          <div style={{ width: 44, height: 44, borderRadius: '50%', background: C.greenLight, color: C.greenDark, display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 14px', fontSize: 20 }}>
-            <i className="ti ti-check" aria-hidden="true" />
-          </div>
-          <p style={{ fontSize: 17, fontWeight: 700, color: C.txtPrimary, margin: '0 0 6px' }}>Listing Published</p>
-          <p style={{ fontSize: 13, color: C.txtSec, margin: '0 0 4px' }}>
-            {group.title || 'This listing'} is now live on the marketplace — {readyCount} of {units.length} units.
-          </p>
-          <p style={{ fontSize: 12, color: C.txtMuted }}>
-            Runs through {formatDateTime(publishedGroup?.expires_at) || expiryDateFromToday(plan.durationDays)}
-          </p>
-        </div>
-      </ListingPageShell>
-    );
-  }
+  // Session 48 (continued) fix — LST-17. This used to be a full-page swap
+  // (an early `if (published) return <ListingPageShell>...` replacing the
+  // entire Step 4 page with a near-empty "This listing is now live" screen)
+  // — the exact full-page success screen already fixed in the Individual
+  // wizard's Step 4 (both Landlord and PM Portal, Session 47 item 8) but
+  // never applied here or to PMListMultiStep4_Publish.jsx. Reported live as
+  // disorienting there for the same reason it would be here. Now a small
+  // popup over the still-visible Step 4 summary instead, naming the
+  // listing and unit-ready count, with a single "Done" button back to the
+  // property page — see the popup render, inserted as a sibling of
+  // ListingPageShell further down, right before the component's closing
+  // brace. Mirrors ListingStep4_Publish.jsx's identical fix exactly.
+  const handleDone = () => navigate(`/landlord-portal/property/${propId}`);
 
   return (
+    <>
     <ListingPageShell
       propertyName={propertyName}
       unitLabel="List Multiple Units"
@@ -306,7 +331,7 @@ export default function ListMultiStep4_Publish() {
           onSaveExit={handleSaveExit}
           onContinue={handlePublish}
           continueLabel={publishing ? 'Publishing…' : 'Pay & Publish'}
-          continueDisabled={hasBlockingIssues || publishing}
+          continueDisabled={hasBlockingIssues || publishing || published}
           leftContent={
             <>
               <span style={LS.footerTotalLbl}>Total Due Today</span>
@@ -458,5 +483,29 @@ export default function ListMultiStep4_Publish() {
 
       </div>
     </ListingPageShell>
+
+    {published && (
+      <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 999 }}>
+        <div style={{ ...LS.card, width: 400, maxWidth: '90vw', margin: 0, textAlign: 'center', boxShadow: '0 24px 60px rgba(0,0,0,0.2)' }}>
+          <div style={{ width: 44, height: 44, borderRadius: '50%', background: C.greenLight, color: C.greenDark, display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 14px', fontSize: 20 }}>
+            <i className="ti ti-check" aria-hidden="true" />
+          </div>
+          <p style={{ fontSize: 17, fontWeight: 700, color: C.txtPrimary, margin: '0 0 6px' }}>Listing Published</p>
+          <p style={{ fontSize: 13, color: C.txtSec, margin: '0 0 4px' }}>
+            {group.title || 'This listing'} is now live on the marketplace — {readyCount} of {units.length} units.
+          </p>
+          <p style={{ fontSize: 12, color: C.txtMuted, margin: '0 0 16px' }}>
+            Runs through {formatDateTime(publishedGroup?.expires_at) || expiryDateFromToday(plan.durationDays)}
+          </p>
+          <button
+            onClick={handleDone}
+            style={{ ...LS.btn, ...LS.btnPrimary, width: '100%', marginTop: 6, justifyContent: 'center' }}
+          >
+            Done
+          </button>
+        </div>
+      </div>
+    )}
+    </>
   );
 }

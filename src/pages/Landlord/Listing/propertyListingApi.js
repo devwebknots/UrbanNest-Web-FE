@@ -60,6 +60,7 @@ function extractErrorMessage(body) {
 const get   = (path)       => apiFetch(path);
 const post  = (path, data) => apiFetch(path, { method: 'POST',  body: JSON.stringify(data) });
 const patch = (path, data) => apiFetch(path, { method: 'PATCH', body: JSON.stringify(data) });
+const del   = (path)       => apiFetch(path, { method: 'DELETE' });
 
 // ─── PropertyListing (create/update/detail rollup) ────────────────────────────
 // Smoke-tested Session 44: create → DRAFT defaults correct; GET → full nested
@@ -69,6 +70,14 @@ const patch = (path, data) => apiFetch(path, { method: 'PATCH', body: JSON.strin
 export const createPropertyListing = (data) => post('/property-listings/', data);
 export const getPropertyListing = (propertyListingId) => get(`/property-listings/${propertyListingId}/`);
 export const patchPropertyListing = (propertyListingId, data) => patch(`/property-listings/${propertyListingId}/`, data);
+
+// GET /api/property-listings/ — every group this landlord owns, across all
+// their properties (the backend queryset isn't property-scoped — see
+// listings/views.py's _user_property_listing_qs). Callers filter client-side
+// by `property` (Session 44 continuation — used by ListMultiStep1_Property.jsx
+// to find an existing DRAFT group for the current property before creating a
+// new one, see that file's own comment for why this was needed).
+export const listPropertyListings = () => get('/property-listings/');
 
 // ─── Group-shared amenities (bulk-replace, same convention as saveListingAmenities) ──
 // POST body: { amenity_ids, category?, sync_to_property? } — NOT a single
@@ -127,3 +136,13 @@ export const publishPropertyListing = (propertyListingId, planId) =>
 // PATCHed to move a Listing between groups.
 
 export const createUnitListing = (data) => post('/listings/', data);
+
+// ─── Remove a unit from a still-DRAFT group (Session 45 continuation) ──────────
+// DELETE /api/listings/<listingId>/ — listings/views.py's
+// ListingRetrieveUpdateView.perform_destroy guards this to DRAFT + grouped
+// listings only; it flips the unit's has_active_listing back to false and
+// recomputes its readiness snapshot server-side. Used by both the Unit
+// Matrix trash icon and, at Publish time, for any unit that's still
+// unchecked when the landlord hits Publish (see ListMultiUnits.jsx /
+// ListMultiStep4_Publish.jsx for the two call sites).
+export const deleteUnitListing = (listingId) => del(`/listings/${listingId}/`);

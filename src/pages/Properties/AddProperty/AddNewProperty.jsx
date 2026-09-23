@@ -1553,8 +1553,58 @@ export default function AddNewProperty({ persona = 'INDEPENDENT_PM',initialPrope
           .then(r => r.ok ? r.json() : null)
           .then(propData => {
             if (!propData) return;
+
+            // Session 40 — pre-fill fix. This handler previously only set
+            // propName + propType (and propType itself was broken — see
+            // below). Every other Property field the backend already
+            // returns (value, build_year, ownership_type, description,
+            // full address, country) was never read into state at all, so
+            // returning later to add a unit showed a mostly-blank Property
+            // tab even though the data existed server-side.
             setPropName(propData.property_name || propData.name || '');
-            setPropType(propData.property_type || '');
+
+            // property_type / ownership_type bug: PROPERTY_TYPE_OPTIONS and
+            // OWNERSHIP_TYPE_OPTIONS (used by the CustomDropdowns below) are
+            // keyed by human-readable label ('Apartment Complex'), not the
+            // backend enum ('APARTMENT_COMPLEX') — see handleSaveProperty's
+            // own LABEL → ENUM map further down this file. propData.* comes
+            // back as the enum, so setting it directly never matched any
+            // dropdown option and rendered blank. Reversing that same map
+            // fixes it without changing the enum's on-the-wire format.
+            const PROPERTY_TYPE_ENUM_TO_LABEL = {
+              APARTMENT_COMPLEX:  'Apartment Complex',
+              INDIVIDUAL_HOUSE:   'Individual House',
+              MULTI_FAMILY:       'Multi-Family',
+              CONDOMINIUM:        'Condominium',
+              TOWNHOME:           'Townhome',
+              STUDENT_HOUSING:    'Student Housing',
+              VILLA:              'Villa',
+              SERVICED_APARTMENT: 'Serviced Apartment',
+              COMMERCIAL:         'Commercial',
+              MIXED_USE:          'Mixed Use',
+            };
+            const OWNERSHIP_TYPE_ENUM_TO_LABEL = {
+              SELF_OWNED: 'Self-Owned',
+              CO_OWNED:   'Co-Owned',
+              CORPORATE:  'Corporate / LLC',
+              LEASEHOLD:  'Leasehold',
+            };
+            setPropType(PROPERTY_TYPE_ENUM_TO_LABEL[propData.property_type] || propData.property_type || '');
+            setOwnerType(OWNERSHIP_TYPE_ENUM_TO_LABEL[propData.ownership_type] || propData.ownership_type || '');
+
+            // Previously-missing fields — all returned by
+            // PropertyDetailSerializer, just never wired up here.
+            setDesc(propData.description || '');
+            setPropValue(propData.value ?? '');
+            setBuildYear(propData.build_year ?? '');
+            setCountry(propData.country || 'US');
+            setStreet1(propData.street_address || ''); // serializer aliases street1 -> street_address
+            setStreet2(propData.street2 || '');
+            setLandmark(propData.landmark || '');
+            setCity(propData.city || '');
+            setState(propData.state || '');
+            setZip(propData.zip_code || '');
+
             if (Array.isArray(propData.ownerships)) {
               const mapped = propData.ownerships.map(o => ({
                 id:                   o.id,

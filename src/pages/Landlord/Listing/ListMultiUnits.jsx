@@ -56,8 +56,9 @@ import {
 import {
   getPropertyListing, patchPropertyListing,
   getPropertyListingAmenities, savePropertyListingAmenities,
-  createUnitListing,
+  createUnitListing, deleteUnitListing,
 } from './propertyListingApi';
+import { MIN_REQUIRED_PHOTOS } from './mockListingData';
 
 const UTILITY_KEYS = [
   { key: 'water', label: 'Water' },
@@ -69,11 +70,15 @@ const UTILITY_KEYS = [
 
 const READINESS_LABEL = { ready: 'Ready', editing: 'Editing', needs_info: 'Needs Info', draft: 'Draft' };
 
-// Same photo-count gate as the single-unit flow (mockListingData.js) — kept
-// as one shared constant rather than the old mock's own separate (and
-// inconsistent, 3 vs 4) copy. The real gate is enforced server-side at
-// publish time regardless (property_listing_publish's compliance check).
-const MIN_REQUIRED_PHOTOS = 4;
+// Session 48 (continued) fix — this comment previously claimed to already
+// share mockListingData.js's constant but actually re-declared its own
+// local `= 4` (mockListingData.js's own comment called this file out by
+// name as the one place Session 47's photo-requirement relaxation hadn't
+// reached). Now actually imported above, so this file's "Needs Info"
+// readiness gate agrees with Step 4's Compliance & Validation and with the
+// Individual wizard (Landlord/PM Portal) and Org PM's own 0-minimum. The
+// real gate is enforced server-side at publish time regardless
+// (property_listing_publish's compliance check).
 
 function unitReadiness(u) {
   if ((u.photoCount || 0) < MIN_REQUIRED_PHOTOS) return 'needs_info';
@@ -184,6 +189,19 @@ export default function ListMultiUnits() {
   const location = useLocation();
 
   const propertyListingId = location.state?.propertyListingId ?? null;
+  // Session 45 continuation — if we're arriving back here from Step 3/4
+  // (the landlord hit Back), honor whatever checked/unchecked set they left
+  // with instead of silently resetting everyone to checked on reload.
+  const incomingIncludedIds = location.state?.includedUnitListingIds ?? null;
+  // Unit Selection screen continuation (LST-8's real gate,
+  // LandlordUnitSelection.jsx) — Unit ids (not Listing ids) the landlord
+  // already checked before Step 1, relayed here unchanged by that step.
+  // Auto-attached below, once, right after the group rollup loads, so the
+  // landlord isn't asked to re-pick the same units through "Add Units".
+  // Read once via a ref rather than the raw location.state value so a
+  // later re-render (e.g. after Add/Remove Unit) can't re-trigger the
+  // attach effect a second time.
+  const preselectedUnitIdsRef = useRef(location.state?.preselectedUnitIds ?? null);
 
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState('');
@@ -201,7 +219,17 @@ export default function ListMultiUnits() {
   const [units, setUnits] = useState([]);
   const [activeUnitId, setActiveUnitId] = useState(null); // Listing id
   const [activeTab, setActiveTab] = useState('details');
+  // selectedRowIds (Session 45 continuation): repurposed from dead UI state
+  // into "will this unit be included when the group is finally published" —
+  // defaults to every unit in the group (see the load effect below, and
+  // confirmAddUnits, which both keep this in sync with `units`). Unchecking
+  // does NOT delete anything by itself — it's just remembered and carried
+  // forward through the wizard (see handleContinue below) so Step 4 can
+  // drop any still-unchecked unit right before it actually publishes.
   const [selectedRowIds, setSelectedRowIds] = useState([]);
+  const [removingId, setRemovingId] = useState(null); // Listing id currently being deleted
+  const [removeError, setRemoveError] = useState('');
+  const [pendingRemoval, setPendingRemoval] = useState(null); // the unit row awaiting confirm, or null
 
   const [leaseTermOptions, setLeaseTermOptions] = useState([]);
   const [parkingFeeTypeOptions, setParkingFeeTypeOptions] = useState([]);
@@ -258,9 +286,52 @@ export default function ListMultiUnits() {
             .map(a => a.name),
         }));
 
-        const rows = await Promise.all((groupData.unit_listings || []).map(s => loadUnitRow(propertyId, s)));
+        let rows = await Promise.all((groupData.unit_listings || []).map(s => loadUnitRow(propertyId, s)));
         if (cancelled) return;
+
+        // Auto-attach any Unit Selection-screen preselected units not
+        // already in this group (see this file's header + the
+        // preselectedUnitIdsRef declaration above) — same
+        // createUnitListing() call confirmAddUnits uses below, just run
+        // once on load instead of through the "Add Units" picker, so the
+        // landlord isn't asked to re-pick the units they already checked.
+        const preselectedUnitIds = preselectedUnitIdsRef.current;
+        if (preselectedUnitIds && preselectedUnitIds.length) {
+          const existingUnitIds = new Set(rows.map(r => r.unitId));
+          const toAttach = preselectedUnitIds.filter(unitId => !existingUnitIds.has(unitId));
+          if (toAttach.length) {
+            try {
+              const created = await Promise.all(toAttach.map(unitId => createUnitListing({
+                unit: unitId,
+                listing_type: groupData.listing_type || 'RENT',
+                property_listing: Number(propertyListingId),
+              })));
+              if (cancelled) return;
+              const newRows = await Promise.all(created.map(c => loadUnitRow(propertyId, { id: c.id, unit: c.unit, status: c.status })));
+              if (cancelled) return;
+              rows = [...rows, ...newRows];
+            } catch (e) {
+              // Non-fatal — the landlord can still add them manually via
+              // "Add Units" below.
+              if (!cancelled) {
+                setLoadError(prev => prev || `Some preselected units couldn't be added automatically: ${e.message || 'unknown error'}`);
+              }
+            }
+          }
+          // One-shot — never re-attach on a later reload within this
+          // mount's lifetime (e.g. Back-then-Continue).
+          preselectedUnitIdsRef.current = null;
+        }
+
         setUnits(rows);
+        // Default every unit to "included" — unless we're arriving back
+        // from a later step with a checked/unchecked set already in hand,
+        // in which case honor it (filtered to units still actually in the
+        // group, in case one was deleted meanwhile).
+        const rowIds = new Set(rows.map(r => r.id));
+        setSelectedRowIds(
+          incomingIncludedIds ? incomingIncludedIds.filter(id => rowIds.has(id)) : rows.map(r => r.id)
+        );
       } catch (e) {
         if (!cancelled) setLoadError(e.message || 'Could not load this listing group.');
       } finally {
@@ -290,6 +361,39 @@ export default function ListMultiUnits() {
   };
   const toggleRowSelected = (unitListingId) => {
     setSelectedRowIds(prev => prev.includes(unitListingId) ? prev.filter(id => id !== unitListingId) : [...prev, unitListingId]);
+  };
+
+  // Session 45 continuation — immediate, permanent removal from this DRAFT
+  // group (as opposed to unchecking, which is reversible until Publish).
+  // Backend guards this to DRAFT + grouped listings only (listings/views.py's
+  // ListingRetrieveUpdateView.perform_destroy) and recomputes the unit's
+  // readiness on delete, so it's genuinely List Ready again and reappears in
+  // Add Units — has_active_listing flips back to false once the row's gone.
+  //
+  // The confirmation itself is an in-app modal (pendingRemoval below), not
+  // window.confirm() — a browser-native "localhost:3000 says" dialog looks
+  // like a bug report, not part of the product.
+  const requestRemoveUnit = (row) => {
+    if (removingId) return;
+    setPendingRemoval(row);
+  };
+  const cancelRemoveUnit = () => setPendingRemoval(null);
+  const confirmRemoveUnit = async () => {
+    const row = pendingRemoval;
+    if (!row) return;
+    setPendingRemoval(null);
+    setRemoveError('');
+    setRemovingId(row.id);
+    try {
+      await deleteUnitListing(row.id);
+      setUnits(prev => prev.filter(u => u.id !== row.id));
+      setSelectedRowIds(prev => prev.filter(id => id !== row.id));
+      if (activeUnitId === row.id) setActiveUnitId(null);
+    } catch (e) {
+      setRemoveError(e.message || `Could not remove ${row.unitName} from this group.`);
+    } finally {
+      setRemovingId(null);
+    }
   };
 
   // ── Common Listing Details — real group-level save (description + amenities) ──
@@ -357,7 +461,14 @@ export default function ListMultiUnits() {
     try {
       const all = await getPropertyUnits(propertyId);
       const existingUnitIds = new Set(units.map(u => u.unitId));
-      setAvailableUnits((all || []).filter(u => !existingUnitIds.has(u.id)));
+      // Session 44 continuation — exclude units already in THIS group
+      // (existingUnitIds, as before) AND units that already have their own
+      // active listing elsewhere (has_active_listing, from the backend —
+      // properties/serializers.py's UnitListSerializer). Without the second
+      // check, a unit already listed individually (or in another group)
+      // still showed up here as addable, which doesn't make sense — a unit
+      // can't be part of two listings at once. Reported during testing.
+      setAvailableUnits((all || []).filter(u => !existingUnitIds.has(u.id) && !u.has_active_listing));
     } catch (e) {
       setAddUnitsError(e.message || 'Could not load this property\'s units.');
     }
@@ -377,6 +488,7 @@ export default function ListMultiUnits() {
       })));
       const newRows = await Promise.all(created.map(c => loadUnitRow(propertyId, { id: c.id, unit: c.unit, status: c.status })));
       setUnits(prev => [...prev, ...newRows]);
+      setSelectedRowIds(prev => [...prev, ...newRows.map(r => r.id)]);
       setAddingUnits(false);
     } catch (e) {
       setAddUnitsError(e.message || 'Could not add the selected unit(s).');
@@ -416,12 +528,18 @@ export default function ListMultiUnits() {
   };
 
   const handleContinue = async () => {
-    if (saving) return;
+    if (saving || selectedRowIds.length === 0) return;
     setSaveError('');
     setSaving(true);
     try {
       await persistCommon();
-      navigate(`/landlord-portal/property/${propertyId}/list-multi/step-3`, { state: { propertyListingId } });
+      // Carry the checked/unchecked set forward — Step 3 relays it
+      // untouched, and Step 4 uses it right before Publish to drop any
+      // unit that's still unchecked at that point (Session 45
+      // continuation). Unchecking here does NOT delete anything yet.
+      navigate(`/landlord-portal/property/${propertyId}/list-multi/step-3`, {
+        state: { propertyListingId, includedUnitListingIds: selectedRowIds },
+      });
     } catch (e) {
       setSaveError(e.message || 'Could not save common listing details.');
     } finally {
@@ -446,6 +564,7 @@ export default function ListMultiUnits() {
   }
 
   return (
+    <>
     <ListingPageShell
       propertyName={property?.property_name || 'Property'}
       unitLabel="List Multiple Units"
@@ -461,8 +580,11 @@ export default function ListMultiUnits() {
           onSaveExit={handleSaveExit}
           onContinue={handleContinue}
           continueLabel={saving ? 'Saving…' : 'Continue to Promote →'}
-          continueDisabled={saving}
-          noteContent={saveError || undefined}
+          continueDisabled={saving || selectedRowIds.length === 0}
+          noteContent={
+            saveError || removeError
+              || (selectedRowIds.length === 0 ? 'Check at least one unit to continue.' : undefined)
+          }
         />
       }
     >
@@ -685,7 +807,17 @@ export default function ListMultiUnits() {
                           ) : (
                             <span style={{ display: 'flex', gap: 10 }}>
                               <i className="ti ti-pencil" style={{ color: C.blue, cursor: 'pointer' }} onClick={() => openUnit(u.id)} aria-hidden="true" title="Edit specifics" />
-                              <i className="ti ti-trash" style={{ color: C.red, cursor: 'not-allowed', opacity: 0.5 }} aria-hidden="true" title="Removing a unit from a group isn't wired yet" />
+                              <i
+                                className="ti ti-trash"
+                                style={{
+                                  color: C.red,
+                                  cursor: removingId ? 'not-allowed' : 'pointer',
+                                  opacity: removingId === u.id ? 0.4 : (removingId ? 0.5 : 1),
+                                }}
+                                onClick={() => requestRemoveUnit(u)}
+                                aria-hidden="true"
+                                title={removingId === u.id ? 'Removing…' : 'Remove this unit from the group'}
+                              />
                             </span>
                           )}
                         </td>
@@ -1003,5 +1135,69 @@ export default function ListMultiUnits() {
         </div>
       </div>
     </ListingPageShell>
+
+    {/* Remove-unit confirmation — in-app modal (Session 45 continuation),
+        replacing window.confirm()'s browser-native "localhost:3000 says"
+        dialog, which looked like an error rather than part of the product. */}
+    {pendingRemoval && (
+      <div
+        role="presentation"
+        onClick={cancelRemoveUnit}
+        style={{
+          position: 'fixed', inset: 0, background: 'rgba(13,27,46,0.55)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          zIndex: 1000, padding: 16,
+        }}
+      >
+        <div
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="remove-unit-modal-title"
+          onClick={e => e.stopPropagation()}
+          style={{
+            background: C.cardBg, borderRadius: 12, maxWidth: 420, width: '100%',
+            padding: 24, boxShadow: '0 20px 40px rgba(13,27,46,0.25)',
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'flex-start', gap: 12, marginBottom: 14 }}>
+            <div style={{
+              width: 36, height: 36, borderRadius: '50%', background: C.redLight, color: C.red,
+              display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, fontSize: 16,
+            }}>
+              <i className="ti ti-trash" aria-hidden="true" />
+            </div>
+            <div>
+              <div id="remove-unit-modal-title" style={{ fontSize: 15, fontWeight: 700, color: C.txtPrimary, marginBottom: 4 }}>
+                Remove {pendingRemoval.unitName} from this listing group?
+              </div>
+              <div style={{ fontSize: 13, color: C.txtSec, lineHeight: 1.5 }}>
+                It will not be published with this group, and returns to List Ready — you can add it back later via "Add Units".
+              </div>
+            </div>
+          </div>
+          <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
+            <button
+              onClick={cancelRemoveUnit}
+              style={{
+                padding: '8px 16px', borderRadius: 8, border: `1px solid ${C.cardBdr}`,
+                background: C.cardBg, color: C.txtPrimary, fontSize: 13, fontWeight: 600, cursor: 'pointer',
+              }}
+            >
+              Cancel
+            </button>
+            <button
+              onClick={confirmRemoveUnit}
+              style={{
+                padding: '8px 16px', borderRadius: 8, border: 'none',
+                background: C.red, color: '#fff', fontSize: 13, fontWeight: 600, cursor: 'pointer',
+              }}
+            >
+              Remove Unit
+            </button>
+          </div>
+        </div>
+      </div>
+    )}
+    </>
   );
 }

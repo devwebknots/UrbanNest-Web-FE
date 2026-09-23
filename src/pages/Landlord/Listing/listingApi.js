@@ -78,6 +78,15 @@ export const patchUnit = (propId, unitId, data) => patch(`/properties/${propId}/
 // "Add Units" picker (which units on this property aren't in the group yet).
 export const getPropertyUnits = (propId) => get(`/properties/${propId}/units/`);
 
+// Per-unit Listing Readiness (A6 — Engine 1, rules_engine.listing_readiness).
+// GET /properties/<pk>/units/<uid>/readiness/ → { overall_result:
+// 'LIST_READY'|'READY_WITH_WARNINGS'|'NOT_READY'|'NOT_ELIGIBLE',
+// computed_at, rules: [{ code, name, severity, passed, detail_reason }] }.
+// Added for the Unit Selection screen (LandlordUnitSelection.jsx) — the
+// real "List Ready" gate ahead of the Individual/Multi-Unit wizards
+// (backlog LST-8).
+export const getUnitReadiness = (propId, unitId) => get(`/properties/${propId}/units/${unitId}/readiness/`);
+
 // Full amenity master catalog, optionally filtered by category (PROPERTY|UNIT|BOTH)
 export const getAmenityCatalog = (category) =>
   get(`/properties/amenities/${category ? `?category=${category}` : ''}`);
@@ -145,3 +154,16 @@ export const patchLeadSettings = (listingId, data) => patch(`/listings/${listing
 
 export const publishListing = (listingId, planId) =>
   post(`/listings/${listingId}/publish/`, { plan_id: planId });
+
+// ─── PM Portal — Listings Overview dashboard rollup (LST-19, Session 48) ──────
+// GET /listings/pm-overview/ → { properties: [{id, name, totalUnits}],
+// units: [{id, unit, propertyId, bedBath, sqft, rent, readiness, status,
+// channel, publishedDate, availableDate, notReadyReason}], drafts: [{id,
+// propertyId, type, unitLabel, step, stepLabel, lastEdited}] } — shaped to
+// match PMListingsOverview.jsx's own MOCK_PROPERTIES/MOCK_UNITS/
+// DRAFT_LISTINGS exactly, so that file's existing derivation logic (stat
+// tiles, Portfolio Coverage, Ready to List, Opportunities, Active Listings,
+// Not Ready, Draft Listings) runs unchanged against real data. See that
+// endpoint's own docstring in the backend (listings/views.py) for the full
+// design writeup and known gaps (LST-22's draft-step heuristic, etc.).
+export const getPMListingsOverview = () => get('/listings/pm-overview/');

@@ -579,6 +579,43 @@ export default function LandlordUnitDetailPage() {
           <div style={S.titleRow}>
             <div style={S.unitName}>{loading ? '…' : unit.unit_number}</div>
             <div style={S.actionBtns}>
+              {/* Session 41 — entry point into the Create Listing wizard
+                  (UrbanNest_Listing_Architecture.md §2). Originally FE-only
+                  with no gating at all (unconditional link into the wizard
+                  even for an already-listed unit). Session 44 continuation:
+                  the backend (LandlordUnitDetailView) now reports
+                  unit.active_listing when a DRAFT/PENDING_PAYMENT/ACTIVE
+                  Listing already exists for this unit — disable the button
+                  and relabel it instead of letting a second wizard run
+                  start. Still doesn't call the A6 readiness engine itself;
+                  that's a separate, larger piece of wiring for a unit with
+                  no listing yet (would gate whether the button is clickable
+                  at all based on LIST_READY/NOT_READY), left for later FE
+                  work rather than folded into this narrow fix. */}
+              <button
+                style={
+                  unit.active_listing
+                    ? { ...S.btnOutline, background: C.mutedBg || '#e5e7eb', color: C.muted || '#6b7280', border: 'none', cursor: 'not-allowed' }
+                    : { ...S.btnOutline, background: C.blue, color: '#fff', border: 'none' }
+                }
+                disabled={!!unit.active_listing}
+                onClick={() => {
+                  if (unit.active_listing) return;
+                  window.location.href = `/landlord-portal/property/${propId}/unit/${unitId}/list/step-1`;
+                }}
+                title={
+                  unit.active_listing
+                    ? (unit.active_listing.status === 'ACTIVE'
+                        ? 'This unit is already listed on the Marketplace.'
+                        : 'A listing is already in progress for this unit.')
+                    : undefined
+                }
+              >
+                <i className="ti ti-building-store" style={{ fontSize: 13 }} aria-hidden="true" />
+                {unit.active_listing
+                  ? (unit.active_listing.status === 'ACTIVE' ? 'Listed' : 'Listing in Progress')
+                  : 'List on Marketplace'}
+              </button>
               <button style={S.btnOutline}><i className="ti ti-share" style={{ fontSize: 13 }} aria-hidden="true" />Share detail</button>
               <button style={S.btnDark}><i className="ti ti-download" style={{ fontSize: 13 }} aria-hidden="true" />Download report</button>
             </div>

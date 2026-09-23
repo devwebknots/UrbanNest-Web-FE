@@ -31,7 +31,13 @@ import {
   createPropertyListing, getPropertyListing, patchPropertyListing,
   getPropertyListingAmenities, savePropertyListingAmenities,
   getPropertyListingNeighborhood, patchPropertyListingNeighborhood,
+  listPropertyListings,
 } from './propertyListingApi';
+
+// Groups in these statuses are still "in progress" — worth resuming instead
+// of starting a second one. EXPIRED/UNPUBLISHED groups are done; a fresh
+// "List Multi Units" click should start clean for those.
+const RESUMABLE_STATUSES = ['DRAFT', 'PENDING_PAYMENT'];
 
 export default function ListMultiStep1_Property() {
   const { id: propId } = useParams();
@@ -39,6 +45,14 @@ export default function ListMultiStep1_Property() {
   const location = useLocation();
 
   const [propertyListingId, setPropertyListingId] = useState(location.state?.propertyListingId ?? null);
+  // Session continuation (Unit Selection screen, LST-8's real gate) — when
+  // this step was entered from LandlordUnitSelection.jsx with 2+ units
+  // already checked, relay that selection through to Step 2 untouched
+  // (never consumed here — this step has no concept of units at all, see
+  // its own header note). null on every other entry point (the plain
+  // "List Multi Units" href, or Back from Step 2), which Step 2 already
+  // treats as "nothing to auto-attach".
+  const preselectedUnitIds = location.state?.preselectedUnitIds ?? null;
 
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState('');
@@ -57,6 +71,7 @@ export default function ListMultiStep1_Property() {
   const [landmarks, setLandmarks] = useState([]);
   const [landmarkDraft, setLandmarkDraft] = useState('');
   const [websiteUrl, setWebsiteUrl] = useState('');
+  const [resumedDraft, setResumedDraft] = useState(false);
 
   // ── Load everything this step needs ──────────────────────────────────────
   useEffect(() => {
@@ -72,6 +87,33 @@ export default function ListMultiStep1_Property() {
         if (cancelled) return;
         setProperty(propData);
 
+        // Resolve an existing in-progress group for this property when we
+        // weren't handed one via router state — see this file's header
+        // comment. LandlordPropertyDetailPage.jsx's "List Multi Units"
+        // button navigates with a plain href (no state), so without this,
+        // propertyListingId is always null on that entry point even when a
+        // DRAFT group already exists, and every visit silently created a
+        // new, empty group (reported during Session 44 continuation
+        // testing — units added to a prior attempt vanished).
+        let resolvedId = propertyListingId;
+        if (!resolvedId) {
+          try {
+            const allGroups = await listPropertyListings();
+            const candidates = (allGroups || [])
+              .filter(g => String(g.property) === String(propId) && RESUMABLE_STATUSES.includes(g.status))
+              .sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+            if (candidates.length > 0) {
+              resolvedId = candidates[0].id;
+              if (cancelled) return;
+              setPropertyListingId(resolvedId);
+              setResumedDraft(true);
+            }
+          } catch {
+            // Non-fatal — worst case, Continue creates a new group, same as
+            // today's behavior before this fix.
+          }
+        }
+
         let selectedAmenityIds = new Set();
         let seedDescription = '';
         let seedListingType = 'RENT';
@@ -79,11 +121,11 @@ export default function ListMultiStep1_Property() {
         let seedLandmarks = [];
         let seedWebsiteUrl = '';
 
-        if (propertyListingId) {
+        if (resolvedId) {
           const [group, groupAmenities, neighborhood] = await Promise.all([
-            getPropertyListing(propertyListingId),
-            getPropertyListingAmenities(propertyListingId, 'PROPERTY'),
-            getPropertyListingNeighborhood(propertyListingId),
+            getPropertyListing(resolvedId),
+            getPropertyListingAmenities(resolvedId, 'PROPERTY'),
+            getPropertyListingNeighborhood(resolvedId),
           ]);
           if (cancelled) return;
           seedDescription = group.description || seedDescription;
@@ -185,7 +227,7 @@ export default function ListMultiStep1_Property() {
     try {
       const id = await persist();
       navigate(`/landlord-portal/property/${propId}/list-multi/step-2`, {
-        state: { propertyListingId: id },
+        state: { propertyListingId: id, preselectedUnitIds },
       });
     } catch (e) {
       setSaveError(e.message || 'Could not save this listing group.');
@@ -215,7 +257,11 @@ export default function ListMultiStep1_Property() {
       propertyName={property.property_name}
       unitLabel="List Multiple Units"
       title="List Multiple Units"
-      pageSub="Set up the shared property details for this listing — you'll add units and unit-specific pricing next."
+      pageSub={
+        resumedDraft
+          ? "Resumed your existing draft listing for this property — you'll add units and unit-specific pricing next."
+          : "Set up the shared property details for this listing — you'll add units and unit-specific pricing next."
+      }
       current={1}
       steps={MULTI_STEPS}
       footer={
