@@ -21,10 +21,11 @@ import {
   LS, ListingPageShell, ListingFooter, SectionHead,
   AiAssistButton, Checkbox, Toggle, RadioPillButton, MULTI_STEPS,
 } from './listingWizardShared';
-import { getProperty, getChannelCatalog, getPromotionPlanCatalog } from './listingApi';
+import { getProperty, getChannelCatalog } from './listingApi';
 import {
   getPropertyListing,
   getPropertyListingChannels, savePropertyListingChannels,
+  getPropertyListingPromotionPlans,
   getPropertyListingLeadSettings, patchPropertyListingLeadSettings,
 } from './propertyListingApi';
 
@@ -121,7 +122,12 @@ export default function ListMultiStep3_Promote() {
           getPropertyListing(propertyListingId),
           getChannelCatalog(),
           getPropertyListingChannels(propertyListingId),
-          getPromotionPlanCatalog(),
+          // Session 48: eligibility-filtered server-side for this group —
+          // persona, market (this group's own Property.country), AND
+          // portfolio_units (this group's own live unit count) against each
+          // plan's Tab 3 min/max portfolio-units bounds. See
+          // listings/views.py's PropertyListingPromotionPlanListView.
+          getPropertyListingPromotionPlans(propertyListingId),
           getPropertyListingLeadSettings(propertyListingId),
         ]);
         if (cancelled) return;

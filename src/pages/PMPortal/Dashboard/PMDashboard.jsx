@@ -22,7 +22,7 @@ if (typeof document !== 'undefined' && !document.getElementById('tabler-icons-cd
 
 const C = {
   primary:'#002D5B', primaryHover:'#003d7a', navBg:'#111827',
-  pageBg:'#F1F5F9', border:'#E2E8F0', borderMedium:'#CBD5E1',
+  pageBg:'#F8FAFC', border:'#E2E8F0', borderMedium:'#CBD5E1',
   textPrimary:'#0F172A', textSecondary:'#64748B', textTertiary:'#94A3B8',
   white:'#FFFFFF', neutral:'#F8FAFC', green:'#16A34A', greenBg:'#DCFCE7',
   danger:'#E53E3E', dangerBg:'#FEE2E2', amber:'#D97706', amberBg:'#FEF3C7',

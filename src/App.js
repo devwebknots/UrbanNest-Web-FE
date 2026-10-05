@@ -24,6 +24,12 @@ import LandlordOnboarding_Step3 from './pages/Landlord/Onboarding/LandlordOnboar
 import PMDashboard          from './pages/PMPortal/Dashboard/PMDashboard';
 import PMWelcomePage        from './pages/PMPortal/Dashboard/PMWelcomePage';
 import PMProfileView        from './pages/PMPortal/Profile/PMProfileView';
+// Phase 3 (Session 49) — Subscription & Billing parity for Independent PM.
+// NavB.jsx's 'subscription' nav item ('My Profile' → 'Subscription & Trial')
+// already pointed at this exact route with no page behind it — this is
+// that page, mirroring LandlordSettingsPage.jsx's own Subscription & Billing
+// tab against the /api/pm/ endpoints instead of /api/landlord/.
+import PMSubscriptionPage   from './pages/PMPortal/Profile/PMSubscriptionPage';
 import PMVerificationSettings from './pages/PMPortal/Config/PMVerificationSettings';
 import PMListingReadiness from './pages/PMPortal/Config/PMListingReadiness';
 
@@ -37,6 +43,13 @@ import UNAdminApplicationReview from './pages/UNAdminPortal/Applications/UNAdmin
 import UNAdminReferenceData from './pages/UNAdminPortal/Configurations/References/UNAdminReferenceData';
 import UNAdminMiscConfig from './pages/UNAdminPortal/Configurations/Miscellaneous/UNAdminMiscConfig';
 import UNAdminListingReadiness from './pages/UNAdminPortal/Configurations/ListingReadiness/UNAdminListingReadiness';
+
+// UN Admin Portal — Advertise & Monetise — Promotion Engine (Session 48).
+// FE-first build, sample-data driven (Product Catalog → Campaigns →
+// Analytics & Audit → Overview), per Listings_Overview_Design_Review.md's
+// precedent of shipping the UI ahead of any backend model. Shell tab
+// switcher wraps all four sub-screens — see PromotionEngine.jsx header.
+import PromotionEngine from './pages/UNAdminPortal/Advertise/PromotionEngine/PromotionEngine';
 
 // PMS Onboarding (existing — pending refactor)
 import PMSOnboardingStep1   from './PMS_Onboarding_Step1';
@@ -106,7 +119,7 @@ import LandlordDashboard from './pages/Landlord/LandlordDashboard';
 import LandlordPortfolioPage from './pages/Landlord/LandlordPortfolioPage';
 import LandlordPropertyDetailPage from './pages/Landlord/LandlordPropertyDetailPage';
 import LandlordUnitDetailPage from './pages/Landlord/LandlordUnitDetailPage';
-import LandlordSettingsPage from './pages/Landlord/LandlordSettingsPage';
+import LandlordSettingsPage from './pages/Landlord/Account Settings/LandlordSettingsPage';
 
 // Landlord — Create Listing wizard (Session 41 FE build; wired to the real
 // `listings` backend Session 43 — see listingApi.js). Step 4 was built
@@ -204,6 +217,7 @@ function AppRoutes() {
       <Route path="/pm-portal/dashboard/welcome"      element={<PMWelcomePage persona="INDEPENDENT_PM" />} />
       <Route path="/pm-portal/dashboard/my-dashboard" element={<PMDashboard   persona="INDEPENDENT_PM" />} />
       <Route path="/pm-portal/profile/persona"        element={<PMProfileView />} />
+      <Route path="/pm-portal/profile/subscription"   element={<PMSubscriptionPage />} />
       <Route path="/pm-portal/config/verification-settings" element={<PMVerificationSettings />} />
       <Route path="/pm-portal/config/listing-readiness"     element={<PMListingReadiness />} />
 
@@ -286,6 +300,15 @@ function AppRoutes() {
       <Route path="/admin-portal/config/miscellaneous" element={
         <UNAdminShell activeId="misc-config" title="Miscellaneous Configurations">
           <UNAdminMiscConfig />
+        </UNAdminShell>
+      } />
+      {/* Session 48 — Advertise & Monetise — Promotion Engine. Single tabbed
+          page (Overview / Product Catalog / Campaigns / Analytics & Audit)
+          per the user's confirmed nav-wiring decision — one new NavE child,
+          the 3 existing advertise-* placeholders are left untouched. */}
+      <Route path="/admin-portal/advertise/promotion-engine" element={
+        <UNAdminShell activeId="advertise-promotion-engine" title="Promotion Engine">
+          <PromotionEngine />
         </UNAdminShell>
       } />
 

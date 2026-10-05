@@ -35,8 +35,8 @@ const NAV_BOTTOM = [
 
 const S = {
   nav: {
-    width: 164,
-    minWidth: 164,
+    width: 220,
+    minWidth: 220,
     background: C.navBg,
     display: 'flex',
     flexDirection: 'column',

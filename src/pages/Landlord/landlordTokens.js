@@ -33,7 +33,7 @@ export const C = {
   navyDark:    '#0a1628',
 
   // Page / layout
-  pageBg:      '#f2f4f8',
+  pageBg:      '#F8FAFC',
   topbarBg:    '#ffffff',
   topbarBdr:   '#e5e8ed',
   cardBg:      '#ffffff',

@@ -51,6 +51,10 @@ export default function CustomDropdown({
   placeholder = 'Select…',
   error = false,
   disabled = false,
+  bg, // optional trigger-background override — defaults to C.inputBg below;
+      // lets a caller (e.g. Promotion Engine's promotionTokens.js) opt into
+      // a different closed-state background without changing this shared
+      // component's default for every other screen that uses it.
 }) {
   const [open, setOpen] = useState(false);
   const ref = useRef();
@@ -84,7 +88,7 @@ export default function CustomDropdown({
           width: '100%',
           height: '38px',
           boxSizing: 'border-box',
-          background: disabled ? C.neutral : C.inputBg,
+          background: disabled ? C.neutral : (bg || C.inputBg),
           border: `1px solid ${borderColor}`,
           borderRadius: open ? '6px 6px 0 0' : '6px',
           padding: '0 32px 0 11px',

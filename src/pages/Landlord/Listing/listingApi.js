@@ -143,7 +143,25 @@ export const getListingChannels = (listingId) => get(`/listings/${listingId}/cha
 export const saveListingChannels = (listingId, channelIds) =>
   post(`/listings/${listingId}/channels/`, { channel_ids: channelIds });
 
-export const getPromotionPlanCatalog = () => get('/listings/promotion-plans/');
+// Session 48: now eligibility-filtered server-side by persona (from the
+// caller's active_persona) and, when `listingId` is passed, by that
+// listing's market too — see listings/views.py's ListingPromotionPlanListView.
+// `listingId` is optional so any other (non-wizard) caller keeps working.
+export const getPromotionPlanCatalog = (listingId) =>
+  get(`/listings/promotion-plans/${listingId ? `?listing=${listingId}` : ''}`);
+
+// ─── Listing Promotion Subscription — standing entitlement (Phase 4, Session 49) ──
+// My Services' "Already Paid" flow: a one-time account-level pre-purchase
+// (purchasePromotionSubscription) that can later be reused on a real
+// listing's publish step instead of a fresh plan_id — see listing_publish's
+// own docstring on the backend for the subscription_id contract.
+export const getPromotionSubscriptions = () => get('/listings/promotion-subscriptions/');
+
+export const getPromotionSubscriptionCatalog = (country) =>
+  get(`/listings/promotion-subscriptions/catalog/${country ? `?country=${encodeURIComponent(country)}` : ''}`);
+
+export const purchasePromotionSubscription = (country, planId) =>
+  post('/listings/promotion-subscriptions/purchase/', { country, plan_id: planId });
 
 // ─── Lead settings (Step 3) ─────────────────────────────────────────────────────
 
@@ -151,9 +169,14 @@ export const getLeadSettings = (listingId) => get(`/listings/${listingId}/lead-s
 export const patchLeadSettings = (listingId, data) => patch(`/listings/${listingId}/lead-settings/`, data);
 
 // ─── Publish (Step 4) ───────────────────────────────────────────────────────────
-
-export const publishListing = (listingId, planId) =>
-  post(`/listings/${listingId}/publish/`, { plan_id: planId });
+// Phase 4 (Session 49): the backend now accepts EITHER plan_id (a fresh,
+// full-price purchase) OR subscription_id (reuse an already-owned standing
+// entitlement — "Already Paid"). `opts.subscriptionId`, when given, wins —
+// the backend itself only ever expects one or the other, never both.
+export const publishListing = (listingId, planId, opts = {}) =>
+  post(`/listings/${listingId}/publish/`, opts.subscriptionId
+    ? { subscription_id: opts.subscriptionId }
+    : { plan_id: planId });
 
 // ─── PM Portal — Listings Overview dashboard rollup (LST-19, Session 48) ──────
 // GET /listings/pm-overview/ → { properties: [{id, name, totalUnits}],

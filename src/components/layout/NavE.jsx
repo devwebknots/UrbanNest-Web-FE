@@ -29,6 +29,7 @@
  *   advertise-inventory          → /admin-portal/advertise/inventory
  *   advertise-advertisers        → /admin-portal/advertise/advertisers
  *   advertise-performance        → /admin-portal/advertise/performance
+ *   advertise-promotion-engine   → /admin-portal/advertise/promotion-engine   (Session 48)
  *   config-screening             → /admin-portal/config/screening
  *   config-plans                 → /admin-portal/config/plans
  *   config-emails                → /admin-portal/config/emails
@@ -146,6 +147,11 @@ const NAV_SECTIONS = [
       { id: 'advertise-inventory',   label: 'Ad Inventory',    route: '/admin-portal/advertise/inventory' },
       { id: 'advertise-advertisers', label: 'Advertisers',     route: '/admin-portal/advertise/advertisers' },
       { id: 'advertise-performance', label: 'Ad Performance',  route: '/admin-portal/advertise/performance' },
+      // Session 48 — Promotion Engine. The 3 items above are still
+      // unbuilt placeholders (no page files exist for them yet) — per
+      // the user's explicit Session 48 decision, this is a new addition
+      // alongside them, not a replacement/repurposing of any of the three.
+      { id: 'advertise-promotion-engine', label: 'Promotion Engine', route: '/admin-portal/advertise/promotion-engine' },
     ],
   },
   {

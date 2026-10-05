@@ -74,6 +74,11 @@ export default function ListingStep4_Publish() {
 
   const listingId = location.state?.listingId ?? null;
   const propertyNameFromState = location.state?.propertyName;
+  // Phase 4 (Session 49) — set when Step 3 picked "Already Paid" (an owned
+  // ListingPromotionSubscription) instead of a fresh plan. Mutually
+  // exclusive with selectedPlanId — see ListingStep3_Promote.jsx's
+  // choosePlan/chooseSubscription.
+  const selectedSubscriptionId = location.state?.selectedSubscriptionId ?? null;
 
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState('');
@@ -165,7 +170,11 @@ export default function ListingStep4_Publish() {
   const propertyName = propertyNameFromState || property.name || 'Property';
 
   const plan = selectedPlan || { name: 'Basic', priceValue: 0, durationDays: 30 };
-  const badgeLabel = plan.priceValue > 0 ? plan.name : null;
+  // Phase 4 (Session 49) — "Already Paid" means $0 due regardless of the
+  // underlying plan's own price, and the publish call sends subscription_id
+  // instead of plan_id (see handlePublish below).
+  const amountDueToday = selectedSubscriptionId ? 0 : plan.priceValue;
+  const badgeLabel = selectedSubscriptionId ? `${plan.name} (Already Paid)` : (plan.priceValue > 0 ? plan.name : null);
 
   // ── Compliance & Validation — mirrors the backend's own publish-time checks ──
   // Session 47 fix: was Boolean(rentalTerms.security_deposit) /
@@ -240,7 +249,7 @@ export default function ListingStep4_Publish() {
     setPublishError('');
     setPublishing(true);
     try {
-      const result = await publishListing(listingId, plan.id);
+      const result = await publishListing(listingId, plan.id, { subscriptionId: selectedSubscriptionId });
       setPublishedListing(result);
       setPublished(true);
     } catch (e) {
@@ -280,7 +289,7 @@ export default function ListingStep4_Publish() {
           leftContent={
             <>
               <span style={LS.footerTotalLbl}>Total Due Today</span>
-              <span style={LS.footerTotalVal}>{plan.priceValue === 0 ? 'Free' : `$${plan.priceValue.toFixed(2)}`}</span>
+              <span style={LS.footerTotalVal}>{amountDueToday === 0 ? (selectedSubscriptionId ? 'Already Paid' : 'Free') : `$${amountDueToday.toFixed(2)}`}</span>
             </>
           }
           noteContent={publishError || 'Payment failure keeps this listing in Draft — nothing publishes until payment succeeds.'}
