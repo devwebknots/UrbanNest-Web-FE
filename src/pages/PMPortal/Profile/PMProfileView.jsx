@@ -14,6 +14,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { CustomDropdown } from '../../../components/ui';
 import NavB from '../../../components/layout/NavB';
+import AccountSettingsSubnav from './AccountSettingsSubnav';
 
 // ─── Tabler Icons CDN ──────────────────────────────────────────────────────────
 if (typeof document !== 'undefined' && !document.getElementById('tabler-icons-cdn')) {
@@ -48,7 +49,7 @@ const C = {
   successText:   '#065F46',
   infoBg:        '#EFF6FF',
   infoBorder:    '#BFDBFE',
-  infoText:      '#1D4ED8',
+  infoText:      '#3d8ef0',
   amberBg:       '#FEF3C7',
   amberBorder:   '#FCD34D',
   amberText:     '#92400E',
@@ -1002,7 +1003,7 @@ export default function PMProfileView() {
       <div style={{ display: 'flex', height: '100vh', overflow: 'hidden', background: C.pageBg, fontFamily: F.body }}>
 
         {/* ── Col 1: Nav B ── */}
-        <NavB activeId="persona" />
+        <NavB activeId="account-profile" />
 
         {/* ── Col 2+3: right side ── */}
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0, overflow: 'hidden' }}>
@@ -1051,6 +1052,15 @@ export default function PMProfileView() {
                 ? 'Edit your profile details below. First name and last name cannot be changed here.'
                 : 'Your professional profile as seen by landlords. Click the pencil icon to edit.'}
             </p>
+          </div>
+
+          {/* ── Account Settings tab strip (Session 49 nav consolidation) ──
+              This page used to be its own top-level "My Profile → Persona"
+              nav destination; it's now the "My Profile" tab inside the
+              consolidated Account Settings section — see NavB.jsx and
+              AccountSettingsSubnav.jsx for the rest of the consolidation. */}
+          <div style={{ flexShrink: 0, padding: '0 clamp(20px,3vw,48px)', background: C.pageBg }}>
+            <AccountSettingsSubnav activeTab="profile" />
           </div>
 
           {/* Body row: stepper + form */}
