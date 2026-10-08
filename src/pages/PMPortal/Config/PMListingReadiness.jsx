@@ -23,7 +23,7 @@ const C = {
   amber:        '#92400E',
   amberBg:      '#FEF3C7',
   amberBorder:  '#FCD34D',
-  blue:         '#1D4ED8',
+  blue:         '#3d8ef0',
   blueBg:       '#EFF6FF',
   blueBorder:   '#BFDBFE',
   purple:       '#6D28D9',

@@ -19,7 +19,7 @@ const C = {
   navy:        '#0F172A',
   navyMid:     '#1E293B',
   blue:        '#2563EB',
-  blueDark:    '#1D4ED8',
+  blueDark:    '#3d8ef0',
   blueLight:   '#EFF6FF',
   gray50:      '#F8FAFC',
   gray100:     '#F1F5F9',

@@ -114,6 +114,12 @@ export default function PMListMultiStep4_Publish() {
 
   const propertyListingId = location.state?.propertyListingId ?? null;
   const requestedPlanId = location.state?.selectedPlanId;
+  // AU-2 (Session 49, PM Portal extension) — set when Step 3 picked
+  // "Already Paid" (an owned ListingPromotionSubscription) instead of a
+  // fresh plan. Mutually exclusive with requestedPlanId — see
+  // PMListMultiStep3_Promote.jsx's choosePlan/chooseSubscription. Same
+  // contract as the Individual wizard's PMListingStep4_Publish.jsx.
+  const selectedSubscriptionId = location.state?.selectedSubscriptionId ?? null;
   // Session 45 continuation — units the PM/Org PM user left unchecked on Step 2's
   // Unit Matrix are treated as excluded from THIS publish everywhere below
   // (compliance checks, price range, unit list) even though their Listing
@@ -203,7 +209,11 @@ export default function PMListMultiStep4_Publish() {
   const groupPhotoCount = media.filter(m => m.media_type === 'PHOTO').length;
 
   const plan = selectedPlan || { name: 'Basic', priceValue: 0, durationDays: 30 };
-  const badgeLabel = plan.priceValue > 0 ? plan.name : null;
+  // AU-2 (Session 49, PM Portal extension) — "Already Paid" means $0 due
+  // regardless of the underlying plan's own price, and the publish call
+  // sends subscription_id instead of plan_id (see handlePublish below).
+  const amountDueToday = selectedSubscriptionId ? 0 : plan.priceValue;
+  const badgeLabel = selectedSubscriptionId ? `${plan.name} (Already Paid)` : (plan.priceValue > 0 ? plan.name : null);
 
   const units = includedUnitListingIds
     ? unitDetails.filter(u => includedUnitListingIds.includes(u.id))
@@ -298,7 +308,7 @@ export default function PMListMultiStep4_Publish() {
       for (const summary of excludedSummaries) {
         await deleteUnitListing(summary.id);
       }
-      const result = await publishPropertyListing(propertyListingId, plan.id);
+      const result = await publishPropertyListing(propertyListingId, plan.id, { subscriptionId: selectedSubscriptionId });
       setPublishedGroup(result);
       setPublished(true);
     } catch (e) {
@@ -342,7 +352,7 @@ export default function PMListMultiStep4_Publish() {
           leftContent={
             <>
               <span style={LS.footerTotalLbl}>Total Due Today</span>
-              <span style={LS.footerTotalVal}>{plan.priceValue === 0 ? 'Free' : `$${plan.priceValue.toFixed(2)}`}</span>
+              <span style={LS.footerTotalVal}>{amountDueToday === 0 ? (selectedSubscriptionId ? 'Already Paid' : 'Free') : `$${amountDueToday.toFixed(2)}`}</span>
             </>
           }
           noteContent={publishError || 'Payment failure keeps this listing in Draft — nothing publishes until payment succeeds.'}
@@ -452,8 +462,8 @@ export default function PMListMultiStep4_Publish() {
                   <span style={LS.channelTag(false)}>None selected</span>
                 )}
               </div>
-              <div style={LS.summaryRow(false)}><span style={LS.summaryLbl}>Promotion Plan</span><span style={LS.summaryVal(false)}>{plan.name} ({plan.durationDays} days)</span></div>
-              <div style={LS.summaryRow(false)}><span style={LS.summaryLbl}>Promotion Cost</span><span style={LS.summaryVal(false)}>{plan.priceValue === 0 ? 'Free' : `$${plan.priceValue.toFixed(2)}`}</span></div>
+              <div style={LS.summaryRow(false)}><span style={LS.summaryLbl}>Promotion Plan</span><span style={LS.summaryVal(false)}>{plan.name} ({plan.durationDays} days){selectedSubscriptionId ? ' — Already Paid' : ''}</span></div>
+              <div style={LS.summaryRow(false)}><span style={LS.summaryLbl}>Promotion Cost</span><span style={LS.summaryVal(false)}>{amountDueToday === 0 ? (selectedSubscriptionId ? 'Already Paid' : 'Free') : `$${amountDueToday.toFixed(2)}`}</span></div>
               <div style={LS.summaryRow(true)}><span style={LS.summaryLbl}>Listing Expires</span><span style={LS.summaryVal(false)}>{expiryDateFromToday(plan.durationDays)}</span></div>
             </div>
           </div>

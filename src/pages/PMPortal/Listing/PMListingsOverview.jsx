@@ -168,7 +168,7 @@ const C = {
   dangerLight: '#FEF2F2',
   amber:       '#92400E',
   amberLight:  '#FEF3C7',
-  blue:        '#1D4ED8',
+  blue:        '#3d8ef0',
   blueLight:   '#EFF6FF',
   sampleTag:   '#B45309',
   sampleTagBg: '#FFFBEB',
@@ -346,6 +346,41 @@ function groupDraftsByProperty(drafts, properties) {
   return properties
     .map(p => ({ id: p.id, name: p.name, drafts: drafts.filter(d => d.propertyId === p.id) }))
     .filter(g => g.drafts.length > 0);
+}
+
+// Session 49 fix (reported live) — "Resume" on a draft was landing on the
+// property page instead of back inside the exact wizard step it was left
+// on. Same root cause already fixed on the Landlord Portal's own dashboard
+// (LandlordListingsOverview.jsx, Session 48): the wizard steps
+// (PMListingStep1_Property.jsx/PMListingStep3_Promote.jsx for individual,
+// PMListMultiStep1_Property.jsx/PMListMultiStep3_Promote.jsx for
+// multi-unit) all read their target listingId/propertyListingId from
+// react-router location.state, not a URL param — step 3+ bounces if that
+// state is missing. `onResume` here was only ever passed `d.propertyId`
+// and hard-navigated to the property page, which can't carry router state
+// at all. `pm_listings_overview`'s drafts payload is portal-agnostic and
+// already includes listingId/unitId (individual) and propertyListingId
+// (multi) — confirmed in Core Backend/listings/views.py, no backend change
+// needed — this page's own DraftListingsMatrix just never used them. Ported
+// the same _resumeTarget(d) pattern, adjusted for PM Portal's own route
+// shape (note: "units" plural + a /list/ segment, unlike Landlord's
+// singular "unit"). Falls back to the property page (old behavior) for a
+// malformed/pre-fix draft row rather than navigating into a step that will
+// just bounce on its own missing-state guard.
+function _resumeTarget(d) {
+  if (d.type === 'individual' && d.listingId != null && d.unitId != null) {
+    return {
+      path: `/pm-portal/properties/${d.propertyId}/units/${d.unitId}/list/step-${d.step}`,
+      state: { listingId: d.listingId },
+    };
+  }
+  if (d.type === 'multi' && d.propertyListingId != null) {
+    return {
+      path: `/pm-portal/properties/${d.propertyId}/list-multi/step-${d.step}`,
+      state: { propertyListingId: d.propertyListingId },
+    };
+  }
+  return { path: `/pm-portal/properties/${d.propertyId}`, state: undefined };
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -970,7 +1005,7 @@ function DraftListingsMatrix({ groups, onResume, sample }) {
                 <td style={{ padding: '10px', textAlign: 'right' }}>
                   {sample
                     ? <DeadEndButton small label="Resume" icon="ti-arrow-right" tooltip="Sample data — no real backend record exists for this draft yet." />
-                    : <button onClick={() => onResume(d.propertyId)}
+                    : <button onClick={() => onResume(d)}
                         style={{ padding: '5px 12px', background: C.white, border: `1px solid ${C.primaryBorderLight}`, borderRadius: 6, fontFamily: F.body, fontSize: 11.5, fontWeight: 700, color: C.primary, cursor: 'pointer' }}>
                         Resume →
                       </button>
@@ -1428,7 +1463,7 @@ export default function PMListingsOverview() {
                     ? <SeeAllLink count={draftListingsTotal} onClick={() => setSeeAllSection('draftListings')} /> : null}
                   style={{ marginBottom: 0, height: '100%' }}
                 >
-                  <DraftListingsMatrix groups={draftGroups.slice(0, CAPS.draftListings)} onResume={pid => navigate(`/pm-portal/properties/${pid}`)} sample={usingSampleDrafts} />
+                  <DraftListingsMatrix groups={draftGroups.slice(0, CAPS.draftListings)} onResume={d => { const { path, state } = _resumeTarget(d); navigate(path, { state }); }} sample={usingSampleDrafts} />
                 </SectionCard>
               );
               return usingSampleDrafts
@@ -1500,7 +1535,7 @@ export default function PMListingsOverview() {
       </SeeAllModal>
 
       <SeeAllModal open={seeAllSection === 'draftListings'} onClose={() => setSeeAllSection(null)} title="Draft Listings" icon="ti-file-text" count={draftListingsTotal} widthPct={58}>
-        <DraftListingsMatrix groups={draftGroups} onResume={pid => navigate(`/pm-portal/properties/${pid}`)} sample={usingSampleDrafts} />
+        <DraftListingsMatrix groups={draftGroups} onResume={d => { const { path, state } = _resumeTarget(d); navigate(path, { state }); }} sample={usingSampleDrafts} />
       </SeeAllModal>
 
       <SeeAllModal open={seeAllSection === 'readyToList'} onClose={() => setSeeAllSection(null)} title="Ready to List" icon="ti-clipboard-check" count={readyToList.length} widthPct={58}>

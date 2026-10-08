@@ -29,7 +29,7 @@ import {
 import {
   getListing,
   getChannelCatalog, getListingChannels, saveListingChannels,
-  getPromotionPlanCatalog,
+  getPromotionPlanCatalog, getPromotionSubscriptions,
   getLeadSettings, patchLeadSettings,
 } from '../../Landlord/Listing/listingApi';
 
@@ -89,6 +89,16 @@ export default function PMListingStep3_Promote() {
   const [selectedPlanId, setSelectedPlanId] = useState(null);
   const [detailsPlanId, setDetailsPlanId] = useState(null);
 
+  // AU-2 (Session 49, PM Portal extension) — "Already Paid" standing
+  // entitlement, same contract as the Landlord Individual wizard
+  // (ListingStep3_Promote.jsx). A ListingPromotionSubscription only shows
+  // here as a usable option when it's still active AND its plan already
+  // appears in `plans` above — see that file's own comment for why a
+  // subscription whose plan fell out of the eligibility-filtered catalog
+  // is deliberately left out rather than shown and rejected later.
+  const [subscriptions, setSubscriptions] = useState([]);
+  const [selectedSubscriptionId, setSelectedSubscriptionId] = useState(null);
+
   const [planScrollIndex, setPlanScrollIndex] = useState(0);
   const maxPlanScrollIndex = Math.max(0, plans.length - PLAN_VISIBLE);
   const canScrollPlansLeft = planScrollIndex > 0;
@@ -117,12 +127,13 @@ export default function PMListingStep3_Promote() {
       setLoading(true);
       setLoadError('');
       try {
-        const [listing, channelCatalog, channelSelections, planCatalog, lead] = await Promise.all([
+        const [listing, channelCatalog, channelSelections, planCatalog, lead, mySubscriptions] = await Promise.all([
           getListing(listingId),
           getChannelCatalog(),
           getListingChannels(listingId),
           getPromotionPlanCatalog(),
           getLeadSettings(listingId),
+          getPromotionSubscriptions().catch(() => []), // non-fatal — "Already Paid" just won't show
         ]);
         if (cancelled) return;
 
@@ -144,8 +155,22 @@ export default function PMListingStep3_Promote() {
 
         const displayPlans = (planCatalog || []).map(planForDisplay);
         setPlans(displayPlans);
-        const defaultPlan = planCatalog.find(p => p.is_default) || planCatalog[0];
-        setSelectedPlanId(defaultPlan ? defaultPlan.id : null);
+
+        const eligiblePlanIds = new Set((planCatalog || []).map(p => p.id));
+        const usable = (mySubscriptions || []).filter(
+          s => s.is_active && eligiblePlanIds.has(s.plan_detail ? s.plan_detail.id : s.plan)
+        );
+        setSubscriptions(usable);
+
+        if (usable.length > 0) {
+          // Default to reusing the standing entitlement rather than a fresh
+          // paid plan, since it's already paid for.
+          setSelectedSubscriptionId(usable[0].id);
+          setSelectedPlanId(null);
+        } else {
+          const defaultPlan = planCatalog.find(p => p.is_default) || planCatalog[0];
+          setSelectedPlanId(defaultPlan ? defaultPlan.id : null);
+        }
 
         setLeadContact({
           contactName: lead.contact_name || '',
@@ -177,6 +202,10 @@ export default function PMListingStep3_Promote() {
 
   const selectedPlan = plans.find(p => p.id === selectedPlanId) || plans[0] || { priceValue: 0, priceLabel: 'Free', priceSuffix: '', durationDays: 30 };
   const detailsPlan = plans.find(p => p.id === detailsPlanId);
+  const selectedSubscription = subscriptions.find(s => s.id === selectedSubscriptionId) || null;
+
+  const choosePlan = (planId) => { setSelectedPlanId(planId); setSelectedSubscriptionId(null); };
+  const chooseSubscription = (subId) => { setSelectedSubscriptionId(subId); setSelectedPlanId(null); };
 
   const persist = async () => {
     const selectedChannelIds = channels.filter(c => c.checked).map(c => c.id);
@@ -230,7 +259,7 @@ export default function PMListingStep3_Promote() {
     try {
       await persist();
       navigate(`/pm-portal/properties/${propId}/units/${unitId}/list/step-4`, {
-        state: { listingId, selectedPlanId, propertyName },
+        state: { listingId, selectedPlanId, selectedSubscriptionId, propertyName },
       });
     } catch (e) {
       setSaveError(e.message || 'Could not save this listing.');
@@ -313,6 +342,46 @@ export default function PMListingStep3_Promote() {
               title="Promotion Plan"
               note="Boost visibility for this listing on the marketplace"
             />
+
+            {/* AU-2 (Session 49, PM Portal extension) — "Already Paid"
+                standing entitlement, bought ahead of time from My Services.
+                Shown above the fresh-purchase carousel since it's the
+                cheaper (free, already paid) option whenever it applies. */}
+            {subscriptions.length > 0 && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 14 }}>
+                {subscriptions.map(sub => {
+                  const planName = sub.plan_detail ? sub.plan_detail.name : `Plan #${sub.plan}`;
+                  const selected = sub.id === selectedSubscriptionId;
+                  const expiresLabel = new Date(sub.expires_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+                  return (
+                    <div
+                      key={sub.id}
+                      onClick={() => chooseSubscription(sub.id)}
+                      style={{
+                        display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10,
+                        padding: '10px 14px', borderRadius: 10, cursor: 'pointer',
+                        border: `1px solid ${selected ? '#cfe9da' : C.cardBdr}`,
+                        background: selected ? '#f3fbf7' : '#fff',
+                      }}
+                    >
+                      <div style={{ minWidth: 0 }}>
+                        <div style={{ fontSize: 13, fontWeight: 600, color: C.txtPrimary }}>
+                          <i className="ti ti-rosette-discount-check" style={{ color: C.green, marginRight: 6 }} aria-hidden="true" />
+                          Already Paid — {planName}
+                        </div>
+                        <div style={{ fontSize: 11.5, color: C.txtSec, marginTop: 2 }}>
+                          Standing entitlement, purchased from My Services · Valid through {expiresLabel}
+                        </div>
+                      </div>
+                      <div style={{ fontSize: 12, fontWeight: 600, color: selected ? C.greenDark : C.txtSec, flexShrink: 0 }}>
+                        {selected ? '✓ Selected' : 'Use this'}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+
             <div style={LS.planCarouselRow}>
               {plans.length > PLAN_VISIBLE && (
                 <button
@@ -329,9 +398,9 @@ export default function PMListingStep3_Promote() {
               <div style={LS.planViewport}>
                 <div style={LS.planTrack(planScrollIndex)}>
                   {plans.map(plan => {
-                    const selected = plan.id === selectedPlanId;
+                    const selected = plan.id === selectedPlanId && !selectedSubscriptionId;
                     return (
-                      <div key={plan.id} style={LS.plan(selected)} onClick={() => setSelectedPlanId(plan.id)}>
+                      <div key={plan.id} style={LS.plan(selected)} onClick={() => choosePlan(plan.id)}>
                         {plan.tag && <span style={LS.planTag}>{plan.tag}</span>}
                         <div style={LS.planHeadRow}>
                           <p style={LS.planName}>{plan.name}</p>
@@ -346,7 +415,7 @@ export default function PMListingStep3_Promote() {
                             </div>
                           ))}
                         </div>
-                        <div style={LS.planSelect(selected)} onClick={(e) => { e.stopPropagation(); setSelectedPlanId(plan.id); }}>
+                        <div style={LS.planSelect(selected)} onClick={(e) => { e.stopPropagation(); choosePlan(plan.id); }}>
                           {selected && <i className="ti ti-check" style={{ fontSize: 13 }} aria-hidden="true" />}
                           {selected ? 'Selected' : 'Select Plan'}
                         </div>
@@ -371,8 +440,10 @@ export default function PMListingStep3_Promote() {
             <div style={LS.costbar}>
               <span style={LS.costbarL}>Promotion cost for this listing</span>
               <span style={LS.costbarR}>
-                {selectedPlan.priceValue === 0 ? 'Free' : `$${selectedPlan.priceValue.toFixed(2)}`}
-                {selectedPlan.priceSuffix && <span style={LS.costbarRSub}> {selectedPlan.priceSuffix}</span>}
+                {selectedSubscription
+                  ? 'Already Paid'
+                  : (selectedPlan.priceValue === 0 ? 'Free' : `$${selectedPlan.priceValue.toFixed(2)}`)}
+                {!selectedSubscription && selectedPlan.priceSuffix && <span style={LS.costbarRSub}> {selectedPlan.priceSuffix}</span>}
               </span>
             </div>
           </div>
@@ -494,7 +565,7 @@ export default function PMListingStep3_Promote() {
               <button style={{ ...LS.btn, ...LS.btnSecondary }} onClick={() => setDetailsPlanId(null)}>Close</button>
               <button
                 style={{ ...LS.btn, ...LS.btnPrimary }}
-                onClick={() => { setSelectedPlanId(detailsPlan.id); setDetailsPlanId(null); }}
+                onClick={() => { choosePlan(detailsPlan.id); setDetailsPlanId(null); }}
               >
                 Select This Plan
               </button>

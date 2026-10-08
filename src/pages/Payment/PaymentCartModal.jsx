@@ -87,12 +87,40 @@ export default function PaymentCartModal({ onClose, onConfirm, theme = {} }) {
         <div style={modalStyle}>
           <div style={{ padding: '26px 22px 6px', textAlign: 'center' }}>
             <div style={{ width: 48, height: 48, borderRadius: '50%', background: t.greenLight, color: t.greenDark, display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 12px', fontSize: 20 }}>✓</div>
-            <div style={{ fontSize: 14.5, fontWeight: 700, marginBottom: 6 }}>
-              {purchased.length} service{purchased.length === 1 ? '' : 's'} added to your account
-            </div>
-            <div style={{ fontSize: 12, color: t.txtMuted, lineHeight: 1.6, maxWidth: 320, margin: '0 auto 12px' }}>
-              {purchased.map(p => p.name).join(', ')} {purchased.length === 1 ? 'is' : 'are'} now on your account. Assign {purchased.length === 1 ? 'it' : 'them'} to individual units from each unit's page.
-            </div>
+            {/* Session 49: the cart is now reused for plan subscriptions too
+                (landlord-plan-subscription), not just services — "assign to
+                units" doesn't make sense for a plan, so the copy below
+                branches by what was actually purchased instead of always
+                assuming "service". Service-only purchases keep the exact
+                original wording. */}
+            {(() => {
+              const planItems = purchased.filter(p => p.moduleKey === 'landlord-plan-subscription');
+              const otherItems = purchased.filter(p => p.moduleKey !== 'landlord-plan-subscription');
+              const hasPlan = planItems.length > 0;
+              const hasOther = otherItems.length > 0;
+              const heading = hasPlan && !hasOther
+                ? `${planItems[0].name} plan is now active`
+                : hasOther && !hasPlan
+                  ? `${otherItems.length} service${otherItems.length === 1 ? '' : 's'} added to your account`
+                  : `${purchased.length} item${purchased.length === 1 ? '' : 's'} added to your account`;
+              return (
+                <>
+                  <div style={{ fontSize: 14.5, fontWeight: 700, marginBottom: 6 }}>{heading}</div>
+                  <div style={{ fontSize: 12, color: t.txtMuted, lineHeight: 1.6, maxWidth: 320, margin: '0 auto 12px' }}>
+                    {hasPlan && (
+                      <div style={{ marginBottom: hasOther ? 6 : 0 }}>
+                        {planItems.map(p => p.name).join(', ')} {planItems.length === 1 ? 'is' : 'are'} now active on your account.
+                      </div>
+                    )}
+                    {hasOther && (
+                      <div>
+                        {otherItems.map(p => p.name).join(', ')} {otherItems.length === 1 ? 'is' : 'are'} now on your account. Assign {otherItems.length === 1 ? 'it' : 'them'} to individual units from each unit's page.
+                      </div>
+                    )}
+                  </div>
+                </>
+              );
+            })()}
             {retained.length > 0 && (
               <div style={{ background: '#f4f6f9', border: `1px solid ${t.cardBdr}`, borderRadius: 8, padding: '10px 14px', fontSize: 11.5, color: t.txtSec, textAlign: 'left', maxWidth: 320, margin: '0 auto 18px' }}>
                 🛒 {retained.map(r => r.name).join(', ')} still in your cart, unpurchased — open the cart any time to buy or remove.

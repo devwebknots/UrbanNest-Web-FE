@@ -358,14 +358,20 @@ export default function ListingStep3_Promote() {
                       key={sub.id}
                       onClick={() => chooseSubscription(sub.id)}
                       style={{
-                        display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                        display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10,
                         padding: '10px 14px', borderRadius: 10, cursor: 'pointer',
-                        border: `1.5px solid ${selected ? C.green : C.cardBdr}`,
-                        background: selected ? C.greenLight : '#fff',
+                        // Session 49 fix (reported live on the Multi-Unit
+                        // wizard, applied here too for parity) — was a bold
+                        // 1.5px solid C.green border + C.greenLight fill;
+                        // both toned way down to a very light tint/border,
+                        // same "subtle, not shouty" treatment as the rest
+                        // of this card's own default (unselected) rows.
+                        border: `1px solid ${selected ? '#cfe9da' : C.cardBdr}`,
+                        background: selected ? '#f3fbf7' : '#fff',
                       }}
                     >
-                      <div>
-                        <div style={{ fontSize: 13, fontWeight: 700, color: C.txtPrimary }}>
+                      <div style={{ minWidth: 0 }}>
+                        <div style={{ fontSize: 13, fontWeight: 600, color: C.txtPrimary }}>
                           <i className="ti ti-rosette-discount-check" style={{ color: C.green, marginRight: 6 }} aria-hidden="true" />
                           Already Paid — {planName}
                         </div>
@@ -373,7 +379,7 @@ export default function ListingStep3_Promote() {
                           Standing entitlement, purchased from My Services · Valid through {expiresLabel}
                         </div>
                       </div>
-                      <div style={{ fontSize: 12, fontWeight: 700, color: selected ? C.greenDark : C.txtSec }}>
+                      <div style={{ fontSize: 12, fontWeight: 600, color: selected ? C.greenDark : C.txtSec, flexShrink: 0 }}>
                         {selected ? '✓ Selected' : 'Use this'}
                       </div>
                     </div>

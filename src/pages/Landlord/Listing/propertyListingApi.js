@@ -124,9 +124,16 @@ export const patchPropertyListingLeadSettings = (propertyListingId, data) => pat
 // ─── Publish (group) ─────────────────────────────────────────────────────────────
 // Aggregates compliance across every unit Listing in the group; on success
 // flips PropertyListing.status AND every member Listing.status to ACTIVE.
+//
+// AU-2 (Session 49): the backend's property_listing_publish already accepts
+// EITHER plan_id (a fresh purchase) OR subscription_id (reuse an owned
+// ListingPromotionSubscription — "Already Paid") — same contract as
+// listingApi.js's publishListing. `opts.subscriptionId`, when given, wins.
 
-export const publishPropertyListing = (propertyListingId, planId) =>
-  post(`/property-listings/${propertyListingId}/publish/`, { plan_id: planId });
+export const publishPropertyListing = (propertyListingId, planId, opts = {}) =>
+  post(`/property-listings/${propertyListingId}/publish/`, opts.subscriptionId
+    ? { subscription_id: opts.subscriptionId }
+    : { plan_id: planId });
 
 // ─── Touched: attach a unit's Listing under a group ─────────────────────────────
 // POST /api/listings/ with an added `property_listing` field (§8.2/§8.6

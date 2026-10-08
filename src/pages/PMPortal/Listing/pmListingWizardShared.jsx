@@ -93,8 +93,21 @@ export const LS = {
 
   // LAYOUT
   sw:       { padding: '0 28px' },
-  split:    { display: 'grid', gridTemplateColumns: '1.55fr 1fr', gap: 20, alignItems: 'start', paddingBottom: 18 },
-  splitCol: { display: 'flex', flexDirection: 'column', gap: 18 },
+  // Session 49 fix, ported from the Landlord wizard's listingWizardShared.jsx
+  // (same bug, never carried over here) — was '1.55fr 1fr' with no
+  // minmax(), so a grid track's default automatic minimum size (content's
+  // min-content width, not 0) could win over the fr share whenever a card
+  // held non-shrinking content (e.g. the "Already Paid" tile's single-line
+  // text row) — the left column would grow past its fr share to fit that
+  // content, pushing the whole page wider than the viewport and introducing
+  // a horizontal scrollbar. minmax(0, Nfr) clamps each track to its fr
+  // share and forces inner content to wrap/shrink instead. 7fr:3fr matches
+  // the Landlord wizard's locked 70%/30% split (was ~60.8%/39.2% before).
+  split:    { display: 'grid', gridTemplateColumns: 'minmax(0, 7fr) minmax(0, 3fr)', gap: 20, alignItems: 'start', paddingBottom: 18 },
+  // minWidth: 0 lets this flex column actually shrink to its grid track's
+  // clamped width instead of being pushed wide by a non-shrinking child —
+  // part of the same fix as `split` above.
+  splitCol: { display: 'flex', flexDirection: 'column', gap: 18, minWidth: 0 },
 
   card: { background: C.cardBg, border: `1px solid ${C.cardBdr}`, borderRadius: 12, padding: '20px 22px' },
 

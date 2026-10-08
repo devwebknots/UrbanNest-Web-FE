@@ -54,6 +54,7 @@ import imgGroceryDelivery from '../../../assets/landlord/services/grocery-delive
 import imgTransportMoving from '../../../assets/landlord/services/transportation-moving.jpg';
 import imgPromoBannerBg from '../../../assets/landlord/services/promo-banner-bg.jpg';
 import PaymentCartModal from '../../Payment/PaymentCartModal';
+import UNPopup from '../../../components/common/UNPopup';
 // Phase 3/4 (Session 49) — Subscription & Billing + Listing Promotion
 // standing entitlement, both wired to the backend built this round. Reuses
 // listingApi.js's fetch wrapper for the Listing Promotion calls rather than
@@ -1437,12 +1438,24 @@ function BankAccountModal({ account, hasOtherAccounts, holderName, saving, error
         </div>
         <div style={S.field}>
           <label style={S.fieldLbl}>Account Number</label>
-          <input style={S.fieldInput} type="text" placeholder={isEdit ? 'Leave blank to keep the current number' : '•••• •••• •••• ••••'} value={form.account_number} onChange={e => set('account_number', e.target.value)} />
+          <input
+            style={S.fieldInput}
+            type="text"
+            placeholder={isEdit ? (account?.account_last4 ? `Current: •••• ${account.account_last4} — leave blank to keep` : 'Leave blank to keep the current number') : '•••• •••• •••• ••••'}
+            value={form.account_number}
+            onChange={e => set('account_number', e.target.value)}
+          />
         </div>
         <div style={S.fieldRow}>
           <div style={{ ...S.field, flex: 1 }}>
             <label style={S.fieldLbl}>Routing Number</label>
-            <input style={S.fieldInput} type="text" placeholder="e.g. 021000021" value={form.routing_number} onChange={e => set('routing_number', e.target.value)} />
+            <input
+              style={S.fieldInput}
+              type="text"
+              placeholder={isEdit && account?.routing_masked ? `Current: ${account.routing_masked} — leave blank to keep` : 'e.g. 021000021'}
+              value={form.routing_number}
+              onChange={e => set('routing_number', e.target.value)}
+            />
           </div>
           <div style={{ ...S.field, flex: 1 }}>
             <label style={S.fieldLbl}>Account Type</label>
@@ -1716,6 +1729,8 @@ export default function LandlordSettingsPage() {
   const [bankSaving, setBankSaving] = useState(false);
   const [bankSaveError, setBankSaveError] = useState(null);
   const [bankModal, setBankModal] = useState(null); // null | 'add' | account object (edit)
+  const [bankDeleteConfirm, setBankDeleteConfirm] = useState(null); // null | account object pending delete
+  const [bankDeleting, setBankDeleting] = useState(false);
 
   // Round 9 (Figma match): which account's details show in the right-hand
   // Account Details panel. Distinct from is_default (which controls where
@@ -1810,7 +1825,6 @@ export default function LandlordSettingsPage() {
   const [subscription, setSubscription] = useState(null); // { subscription, included_services, addons } | null
   const [subLoading, setSubLoading] = useState(true);
   const [subError, setSubError] = useState(null);
-  const [subscribingPlanId, setSubscribingPlanId] = useState(null);
 
   const fetchSubscriptionData = React.useCallback(() => {
     const token = localStorage.getItem('access_token');
@@ -1829,26 +1843,31 @@ export default function LandlordSettingsPage() {
       .finally(() => setSubLoading(false));
   }, [country]);
 
-  const handleSubscribe = (planId) => {
+  // Session 49 (Tier 0, A1.3 fix): plan selection used to call this directly
+  // on click and switch the plan immediately — no summary, no confirmation,
+  // nothing shown before it was already live. That's now routed through the
+  // same PaymentCartContext/PaymentCartModal cart-and-confirm flow already
+  // used for add-on services (see handlePlanAddToCart / handleConfirmPurchase
+  // below): Subscribe adds the plan to the cart and opens it, the landlord
+  // sees a summary + "Confirm & Pay" (which still mocks the real gateway —
+  // none exists yet for Landlord, same as before), and only once that
+  // resolves does the plan actually get associated with the account. This
+  // function is now only ever called from handleConfirmPurchase, once the
+  // cart has confirmed — it throws on failure so PaymentCartModal can show
+  // the error and leave the item in the cart to retry, instead of silently
+  // completing as if it subscribed.
+  const subscribeToPlan = async (planId) => {
     const token = localStorage.getItem('access_token');
-    setSubscribingPlanId(planId);
-    fetch(`${API_BASE}/landlord/subscription/`, {
+    const res = await fetch(`${API_BASE}/landlord/subscription/`, {
       method: 'POST',
       headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
       body: JSON.stringify({ country, plan_id: planId }),
-    })
-      .then(r => { if (!r.ok) return r.json().then(b => { throw new Error(b.detail || `Request failed (${r.status})`); }); })
-      .then(() => Promise.all([fetchSubscriptionData(), fetchCatalogRef.current && fetchCatalogRef.current()]))
-      .catch(e => setSubError(e.message || 'Could not subscribe to this plan.'))
-      .finally(() => setSubscribingPlanId(null));
+    });
+    if (!res.ok) {
+      const body = await res.json().catch(() => ({}));
+      throw new Error(body.detail || `Could not subscribe to this plan (${res.status}).`);
+    }
   };
-
-  // Services tab's fetchCatalog is declared below (needs to stay a stable
-  // callback for its own effect), but handleSubscribe above needs to refresh
-  // it too once a new subscription changes what's INCLUDED/ADDON — a ref
-  // avoids a declaration-order/circular-dependency problem between the two
-  // callbacks without restructuring either one.
-  const fetchCatalogRef = React.useRef(null);
 
   React.useEffect(() => { fetchSubscriptionData(); }, [fetchSubscriptionData]);
 
@@ -1915,7 +1934,6 @@ export default function LandlordSettingsPage() {
   }, []);
 
   React.useEffect(() => { fetchCatalog(); }, [fetchCatalog]);
-  React.useEffect(() => { fetchCatalogRef.current = fetchCatalog; }, [fetchCatalog]);
 
   const fetchBankAccounts = React.useCallback(() => {
     const token = localStorage.getItem('access_token');
@@ -1934,10 +1952,11 @@ export default function LandlordSettingsPage() {
   // ─── PAYMENT CART INTEGRATION ─────────────────────────────────────────────
   // Cart state/UI live in src/pages/Payment/ (PaymentCartContext, -Trigger,
   // -Modal) so any future module can reuse the same checkout flow. This page
-  // only supplies: (1) how a service becomes a cart line item, and (2) what
-  // "Confirm & Pay" actually does once the cart confirms a purchase — the
-  // cart module itself has no idea what a "service" is.
-  const { addItem, isInCart } = usePaymentCart();
+  // only supplies: (1) how a service (or, as of Session 49, a plan) becomes a
+  // cart line item, and (2) what "Confirm & Pay" actually does once the cart
+  // confirms a purchase — the cart module itself has no idea what a
+  // "service" or "plan" is.
+  const { items: cartItems, addItem, removeItem, isInCart } = usePaymentCart();
   const [cartOpen, setCartOpen] = useState(false);
 
   // Only a flat-fee service actually costs anything the moment it's bought —
@@ -1965,30 +1984,71 @@ export default function LandlordSettingsPage() {
     setOpenService(null);
   };
 
+  // Plan cart line item (Session 49, A1.3 fix). Prefixed id ('plan-<id>') so
+  // it can never collide with a service's own numeric id in the same cart.
+  // amountDueToday is the plan's monthly price — same "show it as due today,
+  // mock checkout covers the rest" treatment flat-fee services already get.
+  const planToCartItem = plan => ({
+    id: `plan-${plan.id}`,
+    name: plan.name,
+    subtitle: plan.unit_limit_max != null
+      ? `${plan.unit_limit_min}–${plan.unit_limit_max} units`
+      : `${plan.unit_limit_min}+ units`,
+    icon: 'ti-stack-2',
+    priceLabel: `$${(Number(plan.monthly_price) || 0).toFixed(0)} / mo`,
+    amountDueToday: Number(plan.monthly_price) || 0,
+    moduleKey: 'landlord-plan-subscription',
+    meta: plan,
+  });
+
+  // Subscribe no longer switches the plan on click — it adds the plan to the
+  // cart (replacing any other plan already sitting there, since only one can
+  // be subscribed to at a time) and opens the cart so the landlord sees a
+  // summary before anything is confirmed.
+  const handlePlanAddToCart = plan => {
+    const existingPlanItem = cartItems.find(i => i.moduleKey === 'landlord-plan-subscription');
+    if (existingPlanItem && existingPlanItem.id !== `plan-${plan.id}`) {
+      removeItem(existingPlanItem.id);
+    }
+    addItem(planToCartItem(plan));
+    setCartOpen(true);
+  };
+
   // Called by PaymentCartModal's "Confirm & Pay", once, with only the items
   // the landlord left checked. No real payment gateway exists yet — the mock
   // checkout screen (see PaymentCartModal's footer note) still stands in for
   // that, but the entitlement it grants is now real: this POSTs to
-  // LandlordAccountService (SVC-1) and, on success, re-fetches the catalog so
-  // "owned" reflects the database. Throws on failure so PaymentCartModal can
-  // show the error and leave the item in the cart to retry, instead of
-  // silently completing as if it purchased.
+  // LandlordAccountService (SVC-1) for services and/or the landlord
+  // subscription endpoint for a plan (see subscribeToPlan above), and on
+  // success re-fetches the catalog + subscription so "owned"/"current plan"
+  // reflect the database. Throws on failure so PaymentCartModal can show the
+  // error and leave the item(s) in the cart to retry, instead of silently
+  // completing as if they purchased.
   const handleConfirmPurchase = async checkedItems => {
     const serviceIds = checkedItems
       .filter(i => i.moduleKey === 'landlord-service')
       .map(i => i.id);
-    if (serviceIds.length === 0) return;
+    const planItem = checkedItems.find(i => i.moduleKey === 'landlord-plan-subscription');
 
-    const token = localStorage.getItem('access_token');
-    const res = await fetch(`${API_BASE}/landlord/account/services/`, {
-      method: 'POST',
-      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ service_ids: serviceIds }),
-    });
-    if (!res.ok) {
-      const body = await res.json().catch(() => ({}));
-      throw new Error(body.detail || 'Could not complete this purchase. Please try again.');
+    if (serviceIds.length === 0 && !planItem) return;
+
+    if (serviceIds.length > 0) {
+      const token = localStorage.getItem('access_token');
+      const res = await fetch(`${API_BASE}/landlord/account/services/`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ service_ids: serviceIds }),
+      });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error(body.detail || 'Could not complete this purchase. Please try again.');
+      }
     }
+
+    if (planItem) {
+      await subscribeToPlan(planItem.meta.id);
+    }
+
     await Promise.all([fetchCatalog(), fetchSubscriptionData()]);
   };
 
@@ -2202,11 +2262,16 @@ export default function LandlordSettingsPage() {
     const isEdit = bankModal && bankModal !== 'add' && bankModal.id;
     const payload = {
       bank_name: form.bank_name,
-      account_number: form.account_number,
-      routing_number: form.routing_number,
       account_type: form.account_type,
       is_default: form.is_default,
     };
+    // account_number/routing_number are write-only on the backend and never
+    // echoed back, so the Edit form always starts these blank. Only send
+    // them when the user actually typed something — otherwise every edit
+    // (even just toggling "set as default") would PATCH an empty string
+    // over the real stored number.
+    if (!isEdit || form.account_number) payload.account_number = form.account_number;
+    if (!isEdit || form.routing_number) payload.routing_number = form.routing_number;
     try {
       const res = await fetch(
         isEdit ? `${API_BASE}/landlord/bank-accounts/${bankModal.id}/` : `${API_BASE}/landlord/bank-accounts/`,
@@ -2231,7 +2296,6 @@ export default function LandlordSettingsPage() {
   };
 
   const deleteBankAccount = async id => {
-    if (!window.confirm("Remove this bank account? This can't be undone.")) return;
     const token = localStorage.getItem('access_token');
     try {
       const res = await fetch(`${API_BASE}/landlord/bank-accounts/${id}/`, {
@@ -2931,11 +2995,15 @@ export default function LandlordSettingsPage() {
                               </div>
                             )}
                             <button
-                              style={{ ...S.planCardBtnPill, ...(isCurrent ? S.planCardBtnPillOutline : S.planCardBtnPillSolid) }}
-                              disabled={isCurrent || subscribingPlanId === p.id}
-                              onClick={() => handleSubscribe(p.id)}
+                              style={{
+                                ...S.planCardBtnPill,
+                                ...(isCurrent ? S.planCardBtnPillOutline : isInCart(`plan-${p.id}`) ? S.svcBtnInCart : S.planCardBtnPillSolid),
+                              }}
+                              disabled={isCurrent}
+                              onClick={() => handlePlanAddToCart(p)}
+                              title={isInCart(`plan-${p.id}`) ? 'In your cart — click to review and confirm' : undefined}
                             >
-                              {isCurrent ? 'Current Plan' : (subscribingPlanId === p.id ? 'Subscribing…' : 'Subscribe')}
+                              {isCurrent ? 'Current Plan' : isInCart(`plan-${p.id}`) ? '✓ In Cart — Review' : 'Subscribe'}
                             </button>
                           </div>
                         </div>
@@ -3258,7 +3326,7 @@ export default function LandlordSettingsPage() {
                         <div style={S.bankRowRight}>
                           <span style={{ ...S.bankSelBadge, ...(isSelected ? S.bankSelBadgeOn : {}) }}><i className="ti ti-check" aria-hidden="true" /></span>
                           <span style={S.bankRowIconBtn} onClick={(e) => { e.stopPropagation(); setBankModal(a); }} aria-label="Edit"><i className="ti ti-pencil" aria-hidden="true" /></span>
-                          <span style={{ ...S.bankRowIconBtn, ...S.iconBtnDanger }} onClick={(e) => { e.stopPropagation(); deleteBankAccount(a.id); }} aria-label="Delete" title="Remove this bank account"><i className="ti ti-trash" aria-hidden="true" /></span>
+                          <span style={{ ...S.bankRowIconBtn, ...S.iconBtnDanger }} onClick={(e) => { e.stopPropagation(); setBankDeleteConfirm(a); }} aria-label="Delete" title="Remove this bank account"><i className="ti ti-trash" aria-hidden="true" /></span>
                         </div>
                       </div>
                       );})}
@@ -4104,6 +4172,23 @@ export default function LandlordSettingsPage() {
           error={bankSaveError}
           onClose={() => { setBankModal(null); setBankSaveError(null); }}
           onSave={saveBankAccount}
+        />
+      )}
+
+      {bankDeleteConfirm && (
+        <UNPopup
+          type="warning"
+          title="Remove this bank account?"
+          message={`${bankDeleteConfirm.bank_name} •••• ${bankDeleteConfirm.account_last4 || '····'} will be removed. This can't be undone.`}
+          confirmLabel="Yes, remove"
+          loading={bankDeleting}
+          onClose={() => setBankDeleteConfirm(null)}
+          onConfirm={async () => {
+            setBankDeleting(true);
+            await deleteBankAccount(bankDeleteConfirm.id);
+            setBankDeleting(false);
+            setBankDeleteConfirm(null);
+          }}
         />
       )}
 

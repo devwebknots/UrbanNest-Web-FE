@@ -200,7 +200,7 @@ function ActivityStats({ permCount }) {
       <div style={{ background: C.white, border: `1px solid ${C.border}`, borderRadius: 10, padding: '12px 14px' }}>
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
           <span style={{ fontFamily: F.sans, fontSize: 10, fontWeight: 700, color: C.gray400, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Activity level</span>
-          <Badge label="78/100 ↗" color="#1D4ED8" bg="#DBEAFE" />
+          <Badge label="78/100 ↗" color="#3d8ef0" bg="#DBEAFE" />
         </div>
         <div style={{ fontFamily: F.sans, fontSize: 11, color: C.gray500, marginBottom: 2 }}>Last active: 2h ago</div>
         <MiniBar />

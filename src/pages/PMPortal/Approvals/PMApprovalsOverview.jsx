@@ -155,11 +155,15 @@ function DetailPanel({ record, onClose, onApprove, onReject, actionLoading }) {
     if (!record) return;
     setLoading(true);
     const token = localStorage.getItem('access_token');
-    fetch(`${API}/approvals/${record.id}/`, { headers: { Authorization: `Bearer ${token}` } })
+    // PropertyOwnership and UnitOwnership are separate tables with independent
+    // ids, so `type` (derived from sub_category) is required to resolve the
+    // correct record — see PMApprovalsOverview's recordType() helper.
+    const type = record.sub_category === 'Unit' ? 'unit' : 'property';
+    fetch(`${API}/approvals/${record.id}/?type=${type}`, { headers: { Authorization: `Bearer ${token}` } })
       .then(r => r.ok ? r.json() : null)
       .then(d => { setDetail(d); setLoading(false); })
       .catch(() => setLoading(false));
-  }, [record?.id]);
+  }, [record?.id, record?.sub_category]);
 
   if (!record) return null;
 
@@ -299,7 +303,7 @@ function DetailPanel({ record, onClose, onApprove, onReject, actionLoading }) {
               <i className="ti ti-x" style={{ fontSize:13 }} />Reject
             </button>
             <button
-              onClick={() => onApprove(record.id)}
+              onClick={() => onApprove(record.id, record.sub_category)}
               disabled={actionLoading}
               style={{ flex:2, height:40, background:actionLoading?C.borderMed:C.primary, border:'none', borderRadius:8, fontFamily:F.body, fontSize:12, fontWeight:700, color:C.white, cursor:actionLoading?'not-allowed':'pointer', transition:'background 0.15s', display:'flex', alignItems:'center', justifyContent:'center', gap:6 }}
             >
@@ -460,10 +464,16 @@ export default function PMApprovalsOverview() {
   const showSuccess = (msg) => setPopup({ type:'success', title:'Action successful', message:msg });
   const showError   = (msg) => setPopup({ type:'error',   title:'Action not allowed', message:msg });
 
-  const handleApprove = async (id) => {
+  // PropertyOwnership and UnitOwnership are separate tables with independent
+  // ids, so every approve/reject/detail call must say which table `id`
+  // belongs to — otherwise the backend can match an unrelated row that
+  // happens to share the same numeric id in the other table.
+  const recordType = (subCategory) => subCategory === 'Unit' ? 'unit' : 'property';
+
+  const handleApprove = async (id, subCategory) => {
     setActionLoading(true);
     try {
-      const res = await fetch(`${API}/approvals/${id}/approve/`, { method:'POST', headers });
+      const res = await fetch(`${API}/approvals/${id}/approve/?type=${recordType(subCategory)}`, { method:'POST', headers });
       if (!res.ok) {
       const err = await res.json();
       throw new Error(err.message || 'Approval failed');
@@ -471,7 +481,7 @@ export default function PMApprovalsOverview() {
       showSuccess('Ownership approved successfully.');
       setPanelRecord(null);
       fetchApprovals();
-    } catch (e) { showError(e.message); }  
+    } catch (e) { showError(e.message); }
     finally { setActionLoading(false); }
   };
 
@@ -479,7 +489,7 @@ export default function PMApprovalsOverview() {
     if (!rejectTarget) return;
     setActionLoading(true);
     try {
-      const res = await fetch(`${API}/approvals/${rejectTarget.id}/reject/`, {
+      const res = await fetch(`${API}/approvals/${rejectTarget.id}/reject/?type=${recordType(rejectTarget.sub_category)}`, {
         method:'POST', headers, body: JSON.stringify({ reason }),
       });
       if (!res.ok) throw new Error('Rejection failed');
@@ -487,7 +497,7 @@ export default function PMApprovalsOverview() {
       setRejectTarget(null);
       setPanelRecord(null);
       fetchApprovals();
-    } catch (e) { showError(e.message); }  
+    } catch (e) { showError(e.message); }
     finally { setActionLoading(false); }
   };
 
@@ -603,7 +613,7 @@ export default function PMApprovalsOverview() {
 
             {/* Col 1 — Stats */}
             <div style={{ display:'flex', flexDirection:'column', gap:8, width:180, flexShrink:0 }}>
-              <StatCard label="Pending review"      value={stats.pending}      valueColor="#1D4ED8" />
+              <StatCard label="Pending review"      value={stats.pending}      valueColor="#3d8ef0" />
               <StatCard label="Approved this month" value={stats.approvedMonth} valueColor={C.success} />
               <StatCard label="Rejected this month" value={stats.rejectedMonth} valueColor={C.danger} />
               <StatCard label="Total applications"  value={stats.total}        valueColor={C.textPrimary} />
@@ -771,7 +781,7 @@ export default function PMApprovalsOverview() {
                           </span>
                         </td>
                         <td style={{ padding:'12px 14px' }}>
-                          <span style={{ fontSize:11, padding:'3px 10px', borderRadius:99, display:'inline-block', fontWeight:500, fontFamily:F.body, background: row.sub_category==='Unit' ? '#EEF6FF' : '#F1F5F9', color: row.sub_category==='Unit' ? '#1D4ED8' : '#475569' }}>
+                          <span style={{ fontSize:11, padding:'3px 10px', borderRadius:99, display:'inline-block', fontWeight:500, fontFamily:F.body, background: row.sub_category==='Unit' ? '#EEF6FF' : '#F1F5F9', color: row.sub_category==='Unit' ? '#3d8ef0' : '#475569' }}>
                             {row.sub_category||'—'}
                           </span>
                         </td>
@@ -789,7 +799,7 @@ export default function PMApprovalsOverview() {
                             {/* Approve — enabled only when SUBMITTED */}
                             <ActionTooltip text={isSubmitted ? 'Approve' : 'Not yet submitted'}>
                               <button
-                                onClick={() => isSubmitted && handleApprove(row.id)}
+                                onClick={() => isSubmitted && handleApprove(row.id, row.sub_category)}
                                 style={{ width:32, height:32, background:'transparent', border:'none', borderRadius:7, cursor:isSubmitted?'pointer':'not-allowed', display:'flex', alignItems:'center', justifyContent:'center', opacity:isSubmitted?1:0.3, transition:'all 0.15s' }}
                                 onMouseEnter={e => { if(isSubmitted) e.currentTarget.style.background='#F0FDF4'; }}
                                 onMouseLeave={e => e.currentTarget.style.background='transparent'}

@@ -31,7 +31,6 @@ const F = {
 // If an id is not listed here, it is always visible (no restriction)
 const MODULE_MAP = {
   'dashboard':        'DASHBOARD',
-  'my-profile':       'MY_PROFILE',
   'properties':       'PROPERTIES',
   'approvals-nav':    'APPROVALS',
   'leasing':          'LEASING',
@@ -58,13 +57,6 @@ const NAV_STRUCTURE = [
       { id: 'leasing-pipeline',  label: 'Leasing Pipeline',  icon: 'ti-file-text', route: '/pm-portal/dashboard/leasing-pipeline' },
       { id: 'maintenance-watch', label: 'Maintenance Watch', icon: 'ti-tool',      route: '/pm-portal/dashboard/maintenance-watch' },
       { id: 'my-team',           label: 'My Team',           icon: 'ti-users',     route: '/pm-portal/dashboard/my-team' },
-    ],
-  },
-  {
-    type: 'standalone', id: 'my-profile', label: 'My Profile', icon: 'ti-user-circle',
-    children: [
-      { id: 'persona',      label: 'Persona',              icon: 'ti-user',        route: '/pm-portal/profile/persona' },
-      { id: 'subscription', label: 'Subscription & Trial', icon: 'ti-credit-card', route: '/pm-portal/profile/subscription' },
     ],
   },
   {
@@ -190,11 +182,22 @@ const NAV_STRUCTURE = [
           { id: 'data-ai',               label: 'Data & AI',             route: '/pm-portal/config/data-ai' },
         ],
       },
-      { id: 'account-settings', label: 'Account Settings', icon: 'ti-settings',
+      {
+        // Session 49 nav consolidation, moved back here per user request (was
+        // briefly promoted to a standalone top-level item at the old "My
+        // Profile" position — moved back to its original ADMIN-section spot,
+        // now with real pages/flagged sample stubs behind every child instead
+        // of the old 3 dead links). Still the same single consolidated entry
+        // replacing the old "My Profile" (Persona + Subscription & Trial) L1
+        // item, which has been removed from the nav entirely.
+        id: 'account-settings', label: 'Account Settings', icon: 'ti-settings',
         children: [
-          { id: 'profile-billing', label: 'Profile & Billing',  route: '/pm-portal/account/billing' },
-          { id: 'modules',         label: 'Modules & Features', route: '/pm-portal/account/modules' },
-          { id: 'integrations',    label: 'Integrations',       route: '/pm-portal/account/integrations' },
+          { id: 'account-profile',       label: 'My Profile',             icon: 'ti-user',          route: '/pm-portal/account/profile' },
+          { id: 'account-bank',          label: 'Bank Accounts',          icon: 'ti-building-bank',  route: '/pm-portal/account/bank-accounts' },
+          { id: 'account-subscription',  label: 'Subscription & Billing', icon: 'ti-credit-card',    route: '/pm-portal/account/subscription' },
+          { id: 'account-services',      label: 'Services',               icon: 'ti-stack-2',        route: '/pm-portal/account/services' },
+          { id: 'account-transactions',  label: 'Transactions',           icon: 'ti-receipt',        route: '/pm-portal/account/transactions' },
+          { id: 'account-integrations',  label: 'Integrations',           icon: 'ti-plug',           route: '/pm-portal/account/integrations' },
         ],
       },
     ],

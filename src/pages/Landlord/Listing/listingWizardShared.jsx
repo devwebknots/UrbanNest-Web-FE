@@ -77,14 +77,28 @@ export const LS = {
 
   // LAYOUT
   sw:       { padding: '0 28px' },
-  split:    { display: 'grid', gridTemplateColumns: '1.55fr 1fr', gap: 20, alignItems: 'start', paddingBottom: 18 },
-  splitCol: { display: 'flex', flexDirection: 'column', gap: 18 },
+  // Session 49 fix — was '1.55fr 1fr' with no minmax(), so a grid track's
+  // default automatic minimum size (content's min-content width, not 0)
+  // could win over the fr share whenever a card held non-shrinking content
+  // (e.g. the "Already Paid" tile's single-line text row) — the left
+  // column would grow past its fr share to fit that content, pushing the
+  // whole page wider than the viewport and introducing a horizontal
+  // scrollbar. minmax(0, Nfr) clamps each track to its fr share and forces
+  // inner content to wrap/shrink instead, which is the standard fix for
+  // this class of CSS Grid overflow. 7fr:3fr is an exact 70%/30% split
+  // (bumped from an initial 60/40 pass, both reported live, A4.3/AU-2
+  // follow-up) — was ~60.8%/39.2% before any of this.
+  split:    { display: 'grid', gridTemplateColumns: 'minmax(0, 7fr) minmax(0, 3fr)', gap: 20, alignItems: 'start', paddingBottom: 18 },
+  // minWidth: 0 lets this flex column actually shrink to its grid track's
+  // clamped width instead of being pushed wide by a non-shrinking child —
+  // part of the same fix as `split` above.
+  splitCol: { display: 'flex', flexDirection: 'column', gap: 18, minWidth: 0 },
 
   card: { background: C.cardBg, border: `1px solid ${C.cardBdr}`, borderRadius: 12, padding: '20px 22px' },
 
   secHead:  { display: 'flex', alignItems: 'center', gap: 10, marginBottom: 16 },
   secIcon:  (bg, color) => ({ width: 28, height: 28, borderRadius: 8, background: bg, color, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, fontSize: 14 }),
-  secTitle: { fontSize: 14.5, fontWeight: 700, color: C.txtPrimary, margin: 0 },
+  secTitle: { fontSize: 14.5, fontWeight: 600, color: C.txtPrimary, margin: 0 },
   secNote:  { fontSize: 11.5, color: C.txtMuted, margin: '2px 0 0' },
 
   hr:   { height: 1, background: C.cardBdr, margin: '18px 0' },
@@ -259,20 +273,20 @@ export const LS = {
   }),
   planTag: { position: 'absolute', top: -10, left: 16, background: C.blue, color: '#fff', fontSize: 9.5, fontWeight: 700, borderRadius: 10, padding: '3px 10px', textTransform: 'uppercase', letterSpacing: 0.04, whiteSpace: 'nowrap' },
   planHeadRow: { display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 8, margin: '6px 0 2px' },
-  planName: { fontSize: 15, fontWeight: 700, color: C.txtPrimary, margin: 0, fontFamily: F.sans },
-  planDetails: { fontSize: 10.5, fontWeight: 700, color: C.blue, flexShrink: 0, cursor: 'pointer' },
-  planPrice: { fontSize: 22, fontWeight: 700, color: C.txtPrimary, marginBottom: 2 },
+  planName: { fontSize: 15, fontWeight: 600, color: C.txtPrimary, margin: 0, fontFamily: F.sans },
+  planDetails: { fontSize: 10.5, fontWeight: 600, color: C.blue, flexShrink: 0, cursor: 'pointer' },
+  planPrice: { fontSize: 18, fontWeight: 600, color: C.txtPrimary, marginBottom: 2 },
   planPriceSub: { fontSize: 11, fontWeight: 600, color: C.txtMuted },
   planDesc: { fontSize: 11, color: C.txtMuted, marginBottom: 14 },
   planFeat: { display: 'flex', flexDirection: 'column', gap: 8, flexGrow: 1, marginBottom: 14 },
   planFeatItem: { display: 'flex', alignItems: 'flex-start', gap: 7, fontSize: 12, color: C.txtPrimary },
   planSelect: (selected) => ({
-    height: 32, borderRadius: 10, fontSize: 12, fontWeight: 700, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+    height: 32, borderRadius: 10, fontSize: 12, fontWeight: 600, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
     border: `1.5px solid ${selected ? C.blue : C.cardBdr}`, color: selected ? '#fff' : C.txtSec, background: selected ? C.blue : 'transparent', cursor: 'pointer',
   }),
   costbar:   { display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: '#f8f9fb', borderRadius: 8, padding: '12px 16px', marginTop: 16 },
   costbarL:  { fontSize: 12.5, color: C.txtSec, fontWeight: 600 },
-  costbarR:  { fontSize: 16, fontWeight: 700, color: C.txtPrimary },
+  costbarR:  { fontSize: 16, fontWeight: 600, color: C.txtPrimary },
   costbarRSub: { fontSize: 11, fontWeight: 600, color: C.txtMuted },
 
   // Plan-details modal

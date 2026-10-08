@@ -239,7 +239,7 @@ function MemberSlideIn({ memberId, onClose, onViewFull, token }) {
                                 border: `0.5px solid ${!active ? C.border : isOverride ? '#BBF7D0' : '#BFDBFE'}`,
                                 display: 'flex', alignItems: 'center', justifyContent: 'center',
                                 fontSize: 8, fontWeight: 700,
-                                color: !active ? C.textTert : isOverride ? C.success : '#1D4ED8',
+                                color: !active ? C.textTert : isOverride ? C.success : '#3d8ef0',
                               }}>
                                 {active ? label : '—'}
                               </div>
@@ -253,7 +253,7 @@ function MemberSlideIn({ memberId, onClose, onViewFull, token }) {
                   {/* Legend */}
                   <div style={{ display: 'flex', gap: 10, marginTop: 12, flexWrap: 'wrap' }}>
                     {[
-                      { bg: '#EFF6FF', border: '#BFDBFE', color: '#1D4ED8', label: 'From role' },
+                      { bg: '#EFF6FF', border: '#BFDBFE', color: '#3d8ef0', label: 'From role' },
                       { bg: '#F0FDF4', border: '#BBF7D0', color: C.success,  label: 'Override' },
                     ].map(({ bg, border, color, label }) => (
                       <div key={label} style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
