@@ -1,5 +1,5 @@
 import { AuthProvider } from './context/AuthContext';
-import { BrowserRouter, Routes, Route, useNavigate, useLocation } from 'react-router-dom';
+import { BrowserRouter, Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom';
 import PermissionGuard from './components/common/PermissionGuard';
 
 // Auth
@@ -23,13 +23,20 @@ import LandlordOnboarding_Step3 from './pages/Landlord/Onboarding/LandlordOnboar
 // PM Portal
 import PMDashboard          from './pages/PMPortal/Dashboard/PMDashboard';
 import PMWelcomePage        from './pages/PMPortal/Dashboard/PMWelcomePage';
-import PMProfileView        from './pages/PMPortal/Profile/PMProfileView';
-// Phase 3 (Session 49) — Subscription & Billing parity for Independent PM.
-// NavB.jsx's 'subscription' nav item ('My Profile' → 'Subscription & Trial')
-// already pointed at this exact route with no page behind it — this is
-// that page, mirroring LandlordSettingsPage.jsx's own Subscription & Billing
-// tab against the /api/pm/ endpoints instead of /api/landlord/.
-import PMSubscriptionPage   from './pages/PMPortal/Profile/PMSubscriptionPage';
+// Session 49 nav consolidation, folder cleanup — these 6 files used to live
+// under pages/PMPortal/Profile/ (a holdover from before Account Settings
+// existed as its own concept). Moved to their own pages/PMPortal/
+// AccountSettings/ folder so the directory structure matches what they
+// actually are. PM Portal's old "Account Settings" nav item used to be a
+// separate, entirely dead-link nav section (Profile & Billing / Modules &
+// Features / Integrations, none of them routed anywhere). Folded together
+// with the old "My Profile" section into one real Account Settings entry
+// with 6 tabs — see NavB.jsx and claude/UrbanNest_ActiveBacklog.md.
+import PMProfileView        from './pages/PMPortal/AccountSettings/PMProfileView';
+import PMSubscriptionPage   from './pages/PMPortal/AccountSettings/PMSubscriptionPage';
+import PMBankAccountsTab    from './pages/PMPortal/AccountSettings/PMBankAccountsTab';
+import PMTransactionsTab    from './pages/PMPortal/AccountSettings/PMTransactionsTab';
+import PMIntegrationsTab    from './pages/PMPortal/AccountSettings/PMIntegrationsTab';
 import PMVerificationSettings from './pages/PMPortal/Config/PMVerificationSettings';
 import PMListingReadiness from './pages/PMPortal/Config/PMListingReadiness';
 
@@ -216,8 +223,23 @@ function AppRoutes() {
       {/* ── PM Portal ─────────────────────────────────────────────────────── */}
       <Route path="/pm-portal/dashboard/welcome"      element={<PMWelcomePage persona="INDEPENDENT_PM" />} />
       <Route path="/pm-portal/dashboard/my-dashboard" element={<PMDashboard   persona="INDEPENDENT_PM" />} />
-      <Route path="/pm-portal/profile/persona"        element={<PMProfileView />} />
-      <Route path="/pm-portal/profile/subscription"   element={<PMSubscriptionPage />} />
+      {/* Session 49 nav consolidation — old "My Profile" routes kept as
+          redirects to the new Account Settings tabs, in case anything else
+          still links to them. */}
+      <Route path="/pm-portal/profile/persona"        element={<Navigate to="/pm-portal/account/profile" replace />} />
+      <Route path="/pm-portal/profile/subscription"   element={<Navigate to="/pm-portal/account/subscription" replace />} />
+
+      {/* ── PM Portal / Account Settings (Session 49 nav consolidation) ───
+          One real section, 6 tabs — replaces the old "My Profile" nav item
+          (Persona, Subscription & Trial) and the old "Account Settings" nav
+          item (Profile & Billing / Modules & Features / Integrations), none
+          of which had routes behind them. See NavB.jsx. */}
+      <Route path="/pm-portal/account/profile"         element={<PMProfileView />} />
+      <Route path="/pm-portal/account/bank-accounts"   element={<PMBankAccountsTab />} />
+      <Route path="/pm-portal/account/subscription"    element={<PMSubscriptionPage />} />
+      <Route path="/pm-portal/account/services"        element={<PMSubscriptionPage />} />
+      <Route path="/pm-portal/account/transactions"    element={<PMTransactionsTab />} />
+      <Route path="/pm-portal/account/integrations"    element={<PMIntegrationsTab />} />
       <Route path="/pm-portal/config/verification-settings" element={<PMVerificationSettings />} />
       <Route path="/pm-portal/config/listing-readiness"     element={<PMListingReadiness />} />
 
