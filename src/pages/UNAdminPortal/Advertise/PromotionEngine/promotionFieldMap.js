@@ -60,6 +60,19 @@ export const statusFromApi = (v) => {
   return s ? s[0].toUpperCase() + s.slice(1) : '';
 };
 
+// ─── Marketplace Display Tier (ListingPromotionProduct.display_tier) ───────
+// Session 50 — drives which Marketplace homepage section a listing lands in
+// (Exclusive Homes carousel / Rentals Near You / plain). Real choices are
+// EXCLUSIVE/PREMIUM/BASIC; plain uppercase/titlecase round-trip, same
+// pattern as Product Status above. Required, no blank option — every
+// Product declares one of the three.
+export const DISPLAY_TIERS = ['Exclusive', 'Premium', 'Basic'];
+export const displayTierToApi = (v) => (v || '').toUpperCase();
+export const displayTierFromApi = (v) => {
+  const s = (v || '').toLowerCase();
+  return s ? s[0].toUpperCase() + s.slice(1) : 'Basic';
+};
+
 // ─── Plan Status (ListingPromotionPlan.plan_status) ─────────────────────────
 // IMPORTANT: this is NOT the same vocabulary as Product's STATUSES — the
 // real ListingPromotionPlan.PLAN_STATUS_CHOICES is DRAFT/ACTIVE/PAUSED/
@@ -179,6 +192,13 @@ const ENUM_MAPS = {
   promotionScope: { Listing: 'LISTING', Portfolio: 'PORTFOLIO', Account: 'ACCOUNT' },
   featuredPlacement: { Limited: 'LIMITED', Enhanced: 'ENHANCED', Standard: 'STANDARD' },
   mediaQualityRequirement: { Standard: 'STANDARD', Configurable: 'CONFIGURABLE', High: 'HIGH' },
+  // placementPriority is deliberately NOT here — corrected same session
+  // (Session 50, Phase 0) after a static label<->code map was flagged as
+  // hardcoding too. Its 5 options are fetched at runtime from the
+  // admin-configurable UNDropdown table (apiGetPlanDropdownOptions in
+  // promotionEngineApi.js) and converted with the small
+  // placementPriorityToApi/FromApi helpers below instead, built from
+  // whatever UNDropdown actually returns rather than a fixed table here.
   // Backend has no 'ONE_TIME' billing_frequency choice (WEEKLY/MONTHLY/
   // QUARTERLY/ANNUAL only) — the FE's "One-Time" option only ever shows
   // when Plan Type isn't Subscription anyway, where billing_frequency isn't

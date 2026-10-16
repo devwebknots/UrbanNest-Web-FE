@@ -152,6 +152,15 @@ export const apiAddCampaignFeatureAddon = (campaignId, featureKey) =>
 export const apiRemoveCampaignFeatureAddon = (campaignId, addonId) =>
   del(`${BASE}/campaigns/${campaignId}/feature-addons/${addonId}/`);
 
+// ─── Plan editor dropdown options (Session 50, Phase 0) ────────────────────
+// Backed by the admin-configurable UNDropdown table (screen=
+// UNADMIN_PROMOTION_PLAN), not a hardcoded FE list — same pattern
+// listingApi.js's getListingDropdownOptions already uses. See
+// core/migrations/0031_seed_promotion_plan_placement_priority_dropdown.py
+// for the seeded rows. dropdownType today is just 'PLACEMENT_PRIORITY'.
+export const apiGetPlanDropdownOptions = (dropdownType) =>
+  get(`${BASE}/dropdowns/?type=${encodeURIComponent(dropdownType)}`);
+
 // ─── Overview / Audit & Logs / Eligibility ─────────────────────────────────
 // Backend endpoints exist and are ready; not wired into any screen this pass
 // (out of scope per the "Both screens" = Product Catalog + Campaigns answer).

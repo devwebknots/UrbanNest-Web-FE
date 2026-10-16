@@ -34,6 +34,7 @@
  *   config-plans                 → /admin-portal/config/plans
  *   config-emails                → /admin-portal/config/emails
  *   config-reference             → /admin-portal/config/reference
+ *   config-rule-engine           → /admin-portal/config/rule-engine (renamed from "Listing Readiness Rules"; now hosts Listings + Market Display tabs — Session 50)
  *   config-rules                 → /admin-portal/config/rules
  *   config-miscellaneous         → /admin-portal/config/miscellaneous 
  *
@@ -165,7 +166,12 @@ const NAV_SECTIONS = [
       { id: 'config-onboard-docs', label: 'Onboard Docs', route: '/admin-portal/config/onboard-docs' },
       { id: 'config-emails',     label: 'Email Templates',  route: '/admin-portal/config/emails' },
       { id: 'config-reference',  label: 'Reference Data',   route: '/admin-portal/config/reference' },
-      { id: 'config-listing-readiness', label: 'Listing Readiness Rules', route: '/admin-portal/config/listing-readiness' },
+      // Session 50 — renamed from "Listing Readiness Rules" to "Rule Engine":
+      // same slot, same route prefix family, now opens to a tabbed screen
+      // (Listings + Market Display) instead of a single-purpose page. See
+      // UNAdminRuleEngine.jsx. The old /listing-readiness URL still works —
+      // App.js redirects it to the new route.
+      { id: 'config-rule-engine', label: 'Rule Engine', route: '/admin-portal/config/rule-engine' },
       { id: 'config-miscellaneous',label: 'Miscellaneous',           route: '/admin-portal/config/miscellaneous' },
       { id: 'config-rules',      label: 'Business Rules',   route: '/admin-portal/config/rules' },
     ],

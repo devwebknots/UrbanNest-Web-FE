@@ -34,12 +34,14 @@ import {
 } from './promotionTokens';
 import {
   apiListProducts, apiGetProduct, apiCreateProduct, apiUpdateProduct, apiDeleteProduct,
-  apiListPlans, apiCreatePlan, apiUpdatePlan, apiDeletePlan,
+  apiListPlans, apiGetPlan, apiCreatePlan, apiUpdatePlan, apiDeletePlan,
+  apiGetPlanDropdownOptions,
 } from './promotionEngineApi';
 import {
   PERSONA_TO_API, PERSONA_FROM_API, MARKET_TO_API, MARKET_FROM_API,
   PRODUCT_TARGET_TYPE_TO_API, PRODUCT_TARGET_TYPE_FROM_API,
   statusToApi, statusFromApi, PLAN_STATUSES, planStatusToApi, planStatusFromApi,
+  DISPLAY_TIERS, displayTierToApi, displayTierFromApi,
   camelToSnake, planFieldToApiName, yesNoToApi, yesNoFromApi, numOrNull, numOrBlank,
   enumToApi, enumFromApi, CAMPAIGN_FEATURE_KEY_TO_API,
 } from './promotionFieldMap';
@@ -173,7 +175,7 @@ export const SAMPLE_PRODUCTS = [
 ];
 
 // Column widths for the Product table's CSS grid.
-const GRID_COLS = 'minmax(0, 1.6fr) 150px 0.8fr 0.8fr 130px 1.1fr 0.8fr 1.1fr';
+const GRID_COLS = 'minmax(0, 1.6fr) 150px 0.8fr 0.8fr 130px 1.1fr 0.8fr 0.8fr 1.1fr';
 const PERSONAS_MAX_CHARS = 24;
 const PLAN_TYPE_MAX_CHARS = 16;
 const PRODUCT_NAME_MAX_CHARS = 12;
@@ -359,6 +361,7 @@ function productListItemFromApi(p) {
     icon: p.icon || 'ti-package', iconBg: p.icon_bg || '#EFF6FF', iconColor: p.icon_color || C.primary,
     plansLabel: p.plan_type_label || '—', campaignsSub: p.campaigns_subtitle || '',
     activePlans: p.active_plans_count ?? 0, liveCampaigns: p.live_campaigns_count ?? 0,
+    tier: displayTierFromApi(p.display_tier),
   };
 }
 
@@ -371,6 +374,7 @@ function productFullFromApi(p) {
     markets: (p.markets || []).map(x => MARKET_FROM_API[x] || x),
     icon: p.icon || '', iconBg: p.icon_bg || '', iconColor: p.icon_color || '',
     plansLabel: p.plan_type_label || '', campaignsSub: p.campaigns_subtitle || '',
+    tier: displayTierFromApi(p.display_tier),
     promotionObjective: p.promotion_objective || '',
     allowedTargetTypes: (p.allowed_target_types || []).map(x => PRODUCT_TARGET_TYPE_FROM_API[x] || x),
     featureAddonPrices: Object.fromEntries(
@@ -388,6 +392,7 @@ function buildProductApiPayload(form) {
     markets: (form.markets || []).map(m => MARKET_TO_API[m] || m).filter(Boolean),
     icon: form.icon || '', icon_bg: form.iconBg || '', icon_color: form.iconColor || '',
     plan_type_label: form.plansLabel || '', campaigns_subtitle: form.campaignsSub || '',
+    display_tier: displayTierToApi(form.tier),
     promotion_objective: form.promotionObjective || '',
     allowed_target_types: (form.allowedTargetTypes || []).map(t => PRODUCT_TARGET_TYPE_TO_API[t]).filter(Boolean),
     feature_addon_prices: Object.fromEntries(
@@ -401,7 +406,7 @@ function buildProductApiPayload(form) {
 
 function emptyProductForm() {
   return {
-    name: '', status: 'Draft', personas: [], markets: [],
+    name: '', status: 'Draft', tier: 'Basic', personas: [], markets: [],
     icon: '', iconBg: '', iconColor: '', plansLabel: '', campaignsSub: '',
     promotionObjective: '', allowedTargetTypes: [],
     featureAddonPrices: Object.fromEntries(CAMPAIGN_FEATURE_KEYS.map(f => [f.key, ''])),
@@ -479,6 +484,9 @@ function ProductFormModal({ productId, onClose, onSaved }) {
               </Field>
             </div>
           </div>
+          <Field label="Marketplace Display Tier" labelGap={20}>
+            <CustomDropdown options={DISPLAY_TIERS.map(t => ({ value: t, label: t }))} value={form.tier} onChange={v => setForm(f => ({ ...f, tier: v }))} />
+          </Field>
           {isEdit && (
             <Field label="Code" labelGap={20}>
               <div style={{ ...inputStyle, display: 'flex', alignItems: 'center', background: '#F1F5F9', color: C.textSecondary }}>
@@ -749,7 +757,7 @@ function ProductCatalogSection({ products, loading, error, onRefresh, onManagePl
         <div style={{ overflowX: 'auto' }}>
           <div style={{ minWidth: 960 }}>
             <div style={{ display: 'grid', gridTemplateColumns: GRID_COLS, gap: 12, padding: '8px 16px', borderBottom: `1px solid ${C.border}` }}>
-              {['Product', 'Personas', 'Markets', 'Active Plans', 'Plan Type', 'Live Campaigns', 'Status', 'Actions'].map(h => (
+              {['Product', 'Personas', 'Markets', 'Active Plans', 'Plan Type', 'Live Campaigns', 'Status', 'Tier', 'Actions'].map(h => (
                 <span key={h} style={{ fontFamily: F.body, fontSize: 10, fontWeight: 500, letterSpacing: '0.08em', textTransform: 'uppercase', color: C.textSecondary }}>{h}</span>
               ))}
             </div>
@@ -792,6 +800,7 @@ function ProductCatalogSection({ products, loading, error, onRefresh, onManagePl
                   <div style={{ fontFamily: F.body, fontSize: 11, color: C.textTertiary }}>{p.campaignsSub}</div>
                 </div>
                 <div><StatusPill status={p.status} tone={p.status === 'Active' ? 'green' : p.status === 'Draft' ? 'amber' : 'grey'} /></div>
+                <div><StatusPill status={p.tier} tone={p.tier === 'Exclusive' ? 'amber' : p.tier === 'Premium' ? 'blue' : 'grey'} /></div>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
                   <IconButton icon="ti-eye" onClick={() => setViewingProductId(p.id)} tooltip="View product" />
                   <IconButton icon="ti-pencil" onClick={() => setEditingProductId(p.id)} tooltip="Edit product" />
@@ -920,6 +929,12 @@ const PROMOTION_SCOPES = ['Listing', 'Portfolio', 'Account'];
 const LISTING_TYPES = ['Individual', 'Multi-Unit'];
 const FEATURED_PLACEMENTS = ['Limited', 'Enhanced', 'Standard'];
 const MEDIA_QUALITY_LEVELS = ['Standard', 'Configurable', 'High'];
+// Placement Priority has no hardcoded option list here (corrected same
+// session — Session 50, Phase 0 originally shipped this as a static array,
+// flagged as hardcoding). Its options are fetched at runtime from the
+// admin-configurable UNDropdown table and injected into the Placement tab's
+// field spec by PlanFormModal (see placementTabFields there) — a live
+// list is plugged in where this array is read, not authored in this file.
 
 const PLAN_TAB_IDENTITY = [
   { key: 'planName', label: 'Plan Name', type: 'text', placeholder: 'e.g. Featured 30-Day' },
@@ -1007,7 +1022,7 @@ const PLAN_TAB_PLACEMENT = [
   { key: 'featuredSectionEligible', label: 'Featured Section Eligible', type: 'select', options: YES_NO_CONFIG },
   { key: 'featuredSlotEligible', label: 'Featured Slot Eligible', type: 'select', options: YES_NO_CONFIG },
   { key: 'searchVisibilityBoost', label: 'Search Visibility Boost', type: 'text', placeholder: 'Configurable' },
-  { key: 'placementPriority', label: 'Placement Priority', type: 'text', placeholder: 'Configurable' },
+  { key: 'placementPriority', label: 'Placement Priority', type: 'select', options: [] /* live-filled by PlanFormModal */ },
   { key: 'rotationEnabled', label: 'Rotation Enabled', type: 'select', options: YES_NO_CONFIG },
   { key: 'rotationWeight', label: 'Rotation Weight', type: 'number', placeholder: 'Unlimited' },
   { key: 'maxFeaturedSlots', label: 'Maximum Featured Slots', type: 'number', placeholder: 'Unlimited' },
@@ -1157,6 +1172,13 @@ function buildPlanDetailForm(plan) {
   f.featuredSectionEligible = yesNoFromApi(plan.featured_section_eligible);
   f.featuredSlotEligible = yesNoFromApi(plan.featured_slot_eligible);
   f.searchVisibilityBoost = plan.search_visibility_boost || '';
+  // Not enumFromApi — placementPriority has no static ENUM_MAPS entry
+  // (Session 50, Phase 0: its code<->label conversion comes from the live
+  // UNDropdown fetch instead, see PlanFormModal). enumFromApi happens to
+  // pass the raw code straight through when a field has no map entry, so
+  // this worked by accident either way, but reading the raw API field
+  // directly here is what's actually true, not a coincidence of a
+  // fallback branch.
   f.placementPriority = plan.placement_priority || '';
   f.rotationEnabled = yesNoFromApi(plan.rotation_enabled);
   f.rotationWeight = numOrBlank(plan.rotation_weight);
@@ -1200,7 +1222,7 @@ function buildPlanDetailForm(plan) {
 // Geographic Targeting Scope are deliberately never sent — see header note.
 const PLAN_DIRECT_TEXT_FIELDS = [
   'shortDescription', 'internalDescription', 'refundPolicy', 'effectiveFrom', 'effectiveUntil',
-  'quantityType', 'tierCalculationMethod', 'searchVisibilityBoost', 'placementPriority',
+  'quantityType', 'tierCalculationMethod', 'searchVisibilityBoost',
   'badgeLabel', 'leadCtaLabel', 'customerFacingDescription', 'termsAndConditions',
 ];
 const PLAN_BOOLEAN_FIELDS = [
@@ -1217,6 +1239,10 @@ const PLAN_BOOLEAN_FIELDS = [
 const PLAN_ENUM_FIELDS = [
   'planType', 'pricingModel', 'taxConfiguration', 'durationType', 'startTrigger',
   'endTrigger', 'customerStatus', 'promotionScope', 'featuredPlacement', 'mediaQualityRequirement',
+  // placementPriority is NOT a static ENUM_MAPS field — its code<->label
+  // conversion depends on the live UNDropdown fetch (placementPriorityOptions
+  // state in PlanFormModal), so it's converted explicitly in handleSave
+  // instead of through this generic loop.
 ];
 const PLAN_NUMERIC_FIELDS = [
   'minListings', 'maxListings', 'minUnits', 'maxUnits', 'minProperties', 'maxProperties',
@@ -1294,10 +1320,112 @@ function PlanDetailField({ spec, value, onChange }) {
 
 function PlanFormModal({ product, plan, onClose, onSaved }) {
   const isEdit = !!plan;
+  // `plan` here is the row object from the Plans table, which only ever
+  // carries ListingPromotionPlanListSerializer's ~12 trimmed fields (name,
+  // plan_code, price, duration_days, etc.) — it never had
+  // placement_priority, effective_from/until, or most of the ~80-field
+  // schema. Fixed same session (flagged when Placement Priority/Effective
+  // Dates appeared blank on every reopen, even right after a successful
+  // save): on edit, fetch the FULL plan via apiGetPlan before building the
+  // form, same pattern ProductFormModal already uses for Products. `form`
+  // starts from the trimmed row as an instant placeholder so the modal
+  // isn't empty before the fetch resolves.
   const [form, setForm] = useState(() => buildPlanDetailForm(plan));
   const [activeDetailTab, setActiveDetailTab] = useState('identity');
+  const [loading, setLoading] = useState(isEdit);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
+  // Placement Priority's options — admin-configurable (UNDropdown table),
+  // fetched here rather than hardcoded.
+  const [placementPriorityOptions, setPlacementPriorityOptions] = useState([]);
+  // PE-10: whether the last Placement Priority dropdown fetch failed —
+  // drives the inline retry banner below. A failed fetch never blocks the
+  // Plan's own data (see the Promise.allSettled note below); it only means
+  // the field is showing a raw stored code (e.g. "TOP") instead of its
+  // friendly label (e.g. "Top Priority"), with no way to fix that short of
+  // closing and reopening the modal — this flag + loadPlacementPriorityOptions
+  // below are what let the admin retry in place instead.
+  const [placementPriorityError, setPlacementPriorityError] = useState(false);
+  // The plan's raw stored option_code, kept separately from
+  // form.placementPriority (which displays the resolved label once options
+  // are in hand) so a retry can still resolve the correct label later, even
+  // though the initial failed attempt already left the raw code showing.
+  const [placementPriorityRawCode, setPlacementPriorityRawCode] = useState(isEdit ? (plan.placement_priority || '') : '');
+
+  // Shared by the initial "Add Plan" load and the retry banner's button —
+  // re-fetches the dropdown options and, if a raw stored code is on file
+  // (the Edit case), re-resolves it to its label the moment options arrive.
+  const loadPlacementPriorityOptions = () => {
+    setPlacementPriorityError(false);
+    return apiGetPlanDropdownOptions('PLACEMENT_PRIORITY')
+      .then(dd => {
+        const opts = dd?.options || [];
+        setPlacementPriorityOptions(opts);
+        if (placementPriorityRawCode) {
+          const match = opts.find(o => o.option_code === placementPriorityRawCode);
+          if (match) setForm(f => ({ ...f, placementPriority: match.option_label }));
+        }
+        return opts;
+      })
+      .catch(err => {
+        setPlacementPriorityError(true);
+        // eslint-disable-next-line no-console
+        console.error('Failed to load Placement Priority options:', err);
+      });
+  };
+
+  useEffect(() => {
+    let cancelled = false;
+    if (isEdit) {
+      setLoading(true);
+      // Promise.allSettled, not Promise.all — these two calls are
+      // independent and must not be able to take each other down. Session
+      // 50 bug: Promise.all fails the WHOLE batch if either call rejects,
+      // which left the modal stuck on the trimmed list-row placeholder
+      // (buildPlanDetailForm(plan) from the lazy useState init above) —
+      // blanking Effective Dates/Placement Priority on screen even though
+      // the Plan record itself had loaded fine, whenever the dropdown-
+      // options call alone hiccupped. allSettled lets a dropdown failure
+      // stay a dropdown failure instead of masquerading as "the save didn't
+      // persist."
+      Promise.allSettled([apiGetPlan(plan.id), apiGetPlanDropdownOptions('PLACEMENT_PRIORITY')])
+        .then(([planResult, ddResult]) => {
+          if (cancelled) return;
+          const opts = (ddResult.status === 'fulfilled' && ddResult.value?.options) || [];
+          setPlacementPriorityOptions(opts);
+          setPlacementPriorityError(ddResult.status === 'rejected');
+          if (planResult.status === 'fulfilled') {
+            const f = buildPlanDetailForm(planResult.value);
+            // Keep the raw code around (PE-10) so a later retry of the
+            // dropdown fetch can still resolve the label, independent of
+            // whether this first attempt succeeded.
+            setPlacementPriorityRawCode(f.placementPriority || '');
+            // Convert the stored code to its display label when the option
+            // list is in hand; if the dropdown call failed, opts is empty
+            // and this just leaves the raw code until a retry succeeds —
+            // still strictly better than losing the Plan data too.
+            const match = opts.find(o => o.option_code === f.placementPriority);
+            if (match) f.placementPriority = match.option_label;
+            setForm(f);
+          } else {
+            // The Plan record itself failed to load — this is the failure
+            // that actually matters, surface it instead of silently leaving
+            // the trimmed-row placeholder on screen looking like real data.
+            setError(planResult.reason?.message || 'Failed to load plan details. Please reopen this plan.');
+          }
+          if (ddResult.status === 'rejected') {
+            // eslint-disable-next-line no-console
+            console.error('Failed to load Placement Priority options:', ddResult.reason);
+          }
+        })
+        .finally(() => { if (!cancelled) setLoading(false); });
+    } else {
+      // Add Plan — no existing record to fetch, just the dropdown options.
+      loadPlacementPriorityOptions();
+    }
+    return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   const setField = (key, val) => setForm(f => ({ ...f, [key]: val }));
   const setListItem = (key, i, val) => setForm(f => ({ ...f, [key]: (f[key] || []).map((x, idx) => (idx === i ? val : x)) }));
@@ -1314,8 +1442,20 @@ function PlanFormModal({ product, plan, onClose, onSaved }) {
     ] : []),
   ];
 
+  // Placement tab's Placement Priority field gets its live, UNDropdown-
+  // fetched options spliced in here — PLAN_TAB_PLACEMENT itself carries an
+  // empty options list (see its definition) since the real list only
+  // exists once this modal has fetched it.
+  const placementTabFields = PLAN_TAB_PLACEMENT.map(f =>
+    f.key === 'placementPriority'
+      ? { ...f, options: placementPriorityOptions.map(o => o.option_label) }
+      : f
+  );
+
   const activeTab = activeDetailTab === 'pricing'
     ? { ...PLAN_DETAIL_TABS.find(t => t.key === 'pricing'), fields: pricingTabFields }
+    : activeDetailTab === 'placement'
+    ? { ...PLAN_DETAIL_TABS.find(t => t.key === 'placement'), fields: placementTabFields }
     : (PLAN_DETAIL_TABS.find(t => t.key === activeDetailTab) || PLAN_DETAIL_TABS[0]);
 
   const handleSave = async () => {
@@ -1328,6 +1468,13 @@ function PlanFormModal({ product, plan, onClose, onSaved }) {
     setSaving(true); setError('');
     try {
       const payload = buildPlanApiPayload(form, product.id);
+      // Not part of buildPlanApiPayload's generic PLAN_ENUM_FIELDS loop —
+      // placementPriority's code<->label map comes from the live UNDropdown
+      // fetch (placementPriorityOptions), not a static ENUM_MAPS table.
+      // Falls back to sending the form value as-is if it somehow still
+      // holds a raw code (e.g. save attempted before the fetch resolved).
+      const ppMatch = placementPriorityOptions.find(o => o.option_label === form.placementPriority);
+      payload.placement_priority = ppMatch ? ppMatch.option_code : (form.placementPriority || '');
       const saved = isEdit ? await apiUpdatePlan(plan.id, payload) : await apiCreatePlan(payload);
       onSaved(saved);
     } catch (err) {
@@ -1344,10 +1491,14 @@ function PlanFormModal({ product, plan, onClose, onSaved }) {
       width={960}
       footer={<>
         <button onClick={onClose} style={CANCEL_BTN_STYLE}>Cancel</button>
-        <PrimaryButton label={saving ? 'Saving…' : (isEdit ? 'Save Changes' : 'Create Plan')} icon="ti-device-floppy" onClick={handleSave} disabled={saving} />
+        <PrimaryButton label={saving ? 'Saving…' : (isEdit ? 'Save Changes' : 'Create Plan')} icon="ti-device-floppy" onClick={handleSave} disabled={saving || loading} />
       </>}
     >
       <ErrorBanner message={error} />
+      {loading ? (
+        <div style={{ fontFamily: F.body, fontSize: 12.5, color: C.textTertiary, padding: '20px 0', textAlign: 'center' }}>Loading plan…</div>
+      ) : (
+      <>
       <div style={{ marginBottom: 22, paddingBottom: 18, borderBottom: `1px solid ${C.border}` }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 12, fontFamily: F.headline, fontSize: 13.5, fontWeight: 700, color: C.textPrimary }}>
           <i className="ti ti-package" style={{ color: C.primary }} /> Product
@@ -1397,6 +1548,16 @@ function PlanFormModal({ product, plan, onClose, onSaved }) {
         })}
       </div>
 
+      {activeDetailTab === 'placement' && placementPriorityError && (
+        // PE-10: surfaced instead of only logging to console — the field
+        // below is showing Placement Priority's raw stored code (no label)
+        // because this fetch failed; ErrorBanner's existing onRetry wiring
+        // re-runs the same loader used on open, no modal close/reopen needed.
+        <ErrorBanner
+          message="Couldn't load Placement Priority's option labels — the field below is showing its raw stored value instead."
+          onRetry={loadPlacementPriorityOptions}
+        />
+      )}
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '0 16px' }}>
         {(activeTab.fields || []).map(spec => (
           <div key={spec.key} style={spec.full ? { gridColumn: '1 / -1' } : undefined}>
@@ -1424,6 +1585,8 @@ function PlanFormModal({ product, plan, onClose, onSaved }) {
           </div>
         ))}
       </div>
+      </>
+      )}
     </ModalShell>
   );
 }

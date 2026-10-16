@@ -525,15 +525,13 @@ export default function UNAdminListingReadiness() {
   return (
     <div style={{ padding: '28px 32px', fontFamily: F.body }}>
 
-      {/* Breadcrumb */}
-      <div style={{ fontSize: 12, color: C.textTertiary, marginBottom: 6, display: 'flex', alignItems: 'center', gap: 5 }}>
-        Configurations
-        <i className="ti ti-chevron-right" style={{ fontSize: 12 }} />
-        <span style={{ color: C.textSecondary }}>Listing Readiness Rules</span>
-      </div>
+      {/* Breadcrumb removed (Session 50, continued) — this screen now only
+          ever renders nested inside UNAdminRuleEngine.jsx's "Listings" tab,
+          which already shows its own "Configurations › Rule Engine ›
+          Listings" breadcrumb above this, so this one was redundant. */}
 
       {/* Heading */}
-      <h1 style={{ fontFamily: F.headline, fontSize: 26, fontWeight: 500, color: C.primary, margin: '0 0 3px' }}>
+      <h1 style={{ fontFamily: F.headline, fontSize: 22, fontWeight: 500, color: C.primary, margin: '10px 0 20px' }}>
         Listing Readiness Rules
       </h1>
       <p style={{ fontFamily: F.body, fontSize: 13, color: C.textSecondary, margin: '0 0 22px', maxWidth: 760 }}>
@@ -591,7 +589,7 @@ export default function UNAdminListingReadiness() {
 
         <button
           onClick={() => setModal({ mode: 'add-custom', rule: null })}
-          style={{ ...btnPrimary, marginLeft: 'auto' }}
+          style={{ ...btnPrimary, height: 37, padding: '0 19px', marginLeft: 'auto' }}
         >
           <i className="ti ti-plus" style={{ fontSize: 14 }} />
           Add Custom Rule

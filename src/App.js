@@ -49,7 +49,10 @@ import UNAdminOnboardDocs    from './pages/UNAdminPortal/OnboardDocs/UNAdminOnbo
 import UNAdminApplicationReview from './pages/UNAdminPortal/Applications/UNAdminApplicationReview';
 import UNAdminReferenceData from './pages/UNAdminPortal/Configurations/References/UNAdminReferenceData';
 import UNAdminMiscConfig from './pages/UNAdminPortal/Configurations/Miscellaneous/UNAdminMiscConfig';
-import UNAdminListingReadiness from './pages/UNAdminPortal/Configurations/ListingReadiness/UNAdminListingReadiness';
+// Session 50 — UNAdminListingReadiness now renders inside UNAdminRuleEngine's
+// "Listings" tab (unchanged, just relocated) rather than being routed here
+// directly; see UNAdminRuleEngine.jsx.
+import UNAdminRuleEngine from './pages/UNAdminPortal/Configurations/RuleEngine/UNAdminRuleEngine';
 
 // UN Admin Portal — Advertise & Monetise — Promotion Engine (Session 48).
 // FE-first build, sample-data driven (Product Catalog → Campaigns →
@@ -149,6 +152,12 @@ import LandlordListingsOverview from './pages/Landlord/Listing/LandlordListingsO
 
 // Invite for all email/phone verifications
 import VerifyOwnershipPage from './pages/Invite/VerifyOwnershipPage';
+
+// Marketplace (public, consumer-facing) — Session 50. FE-first homepage
+// build against mock data; no public marketplace backend exists yet. Same
+// "public page" pattern as VerifyOwnershipPage below — no nav shell, no
+// PermissionGuard.
+import MarketplaceHomePage from './pages/Marketplace/Home/MarketplaceHomePage';
 
 // Payment- Cart/Payment Gateway
 import { PaymentCartProvider } from './pages/Payment/PaymentCartContext';
@@ -314,11 +323,15 @@ function AppRoutes() {
           <UNAdminReferenceData />
         </UNAdminShell>
       } />
-      <Route path="/admin-portal/config/listing-readiness" element={
-        <UNAdminShell activeId="config-listing-readiness" title="Listing Readiness Rules">
-          <UNAdminListingReadiness />
+      {/* Session 50 — "Listing Readiness Rules" became the "Listings" tab of
+          the new Rule Engine screen (same content, unchanged); the old URL
+          below redirects so any existing bookmark still works. */}
+      <Route path="/admin-portal/config/rule-engine" element={
+        <UNAdminShell activeId="config-rule-engine" title="Rule Engine">
+          <UNAdminRuleEngine />
         </UNAdminShell>
       } />
+      <Route path="/admin-portal/config/listing-readiness" element={<Navigate to="/admin-portal/config/rule-engine" replace />} />
       <Route path="/admin-portal/config/miscellaneous" element={
         <UNAdminShell activeId="misc-config" title="Miscellaneous Configurations">
           <UNAdminMiscConfig />
@@ -391,6 +404,9 @@ function AppRoutes() {
 
       {/* ── Invites ──────────────────────────────────────────────────── */}
       <Route path="/verify-ownership" element={<VerifyOwnershipPage />} />
+
+      {/* ── Marketplace (public) ─────────────────────────────────────── */}
+      <Route path="/marketplace" element={<MarketplaceHomePage />} />
 
     </Routes>
   );
