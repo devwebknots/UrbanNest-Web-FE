@@ -24,7 +24,7 @@ const C = {
   amberBorder:  '#FCD34D',
 };
 const F = { headline: "'Noto Serif', serif", body: "'Nunito Sans', sans-serif" };
-const API   = 'http://localhost:8001/api';
+const API = process.env.REACT_APP_API_BASE_URL || 'http://localhost:8001/api';
 const authH = () => ({ Authorization: `Bearer ${localStorage.getItem('access_token')}`, 'Content-Type': 'application/json' });
 
 const US_STATES = [

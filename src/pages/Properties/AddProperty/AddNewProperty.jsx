@@ -27,6 +27,8 @@ import UnitTabContent, { UnitSwitcher, emptyUnit } from './UnitTabs';
 import OwnershipDeclarationModal from '../../../components/common/OwnershipDeclarationModal'; // Session 39
 import { C as LC, F as LF } from '../../Landlord/landlordTokens'; // Session 39 — aliased, this file has its own C/F below
 
+
+const API_BASE = (process.env.REACT_APP_API_BASE_URL || 'http://localhost:8001/api').replace(/\/api\/?$/, '');
 if (typeof document !== 'undefined' && !document.getElementById('tabler-icons-cdn')) {
   const l = document.createElement('link');
   l.id = 'tabler-icons-cdn'; l.rel = 'stylesheet';
@@ -1529,7 +1531,7 @@ export default function AddNewProperty({ persona = 'INDEPENDENT_PM',initialPrope
   useEffect(() => {
     const token = localStorage.getItem('access_token');
     if (!token) { navigate('/login'); return; }
-    fetch('http://localhost:8001/api/auth/me/', { headers: { Authorization: 'Bearer ' + token } })
+    fetch(`${API_BASE}/api/auth/me/`, { headers: { Authorization: 'Bearer ' + token } })
       .then(r => r.ok ? r.json() : null)
       .then(data => {
         if (data) {
@@ -1547,7 +1549,7 @@ export default function AddNewProperty({ persona = 'INDEPENDENT_PM',initialPrope
         setSubTab('Unit/Home Info');
 
         // Fetch existing property owners so unit ownership "same as property" works
-        fetch(`http://localhost:8001/api/properties/${initialPropertyId}/`, {
+        fetch(`${API_BASE}/api/properties/${initialPropertyId}/`, {
           headers: { Authorization: 'Bearer ' + token }
         })
           .then(r => r.ok ? r.json() : null)
@@ -1635,8 +1637,8 @@ export default function AddNewProperty({ persona = 'INDEPENDENT_PM',initialPrope
     const token = localStorage.getItem('access_token');
     if (!token) return;
     Promise.all([
-    fetch('http://localhost:8001/api/admin/amenities/?category=PROPERTY', { headers: { Authorization: 'Bearer ' + token } }).then(r => r.json()),
-    fetch('http://localhost:8001/api/admin/amenities/?category=UNIT',     { headers: { Authorization: 'Bearer ' + token } }).then(r => r.json()),
+    fetch(`${API_BASE}/api/admin/amenities/?category=PROPERTY`, { headers: { Authorization: 'Bearer ' + token } }).then(r => r.json()),
+    fetch(`${API_BASE}/api/admin/amenities/?category=UNIT`,     { headers: { Authorization: 'Bearer ' + token } }).then(r => r.json()),
      ]).then(([prop, unit]) => {
     setPropertyAmenities((prop || []).map(a => ({ id: a.id, icon: a.icon, label: a.name })));
     setUnitAmenities((unit || []).map(a => ({ id: a.id, icon: a.icon, label: a.name })));
@@ -1697,7 +1699,7 @@ export default function AddNewProperty({ persona = 'INDEPENDENT_PM',initialPrope
     });
 
     // Step 1 — Create property
-    const createRes = await fetch('http://localhost:8001/api/properties/', {
+    const createRes = await fetch(`${API_BASE}/api/properties/`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -1783,7 +1785,7 @@ export default function AddNewProperty({ persona = 'INDEPENDENT_PM',initialPrope
     ];
 
     for (const ownerPayload of allOwners) {
-    const owRes = await fetch(`http://localhost:8001/api/properties/${newPropId}/ownerships/`, {
+    const owRes = await fetch(`${API_BASE}/api/properties/${newPropId}/ownerships/`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
         body: JSON.stringify(ownerPayload),
@@ -1809,7 +1811,7 @@ export default function AddNewProperty({ persona = 'INDEPENDENT_PM',initialPrope
     // POST every module — saved ones and skipped ones. Skip only if neither.
     if (!acct.saved && !acct.skipped) continue;
 
-    const owRes = await fetch(`http://localhost:8001/api/properties/${newPropId}/bank-accounts/`, {
+    const owRes = await fetch(`${API_BASE}/api/properties/${newPropId}/bank-accounts/`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
         body: JSON.stringify({
@@ -1825,7 +1827,7 @@ export default function AddNewProperty({ persona = 'INDEPENDENT_PM',initialPrope
 
     // Step 4 — Save amenity selections
     for (const amenityId of selectedAmenities) {
-       const owRes = await fetch(`http://localhost:8001/api/properties/${newPropId}/amenities/`, {
+       const owRes = await fetch(`${API_BASE}/api/properties/${newPropId}/amenities/`, {
        method: 'POST',
        headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
         body: JSON.stringify({ amenity: amenityId, access_type: 'ALL' }),
@@ -1835,7 +1837,7 @@ export default function AddNewProperty({ persona = 'INDEPENDENT_PM',initialPrope
     }
 
     // Step 5 — Submit property (fires ownership invites)
-    const submitRes = await fetch(`http://localhost:8001/api/properties/${newPropId}/submit/`, {
+    const submitRes = await fetch(`${API_BASE}/api/properties/${newPropId}/submit/`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -1868,7 +1870,7 @@ export default function AddNewProperty({ persona = 'INDEPENDENT_PM',initialPrope
     try {
       const token = localStorage.getItem('access_token');
 
-      const createRes = await fetch('http://localhost:8001/api/properties/', {
+      const createRes = await fetch(`${API_BASE}/api/properties/`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
         body: JSON.stringify({
@@ -1914,7 +1916,7 @@ export default function AddNewProperty({ persona = 'INDEPENDENT_PM',initialPrope
       // Landlord self-service: no owners to invite, no accounts to
       // configure at creation time (per Session 39 design).
       for (const amenityId of selectedAmenities) {
-        const amRes = await fetch(`http://localhost:8001/api/properties/${newPropId}/amenities/`, {
+        const amRes = await fetch(`${API_BASE}/api/properties/${newPropId}/amenities/`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
           body: JSON.stringify({ amenity: amenityId, access_type: 'ALL' }),
@@ -1922,7 +1924,7 @@ export default function AddNewProperty({ persona = 'INDEPENDENT_PM',initialPrope
         if (!amRes.ok) console.error('Amenity failed:', await amRes.json());
       }
 
-      const submitRes = await fetch(`http://localhost:8001/api/properties/${newPropId}/submit/`, {
+      const submitRes = await fetch(`${API_BASE}/api/properties/${newPropId}/submit/`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
         body: JSON.stringify({
@@ -1958,7 +1960,7 @@ export default function AddNewProperty({ persona = 'INDEPENDENT_PM',initialPrope
         return;
       }
 
-      const unitRes = await fetch(`http://localhost:8001/api/properties/${propId}/units/`, {
+      const unitRes = await fetch(`${API_BASE}/api/properties/${propId}/units/`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
         body: JSON.stringify({
@@ -1990,14 +1992,14 @@ export default function AddNewProperty({ persona = 'INDEPENDENT_PM',initialPrope
       // No ownership loop, no bank-account loop — landlord self-service.
 
       for (const amenityId of (activeUnit.amenities || new Set())) {
-        await fetch(`http://localhost:8001/api/properties/${propId}/units/${newUnitId}/amenities/`, {
+        await fetch(`${API_BASE}/api/properties/${propId}/units/${newUnitId}/amenities/`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
           body: JSON.stringify({ amenity: amenityId }),
         });
       }
 
-      await fetch(`http://localhost:8001/api/properties/${propId}/units/${newUnitId}/submit/`, {
+      await fetch(`${API_BASE}/api/properties/${propId}/units/${newUnitId}/submit/`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
         body: JSON.stringify({
@@ -2011,7 +2013,7 @@ export default function AddNewProperty({ persona = 'INDEPENDENT_PM',initialPrope
       if (activeUnit.studentHousing && (activeUnit.rooms || []).length > 0) {
         for (const room of activeUnit.rooms) {
           const roomRes = await fetch(
-            `http://localhost:8001/api/properties/${propId}/units/${newUnitId}/rooms/`,
+            `${API_BASE}/api/properties/${propId}/units/${newUnitId}/rooms/`,
             {
               method: 'POST',
               headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
@@ -2030,7 +2032,7 @@ export default function AddNewProperty({ persona = 'INDEPENDENT_PM',initialPrope
 
           for (const bed of (room.beds || [])) {
             const bedRes = await fetch(
-              `http://localhost:8001/api/properties/${propId}/units/${newUnitId}/rooms/${savedRoom.id}/beds/`,
+              `${API_BASE}/api/properties/${propId}/units/${newUnitId}/rooms/${savedRoom.id}/beds/`,
               {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
@@ -2042,7 +2044,7 @@ export default function AddNewProperty({ persona = 'INDEPENDENT_PM',initialPrope
 
             if (parseFloat(bed.rent_amount) > 0 || parseFloat(bed.security_deposit) > 0) {
               await fetch(
-                `http://localhost:8001/api/properties/${propId}/units/${newUnitId}/rooms/${savedRoom.id}/beds/${savedBed.id}/rent/`,
+                `${API_BASE}/api/properties/${propId}/units/${newUnitId}/rooms/${savedRoom.id}/beds/${savedBed.id}/rent/`,
                 {
                   method: 'POST',
                   headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
@@ -2294,7 +2296,7 @@ export default function AddNewProperty({ persona = 'INDEPENDENT_PM',initialPrope
                     const token = localStorage.getItem('access_token');
                     if (!propId) { setUnitCount(units.length); setUnitSaved(true); setSubTab('Unit/Home Info'); setPendingNewUnit(null); return; }
 
-                    const unitRes = await fetch(`http://localhost:8001/api/properties/${propId}/units/`, {
+                    const unitRes = await fetch(`${API_BASE}/api/properties/${propId}/units/`, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
                         body: JSON.stringify({
@@ -2332,7 +2334,7 @@ export default function AddNewProperty({ persona = 'INDEPENDENT_PM',initialPrope
                     ];
 
                     for (const o of unitAllOwners) {
-                        await fetch(`http://localhost:8001/api/properties/${propId}/units/${newUnitId}/ownerships/`, {
+                        await fetch(`${API_BASE}/api/properties/${propId}/units/${newUnitId}/ownerships/`, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
                         body: JSON.stringify({
@@ -2357,7 +2359,7 @@ export default function AddNewProperty({ persona = 'INDEPENDENT_PM',initialPrope
                     for (const [moduleKey, moduleVal] of Object.entries({ owner_settlement: 'OWNER_SETTLEMENT', unit_reserve: 'UNIT_RESERVE' })) {
                         const acct = activeUnit.unitBankAccounts?.[moduleKey];
                         if (!acct) continue;
-                        await fetch(`http://localhost:8001/api/properties/${propId}/units/${newUnitId}/bank-accounts/`, {
+                        await fetch(`${API_BASE}/api/properties/${propId}/units/${newUnitId}/bank-accounts/`, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
                         body: JSON.stringify({ module: moduleVal, is_skipped: acct.skipped || false }),
@@ -2365,14 +2367,14 @@ export default function AddNewProperty({ persona = 'INDEPENDENT_PM',initialPrope
                     }
 
                     for (const amenityId of (activeUnit.amenities || new Set())) {
-                        await fetch(`http://localhost:8001/api/properties/${propId}/units/${newUnitId}/amenities/`, {
+                        await fetch(`${API_BASE}/api/properties/${propId}/units/${newUnitId}/amenities/`, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
                         body: JSON.stringify({ amenity: amenityId }),
                         });
                     }
 
-                    await fetch(`http://localhost:8001/api/properties/${propId}/units/${newUnitId}/submit/`, {
+                    await fetch(`${API_BASE}/api/properties/${propId}/units/${newUnitId}/submit/`, {
                         method: 'POST',
                         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
                         body: JSON.stringify({ invite_expiry_days: 7 }),
@@ -2382,7 +2384,7 @@ export default function AddNewProperty({ persona = 'INDEPENDENT_PM',initialPrope
                     if (activeUnit.studentHousing && (activeUnit.rooms || []).length > 0) {
                         for (const room of activeUnit.rooms) {
                             const roomRes = await fetch(
-                                `http://localhost:8001/api/properties/${propId}/units/${newUnitId}/rooms/`,
+                                `${API_BASE}/api/properties/${propId}/units/${newUnitId}/rooms/`,
                                 {
                                     method: 'POST',
                                     headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
@@ -2405,7 +2407,7 @@ export default function AddNewProperty({ persona = 'INDEPENDENT_PM',initialPrope
 
                             for (const bed of (room.beds || [])) {
                                 const bedRes = await fetch(
-                                    `http://localhost:8001/api/properties/${propId}/units/${newUnitId}/rooms/${savedRoom.id}/beds/`,
+                                    `${API_BASE}/api/properties/${propId}/units/${newUnitId}/rooms/${savedRoom.id}/beds/`,
                                     {
                                         method: 'POST',
                                         headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },
@@ -2424,7 +2426,7 @@ export default function AddNewProperty({ persona = 'INDEPENDENT_PM',initialPrope
                                     // POST bed rent if values provided
                                     if (parseFloat(bed.rent_amount) > 0 || parseFloat(bed.security_deposit) > 0) {
                                         const rentRes = await fetch(
-                                            `http://localhost:8001/api/properties/${propId}/units/${newUnitId}/rooms/${savedRoom.id}/beds/${savedBed.id}/rent/`,
+                                            `${API_BASE}/api/properties/${propId}/units/${newUnitId}/rooms/${savedRoom.id}/beds/${savedBed.id}/rent/`,
                                             {
                                                 method: 'POST',
                                                 headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}` },

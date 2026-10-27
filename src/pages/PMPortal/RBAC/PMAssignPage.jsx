@@ -21,7 +21,7 @@ import NavB from '../../../components/layout/NavB';
 import UNPopup from '../../../components/common/UNPopup';
 import PMTopBar from '../../../components/layout/PMTopBar';
 
-const API = 'http://localhost:8001/api';
+const API = process.env.REACT_APP_API_BASE_URL || 'http://localhost:8001/api';
 
 const C = {
   primary:     '#002D5B',

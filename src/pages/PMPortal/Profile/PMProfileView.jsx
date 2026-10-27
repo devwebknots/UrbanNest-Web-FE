@@ -61,7 +61,7 @@ const F = {
   body:     "'Nunito Sans', sans-serif",
 };
 
-const API_BASE = 'http://localhost:8001';
+const API_BASE = (process.env.REACT_APP_API_BASE_URL || 'http://localhost:8001/api').replace(/\/api\/?$/, '');
 
 // ─── JWT decode ────────────────────────────────────────────────────────────────
 function decodeJWT(token) {
@@ -409,7 +409,7 @@ export default function PMProfileView() {
         if (d1.years_of_experience) setYearsExp(d1.years_of_experience);
         if (d1.max_units_capacity)  setMaxUnits(String(d1.max_units_capacity));
         if (d1.bio)                 setBio(d1.bio);
-        if (d1.profile_photo)       setPhotoPreview(`http://localhost:8001${d1.profile_photo}`);
+        if (d1.profile_photo)       setPhotoPreview(`${API_BASE}${d1.profile_photo}`);
 
         // property_types comes back as ["[\"RESIDENTIAL\",\"COMMERCIAL\"]"] — parse twice
         if (d1.property_types?.length) {

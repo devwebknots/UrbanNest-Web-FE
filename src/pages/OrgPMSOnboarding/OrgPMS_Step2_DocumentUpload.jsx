@@ -1,6 +1,8 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 
+
+const API_BASE = (process.env.REACT_APP_API_BASE_URL || 'http://localhost:8001/api').replace(/\/api\/?$/, '');
 if (typeof document !== 'undefined' && !document.getElementById('tabler-icons-cdn')) {
   const l = document.createElement('link');
   l.id = 'tabler-icons-cdn'; l.rel = 'stylesheet';
@@ -272,18 +274,18 @@ export default function OrgPMS_Step2_DocumentUpload() {
     const orgId   = localStorage.getItem('org_pms_id');
     if (!token) return;
 
-    fetch('http://localhost:8001/api/auth/me/', { headers:{ Authorization:'Bearer '+token } })
+    fetch(`${API_BASE}/api/auth/me/`, { headers:{ Authorization:'Bearer '+token } })
       .then(r => r.ok ? r.json() : null)
       .then(data => { if (data) setUserName(((data.first_name||'')+' '+(data.last_name||'')).trim()||data.email||'User'); })
       .catch(() => {});
 
     const reqFetch = fetch(
-      `http://localhost:8001/api/admin/document-requirements/?persona_type=ORG_PMS&country=${country}&active=true`,
+      `${API_BASE}/api/admin/document-requirements/?persona_type=ORG_PMS&country=${country}&active=true`,
       { headers: { Authorization:'Bearer '+token } }
     ).then(r => r.json()).then(data => Array.isArray(data) ? data : []);
 
     const docFetch = orgId
-      ? fetch(`http://localhost:8001/api/admin/org-pms/${orgId}/documents/`, {
+      ? fetch(`${API_BASE}/api/admin/org-pms/${orgId}/documents/`, {
           headers: { Authorization:'Bearer '+token },
         })
           .then(r => r.ok ? r.json() : [])
@@ -342,7 +344,7 @@ export default function OrgPMS_Step2_DocumentUpload() {
         fd.append('org_pms_account', orgId);
         fd.append('doc_type', docTypeCode);
         fd.append('file', file);
-        return fetch(`http://localhost:8001/api/admin/org-pms/${orgId}/documents/`, {
+        return fetch(`${API_BASE}/api/admin/org-pms/${orgId}/documents/`, {
           method: 'POST',
           headers: { Authorization:'Bearer '+token },
           body: fd,

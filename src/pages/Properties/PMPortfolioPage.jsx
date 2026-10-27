@@ -8,6 +8,8 @@ import { useNavigate, useParams } from 'react-router-dom';
 import NavB from '../../components/layout/NavB';
 import Header from '../../components/layout/Header';
 
+
+const API_BASE = (process.env.REACT_APP_API_BASE_URL || 'http://localhost:8001/api').replace(/\/api\/?$/, '');
 const C = {
   primary:      '#002D5B',
   primaryHover: '#003d7a',
@@ -177,7 +179,7 @@ function PropertySection({ property }) {
   useEffect(() => {
     const token = localStorage.getItem('access_token');
     if (!token) return;
-    fetch(`http://localhost:8001/api/properties/${property.id}/units/`, {
+    fetch(`${API_BASE}/api/properties/${property.id}/units/`, {
       headers: { Authorization: `Bearer ${token}` },
     })
       .then(r => r.ok ? r.json() : [])
@@ -365,7 +367,7 @@ export default function PMPortfolioPage() {
     const token = localStorage.getItem('access_token');
     if (!token) { navigate('/login'); return; }
 
-    fetch('http://localhost:8001/api/auth/me/', {
+    fetch(`${API_BASE}/api/auth/me/`, {
       headers: { Authorization: `Bearer ${token}` },
     }).then(r => r.ok ? r.json() : null).then(data => {
       if (data) {
@@ -375,7 +377,7 @@ export default function PMPortfolioPage() {
       }
     }).catch(() => {});
 
-    fetch('http://localhost:8001/api/properties/', {
+    fetch(`${API_BASE}/api/properties/`, {
       headers: { Authorization: `Bearer ${token}` },
     })
       .then(r => r.ok ? r.json() : [])

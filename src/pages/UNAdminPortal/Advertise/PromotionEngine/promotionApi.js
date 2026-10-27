@@ -25,7 +25,7 @@
  * there is nothing here for them to call.
  */
 
-const API_BASE = 'http://localhost:8001';
+const API_BASE = (process.env.REACT_APP_API_BASE_URL || 'http://localhost:8001/api').replace(/\/api\/?$/, '');
 const CHANNELS_URL = `${API_BASE}/api/listings/channels/`;
 const PROMOTION_PLANS_URL = `${API_BASE}/api/listings/promotion-plans/`;
 

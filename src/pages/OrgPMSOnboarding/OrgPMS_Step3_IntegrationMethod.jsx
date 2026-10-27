@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 
+
+const API_BASE = (process.env.REACT_APP_API_BASE_URL || 'http://localhost:8001/api').replace(/\/api\/?$/, '');
 if (typeof document !== 'undefined' && !document.getElementById('tabler-icons-cdn')) {
   const l = document.createElement('link');
   l.id = 'tabler-icons-cdn'; l.rel = 'stylesheet';
@@ -217,7 +219,7 @@ export default function OrgPMS_Step3_IntegrationMethod() {
     if (savedMethod) setIntegrationMethod(savedMethod);
 
     if (!token) return;
-    fetch('http://localhost:8001/api/auth/me/', { headers:{ Authorization:'Bearer '+token } })
+    fetch(`${API_BASE}/api/auth/me/`, { headers:{ Authorization:'Bearer '+token } })
       .then(r => r.ok ? r.json() : null)
       .then(data => {
         if (data) setUserName(((data.first_name||'')+' '+(data.last_name||'')).trim()||data.email||'User');
@@ -237,7 +239,7 @@ export default function OrgPMS_Step3_IntegrationMethod() {
       const token  = localStorage.getItem('access_token');
       const orgId  = localStorage.getItem('org_pms_id');
 
-      const res = await fetch(`http://localhost:8001/api/admin/org-pms/${orgId}/`, {
+      const res = await fetch(`${API_BASE}/api/admin/org-pms/${orgId}/`, {
         method:  'PATCH',
         headers: { Authorization: 'Bearer ' + token, 'Content-Type': 'application/json' },
         body:    JSON.stringify({ integration_method: integrationMethod }),

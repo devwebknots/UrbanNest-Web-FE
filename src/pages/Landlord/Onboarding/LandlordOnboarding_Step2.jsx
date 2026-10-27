@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { CustomDropdown } from '../../../components/ui';
 
+
+const API_BASE = (process.env.REACT_APP_API_BASE_URL || 'http://localhost:8001/api').replace(/\/api\/?$/, '');
 if (typeof document !== 'undefined' && !document.getElementById('tabler-icons-cdn')) {
   const l = document.createElement('link');
   l.id = 'tabler-icons-cdn'; l.rel = 'stylesheet';
@@ -122,7 +124,7 @@ export default function LandlordOnboarding_Step2() {
   useEffect(() => {
     const token = localStorage.getItem('access_token');
     if (!token) { navigate('/login'); return; }
-    fetch('http://localhost:8001/api/auth/me/', { headers:{ Authorization:'Bearer '+token } })
+    fetch(`${API_BASE}/api/auth/me/`, { headers:{ Authorization:'Bearer '+token } })
       .then(r => r.ok ? r.json() : null)
       .then(data => {
         if (data) {
@@ -139,7 +141,7 @@ export default function LandlordOnboarding_Step2() {
       });
 
     // Resume flow — pre-fill if the profile already has partial data
-    fetch(`http://localhost:8001/api/landlord/register/?country=${location.state?.country || 'US'}`, { headers:{ Authorization:'Bearer '+token } })
+    fetch(`${API_BASE}/api/landlord/register/?country=${location.state?.country || 'US'}`, { headers:{ Authorization:'Bearer '+token } })
       .then(r => r.ok ? r.json() : null)
       .then(d => {
         const p = d?.profile;
@@ -182,7 +184,7 @@ export default function LandlordOnboarding_Step2() {
         zip_code: zipCode,
       };
 
-      const res = await fetch('http://localhost:8001/api/landlord/register/', {
+      const res = await fetch(`${API_BASE}/api/landlord/register/`, {
         method: 'PATCH',
         headers: { Authorization: 'Bearer ' + token, 'Content-Type': 'application/json' },
         body: JSON.stringify(body),

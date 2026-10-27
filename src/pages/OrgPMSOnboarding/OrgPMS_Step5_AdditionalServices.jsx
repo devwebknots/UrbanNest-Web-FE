@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 
+
+const API_BASE = (process.env.REACT_APP_API_BASE_URL || 'http://localhost:8001/api').replace(/\/api\/?$/, '');
 if (typeof document !== 'undefined' && !document.getElementById('tabler-icons-cdn')) {
   const l = document.createElement('link');
   l.id = 'tabler-icons-cdn'; l.rel = 'stylesheet';
@@ -151,13 +153,13 @@ export default function OrgPMS_Step5_AdditionalServices() {
 
     if (!token || !planId) { setLoading(false); return; }
 
-    fetch('http://localhost:8001/api/auth/me/', { headers:{ Authorization:'Bearer '+token } })
+    fetch(`${API_BASE}/api/auth/me/`, { headers:{ Authorization:'Bearer '+token } })
       .then(r => r.ok ? r.json() : null)
       .then(data => { if (data) setUserName(((data.first_name||'')+' '+(data.last_name||'')).trim()||data.email||'User'); })
       .catch(() => {});
 
     // ── Use public endpoint — services are nested under data.services ──
-    fetch(`http://localhost:8001/api/admin/plans/public/${planId}/services/?type=ADDON`, {
+    fetch(`${API_BASE}/api/admin/plans/public/${planId}/services/?type=ADDON`, {
       headers: { Authorization:'Bearer '+token },
     })
       .then(r => r.json())

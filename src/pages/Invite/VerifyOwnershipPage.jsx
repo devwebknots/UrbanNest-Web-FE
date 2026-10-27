@@ -15,7 +15,7 @@ import { C } from '../../constants/colors';
 import { F } from '../../constants/fonts';
 import { dotGridBg } from '../../constants/styles';
 
-const API = 'http://localhost:8001/api';
+const API = process.env.REACT_APP_API_BASE_URL || 'http://localhost:8001/api';
 
 const ICONS = {
   home:     "M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z M9 22V12h6v10",

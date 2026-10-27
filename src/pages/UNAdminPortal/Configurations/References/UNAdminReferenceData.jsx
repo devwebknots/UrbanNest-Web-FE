@@ -26,7 +26,7 @@ const F = {
   body:     "'Nunito Sans', sans-serif",
 };
 
-const API   = 'http://localhost:8001/api/admin';
+const API = process.env.REACT_APP_API_BASE_URL || 'http://localhost:8001/api/admin';
 const authH = () => ({
   Authorization:  `Bearer ${localStorage.getItem('access_token')}`,
   'Content-Type': 'application/json',

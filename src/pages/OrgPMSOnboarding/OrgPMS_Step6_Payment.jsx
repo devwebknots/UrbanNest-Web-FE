@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 
+
+const API_BASE = (process.env.REACT_APP_API_BASE_URL || 'http://localhost:8001/api').replace(/\/api\/?$/, '');
 if (typeof document !== 'undefined' && !document.getElementById('tabler-icons-cdn')) {
   const l = document.createElement('link');
   l.id = 'tabler-icons-cdn'; l.rel = 'stylesheet';
@@ -148,14 +150,14 @@ export default function OrgPMS_Step6_Payment() {
     if (!token) { setSavedCard(false); return; }
 
     // 1. Get user display name
-    fetch('http://localhost:8001/api/auth/me/', { headers:{ Authorization:'Bearer '+token } })
+    fetch(`${API_BASE}/api/auth/me/`, { headers:{ Authorization:'Bearer '+token } })
       .then(r => r.ok ? r.json() : null)
       .then(data => { if (data) setUserName(((data.first_name||'')+' '+(data.last_name||'')).trim()||data.email||'User'); })
       .catch(() => {});
 
     // 2. Fetch org record to get real account_number + country
     if (!orgId) { setSavedCard(false); return; }
-    fetch(`http://localhost:8001/api/admin/org-pms/${orgId}/`, { headers:{ Authorization:'Bearer '+token } })
+    fetch(`${API_BASE}/api/admin/org-pms/${orgId}/`, { headers:{ Authorization:'Bearer '+token } })
       .then(r => r.ok ? r.json() : null)
       .then(data => {
         if (!data?.account_info) { setSavedCard(false); return; }
@@ -167,7 +169,7 @@ export default function OrgPMS_Step6_Payment() {
         // 3. Now check if a payment method already exists for this account
         if (!accNum) { setSavedCard(false); return; }
         return fetch(
-          `http://localhost:8001/api/admin/billing/payment-methods/?account_number=${encodeURIComponent(accNum)}`,
+          `${API_BASE}/api/admin/billing/payment-methods/?account_number=${encodeURIComponent(accNum)}`,
           { headers:{ Authorization:'Bearer '+token } }
         );
       })
@@ -212,7 +214,7 @@ export default function OrgPMS_Step6_Payment() {
       const token  = localStorage.getItem('access_token');
       const rawNum = cardNumber.replace(/\s/g,'');
 
-      const res = await fetch('http://localhost:8001/api/admin/billing/payment-methods/', {
+      const res = await fetch(`${API_BASE}/api/admin/billing/payment-methods/`, {
         method:  'POST',
         headers: { Authorization:'Bearer '+token, 'Content-Type':'application/json' },
         body: JSON.stringify({

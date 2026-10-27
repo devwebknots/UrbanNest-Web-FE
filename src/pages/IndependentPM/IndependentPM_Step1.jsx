@@ -2,6 +2,8 @@ import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { CustomDropdown } from '../../components/ui';
 
+
+const API_BASE = (process.env.REACT_APP_API_BASE_URL || 'http://localhost:8001/api').replace(/\/api\/?$/, '');
 // ─── Tabler icons ──────────────────────────────────────────────────────────────
 if (typeof document !== 'undefined' && !document.getElementById('tabler-icons-cdn')) {
   const l = document.createElement('link');
@@ -313,7 +315,7 @@ export default function IndependentPM_Step1() {
       const token = localStorage.getItem('access_token');
       if (!token) return;
       try {
-        const res = await fetch('http://localhost:8001/api/auth/me/', {
+        const res = await fetch(`${API_BASE}/api/auth/me/`, {
           headers: { Authorization: 'Bearer ' + token },
         });
         if (res.ok) {
@@ -385,7 +387,7 @@ export default function IndependentPM_Step1() {
         if (photoInput?.files[0]) formData.append('profile_photo', photoInput.files[0]);
       }
 
-      const res = await fetch('http://localhost:8001/api/pm/register/', {
+      const res = await fetch(`${API_BASE}/api/pm/register/`, {
         method:  'POST',
         headers: { Authorization: 'Bearer ' + token },
         body:    formData,

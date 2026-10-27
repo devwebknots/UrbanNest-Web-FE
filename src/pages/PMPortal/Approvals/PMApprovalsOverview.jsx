@@ -27,7 +27,7 @@ const F = {
   body:     "'Nunito Sans', sans-serif",
 };
 
-const API = 'http://localhost:8001/api';
+const API = process.env.REACT_APP_API_BASE_URL || 'http://localhost:8001/api';
 
 const TABS = [
   { id: 'all',         label: 'All' },

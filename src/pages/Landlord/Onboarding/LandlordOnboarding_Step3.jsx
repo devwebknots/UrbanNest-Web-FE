@@ -2,6 +2,8 @@ import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { CustomDropdown } from '../../../components/ui';
 
+
+const API_BASE = (process.env.REACT_APP_API_BASE_URL || 'http://localhost:8001/api').replace(/\/api\/?$/, '');
 if (typeof document !== 'undefined' && !document.getElementById('tabler-icons-cdn')) {
   const l = document.createElement('link');
   l.id = 'tabler-icons-cdn'; l.rel = 'stylesheet';
@@ -147,7 +149,7 @@ export default function LandlordOnboarding_Step3() {
   useEffect(() => {
     const token = localStorage.getItem('access_token');
     if (!token) { navigate('/login'); return; }
-    fetch('http://localhost:8001/api/auth/me/', { headers:{ Authorization:'Bearer '+token } })
+    fetch(`${API_BASE}/api/auth/me/`, { headers:{ Authorization:'Bearer '+token } })
       .then(r => r.ok ? r.json() : null)
       .then(data => {
         if (data) setUserName(((data.first_name||'')+' '+(data.last_name||'')).trim() || data.email || 'User');
@@ -156,7 +158,7 @@ export default function LandlordOnboarding_Step3() {
       .catch(() => { const d = decodeJWT(token); if (d) setUserName(d.email||'User'); });
 
     // ID type dropdown — reuses existing endpoint, filtered by country
-    fetch(`http://localhost:8001/api/landlord/id-type-options/?country=${userCountry}`, { headers:{ Authorization:'Bearer '+token } })
+    fetch(`${API_BASE}/api/landlord/id-type-options/?country=${userCountry}`, { headers:{ Authorization:'Bearer '+token } })
       .then(r => r.ok ? r.json() : null)
       .then(d => {
         if (d?.options?.length) {
@@ -209,7 +211,7 @@ export default function LandlordOnboarding_Step3() {
       if (idFiles[1]) formData.append('id_document_2', idFiles[1]);
       if (idFiles[2]) formData.append('id_document_3', idFiles[2]);
 
-      const patchRes = await fetch('http://localhost:8001/api/landlord/register/', {
+      const patchRes = await fetch(`${API_BASE}/api/landlord/register/`, {
         method: 'PATCH',
         headers: { Authorization: 'Bearer ' + token },
         body: formData,
@@ -222,7 +224,7 @@ export default function LandlordOnboarding_Step3() {
       }
 
       // Finalize — auto-approves and activates the LANDLORD persona
-      const submitRes = await fetch('http://localhost:8001/api/landlord/submit/', {
+      const submitRes = await fetch(`${API_BASE}/api/landlord/submit/`, {
         method: 'POST',
         headers: { Authorization: 'Bearer ' + token, 'Content-Type': 'application/json' },
         body: JSON.stringify({ country: userCountry }),

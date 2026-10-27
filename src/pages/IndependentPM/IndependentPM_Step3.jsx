@@ -1,3 +1,5 @@
+const API_BASE = (process.env.REACT_APP_API_BASE_URL || 'http://localhost:8001/api').replace(/\/api\/?$/, '');
+
   import React, { useState, useRef, useEffect } from 'react';
   import { useNavigate } from 'react-router-dom';
   import { CustomDropdown } from '../../components/ui';
@@ -159,7 +161,7 @@
         const token = localStorage.getItem('access_token');
         if (!token) return;
         try {
-          const res = await fetch('http://localhost:8001/api/auth/me/', { headers:{ Authorization:'Bearer '+token } });
+          const res = await fetch(`${API_BASE}/api/auth/me/`, { headers:{ Authorization:'Bearer '+token } });
           if (res.ok) {
             const data = await res.json();
             const full = ((data.first_name||'')+' '+(data.last_name||'')).trim()||data.email||'User';
@@ -216,7 +218,7 @@
         if (idFiles[1]) formData.append('id_document_2', idFiles[1]);
         if (idFiles[2]) formData.append('id_document_3', idFiles[2]);
 
-        const step3Res = await fetch('http://localhost:8001/api/pm/register/step-3/', {
+        const step3Res = await fetch(`${API_BASE}/api/pm/register/step-3/`, {
           method:  'PATCH',
           headers: { Authorization: 'Bearer ' + token },
           body:    formData,
@@ -234,7 +236,7 @@
         }
 
         // ── POST submit — activate account ────────────────────────────────────
-        const submitRes = await fetch('http://localhost:8001/api/pm/submit/', {
+        const submitRes = await fetch(`${API_BASE}/api/pm/submit/`, {
           method:  'POST',
           headers: {
             Authorization:  'Bearer ' + token,

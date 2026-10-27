@@ -20,7 +20,7 @@ import { F } from '../../constants/fonts';
 // useAuth().user, but the gap was already there for any future consumer.
 import { useAuth } from '../../context/AuthContext';
 
-const API_BASE = 'http://localhost:8001';
+const API_BASE = process.env.REACT_APP_API_BASE_URL || 'http://localhost:8001/api';
 
 const ESTATE_IMAGE = 'https://images.unsplash.com/photo-1613977257363-707ba9348227?w=900&q=80&fit=crop';
 
@@ -91,7 +91,7 @@ export default function LoginPage() {
     setError('');
 
     try {
-      const res = await fetch(`${API_BASE}/api/auth/login/`, {
+      const res = await fetch(`${API_BASE}/auth/login/`, {
         method:  'POST',
         headers: { 'Content-Type': 'application/json' },
         body:    JSON.stringify({ email_or_phone: clientId.trim(), password }),

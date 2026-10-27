@@ -69,7 +69,7 @@ const SERVICE_SVGS = {
 
 // ─── API CONFIG ───────────────────────────────────────────────────────────────
 // Base URL — change this if your backend is on a different port/host
-const API_BASE = 'http://127.0.0.1:8001';
+const API_BASE = (process.env.REACT_APP_API_BASE_URL || 'http://localhost:8001/api').replace(/\/api\/?$/, '');
 const SERVICES_URL = `${API_BASE}/api/admin/services/`;
 
 // Reads JWT access token from localStorage (set there by your login flow)

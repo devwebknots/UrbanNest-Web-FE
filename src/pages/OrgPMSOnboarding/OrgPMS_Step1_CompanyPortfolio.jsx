@@ -2,6 +2,8 @@ import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { CustomDropdown } from '../../components/ui';
 
+
+const API_BASE = (process.env.REACT_APP_API_BASE_URL || 'http://localhost:8001/api').replace(/\/api\/?$/, '');
 if (typeof document !== 'undefined' && !document.getElementById('tabler-icons-cdn')) {
   const l = document.createElement('link');
   l.id = 'tabler-icons-cdn'; l.rel = 'stylesheet';
@@ -247,7 +249,7 @@ export default function OrgPMS_Step1_CompanyPortfolio() {
     const token = localStorage.getItem('access_token');
     if (!token) return;
 
-    fetch(`http://localhost:8001/api/admin/org-pms/${orgId}/`, {
+    fetch(`${API_BASE}/api/admin/org-pms/${orgId}/`, {
       headers: { Authorization: 'Bearer ' + token },
     })
       .then(r => r.ok ? r.json() : null)
@@ -291,7 +293,7 @@ export default function OrgPMS_Step1_CompanyPortfolio() {
   useEffect(() => {
     const token = localStorage.getItem('access_token');
     if (!token) return;
-    fetch('http://localhost:8001/api/auth/me/', { headers: { Authorization: 'Bearer ' + token } })
+    fetch(`${API_BASE}/api/auth/me/`, { headers: { Authorization: 'Bearer ' + token } })
       .then(r => r.ok ? r.json() : null)
       .then(data => {
         if (!data) {
@@ -389,8 +391,8 @@ export default function OrgPMS_Step1_CompanyPortfolio() {
       // PATCH if record already exists (Back navigation), POST on first visit
       const isUpdate = Boolean(orgId);
       const url      = isUpdate
-        ? `http://localhost:8001/api/admin/org-pms/${orgId}/`
-        : 'http://localhost:8001/api/admin/org-pms/';
+        ? `${API_BASE}/api/admin/org-pms/${orgId}/`
+        : `${API_BASE}/api/admin/org-pms/`;
       const method   = isUpdate ? 'PATCH' : 'POST';
 
       const res = await fetch(url, {

@@ -1,6 +1,8 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 
+
+const API_BASE = (process.env.REACT_APP_API_BASE_URL || 'http://localhost:8001/api').replace(/\/api\/?$/, '');
 if (typeof document !== 'undefined' && !document.getElementById('tabler-icons-cdn')) {
   const l = document.createElement('link');
   l.id = 'tabler-icons-cdn'; l.rel = 'stylesheet';
@@ -136,7 +138,7 @@ export default function LandlordOnboarding_Step1() {
       const token = localStorage.getItem('access_token');
       if (!token) { navigate('/login'); return; }
       try {
-        const res = await fetch('http://localhost:8001/api/auth/me/', { headers:{ Authorization:'Bearer '+token } });
+        const res = await fetch(`${API_BASE}/api/auth/me/`, { headers:{ Authorization:'Bearer '+token } });
         if (res.ok) {
           const data = await res.json();
           const full = ((data.first_name||'')+' '+(data.last_name||'')).trim() || data.email || 'User';
@@ -151,7 +153,7 @@ export default function LandlordOnboarding_Step1() {
           // country (e.g. they left after Step 1 before), pre-fill from it.
           // Mirrors the same resume pattern used in Step 2 for address fields.
           try {
-            const profRes = await fetch(`http://localhost:8001/api/landlord/register/?country=${country}`, { headers:{ Authorization:'Bearer '+token } });
+            const profRes = await fetch(`${API_BASE}/api/landlord/register/?country=${country}`, { headers:{ Authorization:'Bearer '+token } });
             if (profRes.ok) {
               const profData = await profRes.json();
               if (profData?.exists) setProfileExists(true);
@@ -159,7 +161,7 @@ export default function LandlordOnboarding_Step1() {
               if (p) {
                 if (p.phone)      setPhone(p.phone);
                 if (p.occupation) setOccupation(p.occupation);
-                if (p.profile_photo) setPhotoPreview(`http://localhost:8001${p.profile_photo}`);
+                if (p.profile_photo) setPhotoPreview(`${API_BASE}${p.profile_photo}`);
               }
             }
           } catch {
@@ -203,7 +205,7 @@ export default function LandlordOnboarding_Step1() {
         if (photoInput?.files[0]) formData.append('profile_photo', photoInput.files[0]);
       }
 
-      const res = await fetch('http://localhost:8001/api/landlord/register/', {
+      const res = await fetch(`${API_BASE}/api/landlord/register/`, {
         method: profileExists ? 'PATCH' : 'POST',
         headers: { Authorization: 'Bearer ' + token },
         body: formData,

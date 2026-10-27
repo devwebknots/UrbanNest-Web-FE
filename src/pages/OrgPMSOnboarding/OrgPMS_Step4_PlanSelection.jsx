@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 
+
+const API_BASE = (process.env.REACT_APP_API_BASE_URL || 'http://localhost:8001/api').replace(/\/api\/?$/, '');
 if (typeof document !== 'undefined' && !document.getElementById('tabler-icons-cdn')) {
   const l = document.createElement('link');
   l.id = 'tabler-icons-cdn'; l.rel = 'stylesheet';
@@ -224,12 +226,12 @@ export default function OrgPMS_Step4_PlanSelection() {
 
     if (savedCycle) setBillingCycle(savedCycle);
 
-    fetch('http://localhost:8001/api/auth/me/', { headers:{ Authorization:'Bearer '+token } })
+    fetch(`${API_BASE}/api/auth/me/`, { headers:{ Authorization:'Bearer '+token } })
       .then(r => r.ok ? r.json() : null)
       .then(data => { if (data) setUserName(((data.first_name||'')+' '+(data.last_name||'')).trim()||data.email||'User'); })
       .catch(() => {});
 
-    fetch('http://localhost:8001/api/admin/plans/public/', { headers:{ Authorization:'Bearer '+token } })
+    fetch(`${API_BASE}/api/admin/plans/public/`, { headers:{ Authorization:'Bearer '+token } })
       .then(r => r.json())
       .then(data => {
         const allActive = Array.isArray(data) ? data.filter(p => p.status === 'ACTIVE') : [];
@@ -282,7 +284,7 @@ export default function OrgPMS_Step4_PlanSelection() {
       localStorage.setItem('org_pms_billing_cycle', billingCycle);
 
       // Step 1 — fetch org record to get account_number + country
-      const orgRes  = await fetch(`http://localhost:8001/api/admin/org-pms/${orgId}/`, {
+      const orgRes  = await fetch(`${API_BASE}/api/admin/org-pms/${orgId}/`, {
         headers: { Authorization:'Bearer '+token },
       });
       const orgData = await orgRes.json();
@@ -300,7 +302,7 @@ export default function OrgPMS_Step4_PlanSelection() {
       // Step 2 — create UNSubscription with trial dates
       const now          = new Date();
       const trialEnd     = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
-      const subRes = await fetch('http://localhost:8001/api/admin/billing/subscriptions/', {
+      const subRes = await fetch(`${API_BASE}/api/admin/billing/subscriptions/`, {
         method:  'POST',
         headers: { Authorization:'Bearer '+token, 'Content-Type':'application/json' },
         body: JSON.stringify({
@@ -328,7 +330,7 @@ export default function OrgPMS_Step4_PlanSelection() {
 
       // Step 3 — link subscription to UNAccount via org-pms PATCH
       // Uses orgId (integer) to avoid slash issue with account_number in URL
-      await fetch(`http://localhost:8001/api/admin/org-pms/${orgId}/`, {
+      await fetch(`${API_BASE}/api/admin/org-pms/${orgId}/`, {
         method:  'PATCH',
         headers: { Authorization:'Bearer '+token, 'Content-Type':'application/json' },
         body: JSON.stringify({ link_subscription: subData.id }),

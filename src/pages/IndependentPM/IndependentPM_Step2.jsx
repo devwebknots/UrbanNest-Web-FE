@@ -2,6 +2,8 @@ import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { CustomDropdown } from '../../components/ui';
 
+
+const API_BASE = (process.env.REACT_APP_API_BASE_URL || 'http://localhost:8001/api').replace(/\/api\/?$/, '');
 if (typeof document !== 'undefined' && !document.getElementById('tabler-icons-cdn')) {
   const l = document.createElement('link');
   l.id = 'tabler-icons-cdn'; l.rel = 'stylesheet';
@@ -170,7 +172,7 @@ export default function IndependentPM_Step2() {
       const token = localStorage.getItem('access_token');
       if (!token) return;
       try {
-        const res = await fetch('http://localhost:8001/api/auth/me/', { headers:{ Authorization:'Bearer '+token } });
+        const res = await fetch(`${API_BASE}/api/auth/me/`, { headers:{ Authorization:'Bearer '+token } });
         if (res.ok) {
           const data = await res.json();
           const full = ((data.first_name||'')+' '+(data.last_name||'')).trim() || data.email || 'User';
@@ -227,7 +229,7 @@ export default function IndependentPM_Step2() {
         formData.append('brokerage_license',brokerageLic);
         if (formattedExpiry) formData.append('expiry_date', formattedExpiry);
         formData.append('license_document', licenseFile);
-        res = await fetch('http://localhost:8001/api/pm/register/step-2/', {
+        res = await fetch(`${API_BASE}/api/pm/register/step-2/`, {
           method:  'PATCH',
           headers: { Authorization: 'Bearer ' + token },
           body:    formData,
@@ -243,7 +245,7 @@ export default function IndependentPM_Step2() {
           brokerage_license:brokerageLic,
         };
         if (formattedExpiry) body.expiry_date = formattedExpiry;
-        res = await fetch('http://localhost:8001/api/pm/register/step-2/', {
+        res = await fetch(`${API_BASE}/api/pm/register/step-2/`, {
           method:  'PATCH',
           headers: { Authorization: 'Bearer ' + token, 'Content-Type': 'application/json' },
           body: JSON.stringify(body),

@@ -20,7 +20,7 @@ if (typeof document !== 'undefined' && !document.getElementById('tabler-icons-cd
   document.head.appendChild(l);
 }
 
-const API = 'http://localhost:8001';
+const API = (process.env.REACT_APP_API_BASE_URL || 'http://localhost:8001/api').replace(/\/api\/?$/, '');
 
 const C = {
   primary:      '#002D5B',

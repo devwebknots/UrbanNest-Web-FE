@@ -1,5 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 
+
+const API_BASE = (process.env.REACT_APP_API_BASE_URL || 'http://localhost:8001/api').replace(/\/api\/?$/, '');
 if (typeof document !== 'undefined' && !document.getElementById('tabler-icons-cdn')) {
   const l = document.createElement('link');
   l.id = 'tabler-icons-cdn'; l.rel = 'stylesheet';
@@ -238,7 +240,7 @@ function DocModal({ mode, doc, onClose, onSaved, token }) {
     try {
       const url    = isEdit ? `/api/admin/document-requirements/${doc.id}/` : '/api/admin/document-requirements/';
       const method = isEdit ? 'PATCH' : 'POST';
-      const res    = await fetch(`http://localhost:8001${url}`, {
+      const res    = await fetch(`${API_BASE}${url}`, {
         method,
         headers: { Authorization: 'Bearer ' + token, 'Content-Type': 'application/json' },
         body: JSON.stringify(body),
@@ -442,7 +444,7 @@ export default function UNAdminOnboardDocs() {
   const fetchDocs = async (t) => {
     setLoading(true);
     try {
-      const res  = await fetch('http://localhost:8001/api/admin/document-requirements/', {
+      const res  = await fetch(`${API_BASE}/api/admin/document-requirements/`, {
         headers: { Authorization: 'Bearer ' + (t || token) },
       });
       const data = await res.json();
@@ -461,7 +463,7 @@ export default function UNAdminOnboardDocs() {
 
   const handleToggleActive = async (doc) => {
     try {
-      const res = await fetch(`http://localhost:8001/api/admin/document-requirements/${doc.id}/`, {
+      const res = await fetch(`${API_BASE}/api/admin/document-requirements/${doc.id}/`, {
         method:  'PATCH',
         headers: { Authorization: 'Bearer ' + token, 'Content-Type': 'application/json' },
         body:    JSON.stringify({ is_active: !doc.is_active }),
@@ -486,7 +488,7 @@ export default function UNAdminOnboardDocs() {
     if (!deleteDoc) return;
     setDeleting(true);
     try {
-      const res = await fetch(`http://localhost:8001/api/admin/document-requirements/${deleteDoc.id}/`, {
+      const res = await fetch(`${API_BASE}/api/admin/document-requirements/${deleteDoc.id}/`, {
         method:  'DELETE',
         headers: { Authorization: 'Bearer ' + token },
       });
