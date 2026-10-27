@@ -158,6 +158,21 @@ import VerifyOwnershipPage from './pages/Invite/VerifyOwnershipPage';
 // "public page" pattern as VerifyOwnershipPage below — no nav shell, no
 // PermissionGuard.
 import MarketplaceHomePage from './pages/Marketplace/Home/MarketplaceHomePage';
+// Session 51 correction — Favorites no longer has its own route. It opens
+// as an in-page modal from inside MarketplaceHomePage itself
+// (FavoritesModal, see that file) instead of navigating to a separate
+// screen — the user's own ask: a popup to close, not a page to navigate
+// back from. Saved Search likewise has no screen — it's an invisible,
+// internal-only capture (see MarketplaceHomePage.jsx /
+// marketplace_account/models.py), never something a Renter opens.
+//
+// Session 51, Phase 7 — the two detail pages (Individual Unit / Multi-Unit)
+// that MarketplaceHomePage.jsx's own handleCardClick already anticipated
+// (see that file's pre-existing comment at the old stub). See
+// listings/Marketplace_Listing_Design_Review.md §7 for the evaluation and
+// build decisions this implements.
+import ListingDetailPage from './pages/Marketplace/Detail/ListingDetailPage';
+import PropertyListingDetailPage from './pages/Marketplace/Detail/PropertyListingDetailPage';
 
 // Payment- Cart/Payment Gateway
 import { PaymentCartProvider } from './pages/Payment/PaymentCartContext';
@@ -407,6 +422,16 @@ function AppRoutes() {
 
       {/* ── Marketplace (public) ─────────────────────────────────────── */}
       <Route path="/marketplace" element={<MarketplaceHomePage />} />
+      {/* Session 51 correction — Favorites and Saved Search both have no
+          route of their own now. Favorites opens as an in-page modal from
+          MarketplaceHomePage itself (see App.js's import comment above);
+          Saved Search is an invisible, internal-only capture with no
+          screen at all. */}
+      {/* Session 51, Phase 7 — Individual Unit Listing / Multi-Unit
+          (PropertyListing) public detail pages. See listings/
+          Marketplace_Listing_Design_Review.md §7. */}
+      <Route path="/marketplace/listing/:id" element={<ListingDetailPage />} />
+      <Route path="/marketplace/property-listing/:id" element={<PropertyListingDetailPage />} />
 
     </Routes>
   );

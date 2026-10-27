@@ -260,19 +260,31 @@ function DeadEndButton({ label, icon, tooltip, style, small }) {
   );
 }
 
-// promotionPlan/expiresAt: prefer the real values (this page's units
-// already carry both from pm_listings_overview) — only true for a real
-// active listing. Everything else here (deposit, description, amenities,
-// photoCount, leadContact, showingSettings, listingId, compliance) has no
-// backend source yet and stays illustrative regardless of data source —
-// exact same scope/behavior as PM's own buildSummaryDetails. When there's
-// no real expiresAt, fall back to publishedDate + the illustrative plan's
-// 30 days so the countdown row still shows something instead of a dash.
+// promotionPlan/expiresAt/deposit/applicationFee: prefer the real values
+// (this page's units already carry rent/securityDeposit/applicationFee
+// straight from pm_listings_overview's own ListingRentalTerms/
+// ListingSaleTerms read, Session 51 fix) — only true for a real active
+// listing. Everything else here (description, amenities, photoCount,
+// leadContact, showingSettings, listingId, compliance) has no backend
+// source yet and stays illustrative regardless of data source — exact same
+// scope/behavior as PM's own buildSummaryDetails. When there's no real
+// expiresAt, fall back to publishedDate + the illustrative plan's 30 days
+// so the countdown row still shows something instead of a dash.
+//
+// Session 51 live-testing fix (Idex 3 / units A1+A2) — `deposit` used to be
+// fabricated client-side as `Math.round(u.rent * 1.5)`, never a real read of
+// any stored field; `u.rent` itself used to be Unit.rent_amount, a separate
+// Property/Unit-level asking-price field that can legitimately disagree with
+// what was actually published. Both are now the real per-Listing
+// ListingRentalTerms/ListingSaleTerms values the backend rollup resolves —
+// the same row the public marketplace itself reads — so this modal can no
+// longer show numbers that don't match what's actually live.
 function buildSummaryDetails(u) {
   const promotionPlan = u.promotionPlan || 'Standard Boost — 30 days';
   const expiresAt = u.expiresAt || (u.publishedDate ? addDays(u.publishedDate, 30) : null);
   return {
-    deposit: u.rent != null ? Math.round(u.rent * 1.5) : null,
+    deposit: u.securityDeposit != null ? u.securityDeposit : null,
+    applicationFee: u.applicationFee != null ? u.applicationFee : null,
     description: 'Bright, well-maintained unit close to transit and shopping. Freshly painted with updated fixtures throughout.',
     amenities: ['In-unit Laundry', 'Central AC', 'Parking Included', 'Pet Friendly'],
     photoCount: 6,
@@ -336,6 +348,7 @@ function ListingSummaryModal({ unit, propertyName, onClose }) {
           <div style={{ fontFamily: F.sans, fontSize: 10.5, fontWeight: 700, color: C.txtMuted, textTransform: 'uppercase', letterSpacing: '0.06em', margin: '16px 0 6px' }}>Step 2 — Listing Details</div>
           <SummaryRow label="Rent" value={fmtRent(unit.rent)} />
           <SummaryRow label="Security Deposit" value={fmtRent(d.deposit)} />
+          <SummaryRow label="Application Fee" value={fmtRent(d.applicationFee)} />
           <SummaryRow label="Available From" value={fmtDate(unit.availableDate)} />
           <SummaryRow label="Photos" value={`${d.photoCount} uploaded`} />
           <p style={{ margin: '8px 0 0', fontFamily: F.sans, fontSize: 12, color: C.txtSec, lineHeight: 1.6 }}>{d.description}</p>

@@ -37,7 +37,7 @@ const ORG_PMS_BADGE = {
 
 // ─── Persona catalogue ─────────────────────────────────────────────────────────
 const ALL_PERSONAS = [
-  { key:'RENTER',            label:'Renter',            sub:'Main Account',       icon:'ti-home',                color:C.primary,  route:'/coming-soon',            portal:'/coming-soon' },
+  { key:'RENTER',            label:'Renter',            sub:'Main Account',       icon:'ti-home',                color:C.primary,  route:'/marketplace',            portal:'/marketplace' },
   { key:'TENANT',            label:'Tenant',            sub:'Active Tenancy',     icon:'ti-users',               color:'#1D4ED8',  route:'/coming-soon',            portal:'/coming-soon' },
   { key:'LANDLORD',          label:'Landlord',          sub:'Property Owner',     icon:'ti-building',            color:'#064E3B',  route:'/landlord-registration/step-1', portal:'/landlord-portal/dashboard' },
   { key:'INDEPENDENT_PM',    label:'Property Manager',  sub:'Independent PM',     icon:'ti-briefcase',           color:'#B45309',  route:'/pm-registration',        portal:'/pm-portal/dashboard/welcome' },
@@ -299,7 +299,13 @@ export default function PersonaSelectPage() {
           navigate('/coming-soon');
           break;
         case 'RENTER':
-          navigate('/coming-soon');
+          // Session 51, Phase 3 — closes the loop the Marketplace
+          // architecture doc flagged (no authenticated homepage variant to
+          // land a Renter login on): the Marketplace homepage itself is
+          // that variant now, so Renter goes there instead of the
+          // /coming-soon placeholder every other not-yet-built persona
+          // still uses.
+          navigate('/marketplace');
           break;
         default:
           navigate('/coming-soon');

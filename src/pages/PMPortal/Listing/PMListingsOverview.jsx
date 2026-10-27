@@ -505,7 +505,15 @@ function fmtDate(d) {
   return d ? new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '—';
 }
 function fmtRent(r) {
-  return `$${r.toLocaleString()}`;
+  // Session 51 live-testing fix — this used to be safe because every call
+  // site was guaranteed a real number (deposit was always a computed
+  // `rent * 1.5`, never null). Now that Rent/Security Deposit/Application
+  // Fee all come straight from the real ListingRentalTerms/ListingSaleTerms
+  // row, application_fee in particular is a genuinely nullable DB field
+  // (landlord/PM left it blank) and crashed here with "Cannot read
+  // properties of null". Matches LandlordListingsOverview.jsx's own
+  // already-null-safe fmtRent.
+  return r != null ? `$${Number(r).toLocaleString()}` : '—';
 }
 function fmtRelative(d) {
   const then = new Date(d); then.setHours(0, 0, 0, 0);
@@ -645,20 +653,35 @@ function FilterPanel({ open, onClose, properties, propertyFilter, setPropertyFil
 
 // ── Listing Summary modal (consolidates Steps 1–4) ─────────────────────────
 function buildSummaryDetails(u) {
-  // promotionPlan/expiresAt: prefer the real values (from Listing /
-  // ListingPromotionPurchase, wired this revision) when the unit has them —
-  // only true for a real active listing. Everything else in this modal
-  // (deposit, description, amenities, photoCount, leadContact,
-  // showingSettings, listingId, compliance) has no backend source at all
-  // yet and stays illustrative regardless of data source — see the modal's
-  // own note where it's rendered. When there's no real expiresAt (a mock
-  // row, or a real active listing published before this field existed),
-  // fall back to publishedDate + the illustrative plan's 30 days so the
-  // countdown row still shows something instead of a bare dash.
+  // promotionPlan/expiresAt/deposit/applicationFee: prefer the real values
+  // (this page's units already carry rent/securityDeposit/applicationFee
+  // straight from pm_listings_overview's own ListingRentalTerms/
+  // ListingSaleTerms read, Session 51 fix — this endpoint is the one shared
+  // backend rollup both Independent PM and Org PM consume here, same as
+  // Landlord's own LandlordListingsOverview.jsx) — only true for a real
+  // active listing. Everything else in this modal (description, amenities,
+  // photoCount, leadContact, showingSettings, listingId, compliance) has no
+  // backend source at all yet and stays illustrative regardless of data
+  // source — see the modal's own note where it's rendered. When there's no
+  // real expiresAt (a mock row, or a real active listing published before
+  // this field existed), fall back to publishedDate + the illustrative
+  // plan's 30 days so the countdown row still shows something instead of a
+  // bare dash.
+  //
+  // Session 51 live-testing fix (Idex 3 / units A1+A2, reported across
+  // Landlord, Independent PM, and Org PM alike) — `deposit` used to be
+  // fabricated client-side as `Math.round(u.rent * 1.5)`, never a real read
+  // of any stored field; `u.rent` itself used to be Unit.rent_amount, a
+  // separate Property/Unit-level asking-price field that can legitimately
+  // disagree with what was actually published. Both are now the real
+  // per-Listing ListingRentalTerms/ListingSaleTerms values the backend
+  // rollup resolves — the same row the public marketplace itself reads — so
+  // this modal can no longer show numbers that don't match what's live.
   const promotionPlan = u.promotionPlan || 'Standard Boost — 30 days';
   const expiresAt = u.expiresAt || (u.publishedDate ? addDays(u.publishedDate, 30) : null);
   return {
-    deposit: Math.round(u.rent * 1.5),
+    deposit: u.securityDeposit != null ? u.securityDeposit : null,
+    applicationFee: u.applicationFee != null ? u.applicationFee : null,
     description: 'Bright, well-maintained unit close to transit and shopping. Freshly painted with updated fixtures throughout.',
     amenities: ['In-unit Laundry', 'Central AC', 'Parking Included', 'Pet Friendly'],
     photoCount: 6,
@@ -723,6 +746,7 @@ function ListingSummaryModal({ unit, propertyName, onClose }) {
           <div style={{ fontFamily: F.body, fontSize: 10.5, fontWeight: 700, color: C.textTert, textTransform: 'uppercase', letterSpacing: '0.06em', margin: '16px 0 6px' }}>Step 2 — Listing Details</div>
           <SummaryRow label="Rent" value={fmtRent(unit.rent)} />
           <SummaryRow label="Security Deposit" value={fmtRent(d.deposit)} />
+          <SummaryRow label="Application Fee" value={fmtRent(d.applicationFee)} />
           <SummaryRow label="Available From" value={fmtDate(unit.availableDate)} />
           <SummaryRow label="Photos" value={`${d.photoCount} uploaded`} />
           <p style={{ margin: '8px 0 0', fontFamily: F.body, fontSize: 12, color: C.textSec, lineHeight: 1.6 }}>{d.description}</p>

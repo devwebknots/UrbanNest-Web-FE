@@ -10,6 +10,15 @@ import { useNavigate } from 'react-router-dom';
 import { Button, Input, Divider, TestimonialCarousel } from '../../components/ui';
 import { C } from '../../constants/colors';
 import { F } from '../../constants/fonts';
+// Session 51, Phase 3 fix — AuthContext.refreshAuth() exists specifically
+// "to call after login" (see its own doc comment), but nothing here ever
+// called it. AuthProvider only bootstraps `user`/`permissions` once, on the
+// app's very first mount (before any login); every login after that is a
+// client-side navigate(), so without this, `user` stayed null for the rest
+// of the session until a hard page reload. Surfaced by Marketplace's new
+// account-aware nav (Session 51, Phase 3) being the first real consumer of
+// useAuth().user, but the gap was already there for any future consumer.
+import { useAuth } from '../../context/AuthContext';
 
 const API_BASE = 'http://localhost:8001';
 
@@ -64,6 +73,7 @@ function AppleLogo() {
 
 export default function LoginPage() {
   const navigate = useNavigate();
+  const { refreshAuth } = useAuth();
 
   const [clientId, setClientId] = useState('');
   const [password, setPassword] = useState('');
@@ -112,6 +122,12 @@ export default function LoginPage() {
       if (tokens.access)  localStorage.setItem('access_token',  tokens.access);
       if (tokens.refresh) localStorage.setItem('refresh_token', tokens.refresh);
 
+      // ── Session 51 fix: re-run AuthContext's bootstrap now, so every
+      // useAuth() consumer (e.g. the Marketplace nav) sees the logged-in
+      // user immediately — not only after a hard page reload. Awaited so
+      // `user` is already populated by the time the next screen renders. ──
+      await refreshAuth();
+
       // ── AUTH_WEB_002: Navigate to persona select ──
       navigate('/persona-select');
 
@@ -157,7 +173,15 @@ export default function LoginPage() {
           justifyContent: 'space-between',
           padding: '56px 76px 36px 68px', background: '#fff',
         }}>
-          <div style={{ maxWidth: 440 }}>
+          {/* Session 51 fix — this panel is `flex: 1` (grows to fill the
+              window) while this block is capped at a fixed max-width, so
+              on a wide/maximized window it used to sit flush left with a
+              growing gap of empty space to its right (reported live,
+              comparing a narrower vs. a maximized browser window). `margin:
+              '0 auto'` centers it within the panel at any window width
+              instead, so the form reads the same regardless of how wide
+              the browser is. */}
+          <div style={{ maxWidth: 440, margin: '0 auto' }}>
             <h1 style={{ fontFamily: F.headline, fontWeight: 700, fontSize: 40, color: C.primary, lineHeight: 1.2, marginBottom: 10 }}>
               Secure Access
             </h1>
