@@ -445,11 +445,15 @@ function GalleryTab({ images, setImages, videos, setVideos }) {
 
   function handleImageFiles(files) {
     const accepted = Array.from(files).filter(f => f.type.startsWith('image/')).slice(0, MAX_IMAGES - images.length);
-    setImages(prev => [...prev, ...accepted.map(f => ({ id: Math.random().toString(36).slice(2), url: URL.createObjectURL(f), name: f.name }))].slice(0, MAX_IMAGES));
+    // `file: f` added (Session 52 fix) — previously only the blob preview
+    // URL was kept and the actual File was discarded, so nothing here was
+    // ever uploadable. Kept alongside `url` rather than replacing it, since
+    // `url` still drives the preview/lightbox rendering below.
+    setImages(prev => [...prev, ...accepted.map(f => ({ id: Math.random().toString(36).slice(2), url: URL.createObjectURL(f), name: f.name, file: f }))].slice(0, MAX_IMAGES));
   }
   function handleVideoFile(file) {
     if (!file || !file.type.startsWith('video/') || videos.length >= MAX_VIDEOS) return;
-    setVideos(prev => [...prev, { id: Math.random().toString(36).slice(2), url: URL.createObjectURL(file), name: file.name, size: (file.size / (1024 * 1024)).toFixed(1) + ' MB' }]);
+    setVideos(prev => [...prev, { id: Math.random().toString(36).slice(2), url: URL.createObjectURL(file), name: file.name, size: (file.size / (1024 * 1024)).toFixed(1) + ' MB', file }]);
   }
 
   return (
@@ -1511,6 +1515,15 @@ export default function AddNewProperty({ persona = 'INDEPENDENT_PM',initialPrope
   const [mainPrev, setMainPrev]     = useState(null);
   const [thumbPrevs, setThumbPrevs] = useState([null, null, null]);
   const [videoPrev, setVideoPrev]   = useState(null);
+  // Session 52 fix — mainPrev/thumbPrevs/videoPrev above only ever held a
+  // local blob preview (or, for video, just the filename string); the
+  // actual File selected was discarded immediately, so there was nothing
+  // left to upload by the time handleSaveProperty ran. These hold the real
+  // File objects alongside the existing preview state, which still drives
+  // the UploadZone thumbnails unchanged.
+  const [mainFile, setMainFile]     = useState(null);
+  const [thumbFiles, setThumbFiles] = useState([null, null, null]);
+  const [videoFile, setVideoFile]   = useState(null);
   const [errors, setErrors]         = useState({});
 
   const [selectedAmenities, setSelectedAmenities] = useState(new Set());
@@ -1748,6 +1761,60 @@ export default function AddNewProperty({ persona = 'INDEPENDENT_PM',initialPrope
     const created = await createRes.json();
     const newPropId = created.id;
     setPropId(newPropId);
+
+    // Step 1b — Upload property media (Session 52 fix). Previously nothing
+    // here ever sent the actual files anywhere — mainPrev/thumbPrevs/
+    // videoPrev only ever held a local browser preview. mainFile/thumbFiles/
+    // videoFile (set alongside those previews above) hold the real File
+    // objects. Only sent when something was actually selected, via a
+    // multipart PATCH to the property just created — PropertyWriteSerializer
+    // already lists these fields, and the backend's main_image_url/
+    // thumb1_url/thumb2_url/thumb3_url/video_url are now real file fields.
+    if (mainFile || thumbFiles.some(Boolean) || videoFile) {
+      const mediaForm = new FormData();
+      if (mainFile) mediaForm.append('main_image_url', mainFile);
+      if (thumbFiles[0]) mediaForm.append('thumb1_url', thumbFiles[0]);
+      if (thumbFiles[1]) mediaForm.append('thumb2_url', thumbFiles[1]);
+      if (thumbFiles[2]) mediaForm.append('thumb3_url', thumbFiles[2]);
+      if (videoFile) mediaForm.append('video_url', videoFile);
+      const mediaRes = await fetch(`${API_BASE}/api/properties/${newPropId}/`, {
+        method: 'PATCH',
+        headers: { 'Authorization': `Bearer ${token}` },
+        body: mediaForm,
+      });
+      if (!mediaRes.ok) { const e = await mediaRes.json(); console.error('Property media upload failed:', e); }
+      else console.log('Property media uploaded');
+    }
+
+    // Step 1c — Save gallery images/videos (Session 52 fix). Same story —
+    // galleryImages/galleryVideos previously only held local blob previews;
+    // each item's `.file` (added above) is the real File to send. This
+    // endpoint (POST /api/properties/<id>/gallery/) didn't exist at all
+    // before this fix.
+    for (const img of galleryImages) {
+      if (!img.file) continue;
+      const galForm = new FormData();
+      galForm.append('file_url', img.file);
+      galForm.append('file_type', 'IMAGE');
+      const galRes = await fetch(`${API_BASE}/api/properties/${newPropId}/gallery/`, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${token}` },
+        body: galForm,
+      });
+      if (!galRes.ok) { const e = await galRes.json(); console.error('Gallery image upload failed:', e); }
+    }
+    for (const vid of galleryVideos) {
+      if (!vid.file) continue;
+      const galForm = new FormData();
+      galForm.append('file_url', vid.file);
+      galForm.append('file_type', 'VIDEO');
+      const galRes = await fetch(`${API_BASE}/api/properties/${newPropId}/gallery/`, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${token}` },
+        body: galForm,
+      });
+      if (!galRes.ok) { const e = await galRes.json(); console.error('Gallery video upload failed:', e); }
+    }
 
 // Step 2 — Save ownership records
     const allOwners = [
@@ -1989,6 +2056,48 @@ export default function AddNewProperty({ persona = 'INDEPENDENT_PM',initialPrope
       const createdUnit = await unitRes.json();
       const newUnitId = createdUnit.id;
 
+      // Step — Upload unit media (Session 52 fix). Same story as the
+      // property-level fix in handleSaveProperty: floorPlanMain/
+      // floorPlanThumbs/galleryImages/galleryVideos on activeUnit previously
+      // only ever held local blob previews, nothing was ever sent to the
+      // backend. floorPlanMainFile/floorPlanThumbFiles and each gallery
+      // item's `.file` (set in UnitTabs.jsx) hold the real File objects.
+      if (activeUnit.floorPlanMainFile || (activeUnit.floorPlanThumbFiles || []).some(Boolean)) {
+        const fpForm = new FormData();
+        if (activeUnit.floorPlanMainFile) fpForm.append('floor_plan_url', activeUnit.floorPlanMainFile);
+        (activeUnit.floorPlanThumbFiles || []).forEach((f, i) => { if (f) fpForm.append(`floor_plan_thumb${i + 1}`, f); });
+        const fpRes = await fetch(`${API_BASE}/api/properties/${propId}/units/${newUnitId}/`, {
+          method: 'PATCH',
+          headers: { 'Authorization': `Bearer ${token}` },
+          body: fpForm,
+        });
+        if (!fpRes.ok) { const e = await fpRes.json(); console.error('Unit floor plan upload failed:', e); }
+      }
+      for (const img of (activeUnit.galleryImages || [])) {
+        if (!img.file) continue;
+        const galForm = new FormData();
+        galForm.append('file_url', img.file);
+        galForm.append('file_type', 'IMAGE');
+        const galRes = await fetch(`${API_BASE}/api/properties/${propId}/units/${newUnitId}/gallery/`, {
+          method: 'POST',
+          headers: { 'Authorization': `Bearer ${token}` },
+          body: galForm,
+        });
+        if (!galRes.ok) { const e = await galRes.json(); console.error('Unit gallery image upload failed:', e); }
+      }
+      for (const vid of (activeUnit.galleryVideos || [])) {
+        if (!vid.file) continue;
+        const galForm = new FormData();
+        galForm.append('file_url', vid.file);
+        galForm.append('file_type', 'VIDEO');
+        const galRes = await fetch(`${API_BASE}/api/properties/${propId}/units/${newUnitId}/gallery/`, {
+          method: 'POST',
+          headers: { 'Authorization': `Bearer ${token}` },
+          body: galForm,
+        });
+        if (!galRes.ok) { const e = await galRes.json(); console.error('Unit gallery video upload failed:', e); }
+      }
+
       // No ownership loop, no bank-account loop — landlord self-service.
 
       for (const amenityId of (activeUnit.amenities || new Set())) {
@@ -2191,16 +2300,16 @@ export default function AddNewProperty({ persona = 'INDEPENDENT_PM',initialPrope
                   <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 16 }}>
                     <div style={{ background: C.cardBg, borderRadius: 10, border: `1px solid ${C.border}`, padding: 16, boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
                       <div style={{ fontSize: 13, fontWeight: 700, color: C.textPrimary, marginBottom: 10, fontFamily: F.body }}>Upload Property Image</div>
-                      <UploadZone height={155} onFile={f => setMainPrev(URL.createObjectURL(f))} onRemove={() => setMainPrev(null)} preview={mainPrev} />
+                      <UploadZone height={155} onFile={f => { setMainPrev(URL.createObjectURL(f)); setMainFile(f); }} onRemove={() => { setMainPrev(null); setMainFile(null); }} preview={mainPrev} />
                       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3,1fr)', gap: 6, marginTop: 8 }}>
                         {[0, 1, 2].map(i => (
-                          <UploadZone key={i} isThumb height={56} onFile={f => { const p = [...thumbPrevs]; p[i] = URL.createObjectURL(f); setThumbPrevs(p); }} onRemove={() => { const p = [...thumbPrevs]; p[i] = null; setThumbPrevs(p); }} preview={thumbPrevs[i]} />
+                          <UploadZone key={i} isThumb height={56} onFile={f => { const p = [...thumbPrevs]; p[i] = URL.createObjectURL(f); setThumbPrevs(p); const tf = [...thumbFiles]; tf[i] = f; setThumbFiles(tf); }} onRemove={() => { const p = [...thumbPrevs]; p[i] = null; setThumbPrevs(p); const tf = [...thumbFiles]; tf[i] = null; setThumbFiles(tf); }} preview={thumbPrevs[i]} />
                         ))}
                       </div>
                     </div>
                     <div style={{ background: C.cardBg, borderRadius: 10, border: `1px solid ${C.border}`, padding: 16, boxShadow: '0 1px 3px rgba(0,0,0,0.04)' }}>
                       <div style={{ fontSize: 13, fontWeight: 700, color: C.textPrimary, marginBottom: 10, fontFamily: F.body }}>Upload Property Video</div>
-                      <UploadZone isVideo height={130} onFile={f => setVideoPrev(f.name)} onRemove={() => setVideoPrev(null)} preview={videoPrev} />
+                      <UploadZone isVideo height={130} onFile={f => { setVideoPrev(f.name); setVideoFile(f); }} onRemove={() => { setVideoPrev(null); setVideoFile(null); }} preview={videoPrev} />
                     </div>
                     <LiveMap address={fullAddr} />
                   </div>
@@ -2325,6 +2434,45 @@ export default function AddNewProperty({ persona = 'INDEPENDENT_PM',initialPrope
                     }
                     const createdUnit = await unitRes.json();
                     const newUnitId = createdUnit.id;
+
+                    // Upload unit media (Session 52 fix) — see
+                    // handleLandlordSaveUnit's matching block above for the
+                    // full explanation; same pattern, PM-flow unit here.
+                    if (activeUnit.floorPlanMainFile || (activeUnit.floorPlanThumbFiles || []).some(Boolean)) {
+                      const fpForm = new FormData();
+                      if (activeUnit.floorPlanMainFile) fpForm.append('floor_plan_url', activeUnit.floorPlanMainFile);
+                      (activeUnit.floorPlanThumbFiles || []).forEach((f, i) => { if (f) fpForm.append(`floor_plan_thumb${i + 1}`, f); });
+                      const fpRes = await fetch(`${API_BASE}/api/properties/${propId}/units/${newUnitId}/`, {
+                        method: 'PATCH',
+                        headers: { 'Authorization': `Bearer ${token}` },
+                        body: fpForm,
+                      });
+                      if (!fpRes.ok) { const e = await fpRes.json(); console.error('Unit floor plan upload failed:', e); }
+                    }
+                    for (const img of (activeUnit.galleryImages || [])) {
+                      if (!img.file) continue;
+                      const galForm = new FormData();
+                      galForm.append('file_url', img.file);
+                      galForm.append('file_type', 'IMAGE');
+                      const galRes = await fetch(`${API_BASE}/api/properties/${propId}/units/${newUnitId}/gallery/`, {
+                        method: 'POST',
+                        headers: { 'Authorization': `Bearer ${token}` },
+                        body: galForm,
+                      });
+                      if (!galRes.ok) { const e = await galRes.json(); console.error('Unit gallery image upload failed:', e); }
+                    }
+                    for (const vid of (activeUnit.galleryVideos || [])) {
+                      if (!vid.file) continue;
+                      const galForm = new FormData();
+                      galForm.append('file_url', vid.file);
+                      galForm.append('file_type', 'VIDEO');
+                      const galRes = await fetch(`${API_BASE}/api/properties/${propId}/units/${newUnitId}/gallery/`, {
+                        method: 'POST',
+                        headers: { 'Authorization': `Bearer ${token}` },
+                        body: galForm,
+                      });
+                      if (!galRes.ok) { const e = await galRes.json(); console.error('Unit gallery video upload failed:', e); }
+                    }
 
                     const unitAllOwners = [
                         ...(activeUnit.sameAsProperty

@@ -845,13 +845,18 @@ function UnitHomeInfoTab({ unit, onChange, propName, propType, units, activeUnit
         </div>
 
         {/* Floor plan upload */}
+        {/* Session 52 fix: floorPlanMainFile/floorPlanThumbFiles hold the
+            real File objects alongside the existing floorPlanMain/
+            floorPlanThumbs blob previews, which only ever held a local
+            preview URL — the actual file was discarded, so nothing here
+            was ever uploadable. Read by the Save Unit handler below. */}
         <FloorPlanUpload
           mainPreview={unit.floorPlanMain}
           thumbPreviews={unit.floorPlanThumbs}
-          onMainFile={f  => upd({ floorPlanMain: URL.createObjectURL(f) })}
-          onThumbFile={(i, f) => { const t = [...unit.floorPlanThumbs]; t[i] = URL.createObjectURL(f); upd({ floorPlanThumbs: t }); }}
-          onMainRemove={() => upd({ floorPlanMain: null })}
-          onThumbRemove={i => { const t = [...unit.floorPlanThumbs]; t[i] = null; upd({ floorPlanThumbs: t }); }}
+          onMainFile={f  => upd({ floorPlanMain: URL.createObjectURL(f), floorPlanMainFile: f })}
+          onThumbFile={(i, f) => { const t = [...unit.floorPlanThumbs]; t[i] = URL.createObjectURL(f); const tf = [...(unit.floorPlanThumbFiles || [null, null, null])]; tf[i] = f; upd({ floorPlanThumbs: t, floorPlanThumbFiles: tf }); }}
+          onMainRemove={() => upd({ floorPlanMain: null, floorPlanMainFile: null })}
+          onThumbRemove={i => { const t = [...unit.floorPlanThumbs]; t[i] = null; const tf = [...(unit.floorPlanThumbFiles || [null, null, null])]; tf[i] = null; upd({ floorPlanThumbs: t, floorPlanThumbFiles: tf }); }}
         />
 
         {/* Unit types guide */}
@@ -1099,11 +1104,13 @@ function UnitGalleryTab({ unit, onChange }) {
 
   function handleImageFiles(files) {
     const accepted = Array.from(files).filter(f => f.type.startsWith('image/')).slice(0, MAX_UNIT_IMAGES - images.length);
-    setImages(prev => [...prev, ...accepted.map(f => ({ id: Math.random().toString(36).slice(2), url: URL.createObjectURL(f), name: f.name }))].slice(0, MAX_UNIT_IMAGES));
+    // `file: f` added (Session 52 fix) — see AddNewProperty.jsx's GalleryTab
+    // for the matching property-level fix and full explanation.
+    setImages(prev => [...prev, ...accepted.map(f => ({ id: Math.random().toString(36).slice(2), url: URL.createObjectURL(f), name: f.name, file: f }))].slice(0, MAX_UNIT_IMAGES));
   }
   function handleVideoFile(file) {
     if (!file || !file.type.startsWith('video/') || videos.length >= MAX_UNIT_VIDEOS) return;
-    setVideos(prev => [...prev, { id: Math.random().toString(36).slice(2), url: URL.createObjectURL(file), name: file.name, size: (file.size / (1024 * 1024)).toFixed(1) + ' MB' }]);
+    setVideos(prev => [...prev, { id: Math.random().toString(36).slice(2), url: URL.createObjectURL(file), name: file.name, size: (file.size / (1024 * 1024)).toFixed(1) + ' MB', file }]);
   }
 
   return (
