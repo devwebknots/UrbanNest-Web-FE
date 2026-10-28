@@ -499,22 +499,27 @@ const PMApprovalsOwnership = () => {
                 </SectionCard>
 
                 {/* Documents */}
+                {/* Labels updated (Session 52) to match what the ownership-invite
+                    wizard actually collects into these three slots — they
+                    previously said "Government ID — Front/Back" and "Additional
+                    document", left over from an earlier document set, which was
+                    misleading once real uploads started landing here. */}
                 <SectionCard title="Documents submitted" icon="ti-file-text">
                   <DocRow
                     label={profile?.id_document_1 ? 'id_document_1' : 'Document 1'}
-                    docType="Government ID — Front"
+                    docType="Government ID / Driving License"
                     fileUrl={profile?.id_document_1}
                     missing={!profile?.id_document_1}
                   />
                   <DocRow
                     label={profile?.id_document_2 ? 'id_document_2' : 'Document 2'}
-                    docType="Government ID — Back"
+                    docType="Passport"
                     fileUrl={profile?.id_document_2}
                     missing={!profile?.id_document_2}
                   />
                   <DocRow
                     label={profile?.id_document_3 ? 'id_document_3' : 'Document 3'}
-                    docType="Additional document"
+                    docType="Property Ownership Proof"
                     fileUrl={profile?.id_document_3}
                     missing={!profile?.id_document_3}
                   />

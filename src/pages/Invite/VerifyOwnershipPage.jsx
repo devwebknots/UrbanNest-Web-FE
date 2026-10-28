@@ -547,35 +547,55 @@ export default function VerifyOwnershipPage() {
       else if (form.password.length < 8)     e.password        = 'Min 8 characters';
       if (form.password !== form.confirmPassword) e.confirmPassword = 'Passwords do not match';
     }
+    // Required ownership-verification documents must actually be attached
+    // before submitting. Previously `is_required` only changed the label
+    // text ("Required" vs "Optional") and never blocked submission, and
+    // the selected files were never even sent to the backend (see the
+    // FormData switch below) — so this step was effectively a no-op.
+    // Doc ids 1 (Government ID) and 3 (Property Ownership Proof) are the
+    // two is_required:true rows defined below; doc 2 (Passport) stays
+    // optional.
+    if (!docFiles[1]) e.doc1 = 'Required';
+    if (!docFiles[3]) e.doc3 = 'Required';
     if (Object.keys(e).length) { setErrors(e); return; }
     setErrors({});
     setSubmitting(true);
     setApiError('');
 
     try {
-      const body = { token };
+      // Switched from a JSON body to multipart FormData so the documents
+      // selected via DocRow (previously captured into docFiles state but
+      // never actually sent anywhere — Session 52 investigation) are
+      // included in the request the backend can now save. Text fields
+      // work the same way through FormData; the browser sets the correct
+      // multipart Content-Type/boundary itself, so the old explicit JSON
+      // header is removed.
+      const body = new FormData();
+      body.append('token', token);
       // Only send editable fields — locked fields come from existing user on backend
       if (isNew) {
-        body.first_name = form.firstName.trim();
-        body.last_name  = form.lastName.trim();
-        body.phone      = form.phone.trim();
-        body.password   = form.password;
+        body.append('first_name', form.firstName.trim());
+        body.append('last_name',  form.lastName.trim());
+        body.append('phone',      form.phone.trim());
+        body.append('password',   form.password);
       }
       if (!isPending) {
         // PENDING_LANDLORD — don't send any profile fields, docs only
-        body.occupation = form.occupation.trim();
-        body.street1    = form.street1.trim();
-        body.street2    = form.street2.trim();
-        body.city       = form.city.trim();
-        body.state      = form.state.trim();
-        body.zip_code   = form.zipCode.trim();
-        body.country    = form.country.trim();
+        body.append('occupation', form.occupation.trim());
+        body.append('street1',    form.street1.trim());
+        body.append('street2',    form.street2.trim());
+        body.append('city',       form.city.trim());
+        body.append('state',      form.state.trim());
+        body.append('zip_code',   form.zipCode.trim());
+        body.append('country',   form.country.trim());
       }
+      if (docFiles[1]) body.append('id_document_1', docFiles[1]);
+      if (docFiles[2]) body.append('id_document_2', docFiles[2]);
+      if (docFiles[3]) body.append('id_document_3', docFiles[3]);
 
       const res  = await fetch(`${API}/invites/accept/`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(body),
+        body,
       });
       const data = await res.json();
       if (!res.ok) { setApiError(data.message || 'Something went wrong. Please try again.'); return; }
@@ -585,10 +605,17 @@ export default function VerifyOwnershipPage() {
       if (data.requires_otp) {
         setStep(2);
       } else {
-        if (data.tokens?.access) {
-          localStorage.setItem('access_token',  data.tokens.access);
-          localStorage.setItem('refresh_token', data.tokens.refresh);
-        }
+        // Fix: this page previously wrote the invite recipient's JWT into
+        // the SAME localStorage keys ('access_token'/'refresh_token') the
+        // main app's AuthContext reads from. localStorage is shared across
+        // every tab on the same origin, so completing this public,
+        // unauthenticated flow in one tab silently hijacked whatever
+        // session was logged in on every OTHER open tab (e.g. a PM mid-
+        // session got silently switched to the invited owner's account —
+        // reported and confirmed, Session 52). This page never actually
+        // uses those tokens for anything afterward — Step3UnderReview below
+        // just renders a static confirmation from data it already has —
+        // so they were serving no purpose here and are no longer stored.
         setStep(doneStep);
       }
     } catch {
@@ -610,8 +637,10 @@ export default function VerifyOwnershipPage() {
       });
       const data = await res.json();
       if (!res.ok) { setOtpError(data.detail || data.message || 'Incorrect code. Please try again.'); return; }
-      localStorage.setItem('access_token',  data.tokens?.access  || data.access);
-      localStorage.setItem('refresh_token', data.tokens?.refresh || data.refresh);
+      // Fix: same cross-tab session-hijack issue as handleStep1Submit above —
+      // writing these tokens into the shared localStorage keys silently
+      // logged every other open tab in as this invite recipient. Not needed:
+      // this page only shows a static confirmation after this point.
       setStep(doneStep);
     } catch {
       setOtpError('Unable to connect. Please try again.');
@@ -880,10 +909,21 @@ export default function VerifyOwnershipPage() {
                       key={doc.id}
                       doc={doc}
                       file={docFiles[doc.id]}
-                      onUpload={file => setDocFiles(p => ({ ...p, [doc.id]: file }))}
+                      onUpload={file => {
+                        setDocFiles(p => ({ ...p, [doc.id]: file }));
+                        const errKey = `doc${doc.id}`;
+                        if (errors[errKey]) setErrors(p => ({ ...p, [errKey]: '' }));
+                      }}
                       onRemove={() => setDocFiles(p => { const n = { ...p }; delete n[doc.id]; return n; })}
                     />
                   ))}
+
+                  {(errors.doc1 || errors.doc3) && (
+                    <div style={{ background: '#FEF2F2', border: '1px solid #FECACA', borderRadius: 8, padding: '10px 14px', margin: '4px 0 12px', fontFamily: F.body, fontSize: 12, color: C.danger, display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <Icon d={ICONS.alert} size={14} color={C.danger} />
+                      Government ID / Driving License and Property Ownership Proof are required to submit.
+                    </div>
+                  )}
 
                   {/* CTA */}
                   <button onClick={handleStep1Submit} disabled={submitting} style={{

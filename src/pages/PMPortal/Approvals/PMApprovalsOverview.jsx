@@ -262,11 +262,20 @@ function DetailPanel({ record, onClose, onApprove, onReject, actionLoading }) {
               ))}
 
               {/* Readiness checks */}
+              {/* Session 52: collapsed the two separate ID-document checks into
+                  one "Documents uploaded" check, per feedback that having
+                  Government ID + ID back as separate readiness items was
+                  confusing — especially since the invite wizard's actual
+                  required documents are Government ID and Property Ownership
+                  Proof (doc slots 1 and 3), not a front/back pair. This now
+                  requires both of those, matching the is_required flags
+                  enforced client-side at submission time in
+                  VerifyOwnershipPage.jsx — so by the time an application
+                  reaches this list, this check should normally already pass. */}
               <SectionHead icon="ti-checklist" label="Readiness Checks" />
               {[
                 { label: 'Profile submitted',       pass: record.status === 'SUBMITTED' || isDecided },
-                { label: 'Government ID uploaded',  pass: !!profile?.id_document_1 },
-                { label: 'ID back uploaded',        pass: !!profile?.id_document_2 },
+                { label: 'Documents uploaded',      pass: !!profile?.id_document_1 && !!profile?.id_document_3 },
                 { label: 'Address provided',        pass: !!profile?.street_address_1 },
                 { label: 'Phone provided',          pass: !!profile?.phone },
               ].map(({ label, pass }) => (
