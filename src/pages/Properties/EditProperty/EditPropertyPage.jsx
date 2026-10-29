@@ -593,6 +593,13 @@ export default function EditPropertyPage() {
   const [mainImagePreview, setMainImagePreview] = useState(null);
   const [thumbPreviews,    setThumbPreviews]    = useState([null,null,null]);
   const [galleryImages,    setGalleryImages]    = useState([]);
+  // Session 52 fix: the onFile callbacks below only ever kept a local blob
+  // preview URL (URL.createObjectURL) and discarded the actual File object,
+  // so handleSave() had nothing to upload — edits to an existing property's
+  // photos silently never reached the backend. These track the real File
+  // objects alongside the preview state so handleSave() can send them.
+  const [mainImageFile, setMainImageFile] = useState(null);
+  const [thumbFiles,    setThumbFiles]    = useState([null,null,null]);
   const [selectedAmenities,  setSelectedAmenities]  = useState(new Set());
   const [originalAmenityIds, setOriginalAmenityIds] = useState(new Set());
   // Fix (b): store amenity record IDs for deletion
@@ -715,6 +722,33 @@ export default function EditPropertyPage() {
       const patchRes = await fetch(`${API}/api/properties/${id}/`, { method:'PATCH', headers:{ 'Content-Type':'application/json', Authorization:`Bearer ${token}` }, body:JSON.stringify({ name:propName, property_type:PROP_TYPE_DISPLAY_TO_API[propType]||propType, ownership_type:OWN_TYPE_DISPLAY_TO_API[ownerType]||ownerType, description:desc, country, street1, street2, landmark, city, state, zip_code:zip, value:propValue||null, build_year:buildYear||null }) });
       if (!patchRes.ok) { console.error('PATCH failed:', await patchRes.json()); setSaving(false); return; }
 
+      // Session 52 fix: the Gallery section above (Main Image / Thumbnails /
+      // Gallery Images) let the user pick new files, but nothing ever sent
+      // them to the backend — mainImageFile/thumbFiles/galleryImages[].file
+      // just sat in local state and were discarded on navigate(). Only send
+      // fields the user actually changed this session (mainImageFile/
+      // thumbFiles entries are null unless a new file was picked), so an
+      // edit that didn't touch photos doesn't overwrite anything.
+      if (mainImageFile || thumbFiles.some(Boolean)) {
+        const mediaForm = new FormData();
+        if (mainImageFile) mediaForm.append('main_image_url', mainImageFile);
+        if (thumbFiles[0]) mediaForm.append('thumb1_url', thumbFiles[0]);
+        if (thumbFiles[1]) mediaForm.append('thumb2_url', thumbFiles[1]);
+        if (thumbFiles[2]) mediaForm.append('thumb3_url', thumbFiles[2]);
+        const mediaRes = await fetch(`${API}/api/properties/${id}/`, { method:'PATCH', headers:{ Authorization:`Bearer ${token}` }, body:mediaForm });
+        if (!mediaRes.ok) console.error('Property media PATCH failed:', await mediaRes.text());
+      }
+      // Newly-added gallery images carry a `.file`; ones pre-populated from
+      // the API (already saved) only have `.url` and are left alone.
+      for (const img of galleryImages) {
+        if (!img.file) continue;
+        const galForm = new FormData();
+        galForm.append('file_url', img.file);
+        galForm.append('file_type', 'IMAGE');
+        const galRes = await fetch(`${API}/api/properties/${id}/gallery/`, { method:'POST', headers:{ Authorization:`Bearer ${token}` }, body:galForm });
+        if (!galRes.ok) console.error('Gallery image upload failed:', await galRes.text());
+      }
+
       // Sync amenities — Fix (b): use record.id for deletion, record.amenity for matching
       const toAdd    = [...selectedAmenities].filter(aId=>!originalAmenityIds.has(aId));
       const toRemove = [...originalAmenityIds].filter(aId=>!selectedAmenities.has(aId));
@@ -804,13 +838,13 @@ export default function EditPropertyPage() {
                     {/* Main image */}
                     <div style={{ marginBottom:10 }}>
                       <div style={{ fontSize:10.5, fontWeight:700, color:C.labelColor, textTransform:'uppercase', letterSpacing:'0.07em', marginBottom:6, fontFamily:F.body }}>Main Image</div>
-                      <GalleryUploadZone height={130} preview={mainImagePreview} onFile={f=>setMainImagePreview(URL.createObjectURL(f))} onRemove={()=>setMainImagePreview(null)} />
+                      <GalleryUploadZone height={130} preview={mainImagePreview} onFile={f=>{ setMainImagePreview(URL.createObjectURL(f)); setMainImageFile(f); }} onRemove={()=>{ setMainImagePreview(null); setMainImageFile(null); }} />
                     </div>
                     {/* Thumbnails */}
                     <div style={{ marginBottom:10 }}>
                       <div style={{ fontSize:10.5, fontWeight:700, color:C.labelColor, textTransform:'uppercase', letterSpacing:'0.07em', marginBottom:6, fontFamily:F.body }}>Thumbnails</div>
                       <div style={{ display:'grid', gridTemplateColumns:'repeat(3,1fr)', gap:6 }}>
-                        {[0,1,2].map(i=><GalleryUploadZone key={i} height={56} isThumb preview={thumbPreviews[i]} onFile={f=>{ const t=[...thumbPreviews]; t[i]=URL.createObjectURL(f); setThumbPreviews(t); }} onRemove={()=>{ const t=[...thumbPreviews]; t[i]=null; setThumbPreviews(t); }} />)}
+                        {[0,1,2].map(i=><GalleryUploadZone key={i} height={56} isThumb preview={thumbPreviews[i]} onFile={f=>{ const t=[...thumbPreviews]; t[i]=URL.createObjectURL(f); setThumbPreviews(t); const tf=[...thumbFiles]; tf[i]=f; setThumbFiles(tf); }} onRemove={()=>{ const t=[...thumbPreviews]; t[i]=null; setThumbPreviews(t); const tf=[...thumbFiles]; tf[i]=null; setThumbFiles(tf); }} />)}
                       </div>
                     </div>
                     {/* Gallery images */}
