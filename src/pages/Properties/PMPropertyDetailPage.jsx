@@ -58,7 +58,7 @@ const THUMB_FALLBACKS = [
   'https://images.unsplash.com/photo-1631049307264-da0ec9d70304?w=400&auto=format&fit=crop',
 ];
 
-const API = process.env.REACT_APP_API_URL || 'http://localhost:8001';
+const API = (process.env.REACT_APP_API_BASE_URL || 'http://localhost:8001/api').replace(/\/api\/?$/, '');
 
 function maskAcct(n) { if (!n) return '—'; const s=String(n).replace(/\s/g,''); return s.length<=4?s:`**** ${s.slice(-4)}`; }
 function fmtDate(d) { if (!d) return '—'; return new Date(d).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'}); }

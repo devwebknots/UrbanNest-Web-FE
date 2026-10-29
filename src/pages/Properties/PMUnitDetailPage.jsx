@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import NavB from '../../components/layout/NavB';
 
-const API = process.env.REACT_APP_API_URL || 'http://localhost:8001';
+const API = (process.env.REACT_APP_API_BASE_URL || 'http://localhost:8001/api').replace(/\/api\/?$/, '');
 
 const C = {
   primary:'#002D5B', primaryLight:'#EFF6FF', primaryBlue:'#0659b2',

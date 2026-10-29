@@ -1,8 +1,18 @@
-const API_BASE = (process.env.REACT_APP_API_BASE_URL || 'http://localhost:8001/api').replace(/\/api\/?$/, '');
-
   import React, { useState, useRef, useEffect } from 'react';
   import { useNavigate } from 'react-router-dom';
   import { CustomDropdown } from '../../components/ui';
+  // Fix: after successful registration the account is fully activated
+  // (INDEPENDENT_PM persona created + tokens already in localStorage from
+  // the OTP step), but AuthContext only bootstraps `user` once on first
+  // app mount — same gap LoginPage.jsx had (see its own Session 51 fix
+  // comment). Without refreshAuth(), useAuth().user stays stale/null until
+  // a hard reload, so the PM Portal's own auth-aware routing/nav can't
+  // resolve correctly right after Activate. Call it here too, then route
+  // to the real PM Portal welcome page instead of the old /coming-soon
+  // placeholder (left over from before the PM Portal was built).
+  import { useAuth } from '../../context/AuthContext';
+
+const API_BASE = (process.env.REACT_APP_API_BASE_URL || 'http://localhost:8001/api').replace(/\/api\/?$/, '');
 
   if (typeof document !== 'undefined' && !document.getElementById('tabler-icons-cdn')) {
     const l = document.createElement('link');
@@ -140,8 +150,10 @@ const API_BASE = (process.env.REACT_APP_API_BASE_URL || 'http://localhost:8001/a
   // ─── Main Step 3 ──────────────────────────────────────────────────────────────
   export default function IndependentPM_Step3() {
     const navigate = useNavigate();
+    const { refreshAuth } = useAuth();
 
     const [userName,     setUserName]    = useState('');
+    const [justActivated, setJustActivated] = useState(false);
     const [userRole,     setUserRole]    = useState('');
     const [mgmtType,     setMgmtType]    = useState('');
     const [mgmtValue,    setMgmtValue]   = useState('8%');
@@ -254,8 +266,17 @@ const API_BASE = (process.env.REACT_APP_API_BASE_URL || 'http://localhost:8001/a
         }
 
         // ── Success ───────────────────────────────────────────────────────────
+        // Account is fully activated server-side at this point (PMSubmitView
+        // creates the UNAccount + activates the INDEPENDENT_PM persona).
+        // Re-run AuthContext's bootstrap so useAuth().user reflects the newly
+        // activated persona immediately, same fix as LoginPage.jsx — then
+        // show a brief confirmation before routing to the real PM Portal
+        // welcome page (was hardcoded to /coming-soon from before the PM
+        // Portal existed).
         setSubmitting(false);
-        navigate('/coming-soon');  // → /pm-portal once built
+        setJustActivated(true);
+        await refreshAuth();
+        setTimeout(() => navigate('/pm-portal/dashboard/welcome'), 1200);
 
       } catch (err) {
         setErrors(p => ({ ...p, api: 'Connection error. Please check your connection.' }));
@@ -267,6 +288,31 @@ const API_BASE = (process.env.REACT_APP_API_BASE_URL || 'http://localhost:8001/a
     const LEASE_OPTS   = [{value:'',label:'Select…'},{value:'ONE_MONTH',label:"One Month's Rent"},{value:'FLAT',label:'Flat Fee'},{value:'NONE',label:'None'},{value:'NEGOTIABLE',label:'Negotiable'}];
     const RENEWAL_OPTS = [{value:'',label:'Select…'},{value:'PERCENTAGE',label:'% of Monthly Rent'},{value:'FLAT',label:'Flat Fee'},{value:'NONE',label:'None'},{value:'NEGOTIABLE',label:'Negotiable'}];
     const ID_OPTS      = [{value:'',label:'Select…'},{value:'DRIVERS_LICENSE',label:"Driver's License"},{value:'PASSPORT',label:'Passport'},{value:'STATE_ID',label:'State ID'},{value:'MILITARY_ID',label:'Military ID'}];
+
+    if (justActivated) {
+      return (
+        <>
+          <style>{`
+            * { box-sizing:border-box; }
+            html, body, #root { height:100%; margin:0; padding:0; }
+            @keyframes fadein { from{opacity:0;transform:translateY(6px)} to{opacity:1;transform:none} }
+            @keyframes spin    { to{transform:rotate(360deg)} }
+          `}</style>
+          <div style={{ minHeight:'100vh', width:'100%', background:C.pageBg, display:'flex', alignItems:'center', justifyContent:'center', fontFamily:F.body }}>
+            <div style={{ background:C.white, border:'1px solid '+C.border, borderRadius:'16px', padding:'40px 48px', maxWidth:'420px', textAlign:'center', boxShadow:'0 20px 60px rgba(0,0,0,0.12)', animation:'fadein 0.3s ease both' }}>
+              <div style={{ width:'52px', height:'52px', borderRadius:'50%', background:C.successBg, border:'1px solid '+C.successBorder, display:'flex', alignItems:'center', justifyContent:'center', margin:'0 auto 18px' }}>
+                <i className="ti ti-check" style={{ fontSize:'24px', color:C.successText }} />
+              </div>
+              <h2 style={{ margin:'0 0 8px', fontFamily:F.headline, fontSize:'20px', fontWeight:700, color:C.textPrimary }}>Registration successful!</h2>
+              <p style={{ margin:'0 0 20px', fontFamily:F.body, fontSize:'13px', color:C.textSecondary, lineHeight:1.6 }}>
+                Your Independent PM account is active. Taking you to your dashboard…
+              </p>
+              <div style={{ width:18, height:18, border:'2px solid '+C.border, borderTopColor:C.primary, borderRadius:'50%', margin:'0 auto', animation:'spin 0.7s linear infinite' }} />
+            </div>
+          </div>
+        </>
+      );
+    }
 
     return (
       <>
