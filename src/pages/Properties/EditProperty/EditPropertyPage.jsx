@@ -650,6 +650,13 @@ export default function EditPropertyPage() {
 
         // Fix 1a: pre-populate gallery from API
         if (data.primary_image) setMainImagePreview(data.primary_image);
+        // Session 52 fix: thumbPreviews was never populated from the saved
+        // thumb1_url/thumb2_url/thumb3_url, so even though these save to the
+        // backend correctly, the Thumbnails section always showed empty on
+        // load/reload — looking exactly like the upload "wasn't saving".
+        if (data.thumb1_url || data.thumb2_url || data.thumb3_url) {
+          setThumbPreviews([data.thumb1_url||null, data.thumb2_url||null, data.thumb3_url||null]);
+        }
         if (Array.isArray(data.gallery_images)) {
           setGalleryImages(data.gallery_images.map(g=>typeof g==='string'?{ url:g }:{ url:g.file_url||g.image_url||g }));
         }

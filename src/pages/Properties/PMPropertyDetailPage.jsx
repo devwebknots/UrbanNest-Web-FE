@@ -102,7 +102,10 @@ function Gallery({ property }) {
         {[[0,1],[2,3]].map((row,ri)=>(
           <div key={ri} style={{ display:'flex',gap:6,height:THUMB_H }}>
             {row.map(i=>{
-              const src=typeof thumbs[i]==='string'?thumbs[i]:(thumbs[i]?.image_url||THUMB_FALLBACKS[i]);
+              // Session 52 fix: gallery items from the API carry `file_url`, not
+              // `image_url` — this always missed the real uploaded photo and
+              // fell through to the stock fallback image for every slot.
+              const src=typeof thumbs[i]==='string'?thumbs[i]:(thumbs[i]?.file_url||thumbs[i]?.image_url||THUMB_FALLBACKS[i]);
               return (
                 <div key={i} style={{ flex:1,position:'relative',overflow:'hidden' }}>
                   <img src={src} alt={`view-${i}`} style={{ width:'100%',height:'100%',objectFit:'cover',display:'block' }} />
