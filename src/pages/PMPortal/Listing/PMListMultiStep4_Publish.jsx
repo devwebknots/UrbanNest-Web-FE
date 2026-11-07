@@ -44,7 +44,7 @@ import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { C } from './pmListingTokens';
 import { LS, ListingPageShell, ListingFooter, SectionHead, MULTI_STEPS } from './pmListingWizardShared';
 import { getProperty, getUnit, getRentalTerms, getSaleTerms, getListingMedia } from '../../Landlord/Listing/listingApi';
-import { getPropertyListing, getPropertyListingPromotionPlans, publishPropertyListing, deleteUnitListing } from '../../Landlord/Listing/propertyListingApi';
+import { getPropertyListing, getPropertyListingPromotionPlans, getPropertyListingAmenities, publishPropertyListing, deleteUnitListing } from '../../Landlord/Listing/propertyListingApi';
 import { MIN_REQUIRED_PHOTOS } from '../../Landlord/Listing/mockListingData';
 
 // Session 48 (continued) fix — was a local, still-hardcoded
@@ -101,6 +101,14 @@ async function loadUnitCompliance(propId, summary) {
     id: summary.id,
     unitName: `Unit ${unit.unit_number ?? summary.unit}`,
     floorPlanName: unit.floor_plan_name || '',
+    // Session 55 fix: "Floor Plans" on this screen used to check
+    // floor_plan_name (a free-text label typed on Step 2's Unit Details
+    // tab) which has nothing to do with whether an actual floor plan
+    // IMAGE exists. floor_plan_url is the real uploaded image (set from
+    // the unit's own Edit page, same place its gallery photos/video come
+    // from — not something this wizard uploads itself), so that's what
+    // "set" should mean here.
+    floorPlanUrl: unit.floor_plan_url || '',
     photoCount: Array.isArray(media) ? media.filter(m => m.media_type === 'PHOTO').length : 0,
     priceValue: isRent ? Number(terms.rent_amount) || 0 : Number(terms.asking_price) || 0,
     depositOk: isRent ? Boolean(terms.security_deposit) : Boolean(terms.asking_price),
@@ -139,6 +147,8 @@ export default function PMListMultiStep4_Publish() {
   const [group, setGroup] = useState(null);
   const [unitDetails, setUnitDetails] = useState([]);
   const [selectedPlan, setSelectedPlan] = useState(null);
+  // Session 55 fix — see the "Highlights" derivation below.
+  const [propertyAmenityNames, setPropertyAmenityNames] = useState([]);
 
   useEffect(() => {
     if (!propertyListingId) {
@@ -151,15 +161,18 @@ export default function PMListMultiStep4_Publish() {
       setLoading(true);
       setLoadError('');
       try {
-        const [propertyData, groupData, planCatalog] = await Promise.all([
+        const [propertyData, groupData, planCatalog, groupAmenities] = await Promise.all([
           getProperty(propId),
           getPropertyListing(propertyListingId),
           getPropertyListingPromotionPlans(propertyListingId),
+          // Session 55 fix — see the "Highlights" derivation below.
+          getPropertyListingAmenities(propertyListingId, 'PROPERTY').catch(() => []),
         ]);
         if (cancelled) return;
 
         setProperty(propertyData);
         setGroup(groupData);
+        setPropertyAmenityNames((groupAmenities || []).map(ga => ga.amenity_detail?.name).filter(Boolean));
 
         const summaries = groupData.unit_listings || [];
         const details = await Promise.all(summaries.map(s => loadUnitCompliance(propId, s)));
@@ -226,8 +239,29 @@ export default function PMListMultiStep4_Publish() {
   const minPrice = prices.length ? Math.min(...prices) : null;
   const maxPrice = prices.length ? Math.max(...prices) : null;
   const totalUnitPhotos = units.reduce((sum, u) => sum + (u.photoCount || 0), 0);
-  const floorPlans = [...new Set(units.map(u => u.floorPlanName).filter(Boolean))].join(', ');
-  const highlightsText = group.highlights?.length ? group.highlights.join(', ') : 'None added';
+  // Session 55 fix — "N of M units" against the real uploaded floor plan
+  // image (floorPlanUrl), not the free-text name field. See
+  // loadUnitCompliance's comment above for why the name was the wrong
+  // signal.
+  const unitsWithFloorPlan = units.filter(u => u.floorPlanUrl).length;
+  const floorPlans = unitsWithFloorPlan > 0
+    ? `${unitsWithFloorPlan} of ${units.length} unit${units.length === 1 ? '' : 's'}`
+    : '';
+  // Session 55 fix — `group.highlights` is a backend field no screen in
+  // this wizard ever writes to (the "Highlights & Amenities" picker on
+  // Step 2's Common Listing Info actually saves to the group's PROPERTY
+  // amenities, a separate association — see persistCommon/
+  // getPropertyListingAmenities there), so this row always read "None
+  // added" regardless of what the PM/Org PM user picked. Now defaults to
+  // those same amenities (capped at 6, with a "+N more" tail) when no
+  // dedicated highlights have been set, so what's shown here actually
+  // reflects what Step 2 collected.
+  const HIGHLIGHTS_CAP = 6;
+  const highlightsText = group.highlights?.length
+    ? group.highlights.join(', ')
+    : (propertyAmenityNames.length
+        ? propertyAmenityNames.slice(0, HIGHLIGHTS_CAP).join(', ') + (propertyAmenityNames.length > HIGHLIGHTS_CAP ? ` +${propertyAmenityNames.length - HIGHLIGHTS_CAP} more` : '')
+        : 'None added');
 
   // ── Compliance & Validation — every unit's readiness, mirroring the
   // backend's own publish-time aggregate checks (property_listing_publish

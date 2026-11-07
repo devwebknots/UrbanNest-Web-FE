@@ -60,7 +60,7 @@ import {
   getProperty, getAmenityCatalog, getPropertyUnits, getUnit, patchUnit,
   getListing, patchListing,
   getRentalTerms, patchRentalTerms,
-  getListingMedia,
+  getListingMedia, saveListingMedia,
   getListingDropdownOptions,
 } from '../../Landlord/Listing/listingApi';
 import {
@@ -177,6 +177,24 @@ async function loadUnitRow(propId, summary) {
     getListingMedia(summary.id).catch(() => []),
     getUnit(propId, summary.unit).catch(() => ({})),
   ]);
+
+  // Session 54 fix: the Photos tab and the "Preview All Listings" cards
+  // both need the unit's REAL gallery (UnitGallery, via unit.gallery_images
+  // — already returned by GET /properties/<pk>/units/<uid>/, just never
+  // read here) rather than an empty placeholder grid sized only by a photo
+  // count. `media` is this listing's already-saved ListingMedia selection
+  // (PHOTO rows only — see ListingMediaListCreateView's own docstring on
+  // the backend; video isn't selected this way, it's Listing.video_url).
+  // When nothing has been saved yet (the common case for a brand-new
+  // group), default to including every one of the unit's current photos
+  // rather than showing a blank listing by default.
+  const unitGalleryImages = (unit.gallery_images || []).filter(g => g.file_type === 'IMAGE');
+  const unitGalleryVideos = (unit.gallery_images || []).filter(g => g.file_type === 'VIDEO');
+  const savedGalleryIds = (media || []).map(m => m.source_gallery_item).filter(Boolean);
+  const savedCover = (media || []).find(m => m.is_cover);
+  const selectedPhotoIds = savedGalleryIds.length ? savedGalleryIds : unitGalleryImages.map(g => g.id);
+  const coverPhotoId = savedCover ? savedCover.source_gallery_item : (selectedPhotoIds[0] ?? null);
+
   return {
     id: summary.id,                 // Listing id — the key for every per-unit API call below
     unitId: summary.unit,           // Unit id — for patchUnit (floor_plan_name)
@@ -186,8 +204,14 @@ async function loadUnitRow(propId, summary) {
     availableDate: listing.available_date || '',
     description: listing.description || '',
     floorPlanName: unit.floor_plan_name || '',
+    floorPlanUrl: unit.floor_plan_url || '',
     internalNotes: '',              // no backend field anywhere — local-only, see header note
-    photoCount: Array.isArray(media) ? media.length : 0,
+    galleryImages: unitGalleryImages,   // this unit's full photo set to choose from
+    galleryVideos: unitGalleryVideos,   // this unit's uploaded video(s)
+    selectedPhotoIds,                   // which gallery image ids go on this listing
+    coverPhotoId,
+    videoUrl: listing.video_url || '',
+    photoCount: selectedPhotoIds.length,
     rentalTerms: termsFromBackend(rentalTerms),
   };
 }
@@ -250,6 +274,27 @@ export default function PMListMultiStep2_Unit() {
   const [pickedUnitIds, setPickedUnitIds] = useState([]);
   const [addUnitsError, setAddUnitsError] = useState('');
   const [addUnitsBusy, setAddUnitsBusy] = useState(false);
+
+  // Session 55 fix — "Preview All Listings" left/right arrows were purely
+  // decorative (title="Not wired yet"). Now cycle through each unit's
+  // actually-selected photos (falling back to its full gallery if nothing's
+  // been explicitly selected yet), independently per card. Index is kept
+  // per unit id rather than inside `units` itself since it's pure view
+  // state, not anything that gets saved.
+  const [previewIdxByUnit, setPreviewIdxByUnit] = useState({});
+  const previewPhotosFor = (u) => {
+    const chosen = (u.selectedPhotoIds || [])
+      .map(id => u.galleryImages.find(g => g.id === id))
+      .filter(Boolean);
+    return chosen.length ? chosen : u.galleryImages;
+  };
+  const cyclePreview = (unitId, dir, count) => {
+    if (!count || count < 2) return;
+    setPreviewIdxByUnit(prev => {
+      const cur = prev[unitId] || 0;
+      return { ...prev, [unitId]: (cur + dir + count) % count };
+    });
+  };
 
   const commonRef = useRef(null);
   const matrixRef = useRef(null);
@@ -369,6 +414,24 @@ export default function PMListMultiStep2_Unit() {
       u.id === unitListingId ? { ...u, rentalTerms: { ...u.rentalTerms, ...patch } } : u
     )));
   };
+  // Session 54 fix — Photos tab selection handlers. Toggling a photo keeps
+  // `photoCount` (used by the tab label, the Ready threshold, and the Unit
+  // Matrix row) in sync in the same update rather than needing a second
+  // effect to recompute it. If the removed photo was the cover, falls back
+  // to the next still-selected one (or null if none remain).
+  const toggleUnitPhoto = (unitListingId, galleryId) => {
+    setUnits(prev => prev.map(u => {
+      if (u.id !== unitListingId) return u;
+      const nowSelected = u.selectedPhotoIds.includes(galleryId)
+        ? u.selectedPhotoIds.filter(id => id !== galleryId)
+        : [...u.selectedPhotoIds, galleryId];
+      const coverPhotoId = nowSelected.includes(u.coverPhotoId) ? u.coverPhotoId : (nowSelected[0] ?? null);
+      return { ...u, selectedPhotoIds: nowSelected, coverPhotoId, photoCount: nowSelected.length };
+    }));
+  };
+  const setUnitCoverPhoto = (unitListingId, galleryId) => {
+    setUnits(prev => prev.map(u => (u.id === unitListingId ? { ...u, coverPhotoId: galleryId } : u)));
+  };
   const toggleRowSelected = (unitListingId) => {
     setSelectedRowIds(prev => prev.includes(unitListingId) ? prev.filter(id => id !== unitListingId) : [...prev, unitListingId]);
   };
@@ -433,7 +496,37 @@ export default function PMListMultiStep2_Unit() {
     await patchListing(row.id, {
       description: row.description,
       available_date: row.availableDate || null,
+      video_url: row.videoUrl || '',
     });
+    // Session 54 fix: the Photos tab's include/exclude + cover selection
+    // previously had nowhere to save to — this listing's real ListingMedia
+    // set (GET/POST /listings/<id>/media/) was never called from this file
+    // at all. video_url above covers the video slot (ListingMedia's PHOTO
+    // bulk-replace endpoint rejects/ignores non-photo items per its own
+    // docstring), this covers photos + cover.
+    await saveListingMedia(row.id, {
+      galleryItemIds: row.selectedPhotoIds,
+      coverId: row.coverPhotoId,
+    });
+  };
+
+  // Session 55 fix — Continue/Save & Exit/Back previously only persisted
+  // the Common Listing Details (persistCommon), never each unit's row. A
+  // unit's photo selection, floor plan name, description, available date
+  // and video default to sensible values the moment it's loaded
+  // (loadUnitRow — e.g. every gallery photo auto-selected) but those
+  // defaults only ever reached the backend if the PM/Org PM user happened
+  // to open "Edit Unit Specifics" and click Save Changes for that specific
+  // unit. Anyone who just reviewed the Unit Matrix and moved on left every
+  // unit's real ListingMedia/floor-plan/description empty — which is
+  // exactly why Step 4's Photos/Floor Plans rows read 0/Not Set even though
+  // the Unit Matrix itself showed real photo counts (those counts are the
+  // *local* selection, not what's actually been saved). Now every
+  // navigation action below saves every unit's current row alongside the
+  // common details, so what Step 4 reads back always matches what Step 2
+  // displayed.
+  const persistAllUnits = async () => {
+    await Promise.all(units.map(persistUnitRow));
   };
 
   const handleSaveUnit = async () => {
@@ -514,10 +607,10 @@ export default function PMListMultiStep2_Unit() {
     setSaveError('');
     setSaving(true);
     try {
-      await persistCommon();
+      await Promise.all([persistCommon(), persistAllUnits()]);
       navigate(`/pm-portal/properties/${propertyId}/list-multi/step-1`, { state: { propertyListingId } });
     } catch (e) {
-      setSaveError(e.message || 'Could not save common listing details.');
+      setSaveError(e.message || 'Could not save this listing.');
     } finally {
       setSaving(false);
     }
@@ -528,10 +621,10 @@ export default function PMListMultiStep2_Unit() {
     setSaveError('');
     setSaving(true);
     try {
-      await persistCommon();
+      await Promise.all([persistCommon(), persistAllUnits()]);
       navigate(`/pm-portal/properties/${propertyId}`);
     } catch (e) {
-      setSaveError(e.message || 'Could not save common listing details.');
+      setSaveError(e.message || 'Could not save this listing.');
     } finally {
       setSaving(false);
     }
@@ -542,7 +635,7 @@ export default function PMListMultiStep2_Unit() {
     setSaveError('');
     setSaving(true);
     try {
-      await persistCommon();
+      await Promise.all([persistCommon(), persistAllUnits()]);
       // Carry the checked/unchecked set forward — Step 3 relays it
       // untouched, and Step 4 uses it right before Publish to drop any
       // unit that's still unchecked at that point (Session 45
@@ -551,7 +644,7 @@ export default function PMListMultiStep2_Unit() {
         state: { propertyListingId, includedUnitListingIds: selectedRowIds },
       });
     } catch (e) {
-      setSaveError(e.message || 'Could not save common listing details.');
+      setSaveError(e.message || 'Could not save this listing.');
     } finally {
       setSaving(false);
     }
@@ -861,7 +954,7 @@ export default function PMListMultiStep2_Unit() {
 
               <div style={LS.specTabBar}>
                 <button style={LS.specTab(activeTab === 'details')} onClick={() => setActiveTab('details')}>Unit Details</button>
-                <button style={LS.specTab(activeTab === 'photos')} onClick={() => setActiveTab('photos')}>Photos ({activeUnit.photoCount})</button>
+                <button style={LS.specTab(activeTab === 'photos')} onClick={() => setActiveTab('photos')}>Photos ({activeUnit.selectedPhotoIds.length})</button>
                 <button style={LS.specTab(activeTab === 'fees')} onClick={() => setActiveTab('fees')}>Fees &amp; Policies</button>
               </div>
 
@@ -927,19 +1020,104 @@ export default function PMListMultiStep2_Unit() {
                       <span style={LS.lbl}>Unit Images &amp; Videos</span>
                       <AiPill />
                     </div>
-                    <div style={{ ...LS.photoGrid, marginTop: 10 }}>
-                      {Array.from({ length: activeUnit.photoCount }).map((_, i) => (
-                        <div key={i} style={LS.photoTile(false)} />
-                      ))}
-                      <div style={{ ...LS.uploadTile, opacity: 0.55, cursor: 'not-allowed' }} title="Uploading a new photo isn't available yet — coming soon">
-                        <i className="ti ti-plus" aria-hidden="true" />
-                        Add More
-                      </div>
-                    </div>
-                    <p style={{ ...LS.hint, marginTop: 8 }}>Photo count is read from this unit's existing listing media — selecting/uploading new photos here isn't wired yet, same gap as the single-unit flow (Step 2).</p>
-                    {activeUnit.photoCount < MIN_REQUIRED_PHOTOS && (
+
+                    {/* Session 54 fix: this tab now shows the unit's actual
+                        gallery (photos + videos, from its own Gallery tab)
+                        instead of empty placeholder tiles sized only by a
+                        count. Clicking a photo includes/excludes it from
+                        THIS listing (doesn't touch the unit's gallery
+                        itself); the star sets the cover photo used on
+                        marketplace cards and the Preview below. Only one
+                        video can go on a listing (Listing.video_url), so
+                        videos are single-select. */}
+                    {activeUnit.galleryImages.length === 0 && activeUnit.galleryVideos.length === 0 && !activeUnit.floorPlanUrl ? (
+                      <p style={LS.hint}>
+                        This unit has no photos, videos, or floor plan yet. Add them from the unit's own
+                        Gallery tab (Properties → this unit → Edit → Gallery), then come back here to choose
+                        which ones appear on this listing.
+                      </p>
+                    ) : (
+                      <>
+                        {activeUnit.galleryImages.length > 0 && (
+                          <>
+                            <p style={{ ...LS.hint, marginTop: 2, marginBottom: 6 }}>Click a photo to include/exclude it on this listing. The star sets the cover photo.</p>
+                            <div style={LS.photoGrid}>
+                              {activeUnit.galleryImages.map(img => {
+                                const isSelected = activeUnit.selectedPhotoIds.includes(img.id);
+                                const isCover = activeUnit.coverPhotoId === img.id;
+                                return (
+                                  <div
+                                    key={img.id}
+                                    onClick={() => toggleUnitPhoto(activeUnit.id, img.id)}
+                                    title={isSelected ? 'Click to remove from this listing' : 'Click to include on this listing'}
+                                    style={{ ...LS.photoTile(isSelected), backgroundImage: `url(${img.file_url})`, backgroundSize: 'cover', backgroundPosition: 'center' }}
+                                  >
+                                    {isSelected && (
+                                      <button
+                                        onClick={e => { e.stopPropagation(); setUnitCoverPhoto(activeUnit.id, img.id); }}
+                                        title={isCover ? 'Cover photo' : 'Set as cover photo'}
+                                        style={{ position: 'absolute', top: 4, right: 4, width: 22, height: 22, borderRadius: '50%', border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', background: isCover ? C.amber : 'rgba(0,0,0,0.45)' }}
+                                      >
+                                        <i className="ti ti-star" style={{ fontSize: 11, color: '#fff' }} aria-hidden="true" />
+                                      </button>
+                                    )}
+                                    {isSelected && (
+                                      <div style={{ position: 'absolute', bottom: 4, left: 4, width: 18, height: 18, borderRadius: '50%', background: C.green, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                        <i className="ti ti-check" style={{ fontSize: 11, color: '#fff' }} aria-hidden="true" />
+                                      </div>
+                                    )}
+                                  </div>
+                                );
+                              })}
+                              <div style={{ ...LS.uploadTile, opacity: 0.55, cursor: 'not-allowed' }} title="Uploading a new photo here isn't available yet — add it from the unit's own Gallery tab">
+                                <i className="ti ti-plus" aria-hidden="true" />
+                                Add More
+                              </div>
+                            </div>
+                          </>
+                        )}
+
+                        {activeUnit.galleryVideos.length > 0 && (
+                          <>
+                            <p style={{ ...LS.hint, marginTop: 16, marginBottom: 6 }}>Video — only one can be used on this listing.</p>
+                            <div style={LS.photoGrid}>
+                              {activeUnit.galleryVideos.map(v => {
+                                const isSelected = activeUnit.videoUrl === v.file_url;
+                                return (
+                                  <div
+                                    key={v.id}
+                                    onClick={() => updateUnit(activeUnit.id, { videoUrl: isSelected ? '' : v.file_url })}
+                                    title={isSelected ? 'Click to remove from this listing' : 'Click to use on this listing'}
+                                    style={{ ...LS.photoTile(isSelected), background: '#000' }}
+                                  >
+                                    <video src={v.file_url} muted style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: 6, position: 'absolute', inset: 0 }} />
+                                    <i className="ti ti-player-play-filled" style={{ fontSize: 20, color: '#fff', filter: 'drop-shadow(0 1px 3px rgba(0,0,0,0.6))', position: 'relative' }} aria-hidden="true" />
+                                    {isSelected && (
+                                      <div style={{ position: 'absolute', bottom: 4, left: 4, width: 18, height: 18, borderRadius: '50%', background: C.green, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                        <i className="ti ti-check" style={{ fontSize: 11, color: '#fff' }} aria-hidden="true" />
+                                      </div>
+                                    )}
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          </>
+                        )}
+
+                        {activeUnit.floorPlanUrl && (
+                          <>
+                            <p style={{ ...LS.hint, marginTop: 16, marginBottom: 6 }}>Floor plan</p>
+                            <div style={{ width: 160 }}>
+                              <div style={{ ...LS.photoTile(false), cursor: 'default', backgroundImage: `url(${activeUnit.floorPlanUrl})`, backgroundSize: 'cover', backgroundPosition: 'center' }} />
+                            </div>
+                            <p style={LS.hint}>Managed from the unit's own Gallery tab — shown here for reference.</p>
+                          </>
+                        )}
+                      </>
+                    )}
+                    {activeUnit.selectedPhotoIds.length < MIN_REQUIRED_PHOTOS && (
                       <p style={{ ...LS.hint, color: C.amber, fontWeight: 600, marginTop: 8 }}>
-                        Add {MIN_REQUIRED_PHOTOS - activeUnit.photoCount} more photo(s) to mark this unit Ready.
+                        Include {MIN_REQUIRED_PHOTOS - activeUnit.selectedPhotoIds.length} more photo(s) to mark this unit Ready.
                       </p>
                     )}
                   </>
@@ -1122,21 +1300,46 @@ export default function PMListMultiStep2_Unit() {
           <div ref={previewRef}>
             <div style={{ ...LS.cardHdrTitle, marginBottom: 12 }}>Preview All Listings</div>
             <div style={LS.previewGrid2}>
-              {units.map(u => (
+              {units.map(u => {
+                // Session 55 fix: arrows now actually cycle through this
+                // unit's selected photos (cover photo shown first on load,
+                // same as before) instead of being decorative.
+                const previewPhotos = previewPhotosFor(u);
+                const idx = previewPhotos.length ? (previewIdxByUnit[u.id] || 0) % previewPhotos.length : 0;
+                const coverImg = previewPhotos.length
+                  ? previewPhotos[idx]
+                  : (u.galleryImages.find(g => g.id === u.coverPhotoId) || u.galleryImages[0]);
+                return (
                 <div key={u.id} style={LS.previewCard2(activeUnitId === u.id)}>
                   <div style={LS.previewMetaRow2}>
                     <span style={LS.previewName2}>{u.unitName}</span>
                     <span style={LS.previewSpecs2}>{u.bedsBaths} · ${Number(u.rentalTerms.monthlyRent || 0).toLocaleString()}</span>
                   </div>
                   <div style={LS.previewImgWrap2}>
-                    <button style={LS.previewArrow2('left')} title="Not wired yet"><i className="ti ti-chevron-left" aria-hidden="true" /></button>
-                    <button style={LS.previewArrow2('right')} title="Not wired yet"><i className="ti ti-chevron-right" aria-hidden="true" /></button>
+                    {coverImg ? (
+                      <img src={coverImg.file_url} alt={u.unitName} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+                    ) : null}
+                    {previewPhotos.length > 1 && (
+                      <>
+                        <button
+                          style={LS.previewArrow2('left')}
+                          title="Previous photo"
+                          onClick={() => cyclePreview(u.id, -1, previewPhotos.length)}
+                        ><i className="ti ti-chevron-left" aria-hidden="true" /></button>
+                        <button
+                          style={LS.previewArrow2('right')}
+                          title="Next photo"
+                          onClick={() => cyclePreview(u.id, 1, previewPhotos.length)}
+                        ><i className="ti ti-chevron-right" aria-hidden="true" /></button>
+                      </>
+                    )}
                   </div>
                   <p style={LS.previewDesc2}>
                     {u.description || common.description}
                   </p>
                 </div>
-              ))}
+                );
+              })}
               {units.length === 0 && (
                 <p style={{ fontSize: 12, color: C.txtMuted }}>Add units above to preview their listings here.</p>
               )}

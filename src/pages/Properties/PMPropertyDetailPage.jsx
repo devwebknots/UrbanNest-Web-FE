@@ -88,15 +88,81 @@ function StatusBadge({ status }) {
   return <span style={{ display:'inline-flex',alignItems:'center',gap:5,padding:'3px 10px',borderRadius:20,background:cfg.bg,color:cfg.color,fontSize:11,fontWeight:700,fontFamily:F.body,letterSpacing:'0.03em',whiteSpace:'nowrap' }}><span style={{ width:6,height:6,borderRadius:'50%',background:cfg.dot,flexShrink:0 }} />{cfg.label}</span>;
 }
 
-function Gallery({ property }) {
-  const hero   = property.primary_image||HERO_FALLBACK;
-  const thumbs = property.gallery_images?.length?property.gallery_images:THUMB_FALLBACKS;
-  const extra  = Math.max(0,(property.gallery_images?.length||0)-4);
-  const TOTAL_H=310, THUMB_H=(TOTAL_H-6)/2;
+function GalleryLightbox({ items, index, onClose, onNav }) {
+  const item = items[index];
+  const total = items.length;
+  const go = (delta) => { if (total < 1) return; onNav(((index + delta) % total + total) % total); };
+  const isVideo = item?.file_type === 'VIDEO';
+  const src = item?.file_url;
   return (
+    <div onClick={onClose} style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.88)', display:'flex', alignItems:'center', justifyContent:'center', zIndex:999 }}>
+      <button onClick={onClose} style={{ position:'absolute', top:20, right:20, width:38, height:38, borderRadius:'50%', background:'rgba(255,255,255,0.15)', border:'1px solid rgba(255,255,255,0.3)', display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', zIndex:1000 }}>
+        <i className="ti ti-x" style={{ fontSize:18, color:'#fff' }} />
+      </button>
+      {isVideo ? (
+        <video src={src} controls autoPlay onClick={e => e.stopPropagation()} style={{ maxWidth:'90vw', maxHeight:'88vh', borderRadius:10, outline:'none', display:'block' }} />
+      ) : (
+        <img src={src} alt="" onClick={e => e.stopPropagation()} style={{ maxWidth:'90vw', maxHeight:'88vh', borderRadius:10, objectFit:'contain', display:'block' }} />
+      )}
+      {total > 1 && (
+        <>
+          <button onClick={e => { e.stopPropagation(); go(-1); }} style={{ position:'absolute', left:20, top:'50%', transform:'translateY(-50%)', width:40, height:40, borderRadius:'50%', background:'rgba(255,255,255,0.15)', border:'1px solid rgba(255,255,255,0.3)', display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer' }}>
+            <i className="ti ti-chevron-left" style={{ fontSize:20, color:'#fff' }} />
+          </button>
+          <button onClick={e => { e.stopPropagation(); go(1); }} style={{ position:'absolute', right:20, top:'50%', transform:'translateY(-50%)', width:40, height:40, borderRadius:'50%', background:'rgba(255,255,255,0.15)', border:'1px solid rgba(255,255,255,0.3)', display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer' }}>
+            <i className="ti ti-chevron-right" style={{ fontSize:20, color:'#fff' }} />
+          </button>
+          <div style={{ position:'absolute', bottom:20, left:'50%', transform:'translateX(-50%)', color:'rgba(255,255,255,0.7)', fontSize:13, fontFamily:F.body }}>{index + 1} / {total}</div>
+        </>
+      )}
+    </div>
+  );
+}
+
+function Gallery({ property }) {
+  const galleryList = property.gallery_images || [];
+
+  // Session 53 fix: mirror the Unit detail page fix. (a) When the gallery
+  // holds a video, it becomes the hero and autoplays, instead of the old
+  // hardcoded "VIDEO TOUR" badge that showed over thumb slot 1 regardless of
+  // whether that slot actually held a video. (b) Hero and every thumb are
+  // now clickable into a large lightbox with left/right navigation across
+  // every real gallery item (property.primary_image is a plain URL, not a
+  // gallery item, so it's folded into the lightbox list as a synthetic
+  // IMAGE entry when there's no video to use as hero instead).
+  const heroVideoIdx = galleryList.findIndex(g => g && typeof g !== 'string' && g.file_type === 'VIDEO');
+  const heroIsVideo = heroVideoIdx !== -1;
+  const heroVideoItem = heroIsVideo ? galleryList[heroVideoIdx] : null;
+  const hero = heroIsVideo ? (heroVideoItem.file_url || HERO_FALLBACK) : (property.primary_image || HERO_FALLBACK);
+  const thumbItems = heroIsVideo ? galleryList.filter((_, i) => i !== heroVideoIdx) : galleryList;
+  const thumbs = thumbItems.length ? thumbItems : THUMB_FALLBACKS;
+  const extra  = Math.max(0, thumbItems.length - 4);
+  const TOTAL_H=310, THUMB_H=(TOTAL_H-6)/2;
+
+  const heroObj = heroIsVideo ? { file_url: heroVideoItem.file_url, file_type: 'VIDEO' }
+    : (property.primary_image ? { file_url: property.primary_image, file_type: 'IMAGE' } : null);
+  const realThumbObjs = thumbItems.filter(t => t && typeof t !== 'string');
+  const lightboxItems = [...(heroObj ? [heroObj] : []), ...realThumbObjs];
+  const hasRealItems = lightboxItems.length > 0;
+  const [lightboxIdx, setLightboxIdx] = useState(null);
+  const openLightbox = (idx) => { if (hasRealItems && idx != null) setLightboxIdx(idx); };
+  const thumbLightboxIdx = (i) => {
+    const t = thumbs[i];
+    if (!t || typeof t === 'string') return null;
+    const pos = realThumbObjs.indexOf(t);
+    return pos === -1 ? null : (heroObj ? 1 : 0) + pos;
+  };
+
+  return (
+    <>
     <div style={{ display:'flex',gap:6,height:TOTAL_H,borderRadius:12,overflow:'hidden' }}>
-      <div style={{ flex:'0 0 55%',position:'relative',overflow:'hidden' }}>
-        <img src={hero} alt={property.property_name} style={{ width:'100%',height:'100%',objectFit:'cover',display:'block' }} />
+      <div style={{ flex:'0 0 55%',position:'relative',overflow:'hidden',cursor:heroObj?'pointer':'default' }} onClick={() => openLightbox(heroObj?0:null)}>
+        {heroIsVideo ? (
+          <video src={hero} muted autoPlay loop playsInline style={{ width:'100%',height:'100%',objectFit:'cover',display:'block' }} />
+        ) : (
+          <img src={hero} alt={property.property_name} style={{ width:'100%',height:'100%',objectFit:'cover',display:'block' }} />
+        )}
+        {heroIsVideo && <div style={{ position:'absolute',bottom:8,left:8,background:'rgba(0,0,0,0.62)',borderRadius:5,padding:'4px 8px',display:'flex',alignItems:'center',gap:5 }}><i className="ti ti-player-play-filled" style={{ color:'#fff',fontSize:10 }} /><span style={{ color:'#fff',fontFamily:F.body,fontSize:9,fontWeight:700,letterSpacing:'0.07em' }}>VIDEO TOUR</span></div>}
       </div>
       <div style={{ flex:1,display:'flex',flexDirection:'column',gap:6 }}>
         {[[0,1],[2,3]].map((row,ri)=>(
@@ -106,10 +172,12 @@ function Gallery({ property }) {
               // `image_url` — this always missed the real uploaded photo and
               // fell through to the stock fallback image for every slot.
               const src=typeof thumbs[i]==='string'?thumbs[i]:(thumbs[i]?.file_url||thumbs[i]?.image_url||THUMB_FALLBACKS[i]);
+              const isThumbVideo = thumbs[i] && typeof thumbs[i] !== 'string' && thumbs[i].file_type === 'VIDEO';
+              const gIdx = thumbLightboxIdx(i);
               return (
-                <div key={i} style={{ flex:1,position:'relative',overflow:'hidden' }}>
+                <div key={i} style={{ flex:1,position:'relative',overflow:'hidden',cursor:gIdx!=null?'pointer':'default' }} onClick={() => openLightbox(gIdx)}>
                   <img src={src} alt={`view-${i}`} style={{ width:'100%',height:'100%',objectFit:'cover',display:'block' }} />
-                  {i===1 && <div style={{ position:'absolute',bottom:8,right:8,background:'rgba(0,0,0,0.62)',borderRadius:5,padding:'4px 8px',display:'flex',alignItems:'center',gap:5 }}><i className="ti ti-player-play-filled" style={{ color:'#fff',fontSize:10 }} /><span style={{ color:'#fff',fontFamily:F.body,fontSize:9,fontWeight:700,letterSpacing:'0.07em' }}>VIDEO TOUR</span></div>}
+                  {isThumbVideo && <div style={{ position:'absolute',bottom:8,right:8,background:'rgba(0,0,0,0.62)',borderRadius:5,padding:'4px 8px',display:'flex',alignItems:'center',gap:5 }}><i className="ti ti-player-play-filled" style={{ color:'#fff',fontSize:10 }} /><span style={{ color:'#fff',fontFamily:F.body,fontSize:9,fontWeight:700,letterSpacing:'0.07em' }}>VIDEO</span></div>}
                   {i===3&&extra>0 && <div style={{ position:'absolute',inset:0,background:'rgba(0,0,0,0.52)',display:'flex',alignItems:'center',justifyContent:'center',cursor:'pointer' }}><span style={{ color:'#fff',fontFamily:F.body,fontWeight:700,fontSize:13 }}>+{extra} Photos</span></div>}
                 </div>
               );
@@ -118,6 +186,10 @@ function Gallery({ property }) {
         ))}
       </div>
     </div>
+    {lightboxIdx !== null && hasRealItems && (
+      <GalleryLightbox items={lightboxItems} index={lightboxIdx} onClose={() => setLightboxIdx(null)} onNav={setLightboxIdx} />
+    )}
+    </>
   );
 }
 

@@ -72,21 +72,98 @@ function Card({ children, style }) { return <div style={{ background:C.cardBg,bo
 function SectionHeading({ title }) { return <h2 style={{ fontFamily:F.headline,fontSize:18,fontWeight:700,color:C.textPrimary,margin:'0 0 14px 0' }}>{title}</h2>; }
 function Skel({ h=16,w='100%',r=8 }) { return <div style={{ height:h,width:w,borderRadius:r,background:'linear-gradient(90deg,#E2E8F0 25%,#F1F5F9 50%,#E2E8F0 75%)',backgroundSize:'200% 100%',animation:'shimmer 1.4s infinite' }} />; }
 
-function Gallery({ unit }) {
-  const hero=unit.primary_image||HERO_FALLBACK;
-  const thumbs=unit.gallery_images?.length?unit.gallery_images:THUMB_FALLBACKS;
-  const extra=Math.max(0,(unit.gallery_images?.length||0)-4);
-  const TOTAL_H=310,THUMB_H=(TOTAL_H-6)/2;
+function GalleryLightbox({ items, index, onClose, onNav }) {
+  const item = items[index];
+  const total = items.length;
+  const go = (delta) => { if (total < 1) return; onNav(((index + delta) % total + total) % total); };
+  const isVideo = item && typeof item !== 'string' && item.file_type === 'VIDEO';
+  const src = typeof item === 'string' ? item : item?.file_url;
   return (
+    <div onClick={onClose} style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.88)', display:'flex', alignItems:'center', justifyContent:'center', zIndex:999 }}>
+      <button onClick={onClose} style={{ position:'absolute', top:20, right:20, width:38, height:38, borderRadius:'50%', background:'rgba(255,255,255,0.15)', border:'1px solid rgba(255,255,255,0.3)', display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', zIndex:1000 }}>
+        <i className="ti ti-x" style={{ fontSize:18, color:'#fff' }} />
+      </button>
+      {isVideo ? (
+        <video src={src} controls autoPlay onClick={e => e.stopPropagation()} style={{ maxWidth:'90vw', maxHeight:'88vh', borderRadius:10, outline:'none', display:'block' }} />
+      ) : (
+        <img src={src} alt="" onClick={e => e.stopPropagation()} style={{ maxWidth:'90vw', maxHeight:'88vh', borderRadius:10, objectFit:'contain', display:'block' }} />
+      )}
+      {total > 1 && (
+        <>
+          <button onClick={e => { e.stopPropagation(); go(-1); }} style={{ position:'absolute', left:20, top:'50%', transform:'translateY(-50%)', width:40, height:40, borderRadius:'50%', background:'rgba(255,255,255,0.15)', border:'1px solid rgba(255,255,255,0.3)', display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer' }}>
+            <i className="ti ti-chevron-left" style={{ fontSize:20, color:'#fff' }} />
+          </button>
+          <button onClick={e => { e.stopPropagation(); go(1); }} style={{ position:'absolute', right:20, top:'50%', transform:'translateY(-50%)', width:40, height:40, borderRadius:'50%', background:'rgba(255,255,255,0.15)', border:'1px solid rgba(255,255,255,0.3)', display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer' }}>
+            <i className="ti ti-chevron-right" style={{ fontSize:20, color:'#fff' }} />
+          </button>
+          <div style={{ position:'absolute', bottom:20, left:'50%', transform:'translateX(-50%)', color:'rgba(255,255,255,0.7)', fontSize:13, fontFamily:F.body }}>{index + 1} / {total}</div>
+        </>
+      )}
+    </div>
+  );
+}
+
+function Gallery({ unit }) {
+  // Session 52 fix: Unit has no `primary_image` field at all (confirmed
+  // against UnitDetailSerializer — only Property has one) and the thumb
+  // lookup read `image_url`, but gallery items carry `file_url`. Both bugs
+  // meant a unit's real uploaded photos never rendered here, always falling
+  // through to the stock fallback images. Now: first gallery image is the
+  // hero/cover, the rest fill the thumbnail grid.
+  const galleryList = unit.gallery_images || [];
+
+  // Session 53 fix: (a) when the unit has an uploaded video, it should become
+  // the hero element and autoplay — previously the hero was always
+  // galleryList[0] and the "VIDEO TOUR" badge over thumb slot 1 was purely
+  // cosmetic (shown regardless of whether that slot actually held a video),
+  // so a real uploaded video was never surfaced. (b) clicking any hero/thumb
+  // now opens a large lightbox with left/right navigation across every
+  // gallery item, via GalleryLightbox above.
+  const heroVideoIdx = galleryList.findIndex(g => g.file_type === 'VIDEO');
+  const heroIdx = heroVideoIdx !== -1 ? heroVideoIdx : 0;
+  const heroItem = galleryList[heroIdx];
+  const isHeroVideo = !!heroItem && heroItem.file_type === 'VIDEO';
+  const hero = heroItem?.file_url || HERO_FALLBACK;
+  const thumbItems = galleryList.filter((_, i) => i !== heroIdx);
+  const thumbSource = thumbItems.length > 0 ? thumbItems : THUMB_FALLBACKS;
+  const thumbs = thumbSource;
+  const extra = Math.max(0, thumbItems.length - 4);
+  const TOTAL_H=310,THUMB_H=(TOTAL_H-6)/2;
+
+  const hasRealItems = galleryList.length > 0;
+  const [lightboxIdx, setLightboxIdx] = useState(null);
+  const openLightbox = (idx) => { if (hasRealItems && idx != null) setLightboxIdx(idx); };
+  const thumbGalleryIdx = (i) => {
+    const item = thumbItems[i];
+    return item ? galleryList.indexOf(item) : null;
+  };
+
+  return (
+    <>
     <div style={{ display:'flex',gap:6,height:TOTAL_H,borderRadius:12,overflow:'hidden' }}>
-      <div style={{ flex:'0 0 55%',overflow:'hidden' }}><img src={hero} alt="Unit" style={{ width:'100%',height:'100%',objectFit:'cover',display:'block' }} /></div>
+      <div style={{ flex:'0 0 55%',overflow:'hidden',position:'relative',cursor:hasRealItems?'pointer':'default' }} onClick={() => openLightbox(heroIdx)}>
+        {isHeroVideo ? (
+          <video src={hero} muted autoPlay loop playsInline style={{ width:'100%',height:'100%',objectFit:'cover',display:'block' }} />
+        ) : (
+          // Session 55 fix: a failed load (deleted file, transient network
+          // hiccup) used to show the browser's broken-image glyph with the
+          // alt text next to it — falls back to the stock hero image
+          // instead, once, so it degrades gracefully rather than looking
+          // broken.
+          <img src={hero} alt="Unit" onError={e => { if (e.currentTarget.src !== HERO_FALLBACK) e.currentTarget.src = HERO_FALLBACK; }} style={{ width:'100%',height:'100%',objectFit:'cover',display:'block' }} />
+        )}
+        {isHeroVideo && <div style={{ position:'absolute',bottom:8,left:8,background:'rgba(0,0,0,0.62)',borderRadius:5,padding:'4px 8px',display:'flex',alignItems:'center',gap:5 }}><i className="ti ti-player-play-filled" style={{ color:'#fff',fontSize:10 }} /><span style={{ color:'#fff',fontFamily:F.body,fontSize:9,fontWeight:700 }}>VIDEO TOUR</span></div>}
+      </div>
       <div style={{ flex:1,display:'flex',flexDirection:'column',gap:6 }}>
         {[[0,1],[2,3]].map((row,ri)=>(
           <div key={ri} style={{ display:'flex',gap:6,height:THUMB_H }}>
-            {row.map(ci=>{ const i=ri*2+ci; const src=typeof thumbs[i]==='string'?thumbs[i]:(thumbs[i]?.image_url||THUMB_FALLBACKS[i]);
-              return <div key={ci} style={{ flex:1,position:'relative',overflow:'hidden' }}>
-                <img src={src} alt={`view-${i}`} style={{ width:'100%',height:'100%',objectFit:'cover',display:'block' }} />
-                {i===1&&<div style={{ position:'absolute',bottom:8,right:8,background:'rgba(0,0,0,0.62)',borderRadius:5,padding:'4px 8px',display:'flex',alignItems:'center',gap:5 }}><i className="ti ti-player-play-filled" style={{ color:'#fff',fontSize:10 }} /><span style={{ color:'#fff',fontFamily:F.body,fontSize:9,fontWeight:700 }}>VIDEO TOUR</span></div>}
+            {row.map(ci=>{ const i=ri*2+ci; const thumbItem=thumbs[i]; const isThumbVideo = thumbItem && typeof thumbItem !== 'string' && thumbItem.file_type==='VIDEO';
+              const src=typeof thumbs[i]==='string'?thumbs[i]:(thumbs[i]?.file_url||thumbs[i]?.image_url||THUMB_FALLBACKS[i]);
+              const gIdx = thumbGalleryIdx(i);
+              const fallbackSrc = THUMB_FALLBACKS[i] || HERO_FALLBACK;
+              return <div key={ci} style={{ flex:1,position:'relative',overflow:'hidden',cursor:gIdx!=null?'pointer':'default' }} onClick={() => openLightbox(gIdx)}>
+                <img src={src} alt={`view-${i}`} onError={e => { if (e.currentTarget.src !== fallbackSrc) e.currentTarget.src = fallbackSrc; }} style={{ width:'100%',height:'100%',objectFit:'cover',display:'block' }} />
+                {isThumbVideo&&<div style={{ position:'absolute',bottom:8,right:8,background:'rgba(0,0,0,0.62)',borderRadius:5,padding:'4px 8px',display:'flex',alignItems:'center',gap:5 }}><i className="ti ti-player-play-filled" style={{ color:'#fff',fontSize:10 }} /><span style={{ color:'#fff',fontFamily:F.body,fontSize:9,fontWeight:700 }}>VIDEO</span></div>}
                 {i===3&&extra>0&&<div style={{ position:'absolute',inset:0,background:'rgba(0,0,0,0.52)',display:'flex',alignItems:'center',justifyContent:'center',cursor:'pointer' }}><span style={{ color:'#fff',fontFamily:F.body,fontWeight:700,fontSize:13 }}>+{extra} Photos</span></div>}
               </div>;
             })}
@@ -94,6 +171,10 @@ function Gallery({ unit }) {
         ))}
       </div>
     </div>
+    {lightboxIdx !== null && hasRealItems && (
+      <GalleryLightbox items={galleryList} index={lightboxIdx} onClose={() => setLightboxIdx(null)} onNav={setLightboxIdx} />
+    )}
+    </>
   );
 }
 

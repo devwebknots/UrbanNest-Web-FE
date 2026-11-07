@@ -28,6 +28,19 @@ const F = {
 };
 
 const API = process.env.REACT_APP_API_BASE_URL || 'http://localhost:8001/api';
+// Session 52 fix: landlord_profile.id_document_1/2/3 come back from the API
+// as relative paths (e.g. "/media/landlord/documents/...") — not absolute
+// URLs like Property/Unit gallery fields, which use ImageField(use_url=True)
+// with request context. An <a href> to a relative path resolves against
+// THIS page's own origin (the frontend's CloudFront domain, which serves no
+// /media/ path at all), landing on a blank page. Resolve against the API's
+// own origin instead.
+const MEDIA_BASE = API.replace(/\/api\/?$/, '');
+function resolveMediaUrl(u) {
+  if (!u) return u;
+  if (/^https?:\/\//i.test(u)) return u;
+  return MEDIA_BASE + (u.startsWith('/') ? u : '/' + u);
+}
 
 const TABS = [
   { id: 'all',         label: 'All' },
@@ -145,11 +158,46 @@ function RejectModal({ record, onConfirm, onCancel, loading }) {
   );
 }
 
+// ─── Session 52 fix: Document Preview Modal ────────────────────────────────────
+// Replaces the old `<a target="_blank">` (which opened a broken blank tab —
+// see resolveMediaUrl above) with an in-page viewer. Images render directly;
+// PDFs render in an iframe (browsers natively preview PDFs there); anything
+// else falls back to a direct-link button. Scrolls vertically when the
+// document is taller than the viewport.
+function DocumentPreviewModal({ label, url, onClose }) {
+  const isPdf = /\.pdf(\?|$)/i.test(url || '');
+  return (
+    <div onClick={onClose} style={{ position:'fixed', inset:0, zIndex:700, background:'rgba(0,0,0,0.6)', display:'flex', alignItems:'center', justifyContent:'center', padding:'32px 20px' }}>
+      <div onClick={e => e.stopPropagation()} style={{ background:C.white, borderRadius:12, width:'min(820px, 100%)', maxHeight:'90vh', display:'flex', flexDirection:'column', boxShadow:'0 24px 64px rgba(0,0,0,0.25)', overflow:'hidden' }}>
+        <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'14px 18px', borderBottom:'1px solid '+C.border, flexShrink:0 }}>
+          <span style={{ fontFamily:F.body, fontSize:13, fontWeight:700, color:C.textPrimary }}>{label}</span>
+          <div style={{ display:'flex', alignItems:'center', gap:14 }}>
+            <a href={url} target="_blank" rel="noreferrer" style={{ fontFamily:F.body, fontSize:11, color:C.primary, fontWeight:600, textDecoration:'none', display:'flex', alignItems:'center', gap:4 }}>
+              Open original <i className="ti ti-external-link" style={{ fontSize:11 }} />
+            </a>
+            <button onClick={onClose} style={{ background:'transparent', border:'none', cursor:'pointer', padding:4, display:'flex' }}>
+              <i className="ti ti-x" style={{ fontSize:18, color:C.textSec }} />
+            </button>
+          </div>
+        </div>
+        <div style={{ overflowY:'auto', overflowX:'hidden', flex:1, background:'#F1F5F9', display:'flex', justifyContent:'center' }}>
+          {isPdf ? (
+            <iframe src={url} title={label} style={{ width:'100%', height:'80vh', border:'none' }} />
+          ) : (
+            <img src={url} alt={label} style={{ maxWidth:'100%', height:'auto', display:'block' }} />
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ─── Detail Slide-in Panel ────────────────────────────────────────────────────
 
 function DetailPanel({ record, onClose, onApprove, onReject, actionLoading }) {
   const [detail, setDetail]   = useState(null);
   const [loading, setLoading] = useState(true);
+  const [docPreview, setDocPreview] = useState(null); // { label, url }
 
   useEffect(() => {
     if (!record) return;
@@ -182,6 +230,7 @@ function DetailPanel({ record, onClose, onApprove, onReject, actionLoading }) {
   ].filter(Boolean).join(', ') : null;
 
   return (
+    <>
     <div style={{ position:'fixed', inset:0, zIndex:500, display:'flex' }}>
       {/* Backdrop */}
       <div onClick={onClose} style={{ flex:1, background:'rgba(0,0,0,0.3)' }} />
@@ -240,9 +289,12 @@ function DetailPanel({ record, onClose, onApprove, onReject, actionLoading }) {
               {/* Documents */}
               <SectionHead icon="ti-files" label="Documents" />
               {[
-                { label: 'Government ID — Front', url: profile?.id_document_1 },
-                { label: 'Government ID — Back',  url: profile?.id_document_2 },
-                { label: 'Additional document',   url: profile?.id_document_3 },
+                // Session 52 fix: these labels must mirror the owner-submission
+                // wizard's own document names (VerifyOwnershipPage.jsx), not the
+                // old generic "Front/Back/Additional" placeholders.
+                { label: 'Government ID / Driving License', url: resolveMediaUrl(profile?.id_document_1) },
+                { label: 'Passport',                         url: resolveMediaUrl(profile?.id_document_2) },
+                { label: 'Property Ownership Proof',         url: resolveMediaUrl(profile?.id_document_3) },
               ].map((doc, i) => (
                 <div key={i} style={{ display:'flex', alignItems:'center', justifyContent:'space-between', padding:'8px 10px', background:doc.url ? C.neutral : '#FAFBFC', borderRadius:7, marginBottom:6, border:'1px solid '+C.border }}>
                   <div style={{ display:'flex', alignItems:'center', gap:8 }}>
@@ -253,10 +305,14 @@ function DetailPanel({ record, onClose, onApprove, onReject, actionLoading }) {
                     </div>
                   </div>
                   {doc.url && (
-                    <a href={doc.url} target="_blank" rel="noreferrer"
-                      style={{ fontFamily:F.body, fontSize:11, color:C.primary, fontWeight:600, textDecoration:'none', display:'flex', alignItems:'center', gap:3, flexShrink:0 }}>
+                    // Session 52 fix: was `<a target="_blank">`, which opened a
+                    // new tab at a relative /media/ path on THIS frontend's own
+                    // domain (no such path exists there) and showed a blank
+                    // page. Now opens an in-page modal instead, per request.
+                    <button onClick={() => setDocPreview({ label: doc.label, url: doc.url })}
+                      style={{ fontFamily:F.body, fontSize:11, color:C.primary, fontWeight:600, background:'transparent', border:'none', cursor:'pointer', padding:0, display:'flex', alignItems:'center', gap:3, flexShrink:0 }}>
                       View <i className="ti ti-external-link" style={{ fontSize:11 }} />
-                    </a>
+                    </button>
                   )}
                 </div>
               ))}
@@ -325,6 +381,10 @@ function DetailPanel({ record, onClose, onApprove, onReject, actionLoading }) {
         )}
       </div>
     </div>
+    {docPreview && (
+      <DocumentPreviewModal label={docPreview.label} url={docPreview.url} onClose={() => setDocPreview(null)} />
+    )}
+    </>
   );
 }
 

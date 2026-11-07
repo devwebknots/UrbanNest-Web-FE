@@ -64,13 +64,22 @@ const ACCOUNT_TYPE_OPTIONS = [{ value:'',label:'Select type…' },{ value:'check
 function emptyUnitAccountState() { return { mode:'existing', existingId:'', saved:false, skipped:false, replacing:false, bankName:'', nickname:'', accountNumber:'', routing:'', accountType:'', owner:'', voidedCheck:null, voidedCheckName:'' }; }
 function emptyUnitReserveExtras() { return { minThreshold:'', topUp:'manual', topUpMode:'existing', topUpExistingId:'', topUpBankName:'', topUpNickname:'', topUpAccountNumber:'', topUpRouting:'', topUpAccountType:'', topUpOwner:'', topUpVoidedCheck:null, topUpVoidedCheckName:'' }; }
 
-const UNIT_SUBTABS = ['Unit Info','Amenities','Ownership','Bank Account'];
+// Session 52 fix: Edit Unit never had a Gallery tab at all — photos, videos
+// and floor plan for an existing unit had no edit UI anywhere (the old
+// comment on this page said "managed from the Unit Detail page", but that
+// page is read-only). Added 'Gallery' here, mirroring the Add Unit wizard's
+// FloorPlanUpload + UnitGalleryTab (UnitTabs.jsx) so existing units can
+// finally have their media edited after creation.
+const UNIT_SUBTABS = ['Unit Info','Gallery','Amenities','Ownership','Bank Account'];
 const PAGE_META = {
   'Unit Info':    { title:'Unit / Home Information',  sub:'Edit unit-level details including type, size, rent and configuration.' },
+  'Gallery':      { title:'Unit Photos, Video & Floor Plan', sub:'Upload interior photos, a video tour, and the floor plan for this unit.' },
   'Amenities':    { title:'Unit Amenities',            sub:'Update in-unit amenities specific to this unit.' },
   'Ownership':    { title:'Unit Ownership',            sub:'Manage unit ownership. Changes will re-send invites and notify active tenants.' },
   'Bank Account': { title:'Unit Bank Accounts',        sub:'Update bank accounts configured for this unit.' },
 };
+const MAX_UNIT_IMAGES = 8;
+const MAX_UNIT_VIDEOS = 2;
 
 // ─── Shared field components ───────────────────────────────────────────────────
 function ULabel({ children, required }) { return <div style={{ fontSize:10.5, fontWeight:700, color:C.labelColor, textTransform:'uppercase', letterSpacing:'0.07em', marginBottom:5, fontFamily:F.body }}>{children}{required&&<span style={{ color:C.danger, marginLeft:2 }}>*</span>}</div>; }
@@ -86,6 +95,180 @@ function UTextarea({ value, onChange, placeholder, rows=3 }) {
 function SectionHead({ icon, title, color='#1D4ED8', bg='#DBEAFE' }) { return <div style={{ display:'flex',alignItems:'center',gap:10,marginBottom:16 }}><div style={{ width:28,height:28,borderRadius:'50%',background:bg,display:'flex',alignItems:'center',justifyContent:'center',flexShrink:0 }}><i className={`ti ${icon}`} style={{ fontSize:13,color }} /></div><span style={{ fontSize:14,fontWeight:700,color:C.textPrimary,fontFamily:F.headline }}>{title}</span></div>; }
 function Toggle({ value, onChange }) { return <div onClick={()=>onChange(!value)} style={{ width:40,height:22,borderRadius:11,cursor:'pointer',flexShrink:0,background:value?C.primary:C.borderMed,position:'relative',transition:'background 0.2s' }}><div style={{ width:16,height:16,borderRadius:'50%',background:'#fff',position:'absolute',top:3,left:value?21:3,transition:'left 0.2s',boxShadow:'0 1px 3px rgba(0,0,0,0.2)' }} /></div>; }
 function Skeleton({ h=38, w='100%', radius=6 }) { return <div style={{ height:h,width:w,borderRadius:radius,background:'linear-gradient(90deg,#e2e8f0 25%,#f1f5f9 50%,#e2e8f0 75%)',backgroundSize:'200% 100%',animation:'shimmer 1.4s infinite',flexShrink:0 }} />; }
+
+// ─── Session 52 fix: Gallery tab (Floor Plan + Photos + Videos) ───────────────
+// Ported from AddProperty/UnitTabs.jsx's FloorPlanUpload / UnitGalleryTab so
+// an existing unit's media can finally be edited after creation, not just
+// set once during the Add Unit wizard.
+function FloorPlanUpload({ mainPreview, thumbPreviews, onMainFile, onThumbFile, onMainRemove, onThumbRemove }) {
+  const mainRef = useRef();
+  const thumbRefs = [useRef(), useRef(), useRef()];
+  const [hover, setHover] = useState(false);
+  return (
+    <div style={{ background:C.cardBg, border:`1px solid ${C.border}`, borderRadius:10, padding:16, boxShadow:'0 1px 3px rgba(0,0,0,0.04)' }}>
+      <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between', marginBottom:10 }}>
+        <div style={{ fontSize:13, fontWeight:700, color:C.textPrimary, fontFamily:F.body }}>Floor Plan</div>
+        <i className="ti ti-camera" style={{ fontSize:14, color:C.textTert }} />
+      </div>
+      <div style={{ position:'relative', marginBottom:8 }}>
+        <div onClick={()=>!mainPreview&&mainRef.current.click()} onMouseEnter={()=>setHover(true)} onMouseLeave={()=>setHover(false)}
+          style={{ height:120, border:`1.5px dashed ${mainPreview?'transparent':C.borderMed}`, borderRadius:8, background:C.inputBg, display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:6, cursor:mainPreview?'default':'pointer', overflow:'hidden', position:'relative' }}>
+          <input ref={mainRef} type="file" accept="image/jpeg,image/png,application/pdf" style={{ display:'none' }} onChange={e=>{ if(e.target.files[0]){ onMainFile(e.target.files[0]); e.target.value=''; } }} />
+          {mainPreview ? (
+            <>
+              <img src={mainPreview} alt="" style={{ width:'100%', height:'100%', objectFit:'cover' }} />
+              {hover && (
+                <div onClick={()=>mainRef.current.click()} style={{ position:'absolute', inset:0, background:'rgba(0,0,0,0.35)', display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer' }}>
+                  <div style={{ display:'flex', alignItems:'center', gap:5, background:'rgba(255,255,255,0.92)', borderRadius:6, padding:'5px 11px', fontSize:11, fontWeight:600, color:C.textPrimary, fontFamily:F.body }}>
+                    <i className="ti ti-refresh" style={{ fontSize:12 }} /> Replace
+                  </div>
+                </div>
+              )}
+            </>
+          ) : (
+            <>
+              <i className="ti ti-file-description" style={{ fontSize:24, color:C.textTert }} />
+              <div style={{ fontSize:11, fontWeight:700, color:C.primaryBlue, fontFamily:F.body }}>Upload Technical Drawings</div>
+              <div style={{ fontSize:10, color:C.textTert, fontFamily:F.body }}>PDF, JPG, or PNG up to 15MB</div>
+            </>
+          )}
+        </div>
+        {mainPreview && <button onClick={onMainRemove} style={{ position:'absolute', top:6, right:6, width:20, height:20, borderRadius:'50%', background:'rgba(0,0,0,0.55)', border:'1.5px solid rgba(255,255,255,0.75)', display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', padding:0 }}><i className="ti ti-x" style={{ fontSize:9, color:'#fff' }} /></button>}
+      </div>
+      <div style={{ display:'grid', gridTemplateColumns:'repeat(3,1fr)', gap:6 }}>
+        {[0,1,2].map(i=>(
+          <div key={i} style={{ position:'relative' }}>
+            <div onClick={()=>!thumbPreviews[i]&&thumbRefs[i].current.click()}
+              style={{ height:52, border:`1.5px dashed ${thumbPreviews[i]?'transparent':C.borderMed}`, borderRadius:6, background:C.inputBg, display:'flex', alignItems:'center', justifyContent:'center', cursor:thumbPreviews[i]?'default':'pointer', overflow:'hidden' }}>
+              <input ref={thumbRefs[i]} type="file" accept="image/jpeg,image/png,application/pdf" style={{ display:'none' }} onChange={e=>{ if(e.target.files[0]){ onThumbFile(i, e.target.files[0]); e.target.value=''; } }} />
+              {thumbPreviews[i] ? <img src={thumbPreviews[i]} alt="" style={{ width:'100%', height:'100%', objectFit:'cover' }} /> : <i className="ti ti-file-description" style={{ fontSize:16, color:C.borderMed }} />}
+            </div>
+            {thumbPreviews[i] && <button onClick={()=>onThumbRemove(i)} style={{ position:'absolute', top:3, right:3, width:16, height:16, borderRadius:'50%', background:'rgba(0,0,0,0.55)', border:'1px solid rgba(255,255,255,0.75)', display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', padding:0 }}><i className="ti ti-x" style={{ fontSize:8, color:'#fff' }} /></button>}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function UnitGalleryImageCard({ img, onRemove, onOpen }) {
+  const [hover, setHover] = useState(false);
+  return (
+    <div onClick={onOpen} onMouseEnter={()=>setHover(true)} onMouseLeave={()=>setHover(false)}
+      style={{ position:'relative', borderRadius:10, overflow:'hidden', aspectRatio:'4 / 3', background:C.border, cursor:'pointer' }}>
+      <img src={img.url} alt={img.name||''} style={{ width:'100%', height:'100%', objectFit:'cover', display:'block' }} />
+      {hover && <div style={{ position:'absolute', inset:0, background:'rgba(0,0,0,0.28)', display:'flex', alignItems:'center', justifyContent:'center' }}><i className="ti ti-zoom-in" style={{ fontSize:28, color:'#fff' }} /></div>}
+      <button onClick={e=>{ e.stopPropagation(); onRemove(); }} style={{ position:'absolute', top:8, right:8, width:22, height:22, borderRadius:'50%', background:C.danger, border:'2px solid #fff', display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', padding:0, zIndex:2 }}><i className="ti ti-x" style={{ fontSize:11, color:'#fff', lineHeight:1 }} /></button>
+    </div>
+  );
+}
+
+function UnitGalleryVideoCard({ video, onRemove, onOpen }) {
+  return (
+    <div style={{ position:'relative', borderRadius:10, overflow:'hidden', aspectRatio:'4 / 3', background:'#0f172a' }}>
+      <video src={video.url} style={{ width:'100%', height:'100%', objectFit:'cover', display:'block', opacity:0.7 }} muted preload="metadata" />
+      <div style={{ position:'absolute', inset:0, background:'linear-gradient(to top, rgba(0,0,0,0.75) 0%, rgba(0,0,0,0.1) 50%, transparent 100%)' }} />
+      <div onClick={onOpen} style={{ position:'absolute', top:'50%', left:'50%', transform:'translate(-50%, -50%)', width:46, height:46, borderRadius:'50%', background:'rgba(255,255,255,0.92)', display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer' }}><i className="ti ti-player-play" style={{ fontSize:18, color:C.textPrimary, marginLeft:2 }} /></div>
+      <div style={{ position:'absolute', bottom:10, left:12, right:40 }}>
+        <div style={{ fontSize:12, fontWeight:700, color:'#fff', fontFamily:F.body, marginBottom:2, whiteSpace:'nowrap', overflow:'hidden', textOverflow:'ellipsis' }}>{(video.name||'Video').replace(/\.[^.]+$/, '')}</div>
+        <div style={{ fontSize:10.5, color:'rgba(255,255,255,0.7)', fontFamily:F.body }}>{video.size||''}</div>
+      </div>
+      <button onClick={e=>{ e.stopPropagation(); onRemove(); }} style={{ position:'absolute', top:8, right:8, width:22, height:22, borderRadius:'50%', background:C.danger, border:'2px solid #fff', display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', padding:0, zIndex:2 }}><i className="ti ti-x" style={{ fontSize:11, color:'#fff', lineHeight:1 }} /></button>
+    </div>
+  );
+}
+
+function UnitEditGalleryTab({
+  floorPlanMain, floorPlanThumbs, onFloorPlanMainFile, onFloorPlanThumbFile, onFloorPlanMainRemove, onFloorPlanThumbRemove,
+  galleryImages, galleryVideos, setGalleryImages, setGalleryVideos,
+}) {
+  const imageInputRef = useRef();
+  const videoInputRef = useRef();
+  const [lightbox, setLightbox] = useState(null);
+
+  function handleImageFiles(files) {
+    const accepted = Array.from(files).filter(f=>f.type.startsWith('image/')).slice(0, MAX_UNIT_IMAGES - galleryImages.length);
+    setGalleryImages(prev=>[...prev, ...accepted.map(f=>({ id:Math.random().toString(36).slice(2), url:URL.createObjectURL(f), name:f.name, file:f }))].slice(0, MAX_UNIT_IMAGES));
+  }
+  function handleVideoFile(file) {
+    if (!file || !file.type.startsWith('video/') || galleryVideos.length>=MAX_UNIT_VIDEOS) return;
+    setGalleryVideos(prev=>[...prev, { id:Math.random().toString(36).slice(2), url:URL.createObjectURL(file), name:file.name, size:(file.size/(1024*1024)).toFixed(1)+' MB', file }]);
+  }
+
+  return (
+    <div style={{ display:'flex', gap:16, alignItems:'flex-start' }}>
+      <div style={{ flex:1, minWidth:0, display:'flex', flexDirection:'column', gap:28 }}>
+        <div style={{ background:C.cardBg, border:`1px solid ${C.border}`, borderRadius:10, padding:20, boxShadow:'0 1px 3px rgba(0,0,0,0.04)' }}>
+          <div style={{ marginBottom:16 }}>
+            <div style={{ fontSize:16, fontWeight:700, color:C.textPrimary, fontFamily:F.headline, marginBottom:4 }}>Photo Gallery</div>
+            <div style={{ fontSize:13, color:C.textSec, fontFamily:F.body }}>Upload interior photos for this unit's listing.</div>
+          </div>
+          <div style={{ display:'grid', gridTemplateColumns:'repeat(4, 1fr)', gap:12 }}>
+            {galleryImages.map((img,idx)=>(
+              <UnitGalleryImageCard key={img.id} img={img}
+                onRemove={()=>setGalleryImages(prev=>prev.filter(i=>i.id!==img.id))}
+                onOpen={()=>setLightbox({ type:'image', index:idx })} />
+            ))}
+            {galleryImages.length < MAX_UNIT_IMAGES && (
+              <div onClick={()=>imageInputRef.current.click()}
+                onMouseEnter={e=>{ e.currentTarget.style.borderColor=C.primary; e.currentTarget.style.background='#f8faff'; }}
+                onMouseLeave={e=>{ e.currentTarget.style.borderColor=C.borderMed; e.currentTarget.style.background=C.cardBg; }}
+                style={{ border:`1.5px dashed ${C.borderMed}`, borderRadius:10, aspectRatio:'4 / 3', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:6, cursor:'pointer', background:C.cardBg, transition:'border-color 0.15s, background 0.15s' }}>
+                <input ref={imageInputRef} type="file" multiple accept="image/jpeg,image/png,image/webp" style={{ display:'none' }} onChange={e=>{ handleImageFiles(e.target.files); e.target.value=''; }} />
+                <i className="ti ti-camera-plus" style={{ fontSize:20, color:C.textTert }} />
+                <div style={{ fontSize:11, color:C.textTert, fontFamily:F.body }}>Upload Images</div>
+              </div>
+            )}
+          </div>
+        </div>
+
+        <div style={{ background:C.cardBg, border:`1px solid ${C.border}`, borderRadius:10, padding:20, boxShadow:'0 1px 3px rgba(0,0,0,0.04)' }}>
+          <div style={{ fontSize:16, fontWeight:700, color:C.textPrimary, fontFamily:F.headline, marginBottom:16 }}>Video(s)</div>
+          <div style={{ display:'grid', gridTemplateColumns:'repeat(4, 1fr)', gap:12 }}>
+            {galleryVideos.map((v,idx)=>(
+              <UnitGalleryVideoCard key={v.id} video={v}
+                onRemove={()=>setGalleryVideos(prev=>prev.filter(x=>x.id!==v.id))}
+                onOpen={()=>setLightbox({ type:'video', index:idx })} />
+            ))}
+            {galleryVideos.length < MAX_UNIT_VIDEOS && (
+              <div onClick={()=>videoInputRef.current.click()}
+                onMouseEnter={e=>{ e.currentTarget.style.borderColor=C.primary; e.currentTarget.style.background='#f8faff'; }}
+                onMouseLeave={e=>{ e.currentTarget.style.borderColor=C.borderMed; e.currentTarget.style.background=C.cardBg; }}
+                style={{ border:`1.5px dashed ${C.borderMed}`, borderRadius:10, aspectRatio:'4 / 3', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:6, cursor:'pointer', background:C.cardBg, transition:'border-color 0.15s, background 0.15s' }}>
+                <input ref={videoInputRef} type="file" accept="video/mp4,video/quicktime,video/webm" style={{ display:'none' }} onChange={e=>{ handleVideoFile(e.target.files[0]); e.target.value=''; }} />
+                <i className="ti ti-video-plus" style={{ fontSize:20, color:C.textTert }} />
+                <div style={{ fontSize:11, color:C.textTert, fontFamily:F.body }}>Upload Video</div>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {lightbox && (
+          <div onClick={()=>setLightbox(null)} style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.88)', display:'flex', alignItems:'center', justifyContent:'center', zIndex:999 }}>
+            <button onClick={()=>setLightbox(null)} style={{ position:'absolute', top:20, right:20, width:38, height:38, borderRadius:'50%', background:'rgba(255,255,255,0.15)', border:'1px solid rgba(255,255,255,0.3)', display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', zIndex:1000 }}><i className="ti ti-x" style={{ fontSize:18, color:'#fff' }} /></button>
+            {lightbox.type==='image' && (
+              <img src={galleryImages[lightbox.index].url} alt="" onClick={e=>e.stopPropagation()} style={{ maxWidth:'90vw', maxHeight:'88vh', borderRadius:10, objectFit:'contain', display:'block' }} />
+            )}
+            {lightbox.type==='video' && (
+              <video src={galleryVideos[lightbox.index].url} controls autoPlay onClick={e=>e.stopPropagation()} style={{ maxWidth:'90vw', maxHeight:'88vh', borderRadius:10, outline:'none', display:'block' }} />
+            )}
+          </div>
+        )}
+      </div>
+
+      <div style={{ width:260, flexShrink:0 }}>
+        <FloorPlanUpload
+          mainPreview={floorPlanMain}
+          thumbPreviews={floorPlanThumbs}
+          onMainFile={onFloorPlanMainFile}
+          onThumbFile={onFloorPlanThumbFile}
+          onMainRemove={onFloorPlanMainRemove}
+          onThumbRemove={onFloorPlanThumbRemove}
+        />
+      </div>
+    </div>
+  );
+}
 
 // ─── FIX (b): Unit Amenities — subtle selected border ─────────────────────────
 function UnitAmenityTile({ amenity, selected, onToggle }) {
@@ -476,6 +659,17 @@ export default function EditUnitPage() {
   const [newOwners,       setNewOwners]       = useState([]);
   const [hasActiveTenant, setHasActiveTenant] = useState(false);
 
+  // Session 52 fix: Gallery tab state — floor plan (main + 3 thumbs) and the
+  // photo/video gallery. *File variants hold the real File objects so
+  // handleSave() can actually upload them (same pattern as the Edit
+  // Property gallery/thumbnail fix).
+  const [floorPlanMain,       setFloorPlanMain]       = useState(null);
+  const [floorPlanThumbs,     setFloorPlanThumbs]     = useState([null,null,null]);
+  const [floorPlanMainFile,   setFloorPlanMainFile]   = useState(null);
+  const [floorPlanThumbFiles, setFloorPlanThumbFiles] = useState([null,null,null]);
+  const [galleryImages,       setGalleryImages]       = useState([]);
+  const [galleryVideos,       setGalleryVideos]       = useState([]);
+
   const [unitServices,      setUnitServices]      = useState(new Set());
   const [bankAccounts,      setBankAccounts]      = useState(() => Object.fromEntries(UNIT_ACCOUNT_CATEGORIES.map(c=>[c.id,emptyUnitAccountState()])));
   const [bankReserveExtras, setBankReserveExtras] = useState(() => emptyUnitReserveExtras());
@@ -519,6 +713,23 @@ export default function EditUnitPage() {
         setRentAmount(unitData.rent_amount!=null?String(unitData.rent_amount):'');
         setSecurityDeposit(unitData.security_deposit!=null?String(unitData.security_deposit):'');
         setDescription(unitData.description||'');
+
+        // Session 52 fix: pre-populate the new Gallery tab from the API —
+        // floor plan main + thumbs, and gallery items split into images vs
+        // videos by file_type (existing items get file:null so handleSave()
+        // knows not to re-upload them, only newly-picked ones).
+        if (unitData.floor_plan_url || unitData.floor_plan_thumb1 || unitData.floor_plan_thumb2 || unitData.floor_plan_thumb3) {
+          setFloorPlanMain(unitData.floor_plan_url||null);
+          setFloorPlanThumbs([unitData.floor_plan_thumb1||null, unitData.floor_plan_thumb2||null, unitData.floor_plan_thumb3||null]);
+        }
+        if (Array.isArray(unitData.gallery_images)) {
+          const imgs = unitData.gallery_images.filter(g=>(g.file_type||'IMAGE')==='IMAGE')
+            .map(g=>({ id:`existing_${g.id}`, url:g.file_url, name:'', file:null }));
+          const vids = unitData.gallery_images.filter(g=>g.file_type==='VIDEO')
+            .map(g=>({ id:`existing_${g.id}`, url:g.file_url, name:'Video', size:'', file:null }));
+          setGalleryImages(imgs);
+          setGalleryVideos(vids);
+        }
 
         // Fix 1b: pre-populate services from API (data.services is array of service IDs or strings)
         if (Array.isArray(unitData.services) && unitData.services.length>0) {
@@ -575,6 +786,34 @@ export default function EditUnitPage() {
     try {
       const patchRes = await fetch(`${API}/api/properties/${id}/units/${unitId}/`, { method:'PATCH', headers:{ 'Content-Type':'application/json', Authorization:`Bearer ${token}` }, body:JSON.stringify({ unit_number:unitNumber, tower:tower||'', unit_type:unitType, ownership_type:ownershipType, lease_type:leaseType||'', management_model:managementModel||'', carpet_area:parseFloat(carpetArea)||null, total_area:parseFloat(totalArea)||null, total_rooms:parseInt(totalRooms)||null, floor:parseInt(floor)||null, total_baths:parseInt(totalBaths)||null, student_housing:studentHousing, rent_amount:parseFloat(rentAmount)||null, security_deposit:parseFloat(securityDeposit)||null, description:description||'' }) });
       if (!patchRes.ok) { console.error('PATCH unit failed:', await patchRes.json()); setSaving(false); return; }
+
+      // Session 52 fix: upload Gallery tab media. Same pattern as the
+      // Edit Property fix — only send fields the user actually changed
+      // this session (the *File state is null unless a new file was
+      // picked), and only POST gallery items that carry a real File.
+      if (floorPlanMainFile || floorPlanThumbFiles.some(Boolean)) {
+        const fpForm = new FormData();
+        if (floorPlanMainFile) fpForm.append('floor_plan_url', floorPlanMainFile);
+        floorPlanThumbFiles.forEach((f,i)=>{ if(f) fpForm.append(`floor_plan_thumb${i+1}`, f); });
+        const fpRes = await fetch(`${API}/api/properties/${id}/units/${unitId}/`, { method:'PATCH', headers:{ Authorization:`Bearer ${token}` }, body:fpForm });
+        if (!fpRes.ok) console.error('Unit floor plan upload failed:', await fpRes.text());
+      }
+      for (const img of galleryImages) {
+        if (!img.file) continue;
+        const galForm = new FormData();
+        galForm.append('file_url', img.file);
+        galForm.append('file_type', 'IMAGE');
+        const galRes = await fetch(`${API}/api/properties/${id}/units/${unitId}/gallery/`, { method:'POST', headers:{ Authorization:`Bearer ${token}` }, body:galForm });
+        if (!galRes.ok) console.error('Unit gallery image upload failed:', await galRes.text());
+      }
+      for (const vid of galleryVideos) {
+        if (!vid.file) continue;
+        const galForm = new FormData();
+        galForm.append('file_url', vid.file);
+        galForm.append('file_type', 'VIDEO');
+        const galRes = await fetch(`${API}/api/properties/${id}/units/${unitId}/gallery/`, { method:'POST', headers:{ Authorization:`Bearer ${token}` }, body:galForm });
+        if (!galRes.ok) console.error('Unit gallery video upload failed:', await galRes.text());
+      }
 
       // Sync amenities — Fix (b): use record.amenity for matching
       const toAdd    = [...selectedAmenities].filter(aId=>!originalAmenityIds.has(aId));
@@ -692,6 +931,20 @@ export default function EditUnitPage() {
                     </div>
                   </div>
                 </div>
+              )}
+              {subTab==='Gallery' && (
+                <UnitEditGalleryTab
+                  floorPlanMain={floorPlanMain}
+                  floorPlanThumbs={floorPlanThumbs}
+                  onFloorPlanMainFile={f=>{ setFloorPlanMain(URL.createObjectURL(f)); setFloorPlanMainFile(f); }}
+                  onFloorPlanThumbFile={(i,f)=>{ const t=[...floorPlanThumbs]; t[i]=URL.createObjectURL(f); setFloorPlanThumbs(t); const tf=[...floorPlanThumbFiles]; tf[i]=f; setFloorPlanThumbFiles(tf); }}
+                  onFloorPlanMainRemove={()=>{ setFloorPlanMain(null); setFloorPlanMainFile(null); }}
+                  onFloorPlanThumbRemove={i=>{ const t=[...floorPlanThumbs]; t[i]=null; setFloorPlanThumbs(t); const tf=[...floorPlanThumbFiles]; tf[i]=null; setFloorPlanThumbFiles(tf); }}
+                  galleryImages={galleryImages}
+                  galleryVideos={galleryVideos}
+                  setGalleryImages={setGalleryImages}
+                  setGalleryVideos={setGalleryVideos}
+                />
               )}
               {subTab==='Amenities'    && <UnitAmenitiesTab selectedAmenities={selectedAmenities} setSelectedAmenities={setSelectedAmenities} unitAmenities={unitAmenities} />}
               {subTab==='Ownership'    && <UnitOwnershipTab existingOwners={existingOwners} setExistingOwners={setExistingOwners} newOwners={newOwners} setNewOwners={setNewOwners} hasActiveTenant={hasActiveTenant} />}

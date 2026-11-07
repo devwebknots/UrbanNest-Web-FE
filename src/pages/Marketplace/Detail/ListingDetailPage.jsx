@@ -72,7 +72,7 @@ import { apiGetListingDetail } from '../Home/marketplaceHomeApi';
 import { apiAddFavorite, apiListFavorites, apiRemoveFavorite } from '../Account/marketplaceAccountApi';
 import {
   AmenityIconList, cardHref, FacilitiesParkingSection, FeeColumn, FeeRow, floorPlanTiles,
-  GalleryPreviewGrid, HERO_IMAGE_HEIGHT, HERO_THUMB_HEIGHT, Lightbox,
+  GalleryPreviewGrid, HERO_IMAGE_HEIGHT, Lightbox,
   ListingContactCard, LocationPanel, MiniCard, PageState, PromotionBadge,
   SAMPLE_PROPERTY_PHOTOS, SectionCard, SiteFooter, TopNav,
   tourMediaTiles, tourSampleTiles, TOUR_3D_SAMPLE_COUNT, VIRTUAL_STAGING_SAMPLE_COUNT, VisualTourMediaSection,
@@ -329,12 +329,24 @@ export default function ListingDetailPage() {
     ? `https://www.google.com/maps/search/?api=1&query=${addr.latitude},${addr.longitude}`
     : null;
   // Session 51, Phase 14 — photosFull/videos now feed the shared Lightbox
-  // (every photo and video, not just the first 4), while thumbPhotos stays
-  // the capped rail the hero already showed. heroMediaItems is the single
-  // mixed list the Lightbox scrolls through; coverIndex opens it lined up
-  // with whichever photo is actually showing as the hero background.
+  // (every photo and video, not just the first 4). heroMediaItems is the
+  // single mixed list the Lightbox scrolls through; coverIndex opens it
+  // lined up with whichever photo is actually showing as the hero
+  // background.
+  // Nov 7 fix — the separate thumbPhotos rail (first 4 of photosFull,
+  // shown as a narrow column beside the hero) used to duplicate whatever
+  // GalleryPreviewGrid also showed (that reads photosFull.slice(1) — the
+  // same photos, just starting one index later), since neither list
+  // excludes what the other already shows. On a listing with only a
+  // couple of real secondary photos (LL01: 2), that meant the exact same
+  // 2 photos rendered twice on screen at two very different sizes — tiny
+  // in the rail, huge in the grid — which is what the user flagged as
+  // "different sizes" even though each piece was internally consistent.
+  // Removing the rail; GalleryPreviewGrid alone (fed the full remaining
+  // width via its own flex:'1 1 auto' column) is now the only place
+  // secondary photos render, so every real photo appears exactly once,
+  // always equally sized.
   const photosFull = data.gallery?.photos || [];
-  const thumbPhotos = photosFull.slice(0, 4);
   const videos = data.gallery?.videos || [];
   const heroMediaItems = [
     ...photosFull.map(url => ({ type: 'photo', url })),
@@ -387,86 +399,109 @@ export default function ListingDetailPage() {
           GalleryPreviewGrid). The old vertical sample Ad rail and
           MediaCountBar overlay this page used before are both gone —
           removing the Ad rail here (not replacing it with anything) was
-          the user's own explicit, separate ask. */}
+          the user's own explicit, separate ask.
+          Nov 7 fix — user ask: "I want the hero main image length to be
+          fixed same as the length of the container that house the unit
+          description/details" (the Name & Description titular card
+          below, which this page pins to an explicit 776px — see that
+          row's own "70%/30% split" comment further down). Before this
+          fix the hero image's width just fell out of flex leftovers
+          (~678px: the 818px-wide left column minus the 130px thumb rail
+          and its 10px gap) with no relation to the titular card at all.
+          User explicitly chose a fixed pixel value here over dynamically
+          matching the grid column (simpler, and this hero block already
+          uses a fixed HERO_IMAGE_HEIGHT the same way).
+          Nov 7 fix #2 — the thumb rail that used to sit beside the hero
+          is gone (see thumbPhotos's own removal comment above): it drew
+          from the same photo list GalleryPreviewGrid draws from, so on a
+          listing with few real secondary photos the same photo rendered
+          twice on screen, tiny in the rail and huge in the grid. Now
+          GalleryPreviewGrid alone (flex:'1 1 auto', absorbing whatever
+          width the fixed 776px hero doesn't use) is the only place
+          secondary photos render.
+          Nov 7 fix #3 — user ask: autoplay the real video in the hero
+          itself on page load, instead of making people click a play
+          button to see it in the popup. Browsers only allow autoplay
+          without a user gesture when the video is muted (Safari also
+          needs `playsInline` or it takes over the whole screen on
+          mobile) — confirmed with the user, who chose muted-loop-
+          immediately over a "show the cover photo first, then switch"
+          transition. When a real video exists it now IS the hero
+          background (replacing the cover photo entirely, same as the
+          user's own choice), looping silently; clicking anywhere on it
+          (the whole hero, or the small button) opens the full video with
+          sound in the existing Lightbox — same `firstVideoIndex` already
+          used before this fix, just now also wired to the hero's own
+          onClick, not only the button's. No video → unchanged, still the
+          static cover photo (with its own "Sample" fallback). */}
       <div style={{ maxWidth: 1180, margin: '0 auto', padding: '22px 24px 0', display: 'flex', gap: 14 }}>
-        <div style={{ flex: '1 1 640px', minWidth: 0 }}>
-          <div style={{ display: 'flex', gap: 10 }}>
-            <div
-              onClick={() => setHeroLightboxIndex(coverIndex)}
-              style={{
-                flex: '1 1 auto', position: 'relative', height: HERO_IMAGE_HEIGHT, borderRadius: 12,
-                overflow: 'hidden', background: C.inputBg, cursor: 'pointer',
-              }}
-            >
+        <div style={{ flex: '0 0 auto', minWidth: 0 }}>
+          <div
+            onClick={() => setHeroLightboxIndex(videos.length > 0 ? firstVideoIndex : coverIndex)}
+            style={{
+              flex: '0 0 776px', width: 776, position: 'relative', height: HERO_IMAGE_HEIGHT, borderRadius: 12,
+              overflow: 'hidden', background: C.inputBg, cursor: 'pointer',
+            }}
+          >
+            {videos.length > 0 ? (
+              <video
+                key={videos[0]}
+                autoPlay
+                muted
+                loop
+                playsInline
+                style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' }}
+              >
+                <source src={videos[0]} />
+              </video>
+            ) : (
               <div style={{ position: 'absolute', inset: 0, background: `url(${data.gallery?.coverImage || SAMPLE_PROPERTY_PHOTOS[0]}) center/cover` }} />
-              {!data.gallery?.coverImage && (
-                <div style={{
-                  position: 'absolute', bottom: 14, right: 14, zIndex: 2, padding: '4px 10px', borderRadius: 6,
-                  background: 'rgba(10,22,40,0.72)', color: 'rgba(255,255,255,0.9)',
-                  fontFamily: F.body, fontSize: 10, fontWeight: 800, letterSpacing: '0.04em', textTransform: 'uppercase',
-                }}>
-                  Sample
-                </div>
-              )}
-              {videos.length > 0 && (
-                <button
-                  onClick={(e) => { e.stopPropagation(); setHeroLightboxIndex(firstVideoIndex); }}
-                  aria-label="Play video"
-                  style={{
-                    position: 'absolute', top: '50%', left: '50%', transform: 'translate(-50%, -50%)',
-                    width: 56, height: 56, borderRadius: '50%', border: 'none', cursor: 'pointer',
-                    background: 'rgba(255,255,255,0.92)', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  }}
-                >
-                  <i className="ti ti-player-play-filled" style={{ fontSize: 22, color: C.primary }} />
-                </button>
-              )}
+            )}
+            {!data.gallery?.coverImage && videos.length === 0 && (
+              <div style={{
+                position: 'absolute', bottom: 14, right: 14, zIndex: 2, padding: '4px 10px', borderRadius: 6,
+                background: 'rgba(10,22,40,0.72)', color: 'rgba(255,255,255,0.9)',
+                fontFamily: F.body, fontSize: 10, fontWeight: 800, letterSpacing: '0.04em', textTransform: 'uppercase',
+              }}>
+                Sample
+              </div>
+            )}
+            {videos.length > 0 && (
               <button
-                onClick={(e) => { e.stopPropagation(); navigate('/marketplace'); }}
+                onClick={(e) => { e.stopPropagation(); setHeroLightboxIndex(firstVideoIndex); }}
+                aria-label="Watch with sound"
+                title="Watch with sound"
                 style={{
-                  position: 'absolute', top: 14, left: 14, zIndex: 2,
-                  padding: '8px 16px', borderRadius: 8, border: 'none', cursor: 'pointer',
-                  background: 'rgba(255,255,255,0.92)', fontFamily: F.body, fontWeight: 700, fontSize: 13,
+                  position: 'absolute', bottom: 14, left: 14, zIndex: 2, padding: '8px 14px', borderRadius: 20,
+                  border: 'none', cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6,
+                  background: 'rgba(10,22,40,0.72)', color: 'rgba(255,255,255,0.92)',
+                  fontFamily: F.body, fontSize: 12.5, fontWeight: 700,
                 }}
               >
-                <i className="ti ti-arrow-left" style={{ marginRight: 6 }} />
-                Back
+                <i className="ti ti-volume-2" style={{ fontSize: 15 }} />
+                Tap for sound
               </button>
-              {data.promotionTag && (
-                <div style={{ position: 'absolute', top: 14, right: 14, zIndex: 2 }}>
-                  <PromotionBadge text={data.promotionTag} />
-                </div>
-              )}
-            </div>
-
-            {thumbPhotos.length > 1 && (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 10, width: 130, flexShrink: 0 }}>
-                {thumbPhotos.map((url, i) => (
-                  <div
-                    key={i}
-                    onClick={() => setHeroLightboxIndex(i)}
-                    style={{
-                      position: 'relative', height: HERO_THUMB_HEIGHT, borderRadius: 8, flexShrink: 0, cursor: 'pointer',
-                      background: `url(${url}) center/cover`, border: `1px solid ${C.cardBorder}`,
-                    }}
-                  >
-                    {i === 3 && photosFull.length > 4 && (
-                      <div style={{
-                        position: 'absolute', inset: 0, borderRadius: 8, background: 'rgba(10,22,40,0.6)',
-                        display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        color: C.white, fontFamily: F.body, fontSize: 11.5, fontWeight: 700,
-                      }}>
-                        More
-                      </div>
-                    )}
-                  </div>
-                ))}
+            )}
+            <button
+              onClick={(e) => { e.stopPropagation(); navigate('/marketplace'); }}
+              style={{
+                position: 'absolute', top: 14, left: 14, zIndex: 2,
+                padding: '8px 16px', borderRadius: 8, border: 'none', cursor: 'pointer',
+                background: 'rgba(255,255,255,0.92)', fontFamily: F.body, fontWeight: 700, fontSize: 13,
+              }}
+            >
+              <i className="ti ti-arrow-left" style={{ marginRight: 6 }} />
+              Back
+            </button>
+            {data.promotionTag && (
+              <div style={{ position: 'absolute', top: 14, right: 14, zIndex: 2 }}>
+                <PromotionBadge text={data.promotionTag} />
               </div>
             )}
           </div>
         </div>
 
-        <div style={{ flex: '0 0 300px' }}>
+        <div style={{ flex: '1 1 auto', minWidth: 0 }}>
           <GalleryPreviewGrid photos={photosFull} onOpen={(i) => setHeroLightboxIndex(i)} />
         </div>
       </div>

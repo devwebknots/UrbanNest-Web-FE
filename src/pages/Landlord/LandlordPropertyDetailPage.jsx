@@ -18,6 +18,27 @@ const FB = {
   unit:   'https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=400&q=80',
 };
 
+// Session 57 fix — same colored icon-chip treatment as
+// PMPropertyDetailPage.jsx's amenityStyle()/SpecialFeatures, ported here so
+// the Landlord Amenities section (both the main page display and the Edit
+// modal's picker) matches the look/feel the user asked for instead of the
+// old plain checkmark+icon+text row.
+function amenityStyle(name) {
+  const map = {
+    'Smart Home':{ icon:'ti-home-signal',bg:'#EFF6FF',color:'#2563EB' },'24 hours CCTV':{ icon:'ti-video',bg:'#F0FDF4',color:'#16A34A' },
+    'CCTV':{ icon:'ti-video',bg:'#F0FDF4',color:'#16A34A' },'EV Charging':{ icon:'ti-bolt',bg:'#F0FDF4',color:'#16A34A' },
+    'Near public transport':{ icon:'ti-bus',bg:'#EFF6FF',color:'#2563EB' },'Short/Long term lease':{ icon:'ti-file-text',bg:'#F0FDF4',color:'#16A34A' },
+    'Zero Deposit':{ icon:'ti-shield-check',bg:'#F0FDF4',color:'#16A34A' },'Swimming Pool':{ icon:'ti-droplet',bg:'#EFF6FF',color:'#2563EB' },
+    'Gym':{ icon:'ti-barbell',bg:'#FEF3C7',color:'#D97706' },'Parking':{ icon:'ti-car',bg:'#F1F5F9',color:'#64748B' },
+    'Elevator':{ icon:'ti-elevator',bg:'#EEF2FF',color:'#7C3AED' },'Pet Friendly':{ icon:'ti-paw',bg:'#FEF3C7',color:'#D97706' },
+    'Community Hall':{ icon:'ti-users',bg:'#EFF6FF',color:'#2563EB' },'Laundry':{ icon:'ti-wash',bg:'#F0FDF4',color:'#16A34A' },
+    'Rooftop':{ icon:'ti-building',bg:'#EEF2FF',color:'#7C3AED' },'Air Condition':{ icon:'ti-snowflake',bg:'#EFF6FF',color:'#2563EB' },
+    'Balcony':{ icon:'ti-door',bg:'#F0FDF4',color:'#16A34A' },'Furnished':{ icon:'ti-sofa',bg:'#FEF3C7',color:'#D97706' },
+    'Intercom':{ icon:'ti-phone',bg:'#EEF2FF',color:'#7C3AED' },'Dishwasher':{ icon:'ti-wash-dry',bg:'#F0FDF4',color:'#16A34A' },
+  };
+  return map[name] || { icon:'ti-star', bg:'#F0FDF4', color:'#16A34A' };
+}
+
 const PROP_TYPE_LABEL = {
   APARTMENT_COMPLEX:'Apartment Complex', INDIVIDUAL_HOUSE:'Individual House',
   MULTI_FAMILY:'Multi-Family', CONDOMINIUM:'Condominium', TOWNHOME:'Townhome',
@@ -332,6 +353,52 @@ const S = {
 
   errBanner:    { background:C.redLight, color:C.red, padding:'10px 28px', fontSize:13 },
   footer:       { textAlign:'center', fontSize:11, color:C.txtMuted, padding:'16px 0', borderTop:`1px solid ${C.cardBdr}`, margin:'20px 28px 0' },
+
+  // EDIT PROPERTY / EDIT UNIT MODALS (shared shapes — proper Edit functionality)
+  editBtn:          { display:'flex', alignItems:'center', gap:5, background:'#fff', border:`1px solid ${C.cardBdr}`, borderRadius:6, padding:'6px 13px', fontSize:12, fontWeight:600, color:C.txtPrimary, cursor:'pointer', fontFamily:F.sans, marginLeft:10 },
+  editFormGrid:     { display:'grid', gridTemplateColumns:'1fr 1fr', gap:'12px 14px' },
+  editLabel:        { fontSize:10, fontWeight:700, color:C.txtMuted, textTransform:'uppercase', letterSpacing:'0.05em', marginBottom:5 },
+  editInput:        { width:'100%', height:36, border:`1px solid ${C.cardBdr}`, borderRadius:6, padding:'0 10px', fontSize:12.5, color:C.txtPrimary, fontFamily:F.sans, outline:'none', background:'#fff', boxSizing:'border-box' },
+  editImgGrid:      { display:'grid', gridTemplateColumns:'repeat(4, 1fr)', gap:10, marginTop:8 },
+  editImgSlot:      { display:'flex', flexDirection:'column', alignItems:'center' },
+  editImgX:         { position:'absolute', top:4, right:4, width:20, height:20, borderRadius:'50%', background:'rgba(0,0,0,0.6)', border:'none', color:'#fff', display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', padding:0 },
+  editImgReplaceBtn:{ marginTop:5, fontSize:10.5, fontWeight:600, color:C.blue, background:'none', border:'none', cursor:'pointer', fontFamily:F.sans, padding:0 },
+  editAmenityGrid:  { display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:7, maxHeight:195, overflowY:'auto', paddingRight:4 },
+  // Session 58 fix — selected state was too heavy (solid blue border + solid
+  // blueLight fill); per explicit feedback, both are now a barely-there
+  // tint of C.blue (rgba at low alpha) rather than a flat token color.
+  editAmenityItem:  (checked) => ({ display:'flex', alignItems:'center', gap:7, background: checked ? 'rgba(61,142,240,0.055)' : '#f8f9fb', border:`1px solid ${checked ? 'rgba(61,142,240,0.18)' : 'transparent'}`, borderRadius:6, padding:'7px 9px', fontSize:12, cursor:'pointer', color: checked ? C.blueDark : C.txtPrimary, fontFamily:F.sans }),
+  editGalWrap:      { position:'relative', borderRadius:8, overflow:'hidden' },
+  editGalX:         { position:'absolute', top:6, right:6, width:22, height:22, borderRadius:'50%', background:'rgba(0,0,0,0.65)', border:'none', color:'#fff', display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', padding:0, zIndex:2 },
+};
+
+// ─── Edit Property — field options derived from the backend's real choices
+// (OWNERSHIP_TYPE_CHOICES / PROPERTY_TYPE_CHOICES confirmed live against
+// properties/models.py — not guessed) ──────────────────────────────────────────
+const EDIT_PROPERTY_TYPE_OPTIONS = Object.entries(PROP_TYPE_LABEL).map(([value, label]) => ({ value, label }));
+const EDIT_OWNERSHIP_TYPE_OPTIONS = [
+  { value: 'SELF_OWNED', label: 'Self-Owned' },
+  { value: 'CO_OWNED',   label: 'Co-Owned' },
+  { value: 'CORPORATE',  label: 'Corporate / LLC' },
+  { value: 'LEASEHOLD',  label: 'Leasehold' },
+];
+const EDIT_COUNTRY_OPTIONS = [
+  { value: 'US', label: 'United States' },
+  { value: 'IN', label: 'India' },
+  { value: 'AE', label: 'United Arab Emirates' },
+  { value: 'GB', label: 'United Kingdom' },
+  { value: 'AU', label: 'Australia' },
+  { value: 'CA', label: 'Canada' },
+  { value: 'SG', label: 'Singapore' },
+];
+const EDIT_STATES = {
+  US: ['Alabama','Alaska','Arizona','Arkansas','California','Colorado','Connecticut','Delaware','Florida','Georgia','Hawaii','Idaho','Illinois','Indiana','Iowa','Kansas','Kentucky','Louisiana','Maine','Maryland','Massachusetts','Michigan','Minnesota','Mississippi','Missouri','Montana','Nebraska','Nevada','New Hampshire','New Jersey','New Mexico','New York','North Carolina','North Dakota','Ohio','Oklahoma','Oregon','Pennsylvania','Rhode Island','South Carolina','South Dakota','Tennessee','Texas','Utah','Vermont','Virginia','Washington','West Virginia','Wisconsin','Wyoming'],
+  IN: ['Andhra Pradesh','Arunachal Pradesh','Assam','Bihar','Chhattisgarh','Goa','Gujarat','Haryana','Himachal Pradesh','Jharkhand','Karnataka','Kerala','Madhya Pradesh','Maharashtra','Manipur','Meghalaya','Mizoram','Nagaland','Odisha','Punjab','Rajasthan','Sikkim','Tamil Nadu','Telangana','Tripura','Uttar Pradesh','Uttarakhand','West Bengal','Delhi'],
+  AE: ['Abu Dhabi','Dubai','Sharjah','Ajman','Umm Al Quwain','Ras Al Khaimah','Fujairah'],
+  GB: ['England','Scotland','Wales','Northern Ireland'],
+  AU: ['New South Wales','Victoria','Queensland','Western Australia','South Australia','Tasmania','Australian Capital Territory','Northern Territory'],
+  CA: ['Alberta','British Columbia','Manitoba','New Brunswick','Newfoundland and Labrador','Nova Scotia','Ontario','Prince Edward Island','Quebec','Saskatchewan'],
+  SG: ['Central Region','East Region','North Region','North-East Region','West Region'],
 };
 
 // ─── Unit pill helper ─────────────────────────────────────────────────────────
@@ -346,6 +413,39 @@ const maintBadgeCfg = p => {
   if (p==='MEDIUM') return { bg:C.amberLight, col:C.amber };
   return { bg:C.stdBg, col:C.stdTx };
 };
+
+// Session 53 fix: same large click-to-enlarge lightbox used on
+// LandlordUnitDetailPage.jsx / PMUnitDetailPage.jsx / PMPropertyDetailPage.jsx.
+function GalleryLightbox({ items, index, onClose, onNav }) {
+  const item = items[index];
+  const total = items.length;
+  const go = (delta) => { if (total < 1) return; onNav(((index + delta) % total + total) % total); };
+  const isVideo = item?.file_type === 'VIDEO';
+  const src = item?.file_url;
+  return (
+    <div onClick={onClose} style={{ position:'fixed', inset:0, background:'rgba(0,0,0,0.88)', display:'flex', alignItems:'center', justifyContent:'center', zIndex:999 }}>
+      <button onClick={onClose} style={{ position:'absolute', top:20, right:20, width:38, height:38, borderRadius:'50%', background:'rgba(255,255,255,0.15)', border:'1px solid rgba(255,255,255,0.3)', display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', zIndex:1000 }}>
+        <i className="ti ti-x" style={{ fontSize:18, color:'#fff' }} />
+      </button>
+      {isVideo ? (
+        <video src={src} controls autoPlay onClick={e => e.stopPropagation()} style={{ maxWidth:'90vw', maxHeight:'88vh', borderRadius:10, outline:'none', display:'block' }} />
+      ) : (
+        <img src={src} alt="" onClick={e => e.stopPropagation()} style={{ maxWidth:'90vw', maxHeight:'88vh', borderRadius:10, objectFit:'contain', display:'block' }} />
+      )}
+      {total > 1 && (
+        <>
+          <button onClick={e => { e.stopPropagation(); go(-1); }} style={{ position:'absolute', left:20, top:'50%', transform:'translateY(-50%)', width:40, height:40, borderRadius:'50%', background:'rgba(255,255,255,0.15)', border:'1px solid rgba(255,255,255,0.3)', display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer' }}>
+            <i className="ti ti-chevron-left" style={{ fontSize:20, color:'#fff' }} />
+          </button>
+          <button onClick={e => { e.stopPropagation(); go(1); }} style={{ position:'absolute', right:20, top:'50%', transform:'translateY(-50%)', width:40, height:40, borderRadius:'50%', background:'rgba(255,255,255,0.15)', border:'1px solid rgba(255,255,255,0.3)', display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer' }}>
+            <i className="ti ti-chevron-right" style={{ fontSize:20, color:'#fff' }} />
+          </button>
+          <div style={{ position:'absolute', bottom:20, left:'50%', transform:'translateX(-50%)', color:'rgba(255,255,255,0.7)', fontSize:13, fontFamily:F.sans }}>{index + 1} / {total}</div>
+        </>
+      )}
+    </div>
+  );
+}
 
 // ─── GalleryImage ─────────────────────────────────────────────────────────────
 function GImg({ src, fallback, alt, style }) {
@@ -679,6 +779,412 @@ function BulkAddServiceModal({ propId, propName, units, ownedServices, unitServi
   );
 }
 
+// ─── Edit Property Modal — proper Edit functionality (text fields, address,
+// per-slot image replace/remove, and amenity add/remove) requested
+// explicitly: "No.. I need a proper edit functionality for both Property
+// and Unit to be build now itself." All fields below are confirmed
+// PATCH-able server-side with zero backend change (PropertyWriteSerializer
+// already accepts every one of them); image removal uses a JSON
+// PATCH {field: null} (confirmed live against the real API — multipart
+// can't express "clear this field", so clear and replace use two
+// different request shapes); amenity add/remove uses the existing
+// POST .../amenities/ plus the newly-added
+// DELETE .../amenities/<amenity_id>/ (see properties/views.py
+// PropertyAmenityDetailView — added this session because no removal
+// endpoint existed at all before).
+function EditPropertyModal({ propId, prop, amenities, onClose, onSaved }) {
+  const [form, setForm] = useState({
+    name:           prop.name || '',
+    property_type:  prop.property_type || '',
+    value:          prop.value ?? '',
+    build_year:     prop.build_year ?? '',
+    ownership_type: prop.ownership_type || '',
+    description:    prop.description || '',
+    country:        prop.country || 'US',
+    street1:        prop.street1 || '',
+    street2:        prop.street2 || '',
+    landmark:       prop.landmark || '',
+    city:           prop.city || '',
+    state:          prop.state || '',
+    zip_code:       prop.zip_code || '',
+  });
+  const upd = patch => setForm(f => ({ ...f, ...patch }));
+
+  const [amenityMaster, setAmenityMaster]         = useState([]);
+  const [selectedAmenityIds, setSelectedAmenityIds] = useState(new Set((amenities || []).map(a => a.id)));
+  const [amenitySearch, setAmenitySearch]         = useState('');
+
+  const [saving, setSaving]       = useState(false);
+  const [saveError, setSaveError] = useState(null);
+
+  // Image slots — pendingFiles holds a File chosen to replace a slot;
+  // clearedSlots marks a slot the user explicitly removed. Both are local
+  // until Save, so Cancel discards them with no server calls made.
+  const [pendingFiles, setPendingFiles]   = useState({});
+  const [clearedSlots, setClearedSlots]   = useState(new Set());
+  const fileInputRefs = useRef({});
+
+  // Video — Property's hero-video-autoplay display (see galleryList /
+  // heroVideoIdx below in LandlordPropertyDetailPage) reads only the
+  // gallery relation for a VIDEO-type item, not the legacy video_url field,
+  // so video is managed the same way as Unit's gallery video: an immediate
+  // POST/DELETE against /api/properties/<id>/gallery/, same pattern as
+  // EditUnitModal's handleAddGalleryInModal/handleDeleteGalleryItem. Only
+  // one video is supported (matches heroVideoIdx picking the first VIDEO
+  // item it finds), so the UI shows either the current video + remove, or
+  // an "Add video" tile — never both.
+  const [uploadingVideo, setUploadingVideo] = useState(false);
+  const [deletingVideoId, setDeletingVideoId] = useState(null);
+  const videoInputRef = useRef(null);
+  const videoItem = (prop.gallery_images || []).find(g => g && g.file_type === 'VIDEO') || null;
+
+  const handleAddVideo = async (file) => {
+    if (!file) return;
+    setUploadingVideo(true);
+    try {
+      const token = localStorage.getItem('access_token');
+      const fd = new FormData();
+      fd.append('file_url', file);
+      fd.append('file_type', 'VIDEO');
+      const r = await fetch(`${API_BASE}/properties/${propId}/gallery/`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` },
+        body: fd,
+      });
+      if (!r.ok) throw new Error(`Could not upload video (${r.status})`);
+      await onSaved();
+    } catch (e) {
+      setSaveError(e.message || 'Could not upload that video.');
+    } finally {
+      setUploadingVideo(false);
+    }
+  };
+
+  const handleDeleteVideo = async (galleryId) => {
+    setDeletingVideoId(galleryId);
+    try {
+      const token = localStorage.getItem('access_token');
+      const r = await fetch(`${API_BASE}/properties/${propId}/gallery/${galleryId}/`, {
+        method: 'DELETE',
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (!r.ok && r.status !== 204) throw new Error(`Could not remove video (${r.status})`);
+      await onSaved();
+    } catch (e) {
+      setSaveError(e.message || 'Could not remove that video.');
+    } finally {
+      setDeletingVideoId(null);
+    }
+  };
+
+  useEffect(() => {
+    const token = localStorage.getItem('access_token');
+    fetch(`${API_BASE}/admin/amenities/?category=PROPERTY`, { headers: { Authorization: 'Bearer ' + token } })
+      .then(r => r.json())
+      .then(j => setAmenityMaster((j || []).map(a => ({ id: a.id, icon: a.icon, name: a.name }))))
+      .catch(() => setAmenityMaster([]));
+  }, []);
+
+  const toggleAmenity = (id) => {
+    setSelectedAmenityIds(prev => {
+      const n = new Set(prev);
+      if (n.has(id)) n.delete(id); else n.add(id);
+      return n;
+    });
+  };
+
+  const IMAGE_SLOTS = [
+    { key: 'main_image_url', label: 'Main photo' },
+    { key: 'thumb1_url',     label: 'Photo 2' },
+    { key: 'thumb2_url',     label: 'Photo 3' },
+    { key: 'thumb3_url',     label: 'Photo 4' },
+  ];
+
+  const slotCurrentUrl = (key) => {
+    if (clearedSlots.has(key)) return null;
+    if (pendingFiles[key]) return URL.createObjectURL(pendingFiles[key]);
+    return prop[key] || null;
+  };
+
+  const handlePickFile = (key, file) => {
+    if (!file) return;
+    setPendingFiles(prev => ({ ...prev, [key]: file }));
+    setClearedSlots(prev => { const n = new Set(prev); n.delete(key); return n; });
+  };
+
+  const handleClearSlot = (key) => {
+    setPendingFiles(prev => { const n = { ...prev }; delete n[key]; return n; });
+    setClearedSlots(prev => new Set(prev).add(key));
+  };
+
+  const handleSave = async () => {
+    setSaving(true);
+    setSaveError(null);
+    try {
+      const token = localStorage.getItem('access_token');
+
+      // 1 — text / address fields as one JSON PATCH
+      const textBody = {
+        name: form.name,
+        property_type: form.property_type,
+        value: form.value === '' ? null : form.value,
+        build_year: form.build_year === '' ? null : Number(form.build_year),
+        ownership_type: form.ownership_type,
+        description: form.description,
+        country: form.country,
+        street1: form.street1,
+        street2: form.street2,
+        landmark: form.landmark,
+        city: form.city,
+        state: form.state,
+        zip_code: form.zip_code,
+      };
+      let res = await fetch(`${API_BASE}/properties/${propId}/`, {
+        method: 'PATCH',
+        headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify(textBody),
+      });
+      if (!res.ok) {
+        const e = await res.json().catch(() => ({}));
+        throw new Error(e.detail || Object.values(e)[0]?.[0] || `Save failed (${res.status})`);
+      }
+
+      // 2 — image slots: a cleared slot is a JSON {field: null} PATCH, a
+      // replaced slot is a multipart PATCH with just that one field.
+      for (const { key } of IMAGE_SLOTS) {
+        if (clearedSlots.has(key)) {
+          const r = await fetch(`${API_BASE}/properties/${propId}/`, {
+            method: 'PATCH',
+            headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+            body: JSON.stringify({ [key]: null }),
+          });
+          if (!r.ok) throw new Error(`Could not remove ${key.replace('_url', '')} (${r.status})`);
+        } else if (pendingFiles[key]) {
+          const fd = new FormData();
+          fd.append(key, pendingFiles[key]);
+          const r = await fetch(`${API_BASE}/properties/${propId}/`, {
+            method: 'PATCH',
+            headers: { Authorization: `Bearer ${token}` },
+            body: fd,
+          });
+          if (!r.ok) throw new Error(`Could not upload ${key.replace('_url', '')} (${r.status})`);
+        }
+      }
+
+      // 3 — amenities: diff selected vs original, add/remove only the delta
+      const originalIds = new Set((amenities || []).map(a => a.id));
+      const toAdd    = [...selectedAmenityIds].filter(id => !originalIds.has(id));
+      const toRemove = [...originalIds].filter(id => !selectedAmenityIds.has(id));
+      for (const amenityId of toAdd) {
+        await fetch(`${API_BASE}/properties/${propId}/amenities/`, {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ amenity: amenityId, access_type: 'ALL' }),
+        });
+      }
+      for (const amenityId of toRemove) {
+        await fetch(`${API_BASE}/properties/${propId}/amenities/${amenityId}/`, {
+          method: 'DELETE',
+          headers: { Authorization: `Bearer ${token}` },
+        });
+      }
+
+      await onSaved();
+      onClose();
+    } catch (e) {
+      setSaveError(e.message || 'Something went wrong while saving.');
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const stateOptions = (EDIT_STATES[form.country] || []).map(s => ({ value: s, label: s }));
+  const filteredAmenityMaster = amenitySearch
+    ? amenityMaster.filter(a => a.name.toLowerCase().includes(amenitySearch.toLowerCase()))
+    : amenityMaster;
+
+  return (
+    <div style={S.overlay} onClick={onClose}>
+      <div style={{ ...S.modalBox, width: 680, maxHeight: '86vh', overflowY: 'auto' }} onClick={e => e.stopPropagation()}>
+        <div style={S.modalHdr}>
+          <div style={S.modalTitle}><i className="ti ti-pencil" aria-hidden="true" /> Edit Property</div>
+          <button style={S.modalClose} onClick={onClose} aria-label="Close">&times;</button>
+        </div>
+
+        {saveError && <div style={{ ...S.errBanner, borderRadius: 8, padding: '9px 12px', marginBottom: 14 }}><i className="ti ti-alert-circle" aria-hidden="true" /> {saveError}</div>}
+
+        <div style={S.editFormGrid}>
+          <div style={{ gridColumn: '1 / -1' }}>
+            <div style={S.editLabel}>Property Name</div>
+            <input style={S.editInput} value={form.name} onChange={e => upd({ name: e.target.value })} />
+          </div>
+          <div>
+            <div style={S.editLabel}>Property Type</div>
+            <CustomDropdown options={EDIT_PROPERTY_TYPE_OPTIONS} value={form.property_type} onChange={v => upd({ property_type: v })} placeholder="Select Type" />
+          </div>
+          <div>
+            <div style={S.editLabel}>Ownership Type</div>
+            <CustomDropdown options={EDIT_OWNERSHIP_TYPE_OPTIONS} value={form.ownership_type} onChange={v => upd({ ownership_type: v })} placeholder="Select Ownership" />
+          </div>
+          <div>
+            <div style={S.editLabel}>Value ($)</div>
+            <input style={S.editInput} type="number" value={form.value} onChange={e => upd({ value: e.target.value })} />
+          </div>
+          <div>
+            <div style={S.editLabel}>Build Year</div>
+            <input style={S.editInput} type="number" value={form.build_year} onChange={e => upd({ build_year: e.target.value })} />
+          </div>
+          <div style={{ gridColumn: '1 / -1' }}>
+            <div style={S.editLabel}>Description</div>
+            <textarea style={{ ...S.editInput, height: 70, resize: 'vertical', paddingTop: 8 }} value={form.description} onChange={e => upd({ description: e.target.value })} />
+          </div>
+
+          <div style={{ gridColumn: '1 / -1', ...S.secLbl, marginTop: 4 }}>Address</div>
+          <div>
+            <div style={S.editLabel}>Country</div>
+            <CustomDropdown options={EDIT_COUNTRY_OPTIONS} value={form.country} onChange={v => upd({ country: v, state: '' })} placeholder="Select Country" />
+          </div>
+          <div>
+            <div style={S.editLabel}>State</div>
+            <CustomDropdown options={stateOptions} value={form.state} onChange={v => upd({ state: v })} placeholder={form.country ? 'Select State' : 'Select country first'} disabled={!form.country} />
+          </div>
+          <div style={{ gridColumn: '1 / -1' }}>
+            <div style={S.editLabel}>Street Address</div>
+            <input style={S.editInput} value={form.street1} onChange={e => upd({ street1: e.target.value })} />
+          </div>
+          <div style={{ gridColumn: '1 / -1' }}>
+            <div style={S.editLabel}>Street Address 2 (optional)</div>
+            <input style={S.editInput} value={form.street2} onChange={e => upd({ street2: e.target.value })} />
+          </div>
+          <div>
+            <div style={S.editLabel}>Landmark</div>
+            <input style={S.editInput} value={form.landmark} onChange={e => upd({ landmark: e.target.value })} />
+          </div>
+          <div>
+            <div style={S.editLabel}>City</div>
+            <input style={S.editInput} value={form.city} onChange={e => upd({ city: e.target.value })} />
+          </div>
+          <div>
+            <div style={S.editLabel}>ZIP / Postal Code</div>
+            <input style={S.editInput} value={form.zip_code} onChange={e => upd({ zip_code: e.target.value })} />
+          </div>
+        </div>
+
+        <div style={{ ...S.secLbl, marginTop: 18 }}>Photos</div>
+        <div style={S.editImgGrid}>
+          {IMAGE_SLOTS.map(({ key, label }) => {
+            const url = slotCurrentUrl(key);
+            // Session 57 fix — unified with Unit's Gallery Photos / Floor Plan
+            // pattern: the tile itself is the click target (no separate
+            // "Replace"/"Upload" text link underneath).
+            return (
+              <div key={key} style={S.editImgSlot}>
+                <div
+                  onClick={() => fileInputRefs.current[key]?.click()}
+                  style={{ position: 'relative', width: '100%', height: 90, borderRadius: 8, overflow: 'hidden', background: C.pageBg, cursor: 'pointer' }}
+                >
+                  {url ? (
+                    <img src={url} alt={label} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                  ) : (
+                    <div style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 3, color: C.txtMuted, fontSize: 11, border: `1px dashed ${C.cardBdr}`, borderRadius: 8 }}>
+                      <i className="ti ti-plus" style={{ fontSize: 16 }} aria-hidden="true" />
+                      Upload
+                    </div>
+                  )}
+                  {url && (
+                    <button
+                      type="button"
+                      onClick={e => { e.stopPropagation(); handleClearSlot(key); }}
+                      style={S.editImgX}
+                      aria-label={`Remove ${label}`}
+                    >
+                      <i className="ti ti-x" style={{ fontSize: 12 }} aria-hidden="true" />
+                    </button>
+                  )}
+                </div>
+                <div style={{ fontSize: 10.5, color: C.txtMuted, marginTop: 4, textAlign: 'center' }}>{label}</div>
+                <input
+                  ref={el => (fileInputRefs.current[key] = el)}
+                  type="file" accept="image/jpeg,image/png,image/webp" style={{ display: 'none' }}
+                  onChange={e => { const f = e.target.files[0]; e.target.value = ''; if (f) handlePickFile(key, f); }}
+                />
+              </div>
+            );
+          })}
+        </div>
+
+        <div style={{ ...S.secLbl, marginTop: 18 }}>Video</div>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 10, marginTop: 8 }}>
+          <div style={S.editImgSlot}>
+            {videoItem ? (
+              <div style={{ position: 'relative', width: '100%', height: 90, borderRadius: 8, overflow: 'hidden', background: C.pageBg }}>
+                <video src={videoItem.file_url} style={{ width: '100%', height: '100%', objectFit: 'cover' }} muted />
+                <button
+                  type="button"
+                  onClick={() => handleDeleteVideo(videoItem.id)}
+                  disabled={deletingVideoId === videoItem.id}
+                  style={S.editImgX}
+                  aria-label="Remove video"
+                >
+                  <i className={`ti ${deletingVideoId === videoItem.id ? 'ti-loader-2' : 'ti-x'}`} style={{ fontSize: 12 }} aria-hidden="true" />
+                </button>
+              </div>
+            ) : (
+              <div
+                onClick={() => { if (!uploadingVideo) videoInputRef.current?.click(); }}
+                style={{ width: '100%', height: 90, borderRadius: 8, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 3, color: C.txtMuted, fontSize: 11, border: `1px dashed ${C.cardBdr}`, cursor: uploadingVideo ? 'wait' : 'pointer' }}
+              >
+                <i className={`ti ${uploadingVideo ? 'ti-loader-2' : 'ti-video-plus'}`} style={{ fontSize: 16 }} aria-hidden="true" />
+                {uploadingVideo ? 'Uploading…' : 'Add video'}
+              </div>
+            )}
+            <div style={{ fontSize: 10.5, color: C.txtMuted, marginTop: 4, textAlign: 'center' }}>Video tour</div>
+            <input
+              ref={videoInputRef}
+              type="file" accept="video/mp4,video/quicktime" style={{ display: 'none' }}
+              onChange={e => { const f = e.target.files[0]; e.target.value = ''; if (f) handleAddVideo(f); }}
+            />
+          </div>
+        </div>
+        <div style={{ fontSize: 10.5, color: C.txtMuted, marginTop: 4 }}>
+          When a video is set, it plays automatically in the hero spot on the Property page.
+        </div>
+
+        <div style={{ ...S.secLbl, marginTop: 18 }}>Amenities</div>
+        <input
+          style={{ ...S.editInput, marginBottom: 8 }}
+          placeholder="Search amenities…"
+          value={amenitySearch}
+          onChange={e => setAmenitySearch(e.target.value)}
+        />
+        <div style={S.editAmenityGrid}>
+          {filteredAmenityMaster.map(a => {
+            const checked = selectedAmenityIds.has(a.id);
+            const { icon, bg, color } = amenityStyle(a.name);
+            return (
+              <div key={a.id} onClick={() => toggleAmenity(a.id)} style={S.editAmenityItem(checked)}>
+                <div style={{ width: 22, height: 22, borderRadius: 6, flexShrink: 0, background: bg, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  <i className={`ti ${a.icon || icon}`} style={{ fontSize: 12, color }} aria-hidden="true" />
+                </div>
+                <span style={{ flex: 1 }}>{a.name}</span>
+                {checked && <i className="ti ti-circle-check-filled" style={{ fontSize: 14, color: C.blue }} aria-hidden="true" />}
+              </div>
+            );
+          })}
+          {filteredAmenityMaster.length === 0 && (
+            <div style={{ fontSize: 12, color: C.txtMuted, fontStyle: 'italic' }}>No amenities found.</div>
+          )}
+        </div>
+
+        <div style={{ ...S.modalFooter, marginTop: 20 }}>
+          <button style={S.resetBtn} onClick={onClose} disabled={saving}>Cancel</button>
+          <button style={S.applyBtn} onClick={handleSave} disabled={saving}>{saving ? 'Saving…' : 'Save Changes'}</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ─── Main Component ───────────────────────────────────────────────────────────
 export default function LandlordPropertyDetailPage() {
   const [data,         setData]         = useState(null);
@@ -687,6 +1193,7 @@ export default function LandlordPropertyDetailPage() {
   const [activeTab,    setActiveTab]    = useState('Chats');
   const [showFilter,   setShowFilter]   = useState(false);
   const [showBulkAdd,  setShowBulkAdd]  = useState(false);
+  const [showEditProperty, setShowEditProperty] = useState(false);
   // LST-8's real "List Ready" gate — rendered as a modal (see that file's
   // own header note for why), not a routed page, so it's just local state.
   const [showUnitSelection, setShowUnitSelection] = useState(false);
@@ -737,16 +1244,68 @@ export default function LandlordPropertyDetailPage() {
     ).then(pairs => setUnitServicesMap(Object.fromEntries(pairs)));
   }, [propId]);
 
-  useEffect(() => {
+  // Session 56 — pulled out of the effect below so the new "Add images"
+  // upload flow (further down) can re-run the same fetch afterward and
+  // pick up the real main_image_url/thumbN_url the backend just saved,
+  // instead of trusting local state to guess what the server now has.
+  const fetchPropertyDetail = React.useCallback(() => {
     if (!propId) return;
     const token = localStorage.getItem('access_token');
-    fetch(`${API_BASE}/landlord/property/${propId}/`, {
+    return fetch(`${API_BASE}/landlord/property/${propId}/`, {
       headers: { Authorization:`Bearer ${token}`, 'Content-Type':'application/json' },
     })
       .then(r => { if(!r.ok) throw new Error(`${r.status}`); return r.json(); })
       .then(j => { setData(j); setLoading(false); })
       .catch(e => { setError(e.message); setLoading(false); });
   }, [propId]);
+
+  useEffect(() => { fetchPropertyDetail(); }, [fetchPropertyDetail]);
+
+  // Session 56 — real "Add images" upload, replacing the old
+  // alert('Image upload coming soon') stub. Fills the first empty slot
+  // among main_image_url/thumb1_url/thumb2_url/thumb3_url (same fields
+  // AddNewProperty.jsx's Primary Info tab writes to), via the same
+  // multipart PATCH /api/properties/<id>/ the create flow uses — no new
+  // backend endpoint needed, PropertyWriteSerializer already accepts
+  // these fields from either persona. On success, refetches this page's
+  // own data so the real image replaces the sample fallback immediately.
+  const [uploadingImage, setUploadingImage] = useState(false);
+  const [imageUploadError, setImageUploadError] = useState(null);
+  const imageInputRef = useRef(null);
+
+  const emptyImageSlot = () => {
+    if (!prop.main_image_url) return 'main_image_url';
+    if (!prop.thumb1_url) return 'thumb1_url';
+    if (!prop.thumb2_url) return 'thumb2_url';
+    if (!prop.thumb3_url) return 'thumb3_url';
+    return 'thumb3_url'; // all full — replace the last thumb rather than no-op
+  };
+
+  const handleAddImageFile = async (file) => {
+    if (!file || !propId) return;
+    const slot = emptyImageSlot();
+    setUploadingImage(true);
+    setImageUploadError(null);
+    try {
+      const token = localStorage.getItem('access_token');
+      const form = new FormData();
+      form.append(slot, file);
+      const res = await fetch(`${API_BASE}/properties/${propId}/`, {
+        method: 'PATCH',
+        headers: { Authorization: `Bearer ${token}` },
+        body: form,
+      });
+      if (!res.ok) {
+        const e = await res.json().catch(() => ({}));
+        throw new Error(e.detail || e.error || `Upload failed (${res.status})`);
+      }
+      await fetchPropertyDetail();
+    } catch (e) {
+      setImageUploadError(e.message || 'Upload failed. Please try again.');
+    } finally {
+      setUploadingImage(false);
+    }
+  };
 
   const prop      = data?.property    || {};
   const stats     = data?.stats       || {};
@@ -756,6 +1315,37 @@ export default function LandlordPropertyDetailPage() {
   const tickets   = data?.open_tickets|| [];
   const primary   = owners[0]         || {};
   const coOwners  = owners.slice(1);
+
+  // Session 53 fix: mirror PMPropertyDetailPage.jsx's Gallery fix. The
+  // backend now also returns the property's full gallery_images
+  // ({file_url, file_type}) alongside the long-standing main_image_url/
+  // thumb1-3_url quartet. When the gallery holds a video, it becomes the
+  // hero and autoplays instead of main_image_url — main_image_url then
+  // shifts into the first thumb slot so it isn't lost, and thumb3 is the
+  // one dropped to keep the fixed 3-thumb-plus-"Add" grid. Every hero/thumb
+  // is clickable into a large lightbox with left/right navigation across
+  // every real image/video this property actually has.
+  const galleryList = prop.gallery_images || [];
+  const heroVideoIdx = galleryList.findIndex(g => g && g.file_type === 'VIDEO');
+  const heroIsVideo = heroVideoIdx !== -1;
+  const heroVideoItem = heroIsVideo ? galleryList[heroVideoIdx] : null;
+  const galHero = heroIsVideo ? (heroVideoItem.file_url || FB.main) : (prop.main_image_url || FB.main);
+  const galThumbSlots = heroIsVideo
+    ? [prop.main_image_url || null, prop.thumb1_url || null, prop.thumb2_url || null]
+    : [prop.thumb1_url || null, prop.thumb2_url || null, prop.thumb3_url || null];
+  const galThumbFallbacks = heroIsVideo ? [FB.main, FB.t1, FB.t2] : [FB.t1, FB.t2, FB.t3];
+  const galHeroObj = heroIsVideo ? { file_url: heroVideoItem.file_url, file_type: 'VIDEO' }
+    : (prop.main_image_url ? { file_url: prop.main_image_url, file_type: 'IMAGE' } : null);
+  const galThumbObjs = galThumbSlots.map(u => (u ? { file_url: u, file_type: 'IMAGE' } : null));
+  const galLightboxItems = [...(galHeroObj ? [galHeroObj] : []), ...galThumbObjs.filter(Boolean)];
+  const galHasRealItems = galLightboxItems.length > 0;
+  const [galLightboxIdx, setGalLightboxIdx] = useState(null);
+  const galOpenLightbox = (idx) => { if (galHasRealItems && idx != null) setGalLightboxIdx(idx); };
+  const galThumbLightboxIdx = (slotUrl) => {
+    if (!slotUrl) return null;
+    const pos = galThumbObjs.filter(Boolean).findIndex(o => o.file_url === slotUrl);
+    return pos === -1 ? null : (galHeroObj ? 1 : 0) + pos;
+  };
 
   // Session 40 (SVC-1) — once the property's units are known, fetch each
   // one's real assigned services for the Bulk Add Service picker/checklist.
@@ -817,6 +1407,11 @@ export default function LandlordPropertyDetailPage() {
                   {prop.property_type && (
                     <span style={S.typeBadge}>{PROP_TYPE_LABEL[prop.property_type] || prop.property_type}</span>
                   )}
+                  {!loading && prop.id && (
+                    <button style={S.editBtn} onClick={() => setShowEditProperty(true)}>
+                      <i className="ti ti-pencil" style={{ fontSize:13 }} aria-hidden="true" /> Edit
+                    </button>
+                  )}
                 </div>
                 <div style={S.propAddr}>
                   <i className="ti ti-map-pin" style={{ fontSize:12 }} aria-hidden="true" />
@@ -849,20 +1444,52 @@ export default function LandlordPropertyDetailPage() {
           {/* GALLERY — outside heroWrap, aligned with page padding */}
           <div style={{ padding:'0 28px' }}>
             <div style={S.gallery}>
-              {/* Left — single large image */}
-              <GImg src={prop.main_image_url} fallback={FB.main} alt={prop.name} style={{ borderRadius:8 }} />
+              {/* Left — single large image, or the gallery's video when one exists */}
+              <div
+                onClick={() => galOpenLightbox(galHeroObj ? 0 : null)}
+                style={{ position:'relative', overflow:'hidden', borderRadius:8, cursor: galHeroObj ? 'pointer' : 'default' }}
+              >
+                {heroIsVideo ? (
+                  <video src={galHero} muted autoPlay loop playsInline style={S.galImg} />
+                ) : (
+                  <GImg src={prop.main_image_url} fallback={FB.main} alt={prop.name} style={{ borderRadius:8 }} />
+                )}
+              </div>
 
               {/* Right — 2x2 grid */}
               <div style={S.galRight}>
-                <GImg src={prop.thumb1_url} fallback={FB.t1} alt="Interior 1" style={{ borderRadius:6 }} />
-                <GImg src={prop.thumb2_url} fallback={FB.t2} alt="Interior 2" style={{ borderRadius:6 }} />
-                <GImg src={prop.thumb3_url} fallback={FB.t3} alt="Interior 3" style={{ borderRadius:6 }} />
-                <div style={S.galAddCell} onClick={() => alert('Image upload coming soon')}>
-                  <i className="ti ti-plus" style={{ fontSize:20 }} aria-hidden="true" />
-                  <span>Add images</span>
+                {galThumbSlots.map((url, i) => (
+                  <div key={i}
+                    onClick={() => galOpenLightbox(galThumbLightboxIdx(url))}
+                    style={{ minHeight:0, overflow:'hidden', borderRadius:6, cursor: galThumbLightboxIdx(url) != null ? 'pointer' : 'default' }}
+                  >
+                    <GImg src={url} fallback={galThumbFallbacks[i]} alt={`Interior ${i + 1}`} style={{ borderRadius:6 }} />
+                  </div>
+                ))}
+                <div
+                  style={{ ...S.galAddCell, opacity: uploadingImage ? 0.6 : 1, cursor: uploadingImage ? 'wait' : 'pointer' }}
+                  onClick={() => { if (!uploadingImage) imageInputRef.current?.click(); }}
+                >
+                  <input
+                    ref={imageInputRef}
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp"
+                    style={{ display:'none' }}
+                    onChange={e => { const f = e.target.files[0]; e.target.value = ''; if (f) handleAddImageFile(f); }}
+                  />
+                  <i className={`ti ${uploadingImage ? 'ti-loader-2' : 'ti-plus'}`} style={{ fontSize:20 }} aria-hidden="true" />
+                  <span>{uploadingImage ? 'Uploading…' : 'Add images'}</span>
                 </div>
               </div>
             </div>
+            {imageUploadError && (
+              <div style={{ marginTop:8, fontSize:12.5, color:C.red || '#DC2626' }}>
+                <i className="ti ti-alert-circle" aria-hidden="true" /> {imageUploadError}
+              </div>
+            )}
+            {galLightboxIdx !== null && galHasRealItems && (
+              <GalleryLightbox items={galLightboxItems} index={galLightboxIdx} onClose={() => setGalLightboxIdx(null)} onNav={setGalLightboxIdx} />
+            )}
           </div>
 
 
@@ -880,12 +1507,17 @@ export default function LandlordPropertyDetailPage() {
                   <>
                     <div style={{ fontSize:9.5, color:C.txtMuted, fontWeight:600, letterSpacing:0.5, textTransform:'uppercase', marginBottom:6, marginTop:prop.description?0:8 }}>Amenities</div>
                     <div style={S.amenityGrid}>
-                      {amenities.map(a => (
-                        <div key={a.id} style={S.amenityItem}>
-                          <div style={S.amenityIcon}><i className="ti ti-check" style={{ fontSize:10 }} aria-hidden="true" /></div>
-                          {a.name}
-                        </div>
-                      ))}
+                      {amenities.map(a => {
+                        const { icon, bg, color } = amenityStyle(a.name);
+                        return (
+                          <div key={a.id} style={{ ...S.amenityItem, background: bg }}>
+                            <div style={{ ...S.amenityIcon, background: 'rgba(255,255,255,0.65)', color }}>
+                              <i className={`ti ${icon}`} style={{ fontSize: 11 }} aria-hidden="true" />
+                            </div>
+                            {a.name}
+                          </div>
+                        );
+                      })}
                     </div>
                   </>
                 ) : (
@@ -1304,6 +1936,15 @@ export default function LandlordPropertyDetailPage() {
           unitServicesMap={unitServicesMap}
           onClose={() => setShowBulkAdd(false)}
           onComplete={() => refreshUnitServices(units)}
+        />
+      )}
+      {showEditProperty && (
+        <EditPropertyModal
+          propId={propId}
+          prop={prop}
+          amenities={amenities}
+          onClose={() => setShowEditProperty(false)}
+          onSaved={fetchPropertyDetail}
         />
       )}
     </div>

@@ -1700,6 +1700,13 @@ export default function AddNewProperty({ persona = 'INDEPENDENT_PM',initialPrope
 
   async function handleSaveProperty() {
   if (!propBankComplete || saving) return;
+  // Session 52 fix: defense-in-depth — block here too, not just at the
+  // button, so this function can never persist an under-allocated property.
+  const _ownerTotalPct = owners.reduce((s, o) => s + (parseFloat(o.ownershipPct) || 0), 0) + (selfOwner ? parseFloat(selfOwner.ownershipPct) || 0 : 0);
+  if (Math.round(_ownerTotalPct) !== 100) {
+    alert(`Total ownership must equal 100% before the property can be saved (currently ${Math.round(_ownerTotalPct)}%). Go to the Ownership tab to fix this.`);
+    return;
+  }
   setSaving(true);
   try {
     const token = localStorage.getItem('access_token');
@@ -1978,6 +1985,35 @@ export default function AddNewProperty({ persona = 'INDEPENDENT_PM',initialPrope
       const created = await createRes.json();
       const newPropId = created.id;
       setPropId(newPropId);
+
+      // Session 56 fix — the Primary Info tab's "Upload Property Image"
+      // box (mainFile/thumbFiles/videoFile, with live previews via
+      // mainPrev/thumbPrevs/videoPrev) is visible and fully usable in
+      // landlord mode (PROP_SUBTABS_LANDLORD includes 'Primary Info'),
+      // but this landlord-only save path never sent those files anywhere
+      // — only handleSaveProperty (the PM path, below) had the matching
+      // PATCH upload. Confirmed live: LL01 was created with real images
+      // selected in that box, previewed fine in the UI, then silently
+      // dropped — main_image_url/thumb1-3_url/video_url all came back
+      // empty, so the Property/Unit detail pages fell back to their
+      // sample-image placeholders. Same multipart PATCH the PM path uses;
+      // PropertyWriteSerializer and the backend's main_image_url/
+      // thumb1_url/thumb2_url/thumb3_url/video_url fields are shared by
+      // both personas, so no backend change is needed here.
+      if (mainFile || thumbFiles.some(Boolean) || videoFile) {
+        const mediaForm = new FormData();
+        if (mainFile) mediaForm.append('main_image_url', mainFile);
+        if (thumbFiles[0]) mediaForm.append('thumb1_url', thumbFiles[0]);
+        if (thumbFiles[1]) mediaForm.append('thumb2_url', thumbFiles[1]);
+        if (thumbFiles[2]) mediaForm.append('thumb3_url', thumbFiles[2]);
+        if (videoFile) mediaForm.append('video_url', videoFile);
+        const mediaRes = await fetch(`${API_BASE}/api/properties/${newPropId}/`, {
+          method: 'PATCH',
+          headers: { 'Authorization': `Bearer ${token}` },
+          body: mediaForm,
+        });
+        if (!mediaRes.ok) { const e = await mediaRes.json(); console.error('Landlord property media upload failed:', e); }
+      }
 
       // Amenities only — no ownership loop, no bank-account loop.
       // Landlord self-service: no owners to invite, no accounts to
@@ -2385,15 +2421,40 @@ export default function AddNewProperty({ persona = 'INDEPENDENT_PM',initialPrope
                 }
               }} style={{ padding: '9px 24px', fontSize: 13, fontWeight: 600, background: 'transparent', border: `1.5px solid ${C.borderMed}`, borderRadius: 7, color: C.textSec, cursor: 'pointer', fontFamily: F.body, outline: 'none' }}>Cancel</button>
               
-              {isLastTab && mainTab === 'property' ? (
+              {isLastTab && mainTab === 'property' ? (() => {
+                // Session 52 fix: the Ownership tab shows a "must equal 100%"
+                // warning banner, but nothing actually blocked Save Property
+                // when the total was under 100 — properties (e.g. Idex02,
+                // saved at 95%) could reach the backend under-allocated.
+                // This mirrors the same totalPct calc the Ownership tab uses.
+                //
+                // Session 56 fix — that gate ran unconditionally, including
+                // for isLandlord, whose PROP_SUBTABS_LANDLORD never shows an
+                // Ownership tab at all (Session 39 — landlord self-
+                // registration has no ownership-% concept; the landlord IS
+                // the property, implicitly 100%). owners/selfOwner are never
+                // populated on that path, so ownerTotalPct was always 0 and
+                // Save Property was permanently blocked for every landlord,
+                // live-tested and reported ("Save button... remains
+                // protected... Total ownership must equal 100% (currently
+                // 0%)"). Landlord now skips this check entirely, same as it
+                // already skips the ownership/bank-account loops themselves
+                // (see handleLandlordSaveProperty below).
+                const ownerTotalPct = owners.reduce((s, o) => s + (parseFloat(o.ownershipPct) || 0), 0) + (selfOwner ? parseFloat(selfOwner.ownershipPct) || 0 : 0);
+                const ownershipOk = isLandlord || Math.round(ownerTotalPct) === 100;
+                const canSaveProperty = propBankComplete && ownershipOk && !saving;
+                return (
                 // Session 39 — onClick branches to the declaration modal for landlords
                 <button onClick={() => {
+                  if (!ownershipOk) { alert(`Total ownership must equal 100% before the property can be saved (currently ${Math.round(ownerTotalPct)}%). Go to the Ownership tab to fix this.`); return; }
                   if (isLandlord) { setPendingDeclarationTarget('property'); setShowDeclaration(true); }
                   else handleSaveProperty();
-                }} disabled={!propBankComplete || saving} style={{ padding: '9px 24px', fontSize: 13, fontWeight: 700, background: propBankComplete && !saving ? C.primary : C.borderMed, border: 'none', borderRadius: 7, color: '#fff', cursor: propBankComplete && !saving ? 'pointer' : 'not-allowed', fontFamily: F.body, outline: 'none' }}>
+                }} disabled={!propBankComplete || saving} title={!ownershipOk ? `Ownership totals ${Math.round(ownerTotalPct)}%, not 100%` : undefined} style={{ padding: '9px 24px', fontSize: 13, fontWeight: 700, background: canSaveProperty ? C.primary : C.borderMed, border: 'none', borderRadius: 7, color: '#fff', cursor: propBankComplete && !saving ? 'pointer' : 'not-allowed', fontFamily: F.body, outline: 'none' }}>
                     {saving ? 'Saving...' : 'Save Property'}
                 </button>
-                ) : mainTab === 'unit' && unitSaved ? (
+                );
+              })()
+                : mainTab === 'unit' && unitSaved ? (
                     // Session 39 — landlord redirect target
                     <button onClick={() => navigate(isLandlord ? '/landlord-portal/portfolio' : '/pm-portal/properties')} style={{ padding: '9px 24px', fontSize: 13, fontWeight: 600, background: C.success, border: 'none', borderRadius: 7, color: '#fff', cursor: 'pointer', fontFamily: F.body, outline: 'none' }}>Done</button>
                 ) : isLastTab && mainTab === 'unit' && !unitSaved ? (                    

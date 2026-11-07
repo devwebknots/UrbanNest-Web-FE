@@ -165,28 +165,57 @@ export function AdPlaceholderCard({ variant = 'horizontal' }) {
 // position.
 export function GalleryPreviewGrid({ photos, onOpen }) {
   const rest = (photos || []).slice(1); // skip the cover photo (already in the hero)
-  const realTiles = rest.slice(0, 6).map((url) => ({ url, sample: false }));
-  // "If no image, use sample image" — pad up to 6 tiles with the shared
-  // sample set (cycled) whenever there aren't enough real photos,
-  // including the zero-real-photos case. Padded tiles are clearly tagged
-  // "Sample" and aren't clickable into the real Lightbox (there's nothing
-  // real behind them to show there).
-  const padCount = Math.max(6 - realTiles.length, 0);
-  const tiles = [
-    ...realTiles,
-    ...Array.from({ length: padCount }, (_, i) => ({
-      url: SAMPLE_PROPERTY_PHOTOS[i % SAMPLE_PROPERTY_PHOTOS.length],
-      sample: true,
-    })),
-  ];
-  const extraCount = Math.max(rest.length - 6, 0);
+  const hasReal = rest.length > 0;
+  // Nov 7 fix — user ask: "sample images should be displayed ONLY if no
+  // actual images are available." This used to pad up to 6 tiles with the
+  // shared sample set any time there were FEWER than 6 real photos — so
+  // e.g. 2 real secondary photos still rendered alongside 4 unrelated
+  // sample tiles. Now samples only ever appear in the true zero-real-
+  // photos case; the moment there's at least one real photo, every tile
+  // here is real (capped at 6, with a "+N more" overlay into the real
+  // Lightbox same as before) and samples don't mix in at all.
+  const capped = rest.slice(0, 6);
+  const tiles = hasReal
+    ? capped.map((url) => ({ url, sample: false }))
+    : Array.from({ length: 6 }, (_, i) => ({
+        url: SAMPLE_PROPERTY_PHOTOS[i % SAMPLE_PROPERTY_PHOTOS.length],
+        sample: true,
+      }));
+  const extraCount = hasReal ? Math.max(rest.length - 6, 0) : 0;
+  // Nov 7 fix — user ask: real photos should "fill up the rest of the
+  // space, spaced equally" rather than sitting in a fixed 3x2 grid with
+  // dead cells where samples used to go. First attempt (3 columns) still
+  // left an empty, blank cell whenever the real-photo count wasn't a
+  // multiple of 3 (e.g. 5 real photos: 3 on row one, 2 on row two plus one
+  // visibly empty white cell) — user flagged exactly this ("why are three
+  // images of same size and other two different... should be equally
+  // spaced, maybe 3 rows with 2 images in each row").
+  // Fixed 2-column grid instead: rows = ceil(count/2), so any EVEN count
+  // (2, 4, 6 real photos, or the 6-sample fallback below) divides into
+  // full rows of 2 with no dead cell at all. An ODD count (1, 3, 5) always
+  // leaves exactly one leftover tile on 2 columns — rather than render
+  // that as a blank cell, it spans both columns (gridColumn: '1 / -1') as
+  // one full-width tile closing out the last row, so every cell is always
+  // a real photo and the whole block always fully fills, no matter the
+  // count. A single real photo (count 1) is the degenerate case: one row,
+  // one tile, spanning full width/height.
+  // Nov 7 fix #4 — user ask: specifically when there are exactly 2 real
+  // photos, split the space horizontally (one on top of the other, each
+  // full-width/half-height) instead of the usual side-by-side columns.
+  // 1, 3+ real photos (and the 6-tile all-sample fallback) are
+  // unaffected — still the general cols=min(count,2) rule below.
+  const cols = tiles.length === 2 ? 1 : (Math.min(tiles.length, 2) || 1);
+  const rows = Math.ceil(tiles.length / cols) || 1;
+  const lastRowCount = tiles.length - (rows - 1) * cols;
+  const spanLastTile = cols > 1 && lastRowCount > 0 && lastRowCount < cols;
   return (
     <div style={{
-      display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gridTemplateRows: 'repeat(2, 1fr)',
+      display: 'grid', gridTemplateColumns: `repeat(${cols}, 1fr)`, gridTemplateRows: `repeat(${rows}, 1fr)`,
       gap: 8, height: '100%', minHeight: 300,
     }}>
       {tiles.map((tile, i) => {
-        const isLastRealTile = !tile.sample && i === realTiles.length - 1 && realTiles.length === 6;
+        const isLastRealTile = !tile.sample && i === tiles.length - 1 && extraCount > 0;
+        const isLastTile = i === tiles.length - 1;
         const photoIndex = i + 1; // +1 to undo the skipped cover photo above
         return (
           <div
@@ -197,6 +226,7 @@ export function GalleryPreviewGrid({ photos, onOpen }) {
               position: 'relative', borderRadius: 8, overflow: 'hidden',
               cursor: tile.sample ? 'default' : 'pointer',
               background: `url(${tile.url}) center/cover`, backgroundColor: C.inputBg,
+              ...(spanLastTile && isLastTile ? { gridColumn: '1 / -1' } : null),
             }}
           >
             {tile.sample && (
@@ -208,7 +238,7 @@ export function GalleryPreviewGrid({ photos, onOpen }) {
                 Sample
               </div>
             )}
-            {isLastRealTile && extraCount > 0 && (
+            {isLastRealTile && (
               <div style={{
                 position: 'absolute', inset: 0, background: 'rgba(10,22,40,0.6)',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
