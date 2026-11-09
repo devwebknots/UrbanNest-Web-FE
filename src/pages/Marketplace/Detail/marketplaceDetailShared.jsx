@@ -17,7 +17,10 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../../../context/AuthContext';
 import { C, F } from '../Home/marketplaceTokens';
+import { apiBookTour } from '../Home/marketplaceHomeApi';
 
 export function money(amount) {
   if (amount === null || amount === undefined) return null;
@@ -2230,6 +2233,133 @@ const _disabledIconCircleStyle = {
   display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: 0.6,
 };
 
+// Session 52+ — "Book A Tour". Minimal v1 scope confirmed with the user
+// ("If the slot is available, then we should book it immediately") — no
+// request-then-approve flow, no availability-rules UI, since neither
+// NeyoBookingRequest nor NeyoAvailabilityRule is built yet (see
+// calendar-scheduling/UrbanNest_InterfaceLayer_Scoping.md's booking
+// section). The renter just picks a date + start/end time; the real
+// backend (rules_engine.marketplace_display.public_views.
+// ListingBookTourView / PropertyListingBookTourView → Neyora's own
+// BookCalendarSlotView) does a real overlap check against the host's
+// existing calendar under a row lock and either instant-confirms it or
+// returns 409 ("someone just took that slot") — that's the one expected
+// failure mode this form handles specially, everything else is a generic
+// retry-later message. Reuses the shared UNModalShell look, same as every
+// other popup on these two detail pages.
+function BookTourModal({ listingId, listingKind, listingTitle, onClose, onBooked }) {
+  const todayStr = new Date().toISOString().slice(0, 10);
+  const [date, setDate] = React.useState(todayStr);
+  const [startTime, setStartTime] = React.useState('10:00');
+  const [endTime, setEndTime] = React.useState('10:30');
+  const [submitting, setSubmitting] = React.useState(false);
+  const [error, setError] = React.useState(null);
+  const [confirmed, setConfirmed] = React.useState(null);
+
+  function handleSubmit(e) {
+    e.preventDefault();
+    setError(null);
+    if (!date || !startTime || !endTime) {
+      setError('Please pick a date and a start/end time.');
+      return;
+    }
+    const startAt = new Date(`${date}T${startTime}:00`);
+    const endAt = new Date(`${date}T${endTime}:00`);
+    if (!(endAt > startAt)) {
+      setError('End time must be after the start time.');
+      return;
+    }
+    setSubmitting(true);
+    apiBookTour(listingKind, listingId, { start_at: startAt.toISOString(), end_at: endAt.toISOString() })
+      .then((event) => {
+        setSubmitting(false);
+        setConfirmed(event);
+        onBooked?.(event);
+      })
+      .catch((err) => {
+        setSubmitting(false);
+        setError(
+          err?.status === 409
+            ? 'That time was just booked by someone else — please pick another slot.'
+            : 'Could not book this tour right now. Please try again shortly.'
+        );
+      });
+  }
+
+  return (
+    <UNModalShell title="Book A Tour" onClose={onClose} width={380}>
+      <div style={{ padding: '18px 20px' }}>
+        {confirmed ? (
+          <div style={{ textAlign: 'center', padding: '10px 0' }}>
+            <i className="ti ti-circle-check" style={{ fontSize: 34, color: '#16A34A' }} />
+            <div style={{ fontFamily: F.body, fontSize: 14, fontWeight: 700, color: C.textPrimary, marginTop: 10 }}>
+              Tour booked!
+            </div>
+            <div style={{ fontFamily: F.body, fontSize: 12.5, color: C.textSecondary, marginTop: 6 }}>
+              {new Date(confirmed.startAt).toLocaleString(undefined, { dateStyle: 'medium', timeStyle: 'short' })}
+            </div>
+            <button
+              onClick={onClose}
+              style={{
+                marginTop: 18, padding: '9px 22px', borderRadius: 8, border: 'none', cursor: 'pointer',
+                background: C.primary, color: C.white, fontFamily: F.body, fontWeight: 700, fontSize: 13,
+              }}
+            >
+              Done
+            </button>
+          </div>
+        ) : (
+          <form onSubmit={handleSubmit}>
+            <div style={{ fontFamily: F.body, fontSize: 12.5, color: C.textSecondary, marginBottom: 14 }}>
+              Pick a time to tour {listingTitle || 'this listing'}. If the slot is open, it's booked instantly.
+            </div>
+            <label style={{ display: 'block', fontFamily: F.body, fontSize: 11.5, fontWeight: 700, color: C.textSecondary, marginBottom: 4 }}>
+              Date
+            </label>
+            <input
+              type="date" value={date} min={todayStr} onChange={(e) => setDate(e.target.value)}
+              style={{ width: '100%', boxSizing: 'border-box', padding: '8px 10px', borderRadius: 8, border: `1px solid ${C.cardBorder}`, fontFamily: F.body, fontSize: 13, marginBottom: 12 }}
+            />
+            <div style={{ display: 'flex', gap: 12 }}>
+              <div style={{ flex: 1 }}>
+                <label style={{ display: 'block', fontFamily: F.body, fontSize: 11.5, fontWeight: 700, color: C.textSecondary, marginBottom: 4 }}>
+                  Start time
+                </label>
+                <input
+                  type="time" value={startTime} onChange={(e) => setStartTime(e.target.value)}
+                  style={{ width: '100%', boxSizing: 'border-box', padding: '8px 10px', borderRadius: 8, border: `1px solid ${C.cardBorder}`, fontFamily: F.body, fontSize: 13 }}
+                />
+              </div>
+              <div style={{ flex: 1 }}>
+                <label style={{ display: 'block', fontFamily: F.body, fontSize: 11.5, fontWeight: 700, color: C.textSecondary, marginBottom: 4 }}>
+                  End time
+                </label>
+                <input
+                  type="time" value={endTime} onChange={(e) => setEndTime(e.target.value)}
+                  style={{ width: '100%', boxSizing: 'border-box', padding: '8px 10px', borderRadius: 8, border: `1px solid ${C.cardBorder}`, fontFamily: F.body, fontSize: 13 }}
+                />
+              </div>
+            </div>
+            {error && (
+              <div style={{ marginTop: 12, fontFamily: F.body, fontSize: 12.5, color: '#DC2626' }}>{error}</div>
+            )}
+            <button
+              type="submit" disabled={submitting}
+              style={{
+                marginTop: 16, width: '100%', padding: '10px 0', borderRadius: 8, border: 'none',
+                cursor: submitting ? 'default' : 'pointer', background: C.primary, color: C.white,
+                fontFamily: F.body, fontWeight: 700, fontSize: 13.5, opacity: submitting ? 0.7 : 1,
+              }}
+            >
+              {submitting ? 'Booking…' : 'Confirm Tour'}
+            </button>
+          </form>
+        )}
+      </div>
+    </UNModalShell>
+  );
+}
+
 // `compact` (Session 51, Phase 22 — user ask: halve the height of the
 // titular row Listing Agent now shares with Name & Description) renders
 // the same real contact + the same three Apply/Book Tour/Contact CTAs in
@@ -2239,7 +2369,42 @@ const _disabledIconCircleStyle = {
 // UNCHANGED — ListingDetailPage.jsx's own sticky sidebar still gets the
 // original full-height card, since only PropertyListingDetailPage.jsx's
 // titular row asked for this.
-export function ListingContactCard({ contact, listingTitle, compact = false, extraInfo = [], layout }) {
+//
+// Session 52+ — new `listingId`/`listingKind` props (listingKind is
+// 'listing' or 'property-listing', matching apiBookTour()'s own URL
+// segments exactly) feed the real "Book A Tour" flow below. Both existing
+// call sites pass them now; a caller that doesn't (none left, but kept
+// safe) just gets `listingId=undefined`, which apiBookTour would send as
+// the literal string "undefined" in the URL — fine as a non-concern here
+// since every real call site below does pass them.
+export function ListingContactCard({ contact, listingTitle, compact = false, extraInfo = [], layout, listingId, listingKind }) {
+  // Hooks must run unconditionally on every render — the `if (!contact)`
+  // early return below predates this feature and returned before any
+  // hook existed in this component, so these are declared first, ahead
+  // of it, per React's rules of hooks.
+  const navigate = useNavigate();
+  const { user } = useAuth();
+  const [bookTourOpen, setBookTourOpen] = React.useState(false);
+
+  function handleBookTourClick() {
+    // Same "gate on click, not on render" + same logged-out destination
+    // as this page's own toggleFavorite() (ListingDetailPage.jsx/
+    // PropertyListingDetailPage.jsx) — booking a tour needs a real
+    // identity, same as favoriting does.
+    if (!user) { navigate('/'); return; }
+    setBookTourOpen(true);
+  }
+
+  const bookTourModal = bookTourOpen && (
+    <BookTourModal
+      listingId={listingId}
+      listingKind={listingKind}
+      listingTitle={listingTitle}
+      onClose={() => setBookTourOpen(false)}
+      onBooked={() => {}}
+    />
+  );
+
   if (!contact) {
     return (
       <div style={{
@@ -2325,9 +2490,9 @@ export function ListingContactCard({ contact, listingTitle, compact = false, ext
             <span style={sbCircleStyle}><i className="ti ti-file-text" style={{ fontSize: 16, color: C.textTertiary }} /></span>
             <span style={{ fontFamily: F.body, fontSize: 10, fontWeight: 700, color: C.textTertiary }}>Apply</span>
           </button>
-          <button disabled title="Book A Tour — Coming soon" aria-label="Book A Tour — Coming soon" style={sbBtnStyle}>
-            <span style={sbCircleStyle}><i className="ti ti-calendar" style={{ fontSize: 16, color: C.textTertiary }} /></span>
-            <span style={{ fontFamily: F.body, fontSize: 10, fontWeight: 700, color: C.textTertiary }}>Book Tour</span>
+          <button onClick={handleBookTourClick} title="Book A Tour" aria-label="Book A Tour" style={{ ...sbBtnStyle, cursor: 'pointer' }}>
+            <span style={{ ...sbCircleStyle, background: C.primary, border: 'none', opacity: 1 }}><i className="ti ti-calendar" style={{ fontSize: 16, color: C.white }} /></span>
+            <span style={{ fontFamily: F.body, fontSize: 10, fontWeight: 700, color: C.textPrimary }}>Book Tour</span>
           </button>
           {contactHref ? (
             <a href={contactHref} title={contactTooltip} aria-label={contactTooltip} style={{ textDecoration: 'none', ...sbBtnStyle, cursor: 'pointer' }}>
@@ -2343,6 +2508,7 @@ export function ListingContactCard({ contact, listingTitle, compact = false, ext
             </button>
           )}
         </div>
+        {bookTourModal}
       </div>
     );
   }
@@ -2388,9 +2554,9 @@ export function ListingContactCard({ contact, listingTitle, compact = false, ext
             <span style={compactCircleStyle}><i className="ti ti-file-text" style={{ fontSize: 13, color: C.textTertiary }} /></span>
             <span style={{ fontFamily: F.body, fontSize: 9, fontWeight: 700, color: C.textTertiary }}>Apply</span>
           </button>
-          <button disabled title="Book A Tour — Coming soon" aria-label="Book A Tour — Coming soon" style={compactCtaStyle}>
-            <span style={compactCircleStyle}><i className="ti ti-calendar" style={{ fontSize: 13, color: C.textTertiary }} /></span>
-            <span style={{ fontFamily: F.body, fontSize: 9, fontWeight: 700, color: C.textTertiary }}>Book Tour</span>
+          <button onClick={handleBookTourClick} title="Book A Tour" aria-label="Book A Tour" style={{ ...compactCtaStyle, cursor: 'pointer' }}>
+            <span style={{ ...compactCircleStyle, background: C.primary, border: 'none', opacity: 1 }}><i className="ti ti-calendar" style={{ fontSize: 13, color: C.white }} /></span>
+            <span style={{ fontFamily: F.body, fontSize: 9, fontWeight: 700, color: C.textPrimary }}>Book Tour</span>
           </button>
           {contactHref ? (
             <a href={contactHref} title={contactTooltip} aria-label={contactTooltip} style={{ textDecoration: 'none', ...compactCtaStyle, cursor: 'pointer' }}>
@@ -2406,6 +2572,7 @@ export function ListingContactCard({ contact, listingTitle, compact = false, ext
             </button>
           )}
         </div>
+        {bookTourModal}
       </div>
     );
   }
@@ -2476,11 +2643,11 @@ export function ListingContactCard({ contact, listingTitle, compact = false, ext
           <span style={{ fontFamily: F.body, fontSize: 11, fontWeight: 700, color: C.textTertiary }}>Apply</span>
         </button>
 
-        <button disabled title="Book A Tour — Coming soon" aria-label="Book A Tour — Coming soon" style={_disabledIconBtnStyle}>
-          <span style={_disabledIconCircleStyle}>
-            <i className="ti ti-calendar" style={{ fontSize: 18, color: C.textTertiary }} />
+        <button onClick={handleBookTourClick} title="Book A Tour" aria-label="Book A Tour" style={{ ..._disabledIconBtnStyle, cursor: 'pointer' }}>
+          <span style={{ ..._disabledIconCircleStyle, background: C.primary, border: 'none', opacity: 1 }}>
+            <i className="ti ti-calendar" style={{ fontSize: 18, color: C.white }} />
           </span>
-          <span style={{ fontFamily: F.body, fontSize: 11, fontWeight: 700, color: C.textTertiary }}>Book Tour</span>
+          <span style={{ fontFamily: F.body, fontSize: 11, fontWeight: 700, color: C.textPrimary }}>Book Tour</span>
         </button>
 
         {contactHref ? (
@@ -2504,6 +2671,7 @@ export function ListingContactCard({ contact, listingTitle, compact = false, ext
           </button>
         )}
       </div>
+      {bookTourModal}
     </div>
   );
 }

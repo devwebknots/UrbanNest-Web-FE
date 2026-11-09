@@ -92,3 +92,46 @@ export async function apiGetPropertyListingDetail(id) {
   }
   return res.json();
 }
+
+// Session 52+ — "Book A Tour" (rules_engine.marketplace_display.
+// public_views.ListingBookTourView / PropertyListingBookTourView → real
+// Neyora calendar-scheduling backend). Unlike every call above, this one
+// REQUIRES a logged-in renter — there's no "send a token when one
+// exists" fallback here, since there's no meaningful anonymous booking.
+// `kind` is 'listing' or 'property-listing' (the same two URL segments
+// apiGetListingDetail/apiGetPropertyListingDetail already use above);
+// `id` is the bare numeric pk (strip the 'real-'/'realgroup-' card-id
+// prefix first, same as every other call here). `{ start_at, end_at }`
+// are ISO datetime strings. Resolves to the created NeyoCalendarEvent's
+// own display fields ({ id, startAt, endAt, status }) on success (201).
+// Throws on any non-2xx, with the thrown Error's `.status` set to the
+// HTTP status so a caller can special-case 409 ("that slot was just
+// taken") — the one expected, user-facing failure mode of this call —
+// differently from every other kind of failure (see
+// BookTourModal in marketplaceDetailShared.jsx for the one place that
+// matters today).
+export async function apiBookTour(kind, id, { start_at, end_at }) {
+  const token = localStorage.getItem('access_token');
+  const path = kind === 'property-listing' ? 'property-listing' : 'listing';
+  const res = await fetch(`${API_BASE}/marketplace/${path}/${id}/book-tour/`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+    body: JSON.stringify({ start_at, end_at }),
+  });
+  if (!res.ok) {
+    let detail = `Book tour failed (${res.status})`;
+    try {
+      const body = await res.json();
+      if (body?.detail) detail = body.detail;
+    } catch (e) {
+      // non-JSON error body — keep the generic message above.
+    }
+    const err = new Error(detail);
+    err.status = res.status;
+    throw err;
+  }
+  return res.json();
+}

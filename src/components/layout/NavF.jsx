@@ -24,6 +24,9 @@ const NAV_MAIN = [
   { id: 'maintenance', label: 'Maintenance', icon: 'ti-tool',             route: '/landlord-portal/maintenance' },
   { id: 'tenants',     label: 'Tenants',     icon: 'ti-users',            route: '/landlord-portal/tenants' },
   { id: 'documents',   label: 'Documents',   icon: 'ti-folder',           route: '/landlord-portal/documents' },
+  // Phase 5 (Neyora) Step 3 — opens LandlordCalendarPage.jsx, which mounts
+  // Neyora's own real Calendar widget (architecture doc §20).
+  { id: 'calendar',    label: 'Calendar',    icon: 'ti-calendar',         route: '/landlord-portal/calendar' },
 ];
 
 const NAV_BOTTOM = [

@@ -126,6 +126,8 @@ import PMListingsOverview from './pages/PMPortal/Listing/PMListingsOverview';
 
 // Landlord Portals
 import LandlordDashboard from './pages/Landlord/LandlordDashboard';
+// Phase 5 (Neyora) Step 3 — real Calendar screen, mounts Neyora's own widget.
+import LandlordCalendarPage from './pages/Landlord/LandlordCalendarPage';
 import LandlordPortfolioPage from './pages/Landlord/LandlordPortfolioPage';
 import LandlordPropertyDetailPage from './pages/Landlord/LandlordPropertyDetailPage';
 import LandlordUnitDetailPage from './pages/Landlord/LandlordUnitDetailPage';
@@ -293,6 +295,8 @@ function AppRoutes() {
       <Route path="/landlord-portal/add-property" element={<AddNewProperty persona="LANDLORD" />} />
       <Route path="/landlord-portal/property/:id/add-unit" element={<AddUnitWrapper persona="LANDLORD" />} />
       <Route path="/landlord-portal/settings" element={<LandlordSettingsPage />} />
+      {/* Phase 5 (Neyora) Step 3 — real Calendar widget, not a mock. */}
+      <Route path="/landlord-portal/calendar" element={<LandlordCalendarPage />} />
       <Route path="/landlord-portal/listings" element={<LandlordListingsOverview />} />
 
       {/* ── Landlord — Create Listing wizard (Session 41) ── */}

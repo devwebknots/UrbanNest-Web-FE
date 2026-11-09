@@ -566,6 +566,8 @@ export default function PropertyListingDetailPage() {
                   { icon: 'ti-building-community', text: `Managing agent for ${data.title}` },
                   units.length > 0 ? { icon: 'ti-door', text: `Overseeing ${units.length} unit${units.length === 1 ? '' : 's'} in this property` } : null,
                 ].filter(Boolean)}
+                listingId={_bareId(id)}
+                listingKind="property-listing"
               />
             </div>
           </SectionCard>

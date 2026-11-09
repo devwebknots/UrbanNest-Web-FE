@@ -628,7 +628,13 @@ export default function ListingDetailPage() {
         <div>
           <SectionCard title="Listing Agent" style={{ height: '100%', boxSizing: 'border-box', display: 'flex', flexDirection: 'column', marginBottom: 0 }}>
             <div style={{ flex: 1, display: 'flex', alignItems: 'center' }}>
-              <ListingContactCard contact={data.leadContact} listingTitle={data.title} layout="sideBySide" />
+              <ListingContactCard
+                contact={data.leadContact}
+                listingTitle={data.title}
+                layout="sideBySide"
+                listingId={_bareId(id)}
+                listingKind="listing"
+              />
             </div>
           </SectionCard>
         </div>
