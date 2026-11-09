@@ -60,6 +60,8 @@ import { apiGetMarketplaceDisplay, apiSearchMarketplace } from './marketplaceHom
 // plumbing is needed — just this import.
 import { useAuth } from '../../../context/AuthContext';
 import { apiListFavorites, apiAddFavorite, apiRemoveFavorite, apiCreateSavedSearch } from '../Account/marketplaceAccountApi';
+import { apiListNotifications, apiGetUnreadNotificationCount, apiMarkNotificationRead } from '../RenterNotification/renterNotificationApi';
+import RenterNotificationModal from '../RenterNotification/RenterNotificationModal';
 
 // Account-menu dropdown (nav icon to the right of Sign In) — Session 50
 // addition. No real account/auth-aware nav exists on this public page yet
@@ -79,8 +81,13 @@ const ACCOUNT_MENU_BROWSE = [
 // manages themselves. Deliberately left out of this list, unlike Favorites
 // (still the one deliberate, user-visible save). See
 // marketplace_account/models.py's own note on this distinction.
+// Session 53+ — 'Alerts / Notifications' added per the user's own feature
+// request (wireframe approved: https://claude.ai/artifact/69T6PwWULK1RB9F99fda4u).
+// Same real-destination treatment as Favorites below it (in-page modal,
+// gated on `user`) — see the click handler in the ACCOUNT_MENU_PERSONAL.map
+// below and RenterNotificationModal (src/pages/Marketplace/RenterNotification).
 const ACCOUNT_MENU_PERSONAL = [
-  'Favorites', 'Notes', 'Suggestions', 'Agent and Co-Shopper',
+  'Favorites', 'Alerts / Notifications', 'Notes', 'Suggestions', 'Agent and Co-Shopper',
 ];
 
 const HERO_IMAGES = [
@@ -1510,6 +1517,18 @@ export default function MarketplaceHomePage() {
   const [modalFavoritesError, setModalFavoritesError] = useState('');
   const [modalRemovingId, setModalRemovingId] = useState(null);
 
+  // Session 53+ — 'Alerts / Notifications' (see ACCOUNT_MENU_PERSONAL above
+  // and RenterNotificationModal, src/pages/Marketplace/RenterNotification).
+  // Same in-page-modal shape as Favorites: modalNotifications/Error are the
+  // modal's own list state, separate from unreadNotificationCount which
+  // drives the account-menu nav item's badge and is fetched independently
+  // (so the badge can show correctly even before the modal has ever been
+  // opened this session).
+  const [notificationsModalOpen, setNotificationsModalOpen] = useState(false);
+  const [modalNotifications, setModalNotifications] = useState(null); // null = loading
+  const [modalNotificationsError, setModalNotificationsError] = useState('');
+  const [unreadNotificationCount, setUnreadNotificationCount] = useState(0);
+
   // Session 51, Phase 4 — the real Search Results modal (see
   // SearchResultsModal above). Opens from the "Search" button in the
   // floating search widget below, pre-seeded with whatever that widget's
@@ -1854,6 +1873,71 @@ export default function MarketplaceHomePage() {
     return () => window.removeEventListener('keydown', onKeyDown);
   }, [favoritesModalOpen]);
 
+  // Session 53+ — unread Alerts/Notifications badge. Fetched once on
+  // mount/login (not polled — this screen has no websocket/push channel —
+  // so the badge count is "as of page load/last refresh", same freshness
+  // posture Favorites' own heart icons already have for favoriteKeys).
+  useEffect(() => {
+    if (!user) { setUnreadNotificationCount(0); return; }
+    let cancelled = false;
+    apiGetUnreadNotificationCount()
+      .then(({ count }) => { if (!cancelled) setUnreadNotificationCount(count); })
+      .catch(e => console.warn('[Marketplace] unread notification count failed:', e));
+    return () => { cancelled = true; };
+  }, [user]);
+
+  // Fetches the modal's own list fresh each time it's opened — same
+  // pattern as the Favorites modal's own fetch effect above.
+  useEffect(() => {
+    if (!notificationsModalOpen) return;
+    let cancelled = false;
+    setModalNotifications(null);
+    setModalNotificationsError('');
+    apiListNotifications()
+      .then(rows => { if (!cancelled) setModalNotifications(rows); })
+      .catch(() => { if (!cancelled) setModalNotificationsError('Could not load your alerts.'); });
+    return () => { cancelled = true; };
+  }, [notificationsModalOpen]);
+
+  useEffect(() => {
+    if (!notificationsModalOpen) return;
+    function onKeyDown(e) { if (e.key === 'Escape') setNotificationsModalOpen(false); }
+    window.addEventListener('keydown', onKeyDown);
+    return () => window.removeEventListener('keydown', onKeyDown);
+  }, [notificationsModalOpen]);
+
+  // Marks a notification read both server-side and in the modal's own
+  // local list (so its unread dot/bold title clear immediately rather than
+  // waiting for the next fetch), and decrements the nav badge to match.
+  // Passed into RenterNotificationModal as `onSelect`.
+  function handleSelectNotification(notification) {
+    apiMarkNotificationRead(notification.id)
+      .then(() => {
+        setModalNotifications(prev =>
+          (prev || []).map(n => (n.id === notification.id ? { ...n, isRead: true } : n))
+        );
+        setUnreadNotificationCount(prev => Math.max(0, prev - 1));
+      })
+      .catch(e => console.warn('[Marketplace] mark notification read failed:', e));
+  }
+
+  // Session 53+, restyle pass — "Mark all as read" link in the new tab
+  // bar (Notifications tab only). No bulk endpoint exists on the backend
+  // (RenterNotificationDetailView is PATCH-by-id only), so this fires one
+  // PATCH per currently-unread row via Promise.allSettled — fine at this
+  // feature's current volume (one notification type, no backfill of old
+  // history), same "no new backend" scoping as the rest of this pass.
+  // Passed into RenterNotificationModal as `onMarkAllRead`.
+  function handleMarkAllNotificationsRead() {
+    const unread = (modalNotifications || []).filter(n => !n.isRead);
+    if (unread.length === 0) return;
+    Promise.allSettled(unread.map(n => apiMarkNotificationRead(n.id)))
+      .then(() => {
+        setModalNotifications(prev => (prev || []).map(n => ({ ...n, isRead: true })));
+        setUnreadNotificationCount(0);
+      });
+  }
+
   // Removing from the modal must also update favoriteKeys/favoriteIdByKey
   // (the state every heart icon elsewhere on the page reads) — not just
   // the modal's own local list — otherwise a heart behind the modal would
@@ -2135,6 +2219,8 @@ export default function MarketplaceHomePage() {
                   // "Back to Marketplace" button, just close the popup).
                   // Still gated: logged-out routes to /login instead of
                   // opening the modal, same convention as the heart icon.
+                  // Session 53+ — 'Alerts / Notifications' follows the exact
+                  // same gated-modal convention (RenterNotificationModal).
                   // Saved Search has no screen at all — it's an invisible
                   // internal capture, not a user-facing feature (see
                   // ACCOUNT_MENU_PERSONAL above). The rest (Notes,
@@ -2145,11 +2231,28 @@ export default function MarketplaceHomePage() {
                     setFavoritesModalOpen(true);
                     return;
                   }
+                  if (label === 'Alerts / Notifications') {
+                    if (!user) { navigate('/'); return; }
+                    setNotificationsModalOpen(true);
+                    return;
+                  }
                   console.log('[Marketplace] account menu (not yet wired):', label);
                 }}
-                style={{ padding: '9px 20px', fontFamily: F.body, fontSize: 13.5, color: C.textPrimary, cursor: 'pointer' }}
+                style={{
+                  display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                  padding: '9px 20px', fontFamily: F.body, fontSize: 13.5, color: C.textPrimary, cursor: 'pointer',
+                }}
               >
                 {label}
+                {label === 'Alerts / Notifications' && unreadNotificationCount > 0 && (
+                  <span style={{
+                    minWidth: 18, height: 18, padding: '0 5px', borderRadius: 9,
+                    background: C.primary, color: C.white, fontFamily: F.body, fontSize: 10.5, fontWeight: 800,
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  }}>
+                    {unreadNotificationCount > 9 ? '9+' : unreadNotificationCount}
+                  </span>
+                )}
               </div>
             ))}
           </div>,
@@ -2163,6 +2266,15 @@ export default function MarketplaceHomePage() {
           removingId={modalRemovingId}
           onRemove={handleRemoveModalFavorite}
           onClose={() => setFavoritesModalOpen(false)}
+        />
+
+        <RenterNotificationModal
+          open={notificationsModalOpen}
+          notifications={modalNotifications}
+          error={modalNotificationsError}
+          onSelect={handleSelectNotification}
+          onMarkAllRead={handleMarkAllNotificationsRead}
+          onClose={() => setNotificationsModalOpen(false)}
         />
 
         <SearchResultsModal
