@@ -108,9 +108,13 @@ export const UI2 = {
   // ── Text ───────────────────────────────────────────────────────────────────
   text: {
     title:    { fontSize: FS2.base, fontWeight: FW2.semibold, color: C2.textPrimary, lineHeight: LH2.heading },
+    // List item title (ListRow) — lighter medium weight; pair with UI2.text.meta for its description line
+    rowTitle: { fontSize: FS2.base, fontWeight: FW2.medium, color: C2.textPrimary, lineHeight: LH2.heading },
     titleLg:  { fontSize: FS2.md, fontWeight: FW2.semibold, color: C2.textPrimary, lineHeight: LH2.heading },
     body:     { ...T2.body },
-    meta:     { fontSize: FS2.sm, color: C2.textMuted, lineHeight: LH2.body },
+    // Sub text / description under an item title (list rows, tiles, unit & property cards, addresses):
+    // Playfair, 11px, muted grey — the ONE style for every description line. Use it, don't restyle per page.
+    meta:     { fontFamily: F2.heading, fontSize: FS2.xs, color: C2.textMuted, lineHeight: LH2.body },
     label:    { fontSize: FS2.sm, color: C2.textSecondary, lineHeight: LH2.body },
     caption:  { ...T2.caption },
     stat:     { fontSize: FS2.lg, fontWeight: FW2.bold, color: C2.textPrimary, lineHeight: LH2.tight },

@@ -40,7 +40,7 @@ const S = {
   tag:   { position: 'absolute', top: SP2.sm, right: SP2.sm, boxShadow: SH2.sm },
   body:  { ...UI2.stack(SP2.xxs), justifyContent: 'center', flex: 1, minWidth: SZ2.thumbXl.w, padding: pad(SP2.xs, 0) },
   title: (lg) => ({ ...(lg ? UI2.text.stat : UI2.text.titleLg), ...UI2.truncate }),
-  sub:   { ...UI2.text.label, marginBottom: SP2.xs },
+  sub:   { ...UI2.text.meta, marginBottom: SP2.xs },
   row:   { display: 'flex', gap: SP2.md, fontSize: FS2.sm },
   lbl:   { color: C2.textSecondary, minWidth: SZ2.detailLabel },
   val:   { fontWeight: FW2.semibold, color: C2.textPrimary },
@@ -95,7 +95,7 @@ export default function MediaListItem({
             <div style={S.title(false)}>{title}</div>
             {onClick && <i className="ti ti-chevron-right" style={UI2.chevron} aria-hidden="true" />}
           </div>
-          {subtitle && <div style={UI2.text.label}>{subtitle}</div>}
+          {subtitle && <div style={UI2.text.meta}>{subtitle}</div>}
           {details.length > 0 && (
             <div style={S.cardFacts}>
               {details.map(d => (

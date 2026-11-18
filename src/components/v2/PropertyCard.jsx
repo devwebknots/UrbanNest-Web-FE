@@ -47,7 +47,7 @@ const S = {
   body:    { ...UI2.stack(SP2.lg), flex: 1, padding: pad(SP2.md, SP2.lg, SP2.lg) },
   head:    { display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: SP2.sm },
   name:    { fontSize: FS2.lg, fontWeight: FW2.bold, color: C2.textPrimary, lineHeight: LH2.heading, ...UI2.truncate },
-  addr:    { ...UI2.row(SP2.xs), ...UI2.text.label, marginTop: SP2.xxs, minWidth: 0 },
+  addr:    { ...UI2.row(SP2.xs), ...UI2.text.meta, marginTop: SP2.xxs, minWidth: 0 },
   share:   {
     ...UI2.stack(0), alignItems: 'center', flexShrink: 0, padding: pad(SP2.sm, SP2.md), borderRadius: R2.xl,
     background: TONES2.success.soft, color: TONES2.success.fg,

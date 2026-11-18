@@ -12,7 +12,7 @@ import { UI2 } from '../../constants/v2';
 //   />
 //
 // Props:
-//   leading, title, meta, metaColor, trailing
+//   leading, title (UI2.text.rowTitle), meta (UI2.text.meta), metaColor, trailing
 //   variant  'divided' (default — hairline between rows) | 'hover' (no line, row highlights on hover)
 //   onClick, style
 
@@ -26,7 +26,7 @@ export default function ListRow({ leading, title, meta, metaColor, trailing, var
     >
       {leading}
       <div style={{ ...UI2.minWidth0, flex: 1 }}>
-        <div style={{ ...UI2.text.title, ...UI2.truncate }}>{title}</div>
+        <div style={{ ...UI2.text.rowTitle, ...UI2.truncate }}>{title}</div>
         {meta && <div style={{ ...UI2.text.meta, ...UI2.truncate, ...(metaColor ? { color: metaColor } : {}) }}>{meta}</div>}
       </div>
       {trailing && <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', flexShrink: 0, whiteSpace: 'nowrap' }}>{trailing}</div>}
