@@ -223,12 +223,21 @@ export const G2 = {
   sidebarPromoGlassMask: 'linear-gradient(180deg, transparent 0%, #000 28%, #000 100%)',
   // Mobile dark cards (FinancialCard / CheckInStatusCard / RentDueCard): gradients.button, top-left → bottom-right
   darkCard:      'linear-gradient(135deg, #03264C 0%, #0659B2 100%)',
-  // Light container surfaces — STANDARD = solid white (2026-11-18: the blue-tint glass gradients
-  // were dropped). Every card (UI2.card), inner tile (UI2.tile), pill tab bar and hero stats panel
-  // uses these, so cards read as clean white on the light-blue page; SH2.glass / SH2.glassTile
-  // keep the faint navy hairline + lift so edges still show.
-  glass:     C2.white,
-  glassTile: C2.white,
+  // Light container surfaces — STANDARD = near-white with a very light blue tint (2026-11-18:
+  // the original glass tint at roughly half strength over a whiter base). Every card (UI2.card),
+  // inner tile (UI2.tile), pill tab bar and hero stats panel uses these. Pair with
+  // C2.glassBorder + SH2.glass (faint navy hairline + lift) so edges still show.
+  glass: [
+    'radial-gradient(120% 90% at 0% 100%, rgba(255,255,255,1) 0%, rgba(255,255,255,0) 60%)',
+    'radial-gradient(80% 70% at 30% 0%, rgba(226,235,252,0.22) 0%, rgba(226,235,252,0) 70%)',
+    'radial-gradient(70% 80% at 100% 30%, rgba(230,239,254,0.35) 0%, rgba(230,239,254,0) 70%)',
+    'linear-gradient(180deg, #FBFCFF 0%, #FFFFFF 100%)',
+  ].join(', '),
+  glassTile: [
+    'radial-gradient(100% 100% at 0% 100%, rgba(255,255,255,1) 0%, rgba(255,255,255,0) 65%)',
+    'radial-gradient(90% 80% at 100% 0%, rgba(230,239,254,0.2) 0%, rgba(230,239,254,0) 70%)',
+    'linear-gradient(180deg, #FCFDFF 0%, #FFFFFF 100%)',
+  ].join(', '),
   thumbShade:    'linear-gradient(180deg, rgba(11,29,58,0) 45%, rgba(11,29,58,0.55) 100%)',  // photo bottom fade under overlay tags
   // Light diagonal wash for a tone: G2.tone(TONES2.success) / G2.panel(TONES2.warning)
   tone:  (t) => `linear-gradient(135deg, #FFFFFF 0%, ${t.cardTint} 100%)`,
