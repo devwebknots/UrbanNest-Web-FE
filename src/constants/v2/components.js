@@ -202,6 +202,8 @@ export const UI2 = {
     success: { ...btnBase, background: G2.successButton, color: C2.white, boxShadow: SH2.success },
     dark:    { ...btnBase, background: C2.black, color: C2.white, boxShadow: SH2.darkButton },
     outline: { ...btnBase, background: C2.white, color: C2.textPrimary, border: `1px solid ${C2.cardBorder}`, boxShadow: SH2.control },
+    // Coloured outline (secondary actions with meaning): UI2.btn.outlineTone(TONES2.success)
+    outlineTone: (t = TONES2.primary) => ({ ...btnBase, background: G2.panel(t), color: t.fg, border: `1px solid ${t.strong}`, boxShadow: SH2.control }),
     ghostOnDark: { ...btnBase, background: C2.onDark.surface, color: C2.white, border: `1px solid ${C2.onDark.border}`, backdropFilter: BLUR2.md, WebkitBackdropFilter: BLUR2.md },
     link: {
       display: 'inline-flex', alignItems: 'center', gap: SP2.xs, padding: 0, background: 'none', border: 'none', cursor: 'pointer',
@@ -237,7 +239,7 @@ export const UI2 = {
 
   // ── Misc ───────────────────────────────────────────────────────────────────
   progressTrack: { height: SZ2.progress, borderRadius: R2.pill, background: C2.surfaceMuted, overflow: 'hidden' },
-  progressFill:  (pct, bg = G2.successButton) => ({ width: `${pct}%`, height: '100%', borderRadius: R2.pill, background: bg }),
+  progressFill:  (pct, bg = G2.successBar) => ({ width: `${pct}%`, height: '100%', borderRadius: R2.pill, background: bg }),
   divider:       { height: SZ2.hairline, background: C2.border, border: 'none' },
   empty:         { padding: pad(SP2.xxl, SP2.sm), textAlign: 'center', color: C2.textMuted, fontSize: FS2.base },
   // Left-aligned one-line empty note at the top of a card body ("No open tickets.")
@@ -249,10 +251,57 @@ export const UI2 = {
     display: 'inline-block', width, height, ...(onDark ? { opacity: OP2.faint } : {}),
   }),
 
+  // Recessed panel inside a card (expanded thread, inline form)
+  inset: { background: C2.background, border: `1px solid ${C2.border}`, borderRadius: R2.lg, padding: SP2.md },
+
+  // ── Filter chips (segmented choices above a list) ─────────────────────────
+  //   <button style={UI2.filterChip(active)}>Vacant (1)</button>
+  filterChip: (active = false) => ({
+    ...center, minHeight: SZ2.control.sm, padding: pad(0, SP2.md), borderRadius: R2.md, cursor: 'pointer',
+    border: `1px solid ${active ? C2.navyDeep : C2.cardBorder}`,
+    background: active ? C2.navyDeep : C2.white,
+    color: active ? C2.white : C2.textPrimary,
+    boxShadow: active ? 'none' : SH2.control,
+    fontFamily: F2.body, fontSize: FS2.sm, fontWeight: FW2.medium, whiteSpace: 'nowrap',
+  }),
+  // Glass chip on a dark / photo background (hero amenities)
+  chipOnDark: {
+    display: 'inline-flex', alignItems: 'center', gap: SP2.xs, minHeight: SZ2.control.sm, padding: pad(0, SP2.md),
+    borderRadius: R2.button, border: `1px solid ${C2.onDark.border}`, background: C2.onDark.surface, color: C2.white,
+    fontFamily: F2.body, fontSize: FS2.sm, fontWeight: FW2.medium, whiteSpace: 'nowrap',
+    backdropFilter: BLUR2.sm, WebkitBackdropFilter: BLUR2.sm,
+  },
+
+  // ── Form fields ────────────────────────────────────────────────────────────
+  // Pair with className="un2-focus-ring" on a wrapper for the focus glow.
+  input: {
+    width: '100%', height: SZ2.control.md, padding: pad(0, SP2.md), boxSizing: 'border-box',
+    border: `1px solid ${C2.cardBorder}`, borderRadius: R2.md, background: C2.white, outline: 'none',
+    fontFamily: F2.body, fontSize: FS2.base, color: C2.textPrimary,
+  },
+  select: {
+    width: '100%', height: SZ2.control.md, padding: pad(0, SP2.sm), boxSizing: 'border-box', cursor: 'pointer',
+    border: `1px solid ${C2.cardBorder}`, borderRadius: R2.md, background: C2.white, outline: 'none',
+    fontFamily: F2.body, fontSize: FS2.base, color: C2.textPrimary,
+  },
+
+  // ── Chat bubbles ───────────────────────────────────────────────────────────
+  //   mine = true → right-aligned blue bubble; false → left white bubble
+  bubble: (mine = false) => ({
+    maxWidth: '80%', padding: pad(SP2.sm, SP2.md), fontSize: FS2.sm, lineHeight: LH2.body,
+    alignSelf: mine ? 'flex-end' : 'flex-start',
+    background: mine ? C2.primarySoft : C2.white,
+    color: mine ? C2.primaryDark : C2.textPrimary,
+    border: mine ? 'none' : `1px solid ${C2.border}`,
+    borderRadius: mine ? pad(R2.lg, R2.lg, R2.xs, R2.lg) : pad(R2.lg, R2.lg, R2.lg, R2.xs),
+  }),
+
   // ── Icons ──────────────────────────────────────────────────────────────────
   btnIcon:  { fontSize: FS2.md },                                  // leading icon inside a button
   chevron:  { fontSize: FS2.xl, color: C2.textSecondary },         // "go to" chevron on cards / rows
   minWidth0:{ minWidth: 0 },                                       // let a flex child truncate
+  // Limit text to N lines with an ellipsis
+  clamp: (lines = 2) => ({ display: '-webkit-box', WebkitLineClamp: lines, WebkitBoxOrient: 'vertical', overflow: 'hidden' }),
   errorBanner:   {
     display: 'flex', alignItems: 'center', gap: SP2.sm, padding: pad(SP2.md, SP2.lg), borderRadius: R2.lg,
     background: C2.errorTint, border: `1px solid ${C2.errorLight}`, color: C2.errorDark, fontSize: FS2.base,

@@ -21,13 +21,23 @@
 //   ListRow     icon/avatar + title + meta + trailing action (divided or hover rows)
 //   EmptyState  illustration + message for empty card bodies (UI2.empty / UI2.emptyInline for text only)
 //   MessageItem message bubble for dark cards
-//   BarChart · DonutChart · Sparkline   Chart.js wrappers in v2 colours
+//   MediaListItem photo tile + label/value rows (units, listings)
+//   DataTable   header + rows table (ledgers, directories)
+//   ActionTile  tinted 2×2 action tiles · MetricBar label/value + progress bar
+//   BarChart · DonutChart · Sparkline · Gauge   charts in v2 colours
+//
+// Page chrome:
+//   Breadcrumb  trail above a detail hero · TabBar (pill = page sections, underline = in-card)
+//   PropertyHero photo-slider banner for property / unit detail pages (pair with a StatTile snapshot card)
+//   StatTile    icon + value + label tile (2×2 snapshot grids)
 //   UI2 (constants/v2/components.js) for text, pills, tags, buttons, icon boxes, tiles;
 //   LAYOUT2.rowGap / inlineGap for spacing.
 export { default as PageShell } from './PageShell';
 export { default as TopBar } from './TopBar';
 export { default as Grid } from './Grid';
 export { default as HeroBanner, HeroStat } from './HeroBanner';
+export { default as PropertyHero } from './PropertyHero';
+export { default as StatTile } from './StatTile';
 export { default as SectionCard, CardHeader } from './SectionCard';
 export { default as StatCard, Wave } from './StatCard';
 export { default as PropertyListItem } from './PropertyListItem';
@@ -37,4 +47,10 @@ export { default as ListRow } from './ListRow';
 export { default as EmptyState } from './EmptyState';
 export { default as MessageItem } from './MessageItem';
 export { default as PageFooter } from './PageFooter';
-export { BarChart, DonutChart, Sparkline } from './Charts';
+export { default as Breadcrumb } from './Breadcrumb';
+export { default as TabBar } from './TabBar';
+export { default as MetricBar } from './MetricBar';
+export { default as ActionTile } from './ActionTile';
+export { default as MediaListItem } from './MediaListItem';
+export { default as DataTable } from './DataTable';
+export { BarChart, DonutChart, Sparkline, Gauge } from './Charts';

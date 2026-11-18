@@ -10,7 +10,7 @@ import { GRID2 } from '../../constants/v2';
 //   <Grid layout="wideLeft">  <SectionCard …/> <SectionCard …/>      </Grid>
 //   <Grid layout="aside" as="div">  <Chart/> <Summary/>              </Grid>   ← inside a card
 //
-// Props: layout ('two' | 'three' | 'four' | 'wideLeft' | 'split' | 'wideRight' | 'aside')
+// Props: layout ('two' | 'three' | 'four' | 'wideLeft' | 'split' | 'wideRight' | 'aside' | 'mainSide')
 //        as (default 'section') · className · style · children
 
 export default function Grid({ layout = 'two', as: Tag = 'section', className, style, children }) {

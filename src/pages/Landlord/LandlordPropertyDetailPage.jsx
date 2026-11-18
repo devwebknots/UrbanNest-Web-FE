@@ -1,11 +1,12 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Chart, registerables } from 'chart.js';
-import NavF from '../../components/layout/NavF';
+import {
+  PageShell, Grid, PropertyHero, StatTile, SectionCard, CardWave, Breadcrumb, TabBar, ListRow, EmptyState, PageFooter,
+  MediaListItem, DataTable, MetricBar, BarChart, Gauge,
+} from '../../components/v2';
+import { C2, TONES2, GSTOPS2, AVATAR2, R2, FS2, FW2, SP2, SZ2, LAYOUT2, OP2, pad, UI2 } from '../../constants/v2';
 import { C, F } from './landlordTokens';
 import { CustomDropdown } from '../../components/ui';
 import LandlordUnitSelection from './Listing/LandlordUnitSelection';
-
-Chart.register(...registerables);
 
 const API_BASE = process.env.REACT_APP_API_BASE_URL || 'http://localhost:8001/api';
 
@@ -47,11 +48,6 @@ const PROP_TYPE_LABEL = {
 };
 
 const initials = n => (n||'').split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2)||'?';
-
-const AVATAR_COLORS = [
-  { bg:'#e0e7ff', col:'#3730a3' },{ bg:'#fce7f3', col:'#9d174d' },
-  { bg:'#fef3c7', col:'#92400e' },{ bg:'#dcfce7', col:'#14532d' },
-];
 
 // ─── Static placeholder data ──────────────────────────────────────────────────
 const LEDGER_L = [
@@ -130,181 +126,9 @@ const SERVICE_FALLBACK_ICON = 'ti-adjustments';
 
 // ─── Styles ───────────────────────────────────────────────────────────────────
 const S = {
-  shell:    { display:'flex', height:'100vh', fontFamily:F.sans, background:C.pageBg, overflow:'hidden' },
-  main:     { flex:1, display:'flex', flexDirection:'column', overflow:'hidden' },
-  topbar:   { background:C.topbarBg, borderBottom:`1px solid ${C.topbarBdr}`, padding:'0 24px', height:52, display:'flex', alignItems:'center', justifyContent:'space-between', flexShrink:0 },
-  topTitle: { fontSize:14, fontWeight:600, color:C.txtPrimary },
-  topRight: { display:'flex', alignItems:'center', gap:10 },
-  iconBtn:  { width:32, height:32, borderRadius:'50%', display:'flex', alignItems:'center', justifyContent:'center', color:C.txtSec, cursor:'pointer', background:'transparent', border:'none', fontSize:16 },
-  avatar:   { width:32, height:32, borderRadius:'50%', background:C.navBg, color:'#fff', fontSize:11, fontWeight:600, display:'flex', alignItems:'center', justifyContent:'center' },
-  content:  { flex:1, overflowY:'auto', padding:'0 0 40px' },
-
-  // BREADCRUMB
-  bread:    { padding:'12px 28px 0', display:'flex', alignItems:'center', gap:6, fontSize:13 },
-  breadLink:{ color:C.blue, cursor:'pointer', fontWeight:500 },
-  breadSep: { color:C.txtMuted },
-  breadCur: { color:C.txtPrimary },
-
-  // HERO
-  heroWrap: { padding:'14px 28px 0' },
-  heroRow:  { display:'flex', justifyContent:'space-between', alignItems:'flex-start', marginBottom:14 },
-  propName: { fontSize:26, fontWeight:700, color:C.txtPrimary, letterSpacing:-0.4 },
-  propAddr: { fontSize:12.5, color:C.txtMuted, display:'flex', alignItems:'center', gap:4, marginTop:3 },
-  typeBadge:{ display:'inline-flex', alignItems:'center', background:'#e8f5f0', color:C.teal, fontSize:11, fontWeight:600, padding:'3px 10px', borderRadius:20, letterSpacing:0.3, marginLeft:10 },
-
-  // STATS — 2 cards, each with 2 stats + divider (matching screenshot)
-  statsWrap:{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:8, minWidth:230 },
-  statBox:  { background:C.cardBg, border:`1px solid ${C.cardBdr}`, borderRadius:10, padding:'8px 14px' },
-  statLbl:  { fontSize:9.5, color:C.txtMuted, fontWeight:500, letterSpacing:0.6, textTransform:'uppercase', marginBottom:4 },
-  statVal:  { fontSize:16, fontWeight:550, color:C.txtPrimary, lineHeight:1.2 },
-  statDiv:  { height:1, background:C.cardBdr, margin:'7px 0' },
-
-  // GALLERY: left = single image, right = 2x2 grid
-  gallery:     { display:'grid', gridTemplateColumns:'1fr 1fr', gap:8, height:300, margin:'14px 0 0', borderRadius:12, overflow:'hidden' },
-  galLeft:     { position:'relative', overflow:'hidden', borderRadius:8 },
-  galImg:      { width:'100%', height:'100%', objectFit:'cover', display:'block' },
-  galRight:    { display:'grid', gridTemplateColumns:'1fr 1fr', gridTemplateRows:'1fr 1fr', gap:6, height:'100%', overflow:'hidden'  },
-  galCell:     { position:'relative', overflow:'hidden', borderRadius:6 },
-  galAddCell:  { background:C.pageBg, border:`1px dashed ${C.cardBdr}`, borderRadius:6, display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:4, color:C.txtMuted, cursor:'pointer', fontSize:11, fontWeight:500 , minHeight:0, overflow:'hidden'},
-  sampleBanner:{ position:'absolute', bottom:8, left:'50%', transform:'translateX(-50%)', background:'rgba(0,0,0,0.5)', color:'#fff', fontSize:9.5, fontWeight:700, letterSpacing:1.2, padding:'2px 9px', borderRadius:3, textTransform:'uppercase', whiteSpace:'nowrap', pointerEvents:'none' },
-  galOverlay:  { position:'absolute', bottom:10, right:10, background:C.navBg, color:'#fff', fontSize:11.5, fontWeight:600, padding:'6px 12px', borderRadius:6, cursor:'pointer', display:'flex', alignItems:'center', gap:5 },
-
-  // SECTION WRAP
-  sw: { padding:'20px 28px 0' },
-
-  // 50/25/25 row
-  descRow:  { display:'grid', gridTemplateColumns:'50fr 25fr 25fr', gap:14, marginBottom:20 },
 
   // CARDS
-  card:     { background:C.cardBg, border:`1px solid ${C.cardBdr}`, borderRadius:12, padding:'18px 20px' },
-  cardHdr:  { display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:12 },
-  cardTitle:{ fontSize:14, fontWeight:600, color:C.txtPrimary },
-  cardLink: { fontSize:11.5, color:C.blue, cursor:'pointer', fontWeight:500 },
-  divider:  { height:1, background:C.cardBdr, margin:'8px 0' },
   secLbl:   { fontSize:9.5, color:C.txtMuted, fontWeight:600, letterSpacing:0.5, textTransform:'uppercase', marginBottom:4, marginTop:8 },
-
-  // AMENITIES
-  amenityGrid:{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:7, marginTop:10 },
-  amenityItem:{ display:'flex', alignItems:'center', gap:7, background:'#f8f9fb', borderRadius:6, padding:'6px 9px', fontSize:12 },
-  amenityIcon:{ width:18, height:18, borderRadius:4, background:'#e8f5f0', display:'flex', alignItems:'center', justifyContent:'center', color:C.teal, fontSize:10, flexShrink:0 },
-
-  // OWNERSHIP
-  ownerRow: { display:'flex', alignItems:'center', gap:9, marginBottom:8 },
-  ownerAv:  { width:34, height:34, borderRadius:'50%', background:C.blueLight, color:C.blueDark, fontSize:11, fontWeight:600, display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 },
-  ownerName:{ fontSize:13, fontWeight:600, color:C.txtPrimary },
-  ownerSub: { fontSize:11, color:C.txtMuted },
-  ledgerBtn:{ width:'100%', background:'#fff', border:`1px solid ${C.cardBdr}`, borderRadius:6, padding:'7px 0', fontSize:12, fontWeight:500, color:C.txtPrimary, cursor:'pointer', marginTop:10, fontFamily:F.sans },
-
-  // HEALTH
-  healthHdr:   { display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:6 },
-  healthBadge: (bg,col) => ({ background:bg, color:col, fontSize:10, fontWeight:600, padding:'2px 9px', borderRadius:20 }),
-  healthScore: { fontSize:30, fontWeight:700, lineHeight:1, marginBottom:2 },
-  healthSub:   { fontSize:11, color:C.txtMuted, marginBottom:10 },
-  metricRow:   { display:'flex', flexDirection:'column', gap:2, marginBottom:7 },
-  metricTop:   { display:'flex', justifyContent:'space-between', fontSize:11.5 },
-  barTrack:    { height:4, background:'#e5e8ed', borderRadius:2, overflow:'hidden' },
-  barFill:     (w,bg) => ({ height:'100%', width:`${w}%`, background:bg, borderRadius:2 }),
-  healthFooter:{ marginTop:8, paddingTop:8, borderTop:`1px solid ${C.cardBdr}`, fontSize:10.5, color:C.txtMuted, display:'flex', alignItems:'center', gap:4 },
-
-  // UNIT INVENTORY
-  unitHdr:    { display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:12 },
-  unitHdrTtl: { fontSize:15, fontWeight:700, color:C.txtPrimary },
-  unitHdrR:   { display:'flex', gap:8 },
-  filterBtn:  { background:'#fff', border:`1px solid ${C.cardBdr}`, borderRadius:6, padding:'6px 12px', fontSize:12, color:C.txtSec, cursor:'pointer', display:'flex', alignItems:'center', gap:5, fontFamily:F.sans },
-  btnBulk:    { background:'#fff', border:`1.5px solid ${C.blue}`, borderRadius:6, padding:'6px 14px', fontSize:12, fontWeight:700, color:C.blue, cursor:'pointer', display:'flex', alignItems:'center', gap:5, fontFamily:F.sans },
-  // "List Multi Units" entry point (Session 42/43) — teal to distinguish it
-  // from the blue "Add Service to All Units" bulk action, matching the teal
-  // already used for amenity/marketplace accents elsewhere on this page.
-  btnMulti:   { background:'#fff', border:`1.5px solid ${C.teal}`, borderRadius:6, padding:'6px 14px', fontSize:12, fontWeight:700, color:C.teal, cursor:'pointer', display:'flex', alignItems:'center', gap:5, fontFamily:F.sans },
-  btnMultiDisabled: { opacity:0.5, cursor:'not-allowed' },
-  addUnitBtn: { background:C.navBg, color:'#fff', border:'none', borderRadius:6, padding:'6px 14px', fontSize:12, fontWeight:500, cursor:'pointer', fontFamily:F.sans },
-  unitGrid:   { display:'grid', gridTemplateColumns:'repeat(auto-fill, minmax(180px, 1fr))', gap:12 },
-  unitCard:   { background:C.cardBg, border:`1px solid ${C.cardBdr}`, borderRadius:10, overflow:'hidden' },
-  unitImgWrap:{ position:'relative', height:100, overflow:'hidden', background:C.pageBg },
-  unitImg:    { width:'100%', height:'100%', objectFit:'cover', display:'block' },
-  unitRentBadge:(bg,col) => ({ position:'absolute', top:7, right:7, fontSize:9.5, fontWeight:700, padding:'2px 6px', borderRadius:4, background:bg, color:col }),
-  unitBody:   { padding:'11px 13px 13px' },
-  unitNum:    { fontSize:13.5, fontWeight:700, color:C.txtPrimary, marginBottom:3 },
-  unitTenant: { fontSize:12, color:C.txtSec, marginBottom:7, fontStyle:'italic' },
-  unitStatusRow:{ display:'flex', justifyContent:'space-between', fontSize:11.5, color:C.txtMuted, marginBottom:4 },
-  unitBtns:   { display:'grid', gridTemplateColumns:'1fr 1fr', gap:6, marginTop:8 },
-  unitBtnDark:{ background:C.navBg, color:'#fff', border:'none', borderRadius:6, padding:'6px 0', fontSize:11.5, fontWeight:500, cursor:'pointer', fontFamily:F.sans, textAlign:'center' },
-  unitBtnOut: { background:'#fff', border:`1px solid ${C.cardBdr}`, borderRadius:6, padding:'6px 0', fontSize:11.5, color:C.txtPrimary, cursor:'pointer', fontFamily:F.sans, textAlign:'center' },
-  unitImgFallback:{ width:'100%', height:'100%', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:4, background:C.pageBg },
-
-  // BOTTOM ROWS
-  row1:    { display:'grid', gridTemplateColumns:'35fr 35fr 30fr', gap:14, marginBottom:14 },
-  row2:    { display:'grid', gridTemplateColumns:'40fr 60fr', gap:14, marginBottom:14 },
-  row3:    { display:'grid', gridTemplateColumns:'60fr 40fr', gap:14, marginBottom:0 },
-
-  // MAINT
-  maintItem:   { display:'flex', alignItems:'center', gap:8, padding:'8px 0', borderBottom:`1px solid ${C.cardBdr}` },
-  maintBadge:  (bg,col) => ({ width:28, height:28, borderRadius:6, background:bg, color:col, fontSize:11, fontWeight:700, display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }),
-  maintTitle:  { fontSize:12.5, fontWeight:500, color:C.txtPrimary },
-  maintSub:    { fontSize:11, color:C.txtMuted },
-  statusPill:  (bg,col) => ({ fontSize:10, fontWeight:600, padding:'2px 7px', borderRadius:4, background:bg, color:col, marginLeft:'auto', flexShrink:0 }),
-
-  // QUICK ACTIONS
-  qaItem:   { display:'flex', alignItems:'flex-start', gap:8, padding:'8px 0', borderBottom:`1px solid ${C.cardBdr}` },
-  qaIcon:   (bg) => ({ width:28, height:28, borderRadius:7, background:bg, display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }),
-  qaTitle:  { fontSize:12.5, fontWeight:500, color:C.txtPrimary, lineHeight:1.3 },
-  qaSub:    { fontSize:11, color:C.txtMuted, marginTop:1 },
-  qaTime:   { fontSize:10.5, color:C.txtMuted, marginLeft:'auto', paddingLeft:6, flexShrink:0 },
-
-  // DOC VAULT
-  docItem:  { display:'flex', alignItems:'center', gap:8, padding:'8px 0', borderBottom:`1px solid ${C.cardBdr}` },
-  docIcon:  (bg,col) => ({ width:28, height:28, borderRadius:6, background:bg, display:'flex', alignItems:'center', justifyContent:'center', color:col, fontSize:14, flexShrink:0 }),
-
-  // RENT COLLECTION
-  rentTrendWrap:   { position:'relative', height:90, background:'#f3f4f6', borderRadius:8, marginBottom:14, overflow:'hidden', display:'flex', alignItems:'flex-end', padding:'10px 8px 0', gap:5 },
-  rentBar:    (h,bg) => ({ flex:1, height:`${h}%`, background:bg, borderRadius:'3px 3px 0 0' }),
-  rentGraphOverlay:{ position:'absolute', top:'50%', left:'50%', transform:'translate(-50%,-50%)', background:'rgba(0,0,0,0.45)', color:'#fff', fontSize:10, fontWeight:700, letterSpacing:1.2, padding:'3px 10px', borderRadius:3, textTransform:'uppercase', whiteSpace:'nowrap' },
-  rentStats:  { display:'flex', gap:0 },
-  rentStatIt: (first,last) => ({ flex:1, paddingLeft:first?0:14, paddingRight:last?0:14, borderRight:last?'none':`1px solid ${C.cardBdr}` }),
-  rentStatLbl:{ fontSize:9.5, color:C.txtMuted, fontWeight:500, letterSpacing:0.5, textTransform:'uppercase', marginBottom:4 },
-  rentStatVal:{ fontSize:17, fontWeight:500 },
-
-  // LEDGER
-  ledgerCols:{ display:'grid', gridTemplateColumns:'1fr 1fr', gap:'0 20px' },
-  ledgerHdr: { display:'grid', gridTemplateColumns:'52px 1fr 1fr 60px', gap:3, padding:'5px 0', borderBottom:`1px solid ${C.cardBdr}` },
-  ledgerRow: { display:'grid', gridTemplateColumns:'52px 1fr 1fr 60px', gap:3, padding:'7px 0', borderBottom:`1px solid ${C.cardBdr}`, alignItems:'center' },
-  lTh:       { fontSize:9.5, color:C.txtMuted, fontWeight:500, letterSpacing:0.4, textTransform:'uppercase' },
-  lTd:       { fontSize:11.5, color:C.txtPrimary },
-
-  // RESIDENT DIR
-  dirHdr:    { display:'grid', gridTemplateColumns:'2fr 0.8fr 1fr 1.1fr 1fr 0.5fr', gap:4, padding:'5px 0', borderBottom:`1px solid ${C.cardBdr}` },
-  dirRow:    { display:'grid', gridTemplateColumns:'2fr 0.8fr 1fr 1.1fr 1fr 0.5fr', gap:4, padding:'8px 0', borderBottom:`1px solid ${C.cardBdr}`, alignItems:'center' },
-  dirTh:     { fontSize:9.5, color:C.txtMuted, fontWeight:500, letterSpacing:0.4, textTransform:'uppercase' },
-  dirTd:     { fontSize:12, color:C.txtPrimary },
-  tenantAv:  (bg,col) => ({ width:24, height:24, borderRadius:'50%', background:bg, color:col, fontSize:10, fontWeight:600, display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }),
-
-  // COMMUNICATIONS
-  tabRow:       { display:'flex', borderBottom:`1px solid ${C.cardBdr}`, marginBottom:10 },
-  tab:          (a) => ({ fontSize:12.5, padding:'6px 14px', cursor:'pointer', borderBottom: a?`2px solid ${C.blue}`:'2px solid transparent', color:a?C.txtPrimary:C.txtMuted, fontWeight:a?500:400 }),
-  newChatBtn: { display:'flex', alignItems:'center', justifyContent:'center', gap:4, fontSize:11.5, fontWeight:500, color:'#fff', background:C.navBg, border:'none', borderRadius:6, padding:'6px 16px', cursor:'pointer', marginBottom:10, fontFamily:F.sans, width:'auto', alignSelf:'center' },
-  newChatForm:  { background:C.pageBg, border:`1px solid ${C.cardBdr}`, borderRadius:8, padding:'10px', marginBottom:10 },
-  ncSelect:     { width:'100%', marginBottom:8, fontSize:12, border:`1px solid ${C.cardBdr}`, borderRadius:5, padding:'6px 8px', background:'#fff', color:C.txtPrimary, fontFamily:F.sans },
-  ncInputRow:   { display:'flex', gap:6 },
-  ncInput:      { flex:1, fontSize:12, border:`1px solid ${C.cardBdr}`, borderRadius:5, padding:'6px 8px', background:'#fff', color:C.txtPrimary, fontFamily:F.sans, outline:'none' },
-  ncSendBtn:    { background:C.teal, color:'#fff', border:'none', borderRadius:5, padding:'6px 12px', fontSize:12, fontWeight:500, cursor:'pointer', fontFamily:F.sans },
-  msgItem:      { display:'flex', alignItems:'flex-start', gap:8, padding:'8px 0', borderBottom:`1px solid ${C.cardBdr}`, cursor:'pointer' },
-  msgAv:        { width:28, height:28, borderRadius:'50%', background:C.stdBg, display:'flex', alignItems:'center', justifyContent:'center', fontSize:10, fontWeight:500, color:C.txtSec, flexShrink:0 },
-  msgName:      { fontSize:12.5, fontWeight:500, color:C.txtPrimary },
-  msgPreview:   { fontSize:11, color:C.txtMuted, marginTop:1 },
-  msgTime:      { fontSize:10.5, color:C.txtMuted, marginLeft:'auto', paddingLeft:6, flexShrink:0 },
-  chatExpanded: { background:C.pageBg, border:`1px solid ${C.cardBdr}`, borderRadius:8, padding:'10px', marginTop:6 },
-  threadWrap:   { display:'flex', flexDirection:'column', gap:6, marginBottom:8, maxHeight:120, overflowY:'auto' },
-  bubbleRight:  { background:C.blueLight, color:C.blueDark, fontSize:11, padding:'6px 9px', borderRadius:'8px 8px 2px 8px', alignSelf:'flex-end', maxWidth:'80%' },
-  bubbleLeft:   { background:'#fff', border:`1px solid ${C.cardBdr}`, color:C.txtPrimary, fontSize:11, padding:'6px 9px', borderRadius:'8px 8px 8px 2px', alignSelf:'flex-start', maxWidth:'80%' },
-  replyRow:     { display:'flex', gap:6, marginTop:6 },
-  replyInput:   { flex:1, fontSize:12, border:`1px solid ${C.cardBdr}`, borderRadius:6, padding:'6px 9px', fontFamily:F.sans, outline:'none', background:'#fff' },
-  sendBtn:      { width:30, height:30, borderRadius:'50%', background:C.teal, border:'none', display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', flexShrink:0 },
-  notifItem:    { display:'flex', alignItems:'flex-start', gap:8, padding:'8px 0', borderBottom:`1px solid ${C.cardBdr}`, cursor:'pointer' },
-  notifIconWrap:(bg) => ({ width:28, height:28, borderRadius:7, background:bg, display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }),
-  notifPopup:   { background:C.pageBg, border:`1px solid ${C.cardBdr}`, borderRadius:8, padding:'12px', marginTop:6 },
-  notifImgArea: { height:70, background:'linear-gradient(135deg,#dbeafe,#eff6ff)', borderRadius:6, display:'flex', alignItems:'center', justifyContent:'center', marginBottom:8 },
-  notifFullText:{ fontSize:11.5, color:C.txtSec, lineHeight:1.6, marginBottom:8 },
-  markReadBtn:  { fontSize:11.5, color:C.blue, background:'none', border:'none', cursor:'pointer', padding:0, fontFamily:F.sans, fontWeight:500 },
 
   // FILTER MODAL
   overlay:      { position:'fixed', top:0, left:0, right:0, bottom:0, background:'rgba(0,0,0,0.4)', display:'flex', alignItems:'center', justifyContent:'center', zIndex:1000 },
@@ -352,24 +176,19 @@ const S = {
   bulkFlagAction:       { fontSize:11.5, fontWeight:700, color:C.blue, flexShrink:0, cursor:'pointer' },
 
   errBanner:    { background:C.redLight, color:C.red, padding:'10px 28px', fontSize:13 },
-  footer:       { textAlign:'center', fontSize:11, color:C.txtMuted, padding:'16px 0', borderTop:`1px solid ${C.cardBdr}`, margin:'20px 28px 0' },
 
   // EDIT PROPERTY / EDIT UNIT MODALS (shared shapes — proper Edit functionality)
-  editBtn:          { display:'flex', alignItems:'center', gap:5, background:'#fff', border:`1px solid ${C.cardBdr}`, borderRadius:6, padding:'6px 13px', fontSize:12, fontWeight:600, color:C.txtPrimary, cursor:'pointer', fontFamily:F.sans, marginLeft:10 },
   editFormGrid:     { display:'grid', gridTemplateColumns:'1fr 1fr', gap:'12px 14px' },
   editLabel:        { fontSize:10, fontWeight:700, color:C.txtMuted, textTransform:'uppercase', letterSpacing:'0.05em', marginBottom:5 },
   editInput:        { width:'100%', height:36, border:`1px solid ${C.cardBdr}`, borderRadius:6, padding:'0 10px', fontSize:12.5, color:C.txtPrimary, fontFamily:F.sans, outline:'none', background:'#fff', boxSizing:'border-box' },
   editImgGrid:      { display:'grid', gridTemplateColumns:'repeat(4, 1fr)', gap:10, marginTop:8 },
   editImgSlot:      { display:'flex', flexDirection:'column', alignItems:'center' },
   editImgX:         { position:'absolute', top:4, right:4, width:20, height:20, borderRadius:'50%', background:'rgba(0,0,0,0.6)', border:'none', color:'#fff', display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', padding:0 },
-  editImgReplaceBtn:{ marginTop:5, fontSize:10.5, fontWeight:600, color:C.blue, background:'none', border:'none', cursor:'pointer', fontFamily:F.sans, padding:0 },
   editAmenityGrid:  { display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:7, maxHeight:195, overflowY:'auto', paddingRight:4 },
   // Session 58 fix — selected state was too heavy (solid blue border + solid
   // blueLight fill); per explicit feedback, both are now a barely-there
   // tint of C.blue (rgba at low alpha) rather than a flat token color.
   editAmenityItem:  (checked) => ({ display:'flex', alignItems:'center', gap:7, background: checked ? 'rgba(61,142,240,0.055)' : '#f8f9fb', border:`1px solid ${checked ? 'rgba(61,142,240,0.18)' : 'transparent'}`, borderRadius:6, padding:'7px 9px', fontSize:12, cursor:'pointer', color: checked ? C.blueDark : C.txtPrimary, fontFamily:F.sans }),
-  editGalWrap:      { position:'relative', borderRadius:8, overflow:'hidden' },
-  editGalX:         { position:'absolute', top:6, right:6, width:22, height:22, borderRadius:'50%', background:'rgba(0,0,0,0.65)', border:'none', color:'#fff', display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', padding:0, zIndex:2 },
 };
 
 // ─── Edit Property — field options derived from the backend's real choices
@@ -408,12 +227,6 @@ const unitPillCfg = s => {
   return { bg:C.stdBg, col:C.stdTx, label:'VACANT' };
 };
 
-const maintBadgeCfg = p => {
-  if (p==='URGENT'||p==='HIGH') return { bg:C.redLight, col:C.red };
-  if (p==='MEDIUM') return { bg:C.amberLight, col:C.amber };
-  return { bg:C.stdBg, col:C.stdTx };
-};
-
 // Session 53 fix: same large click-to-enlarge lightbox used on
 // LandlordUnitDetailPage.jsx / PMUnitDetailPage.jsx / PMPropertyDetailPage.jsx.
 function GalleryLightbox({ items, index, onClose, onNav }) {
@@ -443,87 +256,6 @@ function GalleryLightbox({ items, index, onClose, onNav }) {
           <div style={{ position:'absolute', bottom:20, left:'50%', transform:'translateX(-50%)', color:'rgba(255,255,255,0.7)', fontSize:13, fontFamily:F.sans }}>{index + 1} / {total}</div>
         </>
       )}
-    </div>
-  );
-}
-
-// ─── GalleryImage ─────────────────────────────────────────────────────────────
-function GImg({ src, fallback, alt, style }) {
-  const [useFB, setUseFB] = useState(!src);
-  return (
-    <div style={{ position:'relative', overflow:'hidden', width:'100%', height:'100%',minHeight:0, ...style }}>
-      <img
-        src={useFB ? fallback : src}
-        alt={alt}
-        style={S.galImg}
-        onError={() => setUseFB(true)}
-      />
-      {useFB && <div style={S.sampleBanner}>Sample Image</div>}
-    </div>
-  );
-}
-
-// ─── Unit image with fallback ─────────────────────────────────────────────────
-function UnitImg({ src, rentBadge }) {
-  const [useFB, setUseFB] = useState(!src);
-  const pill = rentBadge;
-  return (
-    <div style={S.unitImgWrap}>
-      {useFB ? (
-        <div style={S.unitImgFallback}>
-          <i className="ti ti-home" style={{ fontSize:22, color:C.txtMuted }} aria-hidden="true" />
-          <div style={{ fontSize:9, color:C.txtMuted, letterSpacing:1, textTransform:'uppercase' }}>Sample image</div>
-        </div>
-      ) : (
-        <img src={src} alt="Unit" style={S.unitImg} onError={() => setUseFB(true)} />
-      )}
-      <span style={S.unitRentBadge(pill.bg, pill.col)}>{pill.label}</span>
-    </div>
-  );
-}
-
-// ─── Rent bar chart ───────────────────────────────────────────────────────────
-function RentBarChart() {
-  const ref = useRef(null);
-  const chartRef = useRef(null);
-  useEffect(() => {
-    if (!ref.current) return;
-    if (chartRef.current) chartRef.current.destroy();
-    const amounts = [390, 395, 398, 428, 410];
-    const maxVal = Math.max(...amounts);
-    chartRef.current = new Chart(ref.current, {
-      type: 'bar',
-      data: {
-        labels: ['JUN','JUL','AUG','SEP','OCT'],
-        datasets: [{
-          data: amounts,
-          backgroundColor: amounts.map(a => a === maxVal ? C.navBg : '#c5d5ea'),
-          borderRadius: { topLeft:4, topRight:4 },
-          borderSkipped: false,
-          barPercentage: 0.6,
-        }],
-      },
-      options: {
-        responsive: true, maintainAspectRatio: false,
-        plugins: { legend:{ display:false }, tooltip:{ callbacks:{ label: v => '$'+v.raw.toLocaleString() } } },
-        scales: {
-          x: { grid:{ display:false }, ticks:{ font:{ size:9, family:F.sans }, color:'#9ca3af' } },
-          y: { grid:{ color:'#f3f4f6' }, ticks:{ font:{ size:9, family:F.sans }, color:'#9ca3af', callback: v => '$'+(v/1000)+'K' } },
-        },
-      },
-    });
-    return () => { if (chartRef.current) chartRef.current.destroy(); };
-  }, []);
-  return (
-    <div style={{ position:'relative', height:100, marginBottom:14 }}>
-      <canvas ref={ref} role="img" aria-label="Monthly rent collection bar chart" />
-      <div style={{
-        position:'absolute', top:'50%', left:'50%', transform:'translate(-50%,-50%)',
-        background:'rgba(0,0,0,0.45)', color:'#fff', fontSize:10, fontWeight:700,
-        letterSpacing:1.2, padding:'3px 10px', borderRadius:3, textTransform:'uppercase', whiteSpace:'nowrap',
-      }}>
-        Sample Graph
-      </div>
     </div>
   );
 }
@@ -1185,6 +917,61 @@ function EditPropertyModal({ propId, prop, amenities, onClose, onSaved }) {
   );
 }
 
+// ─── Design System v2 — presentation for the main page ───────────────────────
+// Visual layer only. Data still comes from exactly the same calls as before:
+//   GET  /landlord/property/<id>/                 (property, stats, units, ownerships, amenities, open_tickets)
+//   GET  /landlord/account/services/              (owned services → Bulk Add Service)
+//   GET  /properties/<id>/units/<uid>/services/   (per-unit services)
+//   PATCH /properties/<id>/                       (Add images upload)
+// The modals further up (Filter, Bulk Add Service, Edit Property, Unit Selection,
+// Gallery lightbox) are unchanged.
+
+// Tones for the static placeholder lists above (same order as the arrays)
+const QA_TONES    = [TONES2.warning, TONES2.error, TONES2.primary, TONES2.success];
+const DOC_TONES   = [TONES2.primary, TONES2.success, TONES2.warning, TONES2.neutral];
+const NOTIF_TONES = { n1: TONES2.primary, n2: TONES2.success };
+const UNIT_TAG_TONE = { PAID: TONES2.success, OVERDUE: TONES2.error, VACANT: TONES2.neutral };
+const PRIORITY_TONE = p => (p === 'URGENT' || p === 'HIGH') ? TONES2.error : p === 'MEDIUM' ? TONES2.warning : TONES2.neutral;
+
+// Rent Collection — placeholder figures (same numbers as before; flagged "Sample data" in the UI)
+const RENT_MONTHS = ['JUN', 'JUL', 'AUG', 'SEP', 'OCT'];
+const RENT_SAMPLE = [390, 395, 398, 428, 410];
+const RENT_SUMMARY = [
+  { icon: 'ti-stack-2',      lbl: 'Funding',      val: '$4,250' },
+  { icon: 'ti-credit-card',  lbl: 'Expenses',     val: '$12,800' },
+  { icon: 'ti-file-invoice', lbl: 'Vendor Bills', val: '$2,100' },
+];
+const LEDGER_ROWS = [...LEDGER_L, ...LEDGER_R];
+const fmtMoney = v => '$' + Number(v).toLocaleString();
+const fmtK     = v => '$' + (v / 1000) + 'K';
+
+const HERO_AMENITIES = 4;   // amenities listed in the hero before "+N more"
+
+const V = {
+  healthBody:    { display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'center', gap: SP2.lg },
+  healthMetrics: { ...UI2.stack(SP2.md), flex: `1 1 ${SZ2.thumbXl.w}px`, minWidth: 0, paddingLeft: SP2.lg, borderLeft: `${SZ2.hairline}px solid ${C2.border}` },
+  unitActions:   { display: 'flex', flexWrap: 'wrap', gap: LAYOUT2.inlineGap },
+  // Overview unit row: fixed-width cards side by side, scrolls sideways (snaps per card)
+  // padding leaves room for the cards' SH2.card shadow + hover lift (overflow-x would clip it); bottom margin takes it back
+  unitScroller:  { display: 'flex', alignItems: 'stretch', gap: LAYOUT2.gridGap, flex: 1, minWidth: 0, overflowX: 'auto', scrollSnapType: 'x mandatory', scrollBehavior: 'smooth', padding: pad(SP2.sm, SP2.sm, SP2.xl), scrollPaddingLeft: SP2.sm, marginBottom: -SP2.md },
+  unitSlide:     { flex: `0 0 ${SZ2.unitCard}px`, maxWidth: '100%', scrollSnapAlign: 'start' },
+  scrollArrow:   { ...UI2.btn.iconOutline(SZ2.control.sm), borderRadius: R2.round },
+  fill:          { flex: 1 },
+  snapshotEdit:  { ...UI2.btn.outline, ...UI2.btnSm },
+  newChatBtn:    { ...UI2.btn.brand, width: 'fit-content', margin: pad(SP2.md, 'auto', 0), padding: pad(0, SP2.xl) },  // dark-blue brand button, centred
+  disabled:      { opacity: OP2.muted, cursor: 'not-allowed' },
+  chartWrap:     { position: 'relative', height: SZ2.chart },
+  rentSummary:   { display: 'flex', flexWrap: 'wrap', gap: SP2.lg, marginTop: SP2.lg, paddingTop: SP2.lg, borderTop: `${SZ2.hairline}px solid ${C2.border}` },
+  rentStat:      { ...UI2.row(LAYOUT2.rowGap), flex: '1 1 0', minWidth: 0 },
+  score:         { fontWeight: FW2.bold, color: C2.successStrong },
+  ticketNo:      { fontSize: FS2.xs, fontWeight: FW2.bold },
+  commBody:      { marginTop: LAYOUT2.rowGap },
+  thread:        { ...UI2.stack(SP2.sm), maxHeight: SZ2.threadMax, overflowY: 'auto', marginBottom: SP2.sm },
+  sendBtn:       { width: SZ2.control.md, padding: 0, flexShrink: 0 },
+  hidden:        { display: 'none' },
+};
+
+
 // ─── Main Component ───────────────────────────────────────────────────────────
 export default function LandlordPropertyDetailPage() {
   const [data,         setData]         = useState(null);
@@ -1329,23 +1116,20 @@ export default function LandlordPropertyDetailPage() {
   const heroVideoIdx = galleryList.findIndex(g => g && g.file_type === 'VIDEO');
   const heroIsVideo = heroVideoIdx !== -1;
   const heroVideoItem = heroIsVideo ? galleryList[heroVideoIdx] : null;
-  const galHero = heroIsVideo ? (heroVideoItem.file_url || FB.main) : (prop.main_image_url || FB.main);
   const galThumbSlots = heroIsVideo
     ? [prop.main_image_url || null, prop.thumb1_url || null, prop.thumb2_url || null]
     : [prop.thumb1_url || null, prop.thumb2_url || null, prop.thumb3_url || null];
-  const galThumbFallbacks = heroIsVideo ? [FB.main, FB.t1, FB.t2] : [FB.t1, FB.t2, FB.t3];
   const galHeroObj = heroIsVideo ? { file_url: heroVideoItem.file_url, file_type: 'VIDEO' }
     : (prop.main_image_url ? { file_url: prop.main_image_url, file_type: 'IMAGE' } : null);
   const galThumbObjs = galThumbSlots.map(u => (u ? { file_url: u, file_type: 'IMAGE' } : null));
-  const galLightboxItems = [...(galHeroObj ? [galHeroObj] : []), ...galThumbObjs.filter(Boolean)];
+  const galBaseItems = [...(galHeroObj ? [galHeroObj] : []), ...galThumbObjs.filter(Boolean)];
+  const galLightboxItems = [...galBaseItems, ...galleryList.filter(g => g && g.file_url && !galBaseItems.some(b => b.file_url === g.file_url))];
   const galHasRealItems = galLightboxItems.length > 0;
+  // Hero photo strip: the photos after the main one; the rest sit behind "+N"
+  // Hero slider photos: main image first, then gallery photos (videos skipped, no duplicates)
+  const heroSlides = [...new Set([prop.main_image_url || FB.main, ...galLightboxItems.filter(g => g.file_type !== 'VIDEO').map(g => g.file_url)])];
   const [galLightboxIdx, setGalLightboxIdx] = useState(null);
   const galOpenLightbox = (idx) => { if (galHasRealItems && idx != null) setGalLightboxIdx(idx); };
-  const galThumbLightboxIdx = (slotUrl) => {
-    if (!slotUrl) return null;
-    const pos = galThumbObjs.filter(Boolean).findIndex(o => o.file_url === slotUrl);
-    return pos === -1 ? null : (galHeroObj ? 1 : 0) + pos;
-  };
 
   // Session 40 (SVC-1) — once the property's units are known, fetch each
   // one's real assigned services for the Bulk Add Service picker/checklist.
@@ -1369,560 +1153,533 @@ export default function LandlordPropertyDetailPage() {
   const toggleChat = id => setOpenChatId(prev => prev === id ? null : id);
   const toggleNotif = id => setOpenNotifId(prev => prev === id ? null : id);
 
-  return (
-    <div style={S.shell}>
-      <NavF activePage="properties" />
+  // ── v2 view state (presentation only — no data changes) ──────────────────
+  const [tab, setTab] = useState('overview');
+  const [unitFilter, setUnitFilter] = useState('all');
+  const unitRowRef = useRef(null);
+  // Unit row scroll state: does it overflow, is it at the start / end (drives the ‹ › arrows)
+  const [unitEdges, setUnitEdges] = useState({ overflow: false, start: true, end: true });
+  const updateUnitEdges = React.useCallback(() => {
+    const el = unitRowRef.current;
+    if (!el) return;
+    const max = el.scrollWidth - el.clientWidth;
+    const next = { overflow: max > SP2.xs, start: el.scrollLeft <= SP2.xs, end: el.scrollLeft >= max - SP2.xs };
+    setUnitEdges(p => (p.overflow === next.overflow && p.start === next.start && p.end === next.end ? p : next));
+  }, []);
+  useEffect(() => {
+    updateUnitEdges();
+    window.addEventListener('resize', updateUnitEdges);
+    return () => window.removeEventListener('resize', updateUnitEdges);
+  }, [updateUnitEdges, units.length, tab]);
 
-      <div style={S.main}>
-        {/* TOPBAR */}
-        <header style={S.topbar}>
-          <div style={S.topTitle}>UrbanNest Landlord</div>
-          <div style={S.topRight}>
-            <button style={S.iconBtn} aria-label="Notifications">
-              <i className="ti ti-bell" aria-hidden="true" />
+  const healthTone = healthScore >= 70 ? TONES2.success : healthScore >= 40 ? TONES2.warning : TONES2.error;
+  const isVacant = u => unitPillCfg(u.status).label === 'VACANT';
+  const vacantCount = units.filter(isVacant).length;
+  const shownUnits = units.filter(u => unitFilter === 'all' || (unitFilter === 'vacant' ? isVacant(u) : !isVacant(u)));
+  const goUnit = u => { window.location.href = `/landlord-portal/property/${propId}/unit/${u.id}`; };
+
+  // ── Sections (each is reused by the Overview tab and its own tab) ──────────
+  const ownershipCard = (
+    <SectionCard icon="ti-users-group" title="Ownership Cluster">
+      <div style={UI2.stack(LAYOUT2.rowGap)}>
+        {primary.owner_name ? (
+          <div style={UI2.row(SP2.md)}>
+            <div style={UI2.avatar(SZ2.icon.lg, TONES2.primary)}>{initials(primary.owner_name)}</div>
+            <div style={UI2.minWidth0}>
+              <div style={UI2.text.caption}>Primary Owner</div>
+              <div style={UI2.text.titleLg}>{primary.owner_name}</div>
+              <div style={UI2.text.label}>Type: Full ({primary.share_pct}%)</div>
+            </div>
+          </div>
+        ) : <div style={UI2.text.meta}>—</div>}
+        <div style={UI2.divider} />
+        <div>
+          <div style={UI2.text.caption}>Co-Owners</div>
+          {coOwners.length > 0
+            ? coOwners.map((o, i) => <div key={i} style={UI2.text.body}>{o.owner_name} — {o.share_pct}%</div>)
+            : <div style={UI2.text.body}>None registered</div>}
+        </div>
+        <div style={UI2.divider} />
+        <div>
+          <div style={UI2.text.caption}>Assigned Manager</div>
+          <div style={UI2.text.body}>
+            {prop.assigned_pm
+              ? <><i className="ti ti-user-check" aria-hidden="true" /> {prop.assigned_pm}</>
+              : 'None assigned'}
+          </div>
+        </div>
+        <button type="button" className="un2-raise" style={{ ...UI2.btn.outline, width: '100%', marginTop: SP2.xs }}>
+          View Ownership Ledger <i className="ti ti-arrow-right" aria-hidden="true" />
+        </button>
+      </div>
+    </SectionCard>
+  );
+
+  const healthCard = (
+    <SectionCard
+      icon="ti-heart-rate-monitor" title="Property Health" decoration={<CardWave variant="single" height="22%" />}
+      action={<span style={UI2.pill(healthTone)}>{healthCfg.label} <i className="ti ti-info-circle" aria-hidden="true" /></span>}
+    >
+      <div style={V.healthBody}>
+        <Gauge value={healthScore} caption="Overall score" tone={TONES2.success} gradient={GSTOPS2.success} size={SZ2.donut} />
+        <div style={V.healthMetrics}>
+          <MetricBar label="Occupancy" value={`${occ}%`} pct={occ} tone={occ >= 80 ? TONES2.success : TONES2.warning} valueTone />
+          <MetricBar label="Rent collection" value={`${stats.collection_pct ?? 0}%`} pct={stats.collection_pct ?? 0} tone={TONES2.warning} valueTone />
+          <MetricBar label="Maintenance" value={stats.maint_open > 0 ? `${stats.maint_open} open` : 'Clear'}
+            pct={maintScore} tone={maintScore > 50 ? TONES2.success : TONES2.error} valueTone gradient={maintScore > 50} />
+          <MetricBar label="Lease renewals" value="0 due" pct={0} tone={TONES2.warning} />
+        </div>
+      </div>
+    </SectionCard>
+  );
+
+  const quickActionsCard = (
+    <SectionCard icon="ti-bolt" title="Quick Actions" action={<span style={UI2.pill(TONES2.warning)}>3 pending</span>}>
+      {QA_ITEMS.map((q, i) => (
+        <ListRow
+          key={q.title}
+          leading={<div style={UI2.iconBox(SZ2.icon.md, QA_TONES[i], { round: true })}><i className={`ti ${q.icon}`} aria-hidden="true" /></div>}
+          title={q.title}
+          meta={q.sub}
+          trailing={<span style={UI2.text.caption}>{q.time}</span>}
+        />
+      ))}
+    </SectionCard>
+  );
+
+  // Header actions shared by the Overview carousel and the Units tab
+  const unitHeaderActions = (
+    <div style={V.unitActions}>
+      <button type="button" className="un2-raise" style={{ ...UI2.btn.outline, ...UI2.btnSm }} onClick={() => setShowFilter(true)}>
+        <i className="ti ti-filter" style={UI2.btnIcon} aria-hidden="true" /> Filter
+      </button>
+      <button type="button" className="un2-raise" style={{ ...UI2.btn.outlineTone(TONES2.primary), ...UI2.btnSm }} onClick={() => setShowBulkAdd(true)}>
+        <i className="ti ti-apps" style={UI2.btnIcon} aria-hidden="true" /> Add Service to All Units
+      </button>
+      {/* "List Ready" gate (LST-8): opens the Unit Selection modal, where readiness
+          comes live from the A6 rules engine. Disabled until a unit exists. */}
+      <button
+        type="button" className="un2-raise"
+        style={{ ...UI2.btn.outlineTone(TONES2.success), ...UI2.btnSm, ...(units.length < 1 ? V.disabled : {}) }}
+        disabled={units.length < 1}
+        title={units.length < 1 ? 'Add a unit first to list it on the marketplace' : 'Choose which units to list on the marketplace'}
+        onClick={() => setShowUnitSelection(true)}
+      >
+        <i className="ti ti-layout-grid" style={UI2.btnIcon} aria-hidden="true" /> List Multi Units
+      </button>
+      <button type="button" className="un2-btn" style={{ ...UI2.btn.brand, ...UI2.btnSm }}
+        onClick={() => { window.location.href = `/landlord-portal/property/${propId}/add-unit`; }}>
+        <i className="ti ti-plus" style={UI2.btnIcon} aria-hidden="true" /> Add Unit
+      </button>
+    </div>
+  );
+
+  // Unit names often already start with the property name ("LL01 — Unit 101") — don't repeat it
+  const unitLabel = u => (!prop.name || (u.unit_name || '').startsWith(prop.name)) ? u.unit_name : `${prop.name} — ${u.unit_name}`;
+
+  // withActions: View Unit / Message buttons under the details (Overview row); otherwise the whole tile links to the unit
+  const unitItem = (u, withActions) => {
+    const pill = unitPillCfg(u.status);
+    return (
+      <MediaListItem
+        key={u.id}
+        image={u.main_image_url || FB.unit}
+        fallbackIcon="ti-home"
+        tag={{ tone: UNIT_TAG_TONE[pill.label] || TONES2.neutral, label: pill.label }}
+        title={unitLabel(u)}
+        subtitle={u.tenant_name ? `Tenant: ${u.tenant_name}` : 'Vacant'}
+        details={[
+          { label: 'Lease ends',  value: u.lease_end || '—' },
+          { label: 'Maintenance', value: u.maint_open > 0 ? `${u.maint_open} open` : 'Clear',
+            color: u.maint_open > 0 ? C2.errorDark : C2.successStrong },
+        ]}
+        onClick={withActions ? undefined : () => goUnit(u)}
+        stacked={withActions}
+        actions={withActions && (
+          <>
+            <button type="button" className="un2-btn" style={{ ...UI2.btn.brand, ...UI2.btnSm, ...V.fill }} onClick={() => goUnit(u)}>View Unit</button>
+            <button type="button" className="un2-raise" style={{ ...UI2.btn.outline, ...UI2.btnSm, ...V.fill }}
+              onClick={() => { setActiveTab('Chats'); setShowNewChat(true); }}>Message</button>
+          </>
+        )}
+      />
+    );
+  };
+
+  // Overview: fixed-width unit cards side by side in one row that scrolls sideways.
+  // Arrows scroll one card and grey out at either end (unitEdges, updated on scroll / resize).
+  const scrollUnits = d => unitRowRef.current?.scrollBy({ left: d * (SZ2.unitCard + LAYOUT2.gridGap) });
+  const unitsRowCard = (
+    <SectionCard
+      as="section" icon="ti-stack-2" title="Unit Inventory"
+      badge={units.length > 0 && <span style={UI2.pill()}>{units.length}</span>}
+      action={unitHeaderActions}
+    >
+      {units.length === 0 && !loading && <EmptyState icon="ti-door" text="No units added yet." />}
+      {units.length > 0 && (
+        <div style={UI2.row(LAYOUT2.inlineGap)}>
+          {unitEdges.overflow && (
+            <button type="button" className="un2-raise" style={{ ...V.scrollArrow, ...(unitEdges.start ? V.disabled : {}) }}
+              disabled={unitEdges.start} onClick={() => scrollUnits(-1)} aria-label="Scroll units left">
+              <i className="ti ti-chevron-left" aria-hidden="true" />
             </button>
-            <button style={S.iconBtn} aria-label="Help">
-              <i className="ti ti-help-circle" aria-hidden="true" />
+          )}
+          <div ref={unitRowRef} className="un2-scroll-hidden" style={V.unitScroller} onScroll={updateUnitEdges}>
+            {units.map(u => <div key={u.id} style={V.unitSlide}>{unitItem(u, true)}</div>)}
+          </div>
+          {unitEdges.overflow && (
+            <button type="button" className="un2-raise" style={{ ...V.scrollArrow, ...(unitEdges.end ? V.disabled : {}) }}
+              disabled={unitEdges.end} onClick={() => scrollUnits(1)} aria-label="Scroll units right">
+              <i className="ti ti-chevron-right" aria-hidden="true" />
             </button>
-            <div style={S.avatar}>{initials(primary.owner_name || 'L')}</div>
-          </div>
-        </header>
+          )}
+        </div>
+      )}
+    </SectionCard>
+  );
 
-        <main style={S.content}>
-          {error && <div style={S.errBanner}><i className="ti ti-alert-circle" aria-hidden="true" /> {error}</div>}
-
-          {/* BREADCRUMB — inside content */}
-          <div style={S.bread}>
-            <span style={S.breadLink} onClick={() => window.location.href='/landlord-portal/portfolio'}>Properties</span>
-            <span style={S.breadSep}>›</span>
-            <span style={S.breadCur}>{loading ? '…' : prop.name}</span>
-          </div>
-
-          {/* HERO */}
-          <div style={S.heroWrap}>
-            <div style={S.heroRow}>
-              <div>
-                <div style={{ display:'flex', alignItems:'center' }}>
-                  <div style={S.propName}>{loading ? '…' : prop.name}</div>
-                  {prop.property_type && (
-                    <span style={S.typeBadge}>{PROP_TYPE_LABEL[prop.property_type] || prop.property_type}</span>
-                  )}
-                  {!loading && prop.id && (
-                    <button style={S.editBtn} onClick={() => setShowEditProperty(true)}>
-                      <i className="ti ti-pencil" style={{ fontSize:13 }} aria-hidden="true" /> Edit
-                    </button>
-                  )}
-                </div>
-                <div style={S.propAddr}>
-                  <i className="ti ti-map-pin" style={{ fontSize:12 }} aria-hidden="true" />
-                  {prop.address || `${prop.city}, ${prop.country}`}
-                </div>
-              </div>
-
-              {/* STATS — 2 cards each with 2 stats + divider */}
-              <div style={S.statsWrap}>
-                <div style={S.statBox}>
-                  <div style={S.statLbl}>Total units</div>
-                  <div style={S.statVal}>{stats.total_units ?? '—'} Units</div>
-                  <div style={S.statDiv} />
-                  <div style={S.statLbl}>Collection</div>
-                  <div style={{ ...S.statVal, color:C.txtPrimary }}>{stats.collection_pct ?? 0}%</div>
-                </div>
-                <div style={S.statBox}>
-                  <div style={S.statLbl}>Occupancy</div>
-                  <div style={{ ...S.statVal, color:occ >= 80 ? C.greenDark : C.amber }}>{occ}%</div>
-                  <div style={S.statDiv} />
-                  <div style={S.statLbl}>Maintenance</div>
-                  <div style={{ ...S.statVal, color: stats.maint_open > 0 ? C.amber : C.txtPrimary }}>
-                    {stats.maint_open > 0 ? `${stats.maint_open} Open` : 'Clear'}
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* GALLERY — outside heroWrap, aligned with page padding */}
-          <div style={{ padding:'0 28px' }}>
-            <div style={S.gallery}>
-              {/* Left — single large image, or the gallery's video when one exists */}
-              <div
-                onClick={() => galOpenLightbox(galHeroObj ? 0 : null)}
-                style={{ position:'relative', overflow:'hidden', borderRadius:8, cursor: galHeroObj ? 'pointer' : 'default' }}
-              >
-                {heroIsVideo ? (
-                  <video src={galHero} muted autoPlay loop playsInline style={S.galImg} />
-                ) : (
-                  <GImg src={prop.main_image_url} fallback={FB.main} alt={prop.name} style={{ borderRadius:8 }} />
-                )}
-              </div>
-
-              {/* Right — 2x2 grid */}
-              <div style={S.galRight}>
-                {galThumbSlots.map((url, i) => (
-                  <div key={i}
-                    onClick={() => galOpenLightbox(galThumbLightboxIdx(url))}
-                    style={{ minHeight:0, overflow:'hidden', borderRadius:6, cursor: galThumbLightboxIdx(url) != null ? 'pointer' : 'default' }}
-                  >
-                    <GImg src={url} fallback={galThumbFallbacks[i]} alt={`Interior ${i + 1}`} style={{ borderRadius:6 }} />
-                  </div>
-                ))}
-                <div
-                  style={{ ...S.galAddCell, opacity: uploadingImage ? 0.6 : 1, cursor: uploadingImage ? 'wait' : 'pointer' }}
-                  onClick={() => { if (!uploadingImage) imageInputRef.current?.click(); }}
-                >
-                  <input
-                    ref={imageInputRef}
-                    type="file"
-                    accept="image/jpeg,image/png,image/webp"
-                    style={{ display:'none' }}
-                    onChange={e => { const f = e.target.files[0]; e.target.value = ''; if (f) handleAddImageFile(f); }}
-                  />
-                  <i className={`ti ${uploadingImage ? 'ti-loader-2' : 'ti-plus'}`} style={{ fontSize:20 }} aria-hidden="true" />
-                  <span>{uploadingImage ? 'Uploading…' : 'Add images'}</span>
-                </div>
-              </div>
-            </div>
-            {imageUploadError && (
-              <div style={{ marginTop:8, fontSize:12.5, color:C.red || '#DC2626' }}>
-                <i className="ti ti-alert-circle" aria-hidden="true" /> {imageUploadError}
-              </div>
-            )}
-            {galLightboxIdx !== null && galHasRealItems && (
-              <GalleryLightbox items={galLightboxItems} index={galLightboxIdx} onClose={() => setGalLightboxIdx(null)} onNav={setGalLightboxIdx} />
-            )}
-          </div>
-
-
-          {/* DESC / OWNERSHIP / HEALTH — 50/25/25 */}
-          <div style={S.sw}>
-            <div style={S.descRow}>
-
-              {/* 50% — Description + Amenities */}
-              <div style={S.card}>
-                <div style={S.cardTitle}>{prop.name ? `The vision of ${prop.name}` : 'About this property'}</div>
-                {prop.description && (
-                  <p style={{ fontSize:12.5, color:C.txtSec, lineHeight:1.7, margin:'8px 0 12px' }}>{prop.description}</p>
-                )}
-                {amenities.length > 0 ? (
-                  <>
-                    <div style={{ fontSize:9.5, color:C.txtMuted, fontWeight:600, letterSpacing:0.5, textTransform:'uppercase', marginBottom:6, marginTop:prop.description?0:8 }}>Amenities</div>
-                    <div style={S.amenityGrid}>
-                      {amenities.map(a => {
-                        const { icon, bg, color } = amenityStyle(a.name);
-                        return (
-                          <div key={a.id} style={{ ...S.amenityItem, background: bg }}>
-                            <div style={{ ...S.amenityIcon, background: 'rgba(255,255,255,0.65)', color }}>
-                              <i className={`ti ${icon}`} style={{ fontSize: 11 }} aria-hidden="true" />
-                            </div>
-                            {a.name}
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </>
-                ) : (
-                  <div style={{ fontSize:12, color:C.txtMuted, fontStyle:'italic', marginTop:8 }}>No amenities configured.</div>
-                )}
-              </div>
-
-              {/* 25% — Ownership Cluster */}
-              <div style={S.card}>
-                <div style={S.cardTitle}>Ownership Cluster</div>
-                <div style={S.secLbl}>Primary owner</div>
-                {primary.owner_name ? (
-                  <div style={S.ownerRow}>
-                    <div style={S.ownerAv}>{initials(primary.owner_name)}</div>
-                    <div>
-                      <div style={S.ownerName}>{primary.owner_name}</div>
-                      <div style={S.ownerSub}>Type: Full ({primary.share_pct}%)</div>
-                    </div>
-                  </div>
-                ) : <div style={{ fontSize:12, color:C.txtMuted }}>—</div>}
-                <div style={S.divider} />
-                <div style={S.secLbl}>Co-owners</div>
-                {coOwners.length > 0
-                  ? coOwners.map((o,i) => <div key={i} style={{ fontSize:12.5, color:C.txtSec, marginBottom:4 }}>{o.owner_name} — {o.share_pct}%</div>)
-                  : <div style={{ fontSize:12, color:C.txtMuted }}>None registered</div>}
-                <div style={S.divider} />
-                <div style={S.secLbl}>Assigned Manager</div>
-                <div style={{ fontSize:12.5, color:C.txtSec }}>
-                  {prop.assigned_pm
-                    ? <><i className="ti ti-user-check" style={{ fontSize:12, marginRight:4 }} aria-hidden="true" />{prop.assigned_pm}</>
-                    : <span style={{ color:C.txtMuted }}>None assigned</span>}
-                </div>
-                <button style={S.ledgerBtn}>View Ownership Ledger</button>
-              </div>
-
-              {/* 25% — Property Health */}
-              <div style={S.card}>
-                <div style={S.healthHdr}>
-                  <div style={S.cardTitle}>Property Health</div>
-                  <span style={S.healthBadge(healthCfg.bg, healthCfg.col)}>{healthCfg.label}</span>
-                </div>
-                <div style={{ ...S.healthScore, color:healthCfg.scoreCol }}>{healthScore}</div>
-                <div style={S.healthSub}>Overall score / 100</div>
-                {[
-                  { lbl:'Occupancy',       val:`${occ}%`,                         w:occ,        col:occ>=80?C.greenDark:C.amber,       bar:occ>=80?'#16a34a':C.amber },
-                  { lbl:'Rent collection', val:'—',                                w:0,          col:C.blue,                             bar:C.blue },
-                  { lbl:'Maintenance',     val:stats.maint_open>0?`${stats.maint_open} open`:'Clear', w:maintScore, col:maintScore>50?C.greenDark:C.red, bar:maintScore>50?'#16a34a':C.red },
-                  { lbl:'Lease renewals',  val:'0 due',                            w:0,          col:C.txtSec,                           bar:C.amber },
-                ].map(m => (
-                  <div key={m.lbl} style={S.metricRow}>
-                    <div style={S.metricTop}>
-                      <span style={{ fontSize:11.5, color:C.txtSec }}>{m.lbl}</span>
-                      <span style={{ fontSize:11.5, fontWeight:500, color:m.col }}>{m.val}</span>
-                    </div>
-                    <div style={S.barTrack}><div style={S.barFill(m.w, m.bar)} /></div>
-                  </div>
-                ))}
-                <div style={S.healthFooter}>
-                  <i className="ti ti-info-circle" style={{ fontSize:12, flexShrink:0 }} aria-hidden="true" />
-                  Updates monthly from live data
-                </div>
-              </div>
-            </div>
-
-            {/* UNIT INVENTORY */}
-            <div style={{ marginBottom:20 }}>
-              <div style={S.unitHdr}>
-                <div style={S.unitHdrTtl}>Unit Inventory</div>
-                <div style={S.unitHdrR}>
-                  <button style={S.filterBtn} onClick={() => setShowFilter(true)}>
-                    <i className="ti ti-filter" style={{ fontSize:12 }} aria-hidden="true" />
-                    Filter
-                  </button>
-                  <button style={S.btnBulk} onClick={() => setShowBulkAdd(true)}>
-                    <i className="ti ti-apps" style={{ fontSize:13 }} aria-hidden="true" />
-                    Add Service to All Units
-                  </button>
-                  {/* "List Ready" gate (LST-8) — now the real thing: this button
-                      opens the Unit Selection modal (readiness pulled live
-                      from the A6 rules engine, GET .../units/<uid>/readiness/),
-                      where the landlord picks which units to include and it
-                      routes to the Individual or Multi-Unit wizard depending on
-                      how many List Ready units they check. The gate on THIS
-                      button is now just "is there anything to pick from" — the
-                      real per-unit readiness gate lives on that screen instead
-                      of here. Replaces the old `units.length < 2` placeholder. */}
-                  <button
-                    style={{ ...S.btnMulti, ...(units.length < 1 ? S.btnMultiDisabled : {}) }}
-                    disabled={units.length < 1}
-                    title={units.length < 1 ? 'Add a unit first to list it on the marketplace' : 'Choose which units to list on the marketplace'}
-                    onClick={() => setShowUnitSelection(true)}
-                  >
-                    <i className="ti ti-layout-grid" style={{ fontSize:13 }} aria-hidden="true" />
-                    List Multi Units
-                  </button>
-                  <button style={S.addUnitBtn} onClick={() => window.location.href = `/landlord-portal/property/${propId}/add-unit`}>+ Add Unit</button>
-                </div>
-              </div>
-              <div style={S.unitGrid}>
-                {units.map(u => {
-                  const pill = unitPillCfg(u.status);
-                  return (
-                    <div key={u.id} style={S.unitCard}>
-                      <UnitImg src={u.main_image_url || FB.unit} rentBadge={pill} />
-                      <div style={S.unitBody}>
-                        <div style={S.unitNum}>{u.unit_name}</div>
-                        <div style={S.unitTenant}>
-                          {u.tenant_name ? `Tenant: ${u.tenant_name}` : 'Vacant'}
-                        </div>
-                        <div style={S.unitStatusRow}>
-                          <span>Lease ends</span>
-                          <span style={{ color:C.txtPrimary }}>{u.lease_end || '—'}</span>
-                        </div>
-                        <div style={{ ...S.unitStatusRow, marginBottom:0 }}>
-                          <span>Maintenance</span>
-                          <span style={{ color: u.maint_open > 0 ? C.red : C.greenDark, fontWeight:500 }}>
-                            {u.maint_open > 0 ? `${u.maint_open} open` : 'Clear'}
-                          </span>
-                        </div>
-                        <div style={S.unitBtns}>
-                          <button
-                            style={S.unitBtnDark}
-                            onClick={() => window.location.href=`/landlord-portal/property/${propId}/unit/${u.id}`}
-                          >
-                            View Unit
-                          </button>
-                          <button style={S.unitBtnOut}>Message</button>
-                        </div>
-                      </div>
-                    </div>
-                  );
-                })}
-                {units.length === 0 && !loading && (
-                  <div style={{ fontSize:12, color:C.txtMuted, padding:'12px 0' }}>No units added yet.</div>
-                )}
-              </div>
-            </div>
-
-            {/* ROW 1: Maintenance 35% | Quick Actions 35% | Doc Vault 30% */}
-            <div style={S.row1}>
-
-              {/* Maintenance Queue */}
-              <div style={S.card}>
-                <div style={S.cardHdr}>
-                  <div style={S.cardTitle}>Maintenance Queue</div>
-                  <span style={S.cardLink}>Create ticket</span>
-                </div>
-                {tickets.length === 0 && <div style={{ fontSize:12, color:C.txtMuted }}>No open tickets.</div>}
-                {tickets.map((t,i) => {
-                  const bc = maintBadgeCfg(t.priority);
-                  return (
-                    <div key={t.id} style={{ ...S.maintItem, ...(i===tickets.length-1?{borderBottom:'none'}:{}) }}>
-                      <div style={S.maintBadge(bc.bg, bc.col)}>#{t.id}</div>
-                      <div style={{ flex:1 }}>
-                        <div style={S.maintTitle}>{t.title}</div>
-                        <div style={S.maintSub}>{t.priority} · {t.time_ago}</div>
-                      </div>
-                      <span style={S.statusPill(C.stdBg, C.stdTx)}>{t.status==='IN_PROGRESS'?'In Progress':'Open'}</span>
-                    </div>
-                  );
-                })}
-                <div style={{ ...S.divider, marginTop:8 }} />
-                <div style={{ fontSize:11, color:C.txtMuted }}>Vendor score <span style={{ color:C.greenDark, fontWeight:500 }}>4.8 ★</span></div>
-              </div>
-
-              {/* Quick Actions */}
-              <div style={S.card}>
-                <div style={S.cardHdr}>
-                  <div style={S.cardTitle}>Quick Actions</div>
-                  <span style={S.statusPill(C.amberLight, C.amber)}>3 pending</span>
-                </div>
-                {QA_ITEMS.map((q,i) => (
-                  <div key={i} style={{ ...S.qaItem, ...(i===QA_ITEMS.length-1?{borderBottom:'none'}:{}) }}>
-                    <div style={S.qaIcon(q.bg)}>
-                      <i className={`ti ${q.icon}`} style={{ fontSize:13, color:q.col }} aria-hidden="true" />
-                    </div>
-                    <div style={{ flex:1 }}>
-                      <div style={S.qaTitle}>{q.title}</div>
-                      <div style={S.qaSub}>{q.sub}</div>
-                    </div>
-                    <span style={S.qaTime}>{q.time}</span>
-                  </div>
-                ))}
-              </div>
-
-              {/* Document Vault */}
-              <div style={S.card}>
-                <div style={S.cardHdr}>
-                  <div style={S.cardTitle}>Document Vault</div>
-                  <span style={S.cardLink}>Full archive →</span>
-                </div>
-                {DOC_ITEMS.map((d,i) => (
-                  <div key={i} style={{ ...S.docItem, ...(i===DOC_ITEMS.length-1?{borderBottom:'none'}:{}) }}>
-                    <div style={S.docIcon(d.bg, d.col)}>
-                      <i className={`ti ${d.icon}`} aria-hidden="true" />
-                    </div>
-                    <div style={{ flex:1 }}>
-                      <div style={{ fontSize:12, fontWeight:500, color:C.txtPrimary }}>{d.name}</div>
-                      <div style={{ fontSize:10.5, color:C.txtMuted }}>{d.meta}</div>
-                    </div>
-                    <i className="ti ti-chevron-right" style={{ fontSize:13, color:C.txtMuted }} aria-hidden="true" />
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* ROW 2: Rent Collection 40% | Recent Ledger 60% */}
-            <div style={S.row2}>
-
-              {/* Rent Collection */}
-              <div style={S.card}>
-                <div style={S.cardHdr}>
-                  <div style={S.cardTitle}>Rent Collection</div>
-                  <span style={{ fontSize:12, fontWeight:500, color:C.greenDark }}>+5.2%</span>
-                </div>
-                <RentBarChart />
-                <div style={S.rentStats}>
-                  {[
-                    { lbl:'Funding',      val:'$4,250',  col:C.amber,      first:true,  last:false },
-                    { lbl:'Expenses',     val:'$12,800', col:C.txtPrimary, first:false, last:false },
-                    { lbl:'Vendor Bills', val:'$2,100',  col:C.txtPrimary, first:false, last:true },
-                  ].map(s => (
-                    <div key={s.lbl} style={S.rentStatIt(s.first, s.last)}>
-                      <div style={S.rentStatLbl}>{s.lbl}</div>
-                      <div style={{ ...S.rentStatVal, color:s.col }}>{s.val}</div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* Recent Ledger — 1x2 */}
-              <div style={S.card}>
-                <div style={S.cardHdr}>
-                  <div style={S.cardTitle}>Recent Ledger Entries</div>
-                  <span style={S.cardLink}>Export full ledger →</span>
-                </div>
-                <div style={S.ledgerCols}>
-                  {[LEDGER_L, LEDGER_R].map((col, ci) => (
-                    <div key={ci} style={{ ...(ci===1?{ borderLeft:`1px solid ${C.cardBdr}`, paddingLeft:18 }:{}) }}>
-                      <div style={S.ledgerHdr}>
-                        {['Date','Category','Tenant/vendor','Amount'].map(h => (
-                          <span key={h} style={{ ...S.lTh, ...(h==='Amount'?{textAlign:'right'}:{}) }}>{h}</span>
-                        ))}
-                      </div>
-                      {col.map((l,i) => (
-                        <div key={i} style={{ ...S.ledgerRow, ...(i===col.length-1?{borderBottom:'none'}:{}) }}>
-                          <span style={{ ...S.lTd, color:C.txtMuted }}>{l.date}</span>
-                          <span style={S.lTd}>{l.cat}</span>
-                          <span style={S.lTd}>{l.who}</span>
-                          <span style={{ ...S.lTd, color:l.pos?C.greenDark:C.red, fontWeight:500, textAlign:'right' }}>{l.amt}</span>
-                        </div>
-                      ))}
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </div>
-
-            {/* ROW 3: Resident Directory 60% | Communications 40% */}
-            <div style={S.row3}>
-
-              {/* Resident Directory */}
-              <div style={S.card}>
-                <div style={S.cardHdr}><div style={S.cardTitle}>Resident Directory</div></div>
-                <div style={S.dirHdr}>
-                  {['Tenant Name','Unit #','Lease Status','Lease End Date','Lease Renewal','Action'].map(h => (
-                    <span key={h} style={S.dirTh}>{h}</span>
-                  ))}
-                </div>
-                {tenantUnits.length === 0 && (
-                  <div style={{ fontSize:12, color:C.txtMuted, padding:'12px 0' }}>No active tenants.</div>
-                )}
-                {tenantUnits.map((u,i) => {
-                  const ac = AVATAR_COLORS[i % AVATAR_COLORS.length];
-                  const isLast = i === tenantUnits.length - 1;
-                  return (
-                    <div key={u.id} style={{ ...S.dirRow, ...(isLast?{borderBottom:'none'}:{}) }}>
-                      <div style={{ display:'flex', alignItems:'center', gap:7 }}>
-                        <div style={S.tenantAv(ac.bg, ac.col)}>{initials(u.tenant_name)}</div>
-                        <span style={S.dirTd}>{u.tenant_name}</span>
-                      </div>
-                      <span style={S.dirTd}>{u.unit_name}</span>
-                      <span style={{ ...S.statusPill(u.rent_status==='PAID'?C.greenLight:C.redLight, u.rent_status==='PAID'?C.greenDark:C.red), marginLeft:0 }}>
-                        {u.rent_status==='PAID'?'Active':'Overdue'}
-                      </span>
-                      <span style={S.dirTd}>{u.lease_end || '—'}</span>
-                      <span style={{ ...S.dirTd, color:u.maint_open>0?C.red:C.txtMuted }}>
-                        {u.maint_open>0?'Active ticket':'—'}
-                      </span>
-                      <i className="ti ti-dots" style={{ fontSize:15, color:C.txtMuted, cursor:'pointer' }} aria-hidden="true" />
-                    </div>
-                  );
-                })}
-              </div>
-
-              {/* Communications */}
-              <div style={S.card}>
-                <div style={S.cardHdr}>
-                  <div style={S.cardTitle}>Communications</div>
-                  <span style={S.cardLink}>Open messenger →</span>
-                </div>
-                <div style={S.tabRow}>
-                  {['Chats','Notifications'].map(tab => (
-                    <div key={tab} style={S.tab(activeTab===tab)} onClick={() => setActiveTab(tab)}>{tab}</div>
-                  ))}
-                </div>
-
-                {/* CHATS */}
-                {activeTab === 'Chats' && (
-                  <div>
-                    <div style={{ display:'flex', justifyContent:'right' }}>
-                        <button style={S.newChatBtn} onClick={() => setShowNewChat(p => !p)}>
-                           <i className="ti ti-plus" style={{ fontSize:12 }} aria-hidden="true" />
-                           New conversation
-                        </button>
-                    </div>
-                    {showNewChat && (
-                      <div style={S.newChatForm}>
-                        <select style={S.ncSelect}>
-                          <option value="">Select recipient…</option>
-                          <option>Property Manager</option>
-                          <option>Unit A1 Tenant</option>
-                          <option>Unit A2 Tenant</option>
-                        </select>
-                        <div style={S.ncInputRow}>
-                          <input type="text" placeholder="Type first message…" style={S.ncInput} />
-                          <button style={S.ncSendBtn}>Send</button>
-                        </div>
-                      </div>
-                    )}
-                    {CHAT_THREADS.map(chat => (
-                      <div key={chat.id}>
-                        <div style={S.msgItem} onClick={() => toggleChat(chat.id)}>
-                          <div style={S.msgAv}>{chat.av}</div>
-                          <div style={{ flex:1 }}>
-                            <div style={S.msgName}>{chat.name}</div>
-                            <div style={S.msgPreview}>{chat.preview}</div>
-                          </div>
-                          <span style={S.msgTime}>10:{chat.id==='chat-em'?'12':'45'}</span>
-                        </div>
-                        {openChatId === chat.id && (
-                          <div style={S.chatExpanded}>
-                            <div style={S.threadWrap}>
-                              {chat.messages.map((m,i) => (
-                                <div key={i} style={m.from==='me' ? S.bubbleRight : S.bubbleLeft}>{m.text}</div>
-                              ))}
-                            </div>
-                            <div style={S.replyRow}>
-                              <input
-                                type="text"
-                                placeholder="Reply…"
-                                style={S.replyInput}
-                                value={replyText[chat.id] || ''}
-                                onChange={e => setReplyText(p => ({ ...p, [chat.id]: e.target.value }))}
-                              />
-                              <button style={S.sendBtn} aria-label="Send">
-                                <i className="ti ti-send" style={{ fontSize:13, color:'#fff' }} aria-hidden="true" />
-                              </button>
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                )}
-
-                {/* NOTIFICATIONS */}
-                {activeTab === 'Notifications' && (
-                  <div>
-                    {NOTIFICATIONS.map(n => (
-                      <div key={n.id}>
-                        <div style={S.notifItem} onClick={() => toggleNotif(n.id)}>
-                          <div style={S.notifIconWrap(n.iconBg)}>
-                            <i className={`ti ${n.icon}`} style={{ fontSize:13, color:n.iconCol }} aria-hidden="true" />
-                          </div>
-                          <div style={{ flex:1 }}>
-                            <div style={S.msgName}>{n.title}</div>
-                            <div style={S.msgPreview}>{n.preview}</div>
-                          </div>
-                          <span style={S.msgTime}>{n.time}</span>
-                        </div>
-                        {openNotifId === n.id && (
-                          <div style={S.notifPopup}>
-                            {n.hasImage && (
-                              <div style={S.notifImgArea}>
-                                <i className="ti ti-calendar" style={{ fontSize:28, color:C.blue }} aria-hidden="true" />
-                              </div>
-                            )}
-                            <div style={{ fontSize:13, fontWeight:600, color:C.txtPrimary, marginBottom:6 }}>{n.title}</div>
-                            <div style={S.notifFullText}>{n.full}</div>
-                            <button style={S.markReadBtn}>Mark as read</button>
-                          </div>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-            </div>
-
-            <div style={S.footer}>© 2023 UrbanNest Property Management. All Rights Reserved.</div>
-          </div>
-        </main>
+  const unitsCard = () => (
+    <SectionCard icon="ti-stack-2" title="Unit Inventory" action={unitHeaderActions}>
+      <div style={{ ...UI2.row(LAYOUT2.inlineGap), flexWrap: 'wrap', marginBottom: LAYOUT2.cardHeaderGap }}>
+        {[
+          { id: 'all',      label: `All Units (${units.length})` },
+          { id: 'vacant',   label: `Vacant (${vacantCount})` },
+          { id: 'occupied', label: `Occupied (${units.length - vacantCount})` },
+        ].map(f => (
+          <button key={f.id} type="button" style={UI2.filterChip(unitFilter === f.id)} onClick={() => setUnitFilter(f.id)}>{f.label}</button>
+        ))}
       </div>
 
+      {units.length === 0 && !loading && <EmptyState icon="ti-door" text="No units added yet." />}
+      {units.length > 0 && shownUnits.length === 0 && <div style={UI2.emptyInline}>No units match this filter.</div>}
+      <Grid layout="two" as="div">{shownUnits.map(u => unitItem(u, false))}</Grid>
+    </SectionCard>
+  );
+
+  const rentCard = (
+    <SectionCard
+      icon="ti-coins" title="Rent Collection"
+      action={
+        <div style={UI2.row(LAYOUT2.inlineGap)}>
+          <span style={UI2.pill(TONES2.success)}>+5.2%</span>
+          <span style={UI2.pill()} title="Placeholder figures until the rent API is connected">Sample data</span>
+        </div>
+      }
+    >
+      <div style={V.chartWrap}>
+        <BarChart labels={RENT_MONTHS} values={RENT_SAMPLE} formatValue={fmtMoney} formatTick={fmtK} ariaLabel="Monthly rent collection (sample)" />
+      </div>
+      <div style={V.rentSummary}>
+        {RENT_SUMMARY.map(r => (
+          <div key={r.lbl} style={V.rentStat}>
+            <div style={UI2.iconBox(SZ2.icon.sm, TONES2.primary)}><i className={`ti ${r.icon}`} aria-hidden="true" /></div>
+            <div style={UI2.minWidth0}>
+              <div style={UI2.text.caption}>{r.lbl}</div>
+              <div style={{ ...UI2.text.stat, ...UI2.truncate }}>{r.val}</div>
+            </div>
+          </div>
+        ))}
+      </div>
+    </SectionCard>
+  );
+
+  const ledgerCard = (
+    <SectionCard
+      icon="ti-file-invoice" title="Recent Ledger Entries"
+      action={
+        <button type="button" style={UI2.btn.icon(SZ2.control.sm)} aria-label="Export full ledger" title="Export full ledger">
+          <i className="ti ti-chevron-right" style={UI2.chevron} aria-hidden="true" />
+        </button>
+      }
+    >
+      <DataTable
+        columns={[
+          { key: 'date', label: 'Date', render: l => <span style={UI2.text.label}>{l.date}</span> },
+          { key: 'cat',  label: 'Category', width: 1.2 },
+          { key: 'who',  label: 'Tenant/Vendor', width: 1.4 },
+          { key: 'amt',  label: 'Amount', align: 'right',
+            render: l => <span style={{ fontWeight: FW2.semibold, color: l.pos ? C2.successStrong : C2.errorDark }}>{l.amt}</span> },
+        ]}
+        rows={LEDGER_ROWS}
+        minWidth={SZ2.tableMinCompact}
+      />
+    </SectionCard>
+  );
+
+  const maintenanceCard = (
+    <SectionCard icon="ti-tool" title="Maintenance Queue" centerBody={tickets.length === 0} action={<button type="button" className="un2-link" style={UI2.btn.link}>Create ticket</button>}>
+      {tickets.length === 0 ? (
+        <EmptyState icon="ti-clipboard-check" title="All clear!" text="No pending maintenance requests.">
+          <div style={UI2.text.label}>Vendor score <span style={V.score}>4.8 <i className="ti ti-star-filled" aria-hidden="true" /></span></div>
+        </EmptyState>
+      ) : (
+        <>
+          {tickets.map(t => {
+            const tone = PRIORITY_TONE(t.priority);
+            return (
+              <ListRow
+                key={t.id}
+                leading={<div style={{ ...UI2.iconBox(SZ2.icon.md, tone), ...V.ticketNo }}>#{t.id}</div>}
+                title={t.title}
+                meta={`${t.priority} · ${t.time_ago}`}
+                trailing={<span style={UI2.pill(TONES2.neutral)}>{t.status === 'IN_PROGRESS' ? 'In Progress' : 'Open'}</span>}
+              />
+            );
+          })}
+          <div style={{ ...UI2.text.label, marginTop: SP2.sm }}>Vendor score <span style={V.score}>4.8 <i className="ti ti-star-filled" aria-hidden="true" /></span></div>
+        </>
+      )}
+    </SectionCard>
+  );
+
+  const documentsCard = (
+    <SectionCard
+      icon="ti-folder" title="Document Vault"
+      action={<button type="button" className="un2-link" style={UI2.btn.link}>Full archive <i className="ti ti-arrow-right" aria-hidden="true" /></button>}
+    >
+      {DOC_ITEMS.map((d, i) => (
+        <ListRow
+          key={d.name}
+          leading={<div style={UI2.iconBox(SZ2.icon.md, DOC_TONES[i])}><i className={`ti ${d.icon}`} aria-hidden="true" /></div>}
+          title={d.name}
+          meta={d.meta}
+          trailing={<i className="ti ti-chevron-right" style={UI2.chevron} aria-hidden="true" />}
+        />
+      ))}
+    </SectionCard>
+  );
+
+  const commsCard = (
+    <SectionCard
+      icon="ti-messages" title="Communications"
+      action={<button type="button" className="un2-link" style={UI2.btn.link}>Open messenger <i className="ti ti-arrow-right" aria-hidden="true" /></button>}
+    >
+      <TabBar
+        variant="underline" ariaLabel="Communications"
+        tabs={[{ id: 'Chats', label: 'Chats' }, { id: 'Notifications', label: 'Notifications' }]}
+        value={activeTab} onChange={setActiveTab}
+      />
+
+      {/* CHATS */}
+      {activeTab === 'Chats' && (
+        <div style={V.commBody}>
+          {showNewChat && (
+            <div style={{ ...UI2.inset, ...UI2.stack(LAYOUT2.rowGap), marginBottom: LAYOUT2.rowGap }}>
+              <select style={UI2.select} aria-label="Recipient">
+                <option value="">Select recipient…</option>
+                <option>Property Manager</option>
+                <option>Unit A1 Tenant</option>
+                <option>Unit A2 Tenant</option>
+              </select>
+              <div style={UI2.row(LAYOUT2.inlineGap)}>
+                <input type="text" placeholder="Type first message…" style={UI2.input} aria-label="First message" />
+                <button type="button" className="un2-btn" style={UI2.btn.brand}>Send</button>
+              </div>
+            </div>
+          )}
+          {CHAT_THREADS.map(chat => (
+            <div key={chat.id}>
+              <ListRow
+                variant="hover"
+                onClick={() => toggleChat(chat.id)}
+                leading={<div style={UI2.avatar(SZ2.icon.lg, TONES2.neutral)}>{chat.av}</div>}
+                title={chat.name}
+                meta={chat.preview}
+                trailing={<span style={UI2.text.caption}>10:{chat.id === 'chat-em' ? '12' : '45'}</span>}
+              />
+              {openChatId === chat.id && (
+                <div style={UI2.inset}>
+                  <div style={V.thread}>
+                    {chat.messages.map((m, i) => <div key={i} style={UI2.bubble(m.from === 'me')}>{m.text}</div>)}
+                  </div>
+                  <div style={UI2.row(LAYOUT2.inlineGap)}>
+                    <input
+                      type="text" placeholder="Reply…" style={UI2.input} aria-label="Reply"
+                      value={replyText[chat.id] || ''}
+                      onChange={e => setReplyText(p => ({ ...p, [chat.id]: e.target.value }))}
+                    />
+                    <button type="button" className="un2-btn" style={{ ...UI2.btn.brand, ...V.sendBtn }} aria-label="Send">
+                      <i className="ti ti-send" aria-hidden="true" />
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* NOTIFICATIONS */}
+      {activeTab === 'Notifications' && (
+        <div style={V.commBody}>
+          {NOTIFICATIONS.map(n => (
+            <div key={n.id}>
+              <ListRow
+                variant="hover"
+                onClick={() => toggleNotif(n.id)}
+                leading={<div style={UI2.iconBox(SZ2.icon.md, NOTIF_TONES[n.id] || TONES2.primary)}><i className={`ti ${n.icon}`} aria-hidden="true" /></div>}
+                title={n.title}
+                meta={n.preview}
+                trailing={<span style={UI2.text.caption}>{n.time}</span>}
+              />
+              {openNotifId === n.id && (
+                <div style={{ ...UI2.inset, ...UI2.stack(SP2.sm) }}>
+                  {n.hasImage && (
+                    <div style={{ ...UI2.tonePanel(TONES2.primary), ...UI2.center }}>
+                      <i className="ti ti-calendar" style={{ fontSize: FS2.score, color: C2.primary }} aria-hidden="true" />
+                    </div>
+                  )}
+                  <div style={UI2.text.titleLg}>{n.title}</div>
+                  <div style={UI2.text.body}>{n.full}</div>
+                  <button type="button" className="un2-link" style={UI2.btn.link}>Mark as read</button>
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+
+      {activeTab === 'Chats' && (
+        <button type="button" className="un2-btn" style={V.newChatBtn} onClick={() => setShowNewChat(p => !p)}>
+          <i className="ti ti-plus" style={UI2.btnIcon} aria-hidden="true" /> New conversation
+        </button>
+      )}
+    </SectionCard>
+  );
+
+  const residentsCard = (
+    <SectionCard as="section" icon="ti-users" title="Resident Directory">
+      <DataTable
+        columns={[
+          { key: 'tenant', label: 'Tenant Name', width: 2,
+            render: (u, i) => (
+              <div style={UI2.row(LAYOUT2.inlineGap)}>
+                <div style={UI2.avatar(SZ2.icon.sm, AVATAR2[i % AVATAR2.length])}>{initials(u.tenant_name)}</div>
+                <span style={{ ...UI2.text.title, ...UI2.truncate }}>{u.tenant_name}</span>
+              </div>
+            ) },
+          { key: 'unit_name', label: 'Unit #' },
+          { key: 'status', label: 'Lease Status',
+            render: u => <span style={UI2.pill(u.rent_status === 'PAID' ? TONES2.success : TONES2.error)}>{u.rent_status === 'PAID' ? 'Active' : 'Overdue'}</span> },
+          { key: 'lease_end', label: 'Lease End Date', width: 1.2, render: u => u.lease_end || '—' },
+          { key: 'renewal', label: 'Renewal',
+            render: u => <span style={{ color: u.maint_open > 0 ? C2.errorDark : C2.textMuted }}>{u.maint_open > 0 ? 'Active ticket' : '—'}</span> },
+          { key: 'action', label: '', width: 0.5, align: 'right',
+            render: u => (
+              <button type="button" style={UI2.btn.icon(SZ2.control.sm)} aria-label={`Actions for ${u.tenant_name}`}>
+                <i className="ti ti-dots" aria-hidden="true" />
+              </button>
+            ) },
+        ]}
+        rows={tenantUnits}
+        rowKey={u => u.id}
+        empty={<EmptyState illustration="people" text="No active tenants." />}
+      />
+    </SectionCard>
+  );
+
+  const TABS = [
+    { id: 'overview',    label: 'Overview',    icon: 'ti-layout-grid' },
+    { id: 'units',       label: 'Units',       icon: 'ti-stack-2' },
+    { id: 'maintenance', label: 'Maintenance', icon: 'ti-tool' },
+    { id: 'tenants',     label: 'Tenants',     icon: 'ti-users' },
+    { id: 'documents',   label: 'Documents',   icon: 'ti-file-text' },
+    { id: 'financials',  label: 'Financials',  icon: 'ti-chart-bar' },
+  ];
+
+  const extraAmenities = amenities.slice(HERO_AMENITIES);
+
+  return (
+    <>
+      <PageShell
+        activePage="properties"
+        title="UrbanNest Landlord"
+        avatarText={initials(primary.owner_name || 'L')}
+        avatarLabel={`Profile: ${primary.owner_name || 'Landlord'}`}
+      >
+        {error && <div style={UI2.errorBanner}><i className="ti ti-alert-circle" aria-hidden="true" /> {error}</div>}
+
+        <Breadcrumb items={[
+          { label: 'Properties', href: '/landlord-portal/portfolio' },
+          { label: loading ? '…' : prop.name },
+        ]} />
+
+        {/* ── HERO (photo slider) + PROPERTY SNAPSHOT ── */}
+        <Grid layout="mainSide">
+          <PropertyHero
+            slides={heroSlides}
+            title={loading
+              ? <span className="un2-skel" style={UI2.skeleton(SZ2.skeletonTitle, SZ2.control.lg, { onDark: true })} />
+              : prop.name}
+            badge={prop.property_type ? (PROP_TYPE_LABEL[prop.property_type] || prop.property_type) : null}
+            address={loading ? null : (prop.address || [prop.city, prop.country].filter(Boolean).join(', ') || null)}
+            eyebrow={prop.name ? `The vision of ${prop.name}` : null}
+            description={prop.description}
+            features={[
+              ...amenities.slice(0, HERO_AMENITIES).map(a => ({ icon: amenityStyle(a.name).icon, label: a.name })),
+              ...(extraAmenities.length > 0
+                ? [{ icon: 'ti-plus', label: `${extraAmenities.length} more`, title: extraAmenities.map(a => a.name).join(', ') }]
+                : []),
+            ]}
+            topActions={[
+              ...(galHasRealItems ? [{ icon: 'ti-photo', label: 'Open gallery', onClick: () => galOpenLightbox(0) }] : []),
+              { icon: 'ti-camera-plus', label: uploadingImage ? 'Uploading…' : 'Add photo', busy: uploadingImage,
+                onClick: () => { if (!uploadingImage) imageInputRef.current?.click(); } },
+            ]}
+          />
+          <SectionCard
+            icon="ti-building" title="Property Snapshot"
+            action={!loading && prop.id && (
+              <button type="button" className="un2-raise" style={V.snapshotEdit} onClick={() => setShowEditProperty(true)}>
+                <i className="ti ti-pencil" style={UI2.btnIcon} aria-hidden="true" /> Edit
+              </button>
+            )}
+          >
+            <Grid layout="two" as="div">
+              <StatTile icon="ti-box" label="Total Units" value={stats.total_units ?? '—'} />
+              <StatTile icon="ti-clock" label="Collection" value={`${stats.collection_pct ?? 0}%`} />
+              <StatTile icon="ti-users" label="Occupancy" value={`${occ}%`} />
+              <StatTile icon="ti-check" label="Maintenance" labelFirst
+                value={stats.maint_open > 0 ? `${stats.maint_open} Open` : 'Clear'}
+                tone={stats.maint_open > 0 ? TONES2.warning : TONES2.success} />
+            </Grid>
+          </SectionCard>
+        </Grid>
+        <input
+          ref={imageInputRef} type="file" accept="image/jpeg,image/png,image/webp" style={V.hidden}
+          onChange={e => { const f = e.target.files[0]; e.target.value = ''; if (f) handleAddImageFile(f); }}
+        />
+
+        {imageUploadError && <div style={UI2.errorBanner}><i className="ti ti-alert-circle" aria-hidden="true" /> {imageUploadError}</div>}
+
+        <TabBar tabs={TABS} value={tab} onChange={setTab} ariaLabel="Property sections" />
+
+        {/* Overview: rows with the same main / side split as the hero row. Cards in one row
+            stretch to the same height (e.g. Maintenance Queue = Unit Inventory). */}
+        {tab === 'overview' && <>
+          <Grid layout="mainSide">
+            <Grid layout="wideRight" as="div">{ownershipCard}{healthCard}</Grid>
+            {quickActionsCard}
+          </Grid>
+          <Grid layout="mainSide">{unitsRowCard}{maintenanceCard}</Grid>
+          <Grid layout="mainSide">
+            <Grid layout="two" as="div">{rentCard}{ledgerCard}</Grid>
+            {commsCard}
+          </Grid>
+          <Grid layout="mainSide">{residentsCard}<div aria-hidden="true" /></Grid>
+        </>}
+        {tab === 'units'       && unitsCard()}
+        {tab === 'maintenance' && maintenanceCard}
+        {tab === 'tenants'     && residentsCard}
+        {tab === 'documents'   && documentsCard}
+        {tab === 'financials'  && <Grid layout="two">{rentCard}{ledgerCard}</Grid>}
+
+        <PageFooter />
+      </PageShell>
+
+      {galLightboxIdx !== null && galHasRealItems && (
+        <GalleryLightbox items={galLightboxItems} index={galLightboxIdx} onClose={() => setGalLightboxIdx(null)} onNav={setGalLightboxIdx} />
+      )}
       {showFilter && <FilterModal onClose={() => setShowFilter(false)} />}
       {showUnitSelection && (
         <LandlordUnitSelection propId={propId} onClose={() => setShowUnitSelection(false)} />
@@ -1947,6 +1704,6 @@ export default function LandlordPropertyDetailPage() {
           onSaved={fetchPropertyDetail}
         />
       )}
-    </div>
+    </>
   );
 }

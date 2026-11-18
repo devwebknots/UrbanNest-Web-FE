@@ -38,6 +38,7 @@ export const C2 = {
   success:        '#10B981',
   successDark:    '#15803D',
   successStrong:  '#16A34A',
+  successBright:  '#4ADE80',   // mobile "active / move-in ready" green (ResidenceCard, ResidenceHero)
   successLight:   '#DCFCE7',
   successTint:    '#ECFDF5',
   error:          '#EF4444',
@@ -152,14 +153,28 @@ export const ILLUS2 = {
   personFrontBody:'#8FB1F3',
 };
 
+// Gradient colour stops [from, to] — for places that need the raw colours
+// (SVG <linearGradient>, canvas). The CSS gradients below are built from these.
+//   <Gauge gradient={GSTOPS2.success} … />
+//
+// success = THE UrbanNest green gradient. Built from the mobile app's green
+// palette (UrbanNestMobile/src/config/theme.ts colors.successDark → the bright
+// "active" green), running dark → light like mobile gradients.button.
+// Use it for every green fill: score gauges, progress bars, success buttons.
+export const GSTOPS2 = {
+  primary: ['#1D4ED8', '#3B82F6'],
+  success: [C2.successDark, C2.successBright],
+};
+
 // Gradients (CSS strings) — same stops as mobile `gradients`
 export const G2 = {
   header:        'linear-gradient(135deg, #032B57 0%, #518EF9 100%)',
   button:        'linear-gradient(135deg, #03264C 0%, #0659B2 100%)',
   // Mobile app "brand" button: gradients.button left → right (UrbanNestMobile/src/components/Button.tsx)
   brandButton:   'linear-gradient(90deg, #03264C 0%, #0659B2 100%)',
-  primaryButton: 'linear-gradient(135deg, #1D4ED8 0%, #3B82F6 100%)',
-  successButton: 'linear-gradient(135deg, #059669 0%, #10B981 100%)',
+  primaryButton: `linear-gradient(135deg, ${GSTOPS2.primary[0]} 0%, ${GSTOPS2.primary[1]} 100%)`,
+  successButton: `linear-gradient(135deg, ${GSTOPS2.success[0]} 0%, ${GSTOPS2.success[1]} 100%)`,
+  successBar:    `linear-gradient(90deg, ${GSTOPS2.success[0]} 0%, ${GSTOPS2.success[1]} 100%)`,   // progress fills, left → right
   sidebar:       'linear-gradient(180deg, #0B1D3A 0%, #0B2A5B 55%, #0B1D3A 100%)',
   sidebarFadeTop:'linear-gradient(180deg, #0B1D3A 0%, rgba(11,29,58,0) 100%)',
   heroScrim:     'linear-gradient(90deg, rgba(3,43,87,0.96) 0%, rgba(3,43,87,0.82) 38%, rgba(3,43,87,0.15) 75%, rgba(3,43,87,0) 100%)',
@@ -175,6 +190,9 @@ export const G2 = {
   heroTextScrim: 'linear-gradient(90deg, rgba(7,21,38,0.78) 0%, rgba(9,40,80,0.55) 30%, rgba(9,40,80,0.12) 50%, rgba(9,40,80,0) 62%)',
   heroImageMask: 'linear-gradient(90deg, transparent 0%, rgba(0,0,0,0.35) 14%, rgba(0,0,0,0.85) 30%, #000 42%)',
   heroVignette:  'linear-gradient(180deg, rgba(7,21,38,0) 60%, rgba(7,21,38,0.35) 100%)',
+  // Property hero (full-bleed photo): readable left text column + soft base for the thumbnail strip
+  propertyHeroScrim: 'linear-gradient(90deg, rgba(7,21,38,0.82) 0%, rgba(9,40,80,0.62) 28%, rgba(9,40,80,0.18) 52%, rgba(9,40,80,0) 70%)',
+  propertyHeroBase:  'linear-gradient(180deg, rgba(7,21,38,0) 55%, rgba(7,21,38,0.45) 100%)',
   imageDark:     'linear-gradient(180deg, rgba(11,29,58,0) 0%, rgba(11,29,58,0.92) 70%, #0B1D3A 100%)',
   // Sidebar promo (NavF):
   //   photoMask  — alpha mask: photo fades in from fully transparent, so it melts into

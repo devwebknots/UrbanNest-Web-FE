@@ -21,8 +21,15 @@ import { C2, G2, R2, SH2, F2, FS2, FW2, LH2, T2, SP2, SZ2, LAYOUT2, BLUR2, pad, 
 //               stats={[{ icon: 'ti-building', label: 'Properties', value: 4 }, …]}
 //               actions={<button className="un2-btn" style={UI2.btn.light}>…</button>} />
 //
-// Props: eyebrow, title (node), titleAccent (bold part after title), subtitle,
-//        subtitleIcon, image, imagePosition (CSS background-position), stats[], actions
+// Props: eyebrow, title (node), titleAccent (bold part after title), titleAction
+//        (node right of the title, e.g. an edit button), subtitle, subtitleIcon,
+//        image, imagePosition (CSS background-position), stats[], actions,
+//        statsVariant 'inline' (default — white stats under the text)
+//                     | 'panel' (frosted white panel top-right, e.g. a property hero),
+//        children (extra content under the subtitle: description, chips…)
+//
+// Stat: { icon, label, value, tone? (TONES2 — colours the value/icon in the panel) }
+// The panel sits beside the text and wraps under it on narrow screens.
 
 const fill = { position: 'absolute', inset: 0, pointerEvents: 'none' };
 
@@ -41,7 +48,17 @@ const S = {
   glow:     { ...fill, background: G2.heroGlow },
   scrim:    { ...fill, background: G2.heroTextScrim },
   vignette: { ...fill, background: G2.heroVignette },
-  content:  { position: 'relative', zIndex: 1, maxWidth: SZ2.heroContentMax },
+  layout:   { position: 'relative', zIndex: 1, display: 'flex', flexWrap: 'wrap', alignItems: 'flex-start', justifyContent: 'space-between', gap: SP2.lg },
+  content:  { flex: `1 1 ${SZ2.search}px`, maxWidth: SZ2.heroContentMax, minWidth: 0 },
+  titleRow: { ...UI2.row(SP2.md) },
+
+  // Frosted stats panel (statsVariant="panel")
+  panel:     { display: 'flex', flexWrap: 'wrap', alignItems: 'center', rowGap: SP2.sm, padding: pad(SP2.md, SP2.sm), background: G2.glass, border: `1px solid ${C2.glassBorder}`, borderRadius: R2.xl, boxShadow: SH2.glass },
+  pStat:     { ...UI2.row(SP2.sm), padding: pad(0, SP2.lg) },
+  pSep:      { width: SZ2.hairline, alignSelf: 'stretch', background: C2.border },
+  pIcon:     { fontSize: FS2.xxxl },
+  pValue:    { fontSize: FS2.xl, fontWeight: FW2.bold, lineHeight: LH2.tight, color: C2.textPrimary },
+  pLabel:    { fontSize: FS2.sm, color: C2.textSecondary, marginTop: SP2.xxs },
 
   eyebrow: { ...T2.eyebrow, display: 'inline-block', color: C2.onDark.text, padding: pad(SP2.xs, SP2.md), borderRadius: R2.sm, border: `1px solid ${C2.onDark.border}`, background: C2.onDark.surfaceSoft, backdropFilter: BLUR2.sm, WebkitBackdropFilter: BLUR2.sm, marginBottom: SP2.sm },
   title:   { ...T2.heroTitle, fontWeight: FW2.regular, marginBottom: SP2.xs },
@@ -68,10 +85,23 @@ export function HeroStat({ icon, label, value, first = false }) {
   );
 }
 
+function PanelStat({ icon, label, value, tone }) {
+  return (
+    <div style={S.pStat}>
+      {icon && <i className={`ti ${icon}`} style={{ ...S.pIcon, color: tone ? tone.strong : C2.primary }} aria-hidden="true" />}
+      <div>
+        <div style={{ ...S.pValue, ...(tone ? { color: tone.strong } : {}) }}>{value}</div>
+        <div style={S.pLabel}>{label}</div>
+      </div>
+    </div>
+  );
+}
+
 export default function HeroBanner({
-  eyebrow, title, titleAccent, subtitle, subtitleIcon,
-  image, imagePosition = 'right center', stats = [], actions,
+  eyebrow, title, titleAccent, titleAction, subtitle, subtitleIcon,
+  image, imagePosition = 'right center', stats = [], statsVariant = 'inline', actions, children,
 }) {
+  const panel = statsVariant === 'panel';
   return (
     <section style={S.hero}>
       <div style={S.sky} />
@@ -80,19 +110,23 @@ export default function HeroBanner({
       <div style={S.scrim} />
       <div style={S.vignette} />
 
-      <div style={S.content}>
-        {eyebrow && <div style={S.eyebrow}>{eyebrow}</div>}
-        <div style={S.title}>
-          {title}{titleAccent != null && <> <span style={S.accent}>{titleAccent}</span></>}
-        </div>
-        {subtitle && (
-          <div style={S.sub}>
-            {subtitleIcon && <i className={`ti ${subtitleIcon}`} style={{ fontSize: FS2.md }} aria-hidden="true" />}
-            {subtitle}
+      <div style={S.layout}>
+        <div style={S.content}>
+          {eyebrow && <div style={S.eyebrow}>{eyebrow}</div>}
+          <div style={S.titleRow}>
+            <div style={S.title}>
+              {title}{titleAccent != null && <> <span style={S.accent}>{titleAccent}</span></>}
+            </div>
+            {titleAction}
           </div>
-        )}
-        {stats.length > 0 && (
-          <>
+          {subtitle && (
+            <div style={S.sub}>
+              {subtitleIcon && <i className={`ti ${subtitleIcon}`} style={{ fontSize: FS2.md }} aria-hidden="true" />}
+              {subtitle}
+            </div>
+          )}
+          {children}
+          {!panel && stats.length > 0 && (
             <div style={S.stats}>
               {stats.map((s, i) => (
                 <React.Fragment key={s.label}>
@@ -101,9 +135,20 @@ export default function HeroBanner({
                 </React.Fragment>
               ))}
             </div>
-          </>
+          )}
+          {actions && <div style={S.actions}>{actions}</div>}
+        </div>
+
+        {panel && stats.length > 0 && (
+          <div style={S.panel}>
+            {stats.map((s, i) => (
+              <React.Fragment key={s.label}>
+                {i > 0 && <div style={S.pSep} />}
+                <PanelStat {...s} />
+              </React.Fragment>
+            ))}
+          </div>
         )}
-        {actions && <div style={S.actions}>{actions}</div>}
       </div>
     </section>
   );

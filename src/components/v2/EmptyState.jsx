@@ -10,7 +10,8 @@ import { FS2, ILLUS2, LAYOUT2, SZ2, UI2 } from '../../constants/v2';
 // For a one-line note without art use UI2.empty (centred) or UI2.emptyInline (left).
 //
 // Props: illustration ('people' or any node) · icon (tabler class, used when no
-//        illustration) · text · children (e.g. a button under the text)
+//        illustration) · title (bold line, e.g. "All clear!") · text
+//        · children (e.g. a button under the text)
 
 const ILLUSTRATIONS = {
   people: (
@@ -22,14 +23,15 @@ const ILLUSTRATIONS = {
   ),
 };
 
-export default function EmptyState({ illustration, icon, text, children }) {
+export default function EmptyState({ illustration, icon, title, text, children }) {
   const art = typeof illustration === 'string' ? ILLUSTRATIONS[illustration] : illustration;
   return (
     <div style={{ ...UI2.center, ...UI2.stack(LAYOUT2.rowGap), minHeight: SZ2.emptyMin }}>
       {art || (icon && (
         <div style={UI2.iconBox(SZ2.icon.lg, undefined, { round: true })}><i className={`ti ${icon}`} aria-hidden="true" /></div>
       ))}
-      {text && <div style={{ ...UI2.text.label, fontSize: FS2.md }}>{text}</div>}
+      {title && <div style={{ ...UI2.text.titleLg, fontSize: FS2.lg }}>{title}</div>}
+      {text && <div style={{ ...UI2.text.label, fontSize: title ? FS2.sm : FS2.md }}>{text}</div>}
       {children}
     </div>
   );

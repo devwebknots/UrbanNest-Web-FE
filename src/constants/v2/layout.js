@@ -21,6 +21,16 @@ export const SZ2 = {
   search:  320,
   thumb:   { w: 96, h: 72 },                    // list thumbnails
   thumbLg: { w: 112, h: 88 },                   // rich list rows (PropertyListItem)
+  thumbXl: { w: 144, h: 104 },                  // photo tiles (MediaListItem)
+  thumbFeature: { w: 216, h: 120 },             // featured photo tile (MediaListItem size="lg", unit carousel)
+  unitCard: 248,                                // unit card width in the Overview's sideways-scrolling unit row (stacked MediaListItem)
+  detailLabel: 84,                              // label column in label/value rows
+  tableMin: 560,                                // DataTable min width before it scrolls sideways
+  tableMinCompact: 320,                         // DataTable with few columns (ledger) — fits a half-width card in a main column
+  gauge: 168,                                   // Gauge chart diameter
+  heroThumb: { w: 88, h: 64 },                  // PropertyHero photo strip tiles
+  propertyHeroMin: 236,                         // PropertyHero min height
+  threadMax: 140,                               // expanded chat thread before it scrolls
   donut:   148,
   chart:   180,
   kpiMin:  100,
@@ -84,9 +94,10 @@ export const BP2 = { xl: 1100, lg: 1024, md: 860, sm: 600 };  // 3-col → 2 at 
 //   split       1.25fr · 1fr   (≈ 55 / 45)      2      2          1         1        1
 //   wideRight   1fr · 1.45fr   (≈ 40 / 60)      2      2          1         1        1
 //   aside       1fr · 168px    (inside a card)  2      2          2         1        1
+//   mainSide    2.2fr · 1fr    (body + side)    2      2          1         1        1
 //
 // Gap between cells = LAYOUT2.gridGap (aside uses LAYOUT2.sectionGap).
-export const GRID_RATIO2 = { wide: 1.45, split: 1.25, aside: 168 };   // mirrors --un2-col-wide / --un2-col-split / --un2-aside-w
+export const GRID_RATIO2 = { wide: 1.45, split: 1.25, main: 2.2, aside: 168 };   // mirrors --un2-col-wide / --un2-col-split / --un2-col-main / --un2-aside-w
 export const GRID2 = {
   two:       'un2-grid-2',
   three:     'un2-grid-3',
@@ -95,6 +106,7 @@ export const GRID2 = {
   split:     'un2-grid-split',
   wideRight: 'un2-grid-wide-right',
   aside:     'un2-grid-aside',
+  mainSide:  'un2-grid-main-side',
 };
 
 export const MOTION2 = {

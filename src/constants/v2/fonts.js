@@ -25,7 +25,8 @@ export const FW2 = { regular: 400, medium: 500, semibold: 600, bold: 700 };
 //   xxl 20 → KPI values
 //   xxxl 24 → hero / page headline (Playfair)
 //   display 28 → big chart numbers
-export const FS2 = { xxs: 10, xs: 11, sm: 12, base: 13, md: 14, lg: 16, xl: 18, xxl: 20, xxxl: 24, display: 28 };
+//   score   36 → gauge / headline scores
+export const FS2 = { xxs: 10, xs: 11, sm: 12, base: 13, md: 14, lg: 16, xl: 18, xxl: 20, xxxl: 24, display: 28, score: 36 };
 
 // Line heights paired with the scale: none for big numbers, tight for stats,
 // heading for titles, body for paragraphs.

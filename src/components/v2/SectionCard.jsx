@@ -22,7 +22,13 @@ import { C2, G2, SH2, TONES2, SZ2, LAYOUT2, UI2 } from '../../constants/v2';
 //   as         element/tag, default 'div' (use 'section' for page sections)
 //   decoration background art behind the content, e.g. <CardWave />
 //              (card becomes position: relative + overflow: hidden)
+//   centerBody true → the body fills the card under the header and its content is centred
+//              vertically (empty states in a card stretched to its row's height)
 //   style, className
+
+const S = {
+  centerBody: { flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center' },
+};
 
 export function CardHeader({ icon, tone = TONES2.primary, plainIcon = false, accentIcon = false, title, badge, subtitle, action, dark = false }) {
   const iconTone = dark ? { soft: C2.onDark.surface, strong: C2.white } : tone;
@@ -50,7 +56,7 @@ export function CardHeader({ icon, tone = TONES2.primary, plainIcon = false, acc
 
 export default function SectionCard({
   icon, tone, plainIcon, accentIcon, title, badge, subtitle, action,
-  variant = 'light', as: Tag = 'div', style, className, children, decoration,
+  variant = 'light', as: Tag = 'div', style, className, children, decoration, centerBody = false,
 }) {
   const dark = variant === 'dark';
   const base = dark ? { ...UI2.darkCard, display: 'flex', flexDirection: 'column' } : UI2.card;
@@ -59,9 +65,17 @@ export default function SectionCard({
       {title && (
         <CardHeader icon={icon} tone={tone} plainIcon={plainIcon} accentIcon={accentIcon} title={title} badge={badge} subtitle={subtitle} action={action} dark={dark} />
       )}
-      {children}
+      {centerBody ? <div style={S.centerBody}>{children}</div> : children}
     </>
   );
+  // centerBody: body fills the space under the header, content centred vertically
+  if (centerBody && !decoration) {
+    return (
+      <Tag className={className} style={{ ...base, display: 'flex', flexDirection: 'column', ...style }}>
+        {content}
+      </Tag>
+    );
+  }
 
   // decoration: background art (e.g. <CardWave />) drawn behind the content
   if (decoration) {

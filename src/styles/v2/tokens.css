@@ -10,7 +10,7 @@
 
   /* Type scale */
   --un2-fs-xxs: 10px; --un2-fs-xs: 11px; --un2-fs-sm: 12px; --un2-fs-base: 13px; --un2-fs-md: 14px;
-  --un2-fs-lg: 16px; --un2-fs-xl: 18px; --un2-fs-xxl: 20px; --un2-fs-xxxl: 24px; --un2-fs-display: 28px;
+  --un2-fs-lg: 16px; --un2-fs-xl: 18px; --un2-fs-xxl: 20px; --un2-fs-xxxl: 24px; --un2-fs-display: 28px; --un2-fs-score: 36px;
 
   /* Spacing (4px grid) */
   --un2-sp-xxs: 2px; --un2-sp-xs: 4px; --un2-sp-sm: 8px; --un2-sp-md: 12px; --un2-sp-lg: 16px;
@@ -25,6 +25,7 @@
   /* Section grid column widths (same as GRID2 in constants/v2/layout.js) */
   --un2-col-wide: 1.45fr;   /* wide column in un2-grid-wide-left / wide-right */
   --un2-col-split: 1.25fr;  /* wider column in un2-grid-split */
+  --un2-col-main: 2.2fr;    /* main column in un2-grid-main-side (page body + side column) */
   --un2-aside-w: 168px;     /* fixed side column in un2-grid-aside */
 
   /* Radii */
