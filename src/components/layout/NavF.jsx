@@ -1,165 +1,163 @@
 import React, { useState } from 'react';
-import { C, F } from '../../pages/Landlord/landlordTokens';
+import { C2, G2, R2, SH2, F2, FS2, FW2, LH2, LS2, T2, SP2, SZ2, MOTION2, pad, UI2 } from '../../constants/v2';
+import sidebarBuilding from '../../assets/v2/landlord/sidebar-building.jpg';
 
-// ─── NavF — Landlord Portal Left Navigation ───────────────────────────────────
-// Reusable across all Landlord portal pages.
+// ─── NavF — Landlord Portal Left Navigation (Design System v2) ───────────────
+// Reusable across all Landlord portal pages. All values come from constants/v2.
 // Usage:
 //   import NavF from '../../components/layout/NavF';
 //   <NavF activePage="dashboard" />
+//   <NavF activePage="dashboard" badges={{ maintenance: 2 }} />
 //
 // activePage values:
 //   'dashboard' | 'properties' | 'listings' | 'leases' | 'finances' |
-//   'maintenance' | 'tenants' | 'documents' |
+//   'maintenance' | 'tenants' | 'documents' | 'calendar' |
 //   'reports' | 'analytics' | 'insights' | 'settings'
-
+//
+// badges (optional): { [navId]: number } — renders an amber count pill when > 0.
 
 const NAV_MAIN = [
-  { id: 'dashboard',   label: 'Dashboard',   icon: 'ti-layout-dashboard', route: '/landlord-portal/dashboard' },
+  { id: 'dashboard',   label: 'Dashboard',   icon: 'ti-layout-grid',      route: '/landlord-portal/dashboard' },
   { id: 'properties',  label: 'Properties',  icon: 'ti-building',         route: '/landlord-portal/portfolio' },
-  // Added alongside LandlordListingsOverview.jsx — the Landlord Portal's
-  // own lean version of the PM Portal's Listings Overview dashboard.
-  { id: 'listings',    label: 'Listings',    icon: 'ti-list-check',       route: '/landlord-portal/listings' },
+  // Landlord Portal's lean version of the PM Portal's Listings Overview.
+  { id: 'listings',    label: 'Listings',    icon: 'ti-list-details',     route: '/landlord-portal/listings' },
   { id: 'leases',      label: 'Leases',      icon: 'ti-file-text',        route: '/landlord-portal/leases' },
-  { id: 'finances',    label: 'Finances',    icon: 'ti-wallet',           route: '/landlord-portal/finances' },
+  { id: 'finances',    label: 'Finances',    icon: 'ti-file-dollar',      route: '/landlord-portal/finances' },
   { id: 'maintenance', label: 'Maintenance', icon: 'ti-tool',             route: '/landlord-portal/maintenance' },
   { id: 'tenants',     label: 'Tenants',     icon: 'ti-users',            route: '/landlord-portal/tenants' },
-  { id: 'documents',   label: 'Documents',   icon: 'ti-folder',           route: '/landlord-portal/documents' },
-  // Phase 5 (Neyora) Step 3 — opens LandlordCalendarPage.jsx, which mounts
-  // Neyora's own real Calendar widget (architecture doc §20).
+  { id: 'documents',   label: 'Documents',   icon: 'ti-files',            route: '/landlord-portal/documents' },
+  // Phase 5 (Neyora) Step 3 — opens LandlordCalendarPage.jsx (Neyora Calendar widget).
   { id: 'calendar',    label: 'Calendar',    icon: 'ti-calendar',         route: '/landlord-portal/calendar' },
 ];
 
 const NAV_BOTTOM = [
   { id: 'reports',   label: 'Reports',   icon: 'ti-chart-bar',  route: '/landlord-portal/reports' },
   { id: 'analytics', label: 'Analytics', icon: 'ti-chart-line', route: '/landlord-portal/analytics' },
-  { id: 'insights',  label: 'Insights',  icon: 'ti-bulb',       route: '/landlord-portal/insights' },
+  { id: 'insights',  label: 'Insights',  icon: 'ti-bulb',       route: '/landlord-portal/insights', dot: true },
   { id: 'settings',  label: 'Settings',  icon: 'ti-settings',   route: '/landlord-portal/settings' },
 ];
 
 const S = {
   nav: {
-    width: 220,
-    minWidth: 220,
-    background: C.navBg,
-    display: 'flex',
-    flexDirection: 'column',
-    flexShrink: 0,
-    height: '100vh',
-    fontFamily: F.sans,
+    width: SZ2.sidebar, minWidth: SZ2.sidebar, height: '100vh', flexShrink: 0,
+    display: 'flex', flexDirection: 'column', background: G2.sidebar, fontFamily: F2.body,
+    overflowY: 'auto', overflowX: 'hidden',
   },
-  logo: {
-    padding: '20px 16px 14px',
-    color: '#fff',
-    fontSize: 15,
-    fontWeight: 700,
-    letterSpacing: 0.2,
-    flexShrink: 0,
-  },
-  logoSub: {
-    display: 'block',
-    fontSize: 9,
-    color: '#3d6a9a',
-    fontWeight: 400,
-    letterSpacing: 1.2,
-    textTransform: 'uppercase',
-    marginTop: 2,
-  },
-  section: {
-    flex: 1,
-    paddingTop: 4,
-    overflowY: 'auto',
-  },
-  navItem: (active) => ({
-    display: 'flex',
-    alignItems: 'center',
-    gap: 10,
-    padding: '9px 16px',
-    color: active ? C.navActive : C.navText,
-    fontSize: 12.5,
-    fontWeight: active ? 500 : 400,
+  logo:     { ...UI2.row(SP2.sm), padding: pad(SP2.xxl, SP2.xl), cursor: 'pointer', flexShrink: 0 },
+  logoName: { ...T2.brandTitle, lineHeight: LH2.tight, letterSpacing: LS2.snug },
+  logoSub:  { ...T2.eyebrow, color: C2.sidebarTextMuted, marginTop: SP2.xs },
+  list:     { padding: pad(0, SP2.md), display: 'flex', flexDirection: 'column', gap: SP2.xxs },
+  item: (active, hovered) => ({
+    ...UI2.row(SP2.md),
+    width: '100%',
+    minHeight: SZ2.control.md,
+    padding: pad(SP2.sm, SP2.lg),
+    border: 'none',
+    borderRadius: R2.lg,
+    textAlign: 'left',
+    fontFamily: F2.body,
+    fontSize: FS2.base,
+    fontWeight: active ? FW2.semibold : FW2.medium,
+    color: active || hovered ? C2.white : C2.sidebarText,
+    background: active ? G2.primaryButton : hovered ? C2.sidebarHover : 'transparent',
+    boxShadow: active ? SH2.primary : 'none',
     cursor: 'pointer',
     userSelect: 'none',
-    borderLeft: active ? `3px solid ${C.navBorder}` : '3px solid transparent',
-    background: active ? 'rgba(255,255,255,0.07)' : 'transparent',
-    transition: 'all 0.15s',
+    transition: `background ${MOTION2.fast}, color ${MOTION2.fast}`,
   }),
-  navIcon: {
-    fontSize: 15,
-    width: 16,
-    flexShrink: 0,
+  icon:    { fontSize: FS2.lg, width: SP2.xl, flexShrink: 0, lineHeight: LH2.none },
+  badge:   { ...UI2.countBadge, marginLeft: 'auto' },
+  dot:     { ...UI2.dot(C2.success), marginLeft: 'auto', boxShadow: SH2.dotSuccess },
+  divider: { height: 1, background: C2.sidebarDivider, margin: pad(SP2.lg, SP2.xxl) },
+  sectionLabel: { ...T2.eyebrow, color: C2.sidebarTextMuted, padding: pad(0, SP2.xxl + SP2.xxs, SP2.sm) },
+  promo: {
+    position: 'relative', minHeight: SZ2.promoMin, flexShrink: 0,
+    display: 'flex', flexDirection: 'column', justifyContent: 'flex-end',
+    padding: pad(0, SP2.xl, SP2.xxl),
+    backgroundImage: `${G2.imageDark}, url(${sidebarBuilding})`,
+    backgroundSize: 'cover', backgroundPosition: 'center 30%',
   },
-  bottom: {
-    padding: '12px 0',
-    borderTop: '1px solid rgba(255,255,255,0.07)',
-    flexShrink: 0,
-  },
-  addBtn: {
-    margin: '10px 12px 4px',
-    background: C.blue,
-    color: '#fff',
-    border: 'none',
-    borderRadius: 6,
-    padding: '8px 12px',
-    fontSize: 11.5,
-    fontWeight: 500,
-    cursor: 'pointer',
-    width: 'calc(100% - 24px)',
-    display: 'flex',
-    alignItems: 'center',
-    gap: 6,
-    justifyContent: 'center',
-    fontFamily: F.sans,
-  },
+  promoFadeTop: { position: 'absolute', top: 0, left: 0, right: 0, height: SZ2.promoMin / 3, background: G2.sidebarFadeTop, pointerEvents: 'none' },
+  promoTitle:   { ...T2.brandTitle, position: 'relative', lineHeight: LH2.heading, marginBottom: SP2.sm },
+  promoText:    { position: 'relative', fontSize: FS2.sm, lineHeight: LH2.body, color: C2.onDark.textMuted, marginBottom: SP2.lg },
+  addBtn:       { ...UI2.btn.primary, position: 'relative', width: '100%', minHeight: SZ2.control.lg, borderRadius: R2.pill },
 };
 
-export default function NavF({ activePage = 'dashboard' }) {
+function LogoMark() {
+  return (
+    <svg width={SZ2.icon.md} height={SZ2.icon.md} viewBox="0 0 40 40" aria-hidden="true">
+      <defs>
+        <linearGradient id="navf-logo" x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0" stopColor={C2.logoStart} />
+          <stop offset="1" stopColor={C2.logoEnd} />
+        </linearGradient>
+      </defs>
+      <path d="M5 19 L20 6 L35 19" fill="none" stroke="url(#navf-logo)" strokeWidth="3.2" strokeLinecap="round" strokeLinejoin="round" />
+      <path d="M9.5 16.5 V33 H30.5 V16.5" fill="none" stroke="url(#navf-logo)" strokeWidth="3.2" strokeLinejoin="round" />
+      <rect x="16" y="22" width="8" height="11" rx="1.5" fill={C2.primary} />
+    </svg>
+  );
+}
+
+export default function NavF({ activePage = 'dashboard', badges = {} }) {
   const [hovered, setHovered] = useState(null);
 
-  const handleClick = (item) => {
-    if (item.route) window.location.href = item.route;
-  };
+  const go = (route) => { if (route) window.location.href = route; };
 
   const renderItem = (item) => {
     const active = activePage === item.id;
-    const isHovered = hovered === item.id;
+    const count = Number(badges[item.id]) || 0;
     return (
-      <div
+      <button
         key={item.id}
-        style={{
-          ...S.navItem(active),
-          ...(isHovered && !active ? { color: '#c8dff5', background: 'rgba(255,255,255,0.04)' } : {}),
-        }}
-        onClick={() => handleClick(item)}
+        type="button"
+        style={S.item(active, hovered === item.id)}
+        onClick={() => go(item.route)}
         onMouseEnter={() => setHovered(item.id)}
         onMouseLeave={() => setHovered(null)}
+        aria-current={active ? 'page' : undefined}
       >
-        <i className={`ti ${item.icon}`} style={S.navIcon} aria-hidden="true" />
+        <i className={`ti ${item.icon}`} style={S.icon} aria-hidden="true" />
         {item.label}
-      </div>
+        {count > 0 && <span style={S.badge}>{count > 99 ? '99+' : count}</span>}
+        {item.dot && !count && <span style={S.dot} aria-hidden="true" />}
+      </button>
     );
   };
 
   return (
-    <nav style={S.nav}>
+    <nav className="un2-scroll-hidden" style={S.nav} aria-label="Landlord navigation">
       {/* Logo */}
-      <div style={S.logo}>
-        UrbanNest
-        <span style={S.logoSub}>Estate Management</span>
+      <div style={S.logo} onClick={() => go('/landlord-portal/dashboard')}>
+        <LogoMark />
+        <div>
+          <div style={S.logoName}>UrbanNest</div>
+          <div style={S.logoSub}>Estate Management</div>
+        </div>
       </div>
 
-      {/* Main nav items */}
-      <div style={S.section}>
-        {NAV_MAIN.map(renderItem)}
-      </div>
+      {/* Main nav */}
+      <div style={S.list}>{NAV_MAIN.map(renderItem)}</div>
 
-      {/* Bottom nav items + Add property button */}
-      <div style={S.bottom}>
-        {NAV_BOTTOM.map(renderItem)}
+      <div style={S.divider} />
+
+      {/* Insights & tools */}
+      <div style={S.sectionLabel}>Insights &amp; Tools</div>
+      <div style={S.list}>{NAV_BOTTOM.map(renderItem)}</div>
+
+      {/* Promo + Add property */}
+      <div style={{ flex: 1, minHeight: SP2.xxl }} />
+      <div style={S.promo}>
+        <div style={S.promoFadeTop} />
+        <div style={S.promoTitle}>Manage Your Portfolio Effortlessly</div>
+        <div style={S.promoText}>Leases, maintenance, finances and more — all in one place.</div>
         <button
+          type="button"
+          className="un2-btn"
           style={S.addBtn}
-          onClick={() => window.location.href = '/landlord-portal/add-property'}
+          onClick={() => go('/landlord-portal/add-property')}
         >
-          <i className="ti ti-plus" style={{ fontSize: 13 }} aria-hidden="true" />
+          <i className="ti ti-plus" style={{ fontSize: FS2.md }} aria-hidden="true" />
           Add new property
         </button>
       </div>

@@ -1,0 +1,88 @@
+/* ─────────────────────────────────────────────────────────────────────────────
+   UrbanNest — Design System v2 · Utility classes
+   Interaction states inline styles can't express. Add next to an inline style:
+     <div className="un2-hover-lift" style={UI2.card}>
+   Imported once from src/index.js.
+   ───────────────────────────────────────────────────────────────────────────── */
+
+/* Cards that rise on hover */
+.un2-hover-lift { transition: transform var(--un2-motion-base), box-shadow var(--un2-motion-base); }
+.un2-hover-lift:hover { transform: translateY(-2px); box-shadow: var(--un2-shadow-card-hover); }
+
+/* Filled buttons brighten on hover */
+.un2-btn { transition: filter var(--un2-motion-fast), background var(--un2-motion-fast); }
+.un2-btn:hover { filter: brightness(1.06); }
+
+/* Ghost button on dark backgrounds */
+.un2-ghost:hover { background: var(--un2-on-dark-surface-hover) !important; }
+
+/* White controls (outline buttons, icon buttons, tiles) lift on hover */
+.un2-raise { transition: transform var(--un2-motion-fast), box-shadow var(--un2-motion-fast); }
+.un2-raise:hover { transform: translateY(-1px); box-shadow: var(--un2-shadow-control-hover) !important; }
+
+/* Text links */
+.un2-link:hover { text-decoration: underline; }
+
+/* List rows */
+.un2-row-hover { transition: background var(--un2-motion-fast); }
+.un2-row-hover:hover { background: var(--un2-background); }
+
+/* Inputs (wrapper with focus-within) */
+.un2-focus-ring { transition: border-color var(--un2-motion-fast), box-shadow var(--un2-motion-fast); }
+.un2-focus-ring:focus-within { border-color: var(--un2-primary) !important; box-shadow: var(--un2-shadow-focus); }
+
+/* Loading skeleton */
+@keyframes un2-pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.45; } }
+.un2-skel { background: var(--un2-skeleton); border-radius: var(--un2-r-sm); animation: un2-pulse 1.5s ease-in-out infinite; }
+
+/* Children of a scrolling flex column must not shrink */
+.un2-no-shrink > * { flex-shrink: 0; }
+
+/* ── Section grids ───────────────────────────────────────────────────────────
+   Put cards of one section side by side; gap = --un2-grid-gap. Responsive
+   collapse is built in (breakpoints = BP2 in constants/v2/layout.js).
+     un2-grid-2          two equal columns
+     un2-grid-3          three equal columns
+     un2-grid-4          four equal columns (KPI row)
+     un2-grid-wide-left  wide main + narrower side   (≈ 60 / 40)
+     un2-grid-split      slightly wider left         (≈ 55 / 45)
+     un2-grid-wide-right narrower left + wide right  (≈ 40 / 60)
+     un2-grid-aside      content + fixed 192px side column (inside a card)
+   ─────────────────────────────────────────────────────────────────────────── */
+.un2-grid-2, .un2-grid-3, .un2-grid-4,
+.un2-grid-wide-left, .un2-grid-split, .un2-grid-wide-right, .un2-grid-aside {
+  display: grid;
+  gap: var(--un2-grid-gap);
+}
+.un2-grid-2          { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+.un2-grid-3          { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+.un2-grid-4          { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.un2-grid-wide-left  { grid-template-columns: minmax(0, 1.45fr) minmax(0, 1fr); }
+.un2-grid-split      { grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); }
+.un2-grid-wide-right { grid-template-columns: minmax(0, 1fr) minmax(0, 1.45fr); }
+.un2-grid-aside      { grid-template-columns: minmax(0, 1fr) 192px; gap: var(--un2-section-gap); }
+
+/* Vertical stack of sections (PageShell content uses this) */
+.un2-stack-sections { display: flex; flex-direction: column; gap: var(--un2-section-gap); }
+.un2-stack-sections > * { flex-shrink: 0; }
+
+@media (max-width: 1360px) {
+  .un2-grid-3 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .un2-grid-3 > :last-child:nth-child(odd) { grid-column: 1 / -1; }
+}
+@media (max-width: 1180px) {
+  .un2-grid-4 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .un2-grid-wide-left, .un2-grid-split, .un2-grid-wide-right { grid-template-columns: minmax(0, 1fr); }
+}
+@media (max-width: 860px) {
+  .un2-grid-2, .un2-grid-3, .un2-grid-aside { grid-template-columns: minmax(0, 1fr); }
+  .un2-grid-3 > :last-child:nth-child(odd) { grid-column: auto; }
+  .un2-hide-md { display: none !important; }
+}
+@media (max-width: 600px) {
+  .un2-grid-4 { grid-template-columns: minmax(0, 1fr); }
+}
+
+/* Hide scrollbar but keep scrolling */
+.un2-scroll-hidden { scrollbar-width: none; }
+.un2-scroll-hidden::-webkit-scrollbar { display: none; }
