@@ -12,12 +12,12 @@
 
 import { C2, G2, R2, SH2, TONES2 } from './colors';
 import { F2, FS2, FW2, LH2, LS2, T2 } from './fonts';
-import { SP2, SZ2, MOTION2, LAYOUT2, pad } from './layout';
+import { SP2, SZ2, MOTION2, LAYOUT2, BLUR2, OP2, pad } from './layout';
 
 const center = { display: 'flex', alignItems: 'center', justifyContent: 'center' };
 
 // Layer blur behind frosted-glass surfaces
-const GLASS_BLUR = 'blur(16px) saturate(140%)';
+const GLASS_BLUR = BLUR2.glass;
 
 const btnBase = {
   ...center,
@@ -57,6 +57,12 @@ export const UI2 = {
     backdropFilter: GLASS_BLUR,
     WebkitBackdropFilter: GLASS_BLUR,
     padding: pad(LAYOUT2.cardY, LAYOUT2.cardX),
+  },
+  // Dark frosted glass over a photo (sidebar promo copy). Pair with a mask to feather its top.
+  darkGlass: {
+    background: G2.sidebarPromoGlass,
+    backdropFilter: GLASS_BLUR,
+    WebkitBackdropFilter: GLASS_BLUR,
   },
   darkCard: {
     fontFamily: F2.body,
@@ -196,7 +202,7 @@ export const UI2 = {
     success: { ...btnBase, background: G2.successButton, color: C2.white, boxShadow: SH2.success },
     dark:    { ...btnBase, background: C2.black, color: C2.white, boxShadow: SH2.darkButton },
     outline: { ...btnBase, background: C2.white, color: C2.textPrimary, border: `1px solid ${C2.cardBorder}`, boxShadow: SH2.control },
-    ghostOnDark: { ...btnBase, background: C2.onDark.surface, color: C2.white, border: `1px solid ${C2.onDark.border}`, backdropFilter: 'blur(6px)' },
+    ghostOnDark: { ...btnBase, background: C2.onDark.surface, color: C2.white, border: `1px solid ${C2.onDark.border}`, backdropFilter: BLUR2.md, WebkitBackdropFilter: BLUR2.md },
     link: {
       display: 'inline-flex', alignItems: 'center', gap: SP2.xs, padding: 0, background: 'none', border: 'none', cursor: 'pointer',
       fontFamily: F2.body, fontSize: FS2.sm, fontWeight: FW2.semibold, color: C2.primary, whiteSpace: 'nowrap',
@@ -232,8 +238,21 @@ export const UI2 = {
   // ── Misc ───────────────────────────────────────────────────────────────────
   progressTrack: { height: SZ2.progress, borderRadius: R2.pill, background: C2.surfaceMuted, overflow: 'hidden' },
   progressFill:  (pct, bg = G2.successButton) => ({ width: `${pct}%`, height: '100%', borderRadius: R2.pill, background: bg }),
-  divider:       { height: 1, background: C2.border, border: 'none' },
+  divider:       { height: SZ2.hairline, background: C2.border, border: 'none' },
   empty:         { padding: pad(SP2.xxl, SP2.sm), textAlign: 'center', color: C2.textMuted, fontSize: FS2.base },
+  // Left-aligned one-line empty note at the top of a card body ("No open tickets.")
+  emptyInline:   { padding: pad(SP2.xs, 0, SP2.md), textAlign: 'left', color: C2.textMuted, fontSize: FS2.base },
+  // Hover list row (avatar + name + meta + trailing pill). Pair with className="un2-row-hover".
+  listRowHover:  { display: 'flex', alignItems: 'center', gap: LAYOUT2.rowGap, padding: pad(SP2.md, SP2.sm), borderRadius: R2.md },
+  // Loading placeholder block. Pair with className="un2-skel".
+  skeleton: (width, height, { onDark = false } = {}) => ({
+    display: 'inline-block', width, height, ...(onDark ? { opacity: OP2.faint } : {}),
+  }),
+
+  // ── Icons ──────────────────────────────────────────────────────────────────
+  btnIcon:  { fontSize: FS2.md },                                  // leading icon inside a button
+  chevron:  { fontSize: FS2.xl, color: C2.textSecondary },         // "go to" chevron on cards / rows
+  minWidth0:{ minWidth: 0 },                                       // let a flex child truncate
   errorBanner:   {
     display: 'flex', alignItems: 'center', gap: SP2.sm, padding: pad(SP2.md, SP2.lg), borderRadius: R2.lg,
     background: C2.errorTint, border: `1px solid ${C2.errorLight}`, color: C2.errorDark, fontSize: FS2.base,

@@ -22,6 +22,11 @@
   --un2-card-x: 20px; --un2-card-y: 16px; --un2-card-header-gap: 12px;
   --un2-row-gap: 8px; --un2-inline-gap: 8px;
 
+  /* Section grid column widths (same as GRID2 in constants/v2/layout.js) */
+  --un2-col-wide: 1.45fr;   /* wide column in un2-grid-wide-left / wide-right */
+  --un2-col-split: 1.25fr;  /* wider column in un2-grid-split */
+  --un2-aside-w: 168px;     /* fixed side column in un2-grid-aside */
+
   /* Radii */
   --un2-r-xs: 4px; --un2-r-sm: 6px; --un2-r-md: 8px; --un2-r-lg: 12px; --un2-r-xl: 16px; --un2-r-xxl: 20px;
   --un2-r-button: 10px; --un2-r-pill: 9999px;

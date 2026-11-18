@@ -13,6 +13,7 @@ export const pad = (...v) => v.map(n => (typeof n === 'number' ? `${n}px` : n)).
 export const SZ2 = {
   icon:    { xs: 20, sm: 28, md: 32, lg: 40 },   // square icon boxes / avatars (compact)
   control: { sm: 28, md: 34, lg: 40 },           // buttons, inputs, nav items (compact)
+  hairline:1,                                   // dividers, separators, 1px rules
   dot:     6,
   progress:6,
   sidebar: 224,
@@ -25,9 +26,17 @@ export const SZ2 = {
   kpiMin:  100,
   heroMin: 196,
   heroImageWidth: '64%',
+  heroContentMax:640,                           // HeroBanner text column
+  labelMax:140,                                 // truncated side labels (e.g. chart summary)
+  skeletonTitle:300,                            // loading placeholder for a hero / page title
   panelMin:132,
   insightVisual: { w: 120, h: 56 },             // InsightCard right-hand chart / illustration
   promoMin:240,
+  brandLogoRatio:'480 / 464',                   // mobile house mark (assets/v2/brand/urban-nest-logo.png)
+  promoPhotoRatio:'640 / 1517',                 // sidebar promo photo (assets/v2/landlord/sidebar-building.jpg)
+  promoBleed:120,                               // how far the promo photo runs up behind the nav items
+  promoOverlap:64,                              // how far the photo's base slides under the promo copy
+  promoGlassBleed:24,                           // how far the frosted copy panel fades in above the title
   emptyMin:140,
 };
 
@@ -62,7 +71,43 @@ export const LAYOUT2 = {
 // Breakpoints (px, max-width) — same values as the un2-grid-* media queries
 export const BP2 = { xl: 1100, lg: 1024, md: 860, sm: 600 };  // 3-col → 2 at xl · 4-col & 2-col splits → stacked at lg
 
+// ─── Section grid layouts — the ONLY column splits v2 screens use ────────────
+// Each name maps to a CSS class in src/styles/v2/utilities.css (widths from
+// tokens.css, responsive collapse built in). Use via <Grid layout="wideLeft">
+// (components/v2/Grid.jsx) or className={GRID2.wideLeft}.
+//
+//   layout      columns (desktop)              ≥1100  1100–1024  1024–860  860–600  <600
+//   two         1fr · 1fr                       2      2          2         1        1
+//   three       1fr · 1fr · 1fr                 3      2 (+1 full) 2 (+1)   1        1
+//   four        1fr ×4 (KPI row)                4      4          2         2        1
+//   wideLeft    1.45fr · 1fr   (≈ 60 / 40)      2      2          1         1        1
+//   split       1.25fr · 1fr   (≈ 55 / 45)      2      2          1         1        1
+//   wideRight   1fr · 1.45fr   (≈ 40 / 60)      2      2          1         1        1
+//   aside       1fr · 168px    (inside a card)  2      2          2         1        1
+//
+// Gap between cells = LAYOUT2.gridGap (aside uses LAYOUT2.sectionGap).
+export const GRID_RATIO2 = { wide: 1.45, split: 1.25, aside: 168 };   // mirrors --un2-col-wide / --un2-col-split / --un2-aside-w
+export const GRID2 = {
+  two:       'un2-grid-2',
+  three:     'un2-grid-3',
+  four:      'un2-grid-4',
+  wideLeft:  'un2-grid-wide-left',
+  split:     'un2-grid-split',
+  wideRight: 'un2-grid-wide-right',
+  aside:     'un2-grid-aside',
+};
+
 export const MOTION2 = {
   fast: '0.15s ease',
   base: '0.18s ease',
 };
+
+// Backdrop blurs (frosted glass). Use with backdropFilter + WebkitBackdropFilter.
+export const BLUR2 = {
+  sm:    'blur(4px)',               // small chips on photos (hero eyebrow)
+  md:    'blur(6px)',               // ghost buttons on dark
+  glass: 'blur(16px) saturate(140%)', // frosted cards / panels
+};
+
+// Opacity steps
+export const OP2 = { faint: 0.25, muted: 0.45, soft: 0.7 };

@@ -1,15 +1,15 @@
-import React, { useState, useEffect, useRef } from 'react';
-import { Chart, registerables } from 'chart.js';
-import { PageShell, HeroBanner, SectionCard, StatCard, PropertyListItem, InsightCard, CardWave } from '../../components/v2';
+import React, { useState, useEffect } from 'react';
 import {
-  C2, TONES2, AVATAR2, CHART2, ILLUS2, G2, R2, SH2,
-  F2, FS2, FW2, LH2, LS2,
+  PageShell, Grid, HeroBanner, SectionCard, StatCard, PropertyListItem, InsightCard, CardWave,
+  ListRow, EmptyState, MessageItem, PageFooter, BarChart, DonutChart, Sparkline,
+} from '../../components/v2';
+import {
+  C2, TONES2, AVATAR2, CHART2,
+  FS2, FW2, LH2,
   SP2, SZ2, LAYOUT2, pad, UI2,
 } from '../../constants/v2';
 import heroImage from '../../assets/v2/landlord/dashboard-hero.jpg';
 import propertyPlaceholder from '../../assets/v2/landlord/property-placeholder.jpg';
-
-Chart.register(...registerables);
 
 const API_BASE = process.env.REACT_APP_API_BASE_URL || 'http://localhost:8001/api';
 
@@ -18,30 +18,22 @@ const API_BASE = process.env.REACT_APP_API_BASE_URL || 'http://localhost:8001/ap
 //   landlord · portfolio · kpis · monthly_rent_chart · kpis.rent_collection_trend
 //   prime_assets · open_operations · tenant_pulse · recent_payments
 //
-// Built from shared v2 pieces — no page-level spacing of its own:
-//   PageShell (sidebar + topbar + section rhythm) · HeroBanner · StatCard ·
-//   SectionCard · un2-grid-* section grids · UI2 / LAYOUT2 inside cards.
+// Built from shared v2 pieces — no page-level spacing, sizes or grid columns:
+//   PageShell (sidebar + topbar + section rhythm) · Grid (GRID2 layouts) · HeroBanner ·
+//   StatCard · SectionCard · ListRow · EmptyState · MessageItem · Charts · PageFooter ·
+//   UI2 / LAYOUT2 inside cards.
 
 // ─── Card-internal styles specific to this page (tokens only) ────────────────
 const S = {
   chartWrap: { position: 'relative', height: SZ2.chart },
-  rentSide:  { ...UI2.stack(SP2.md), justifyContent: 'center', paddingLeft: SP2.lg, borderLeft: `1px solid ${C2.border}` },
-  rentLbl:   { ...UI2.text.label, ...UI2.truncate, maxWidth: 140 },
+  rentSide:  { ...UI2.stack(SP2.md), justifyContent: 'center', paddingLeft: SP2.lg, borderLeft: `${SZ2.hairline}px solid ${C2.border}` },
+  rentLbl:   { ...UI2.text.label, ...UI2.truncate, maxWidth: SZ2.labelMax },
 
   occBody:   { display: 'flex', alignItems: 'center', justifyContent: 'space-around', gap: SP2.lg, flexWrap: 'wrap' },
   occTarget: { display: 'flex', flexDirection: 'column', alignItems: 'center', gap: LAYOUT2.inlineGap },
 
-
   opItem:    { ...UI2.tile, padding: pad(SP2.sm, SP2.md), marginBottom: LAYOUT2.rowGap },
   analytics: { ...UI2.tonePanel(TONES2.primary), ...UI2.row(SP2.md), marginTop: SP2.md, padding: pad(SP2.md, SP2.lg) },
-
-  commMsg:   { padding: pad(SP2.sm, SP2.md), borderRadius: R2.lg, background: C2.onDark.surfaceSoft, border: `1px solid ${C2.onDark.borderSoft}`, marginBottom: LAYOUT2.rowGap },
-  commFrom:  { fontSize: FS2.xs, fontWeight: FW2.bold, letterSpacing: LS2.wide, textTransform: 'uppercase' },
-  commText:  { fontSize: FS2.sm, lineHeight: LH2.body, color: C2.onDark.textSoft, marginTop: SP2.xs },
-
-
-  footer:    { textAlign: 'center', ...UI2.text.caption, padding: pad(SP2.lg, 0, SP2.xs), borderTop: `1px solid ${C2.border}` },
-  footLinks: { marginTop: SP2.sm, display: 'flex', justifyContent: 'center', gap: SP2.lg },
 };
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -66,84 +58,11 @@ const PRIORITY_TAG = {
 
 const Arrow = () => <i className="ti ti-arrow-right" aria-hidden="true" />;
 
-// ─── Chart components (same data inputs as before) ───────────────────────────
-function RentSparkline({ data = [] }) {
-  const ref = useRef(null);
-  const chartRef = useRef(null);
-  useEffect(() => {
-    if (!ref.current) return;
-    if (chartRef.current) chartRef.current.destroy();
-    const labels = data.map(d => d.month);
-    const values = data.map(d => d.pct);
-    chartRef.current = new Chart(ref.current, {
-      type: 'line',
-      data: { labels, datasets: [{ data: values, borderColor: CHART2.line, borderWidth: 2.5, pointRadius: 0, fill: true, backgroundColor: CHART2.lineFill, tension: 0.4 }] },
-      options: {
-        responsive: true, maintainAspectRatio: false,
-        plugins: { legend: { display: false }, tooltip: { callbacks: { label: v => v.raw + '%' } } },
-        scales: { x: { display: false }, y: { display: false, min: Math.max(0, Math.min(...values) - 5), max: 101 } },
-      },
-    });
-    return () => { if (chartRef.current) chartRef.current.destroy(); };
-  }, [data]);
-  return <canvas ref={ref} role="img" aria-label="Rent collection trend">Rent collection trend</canvas>;
-}
-
-function OccupancyDonut({ value = 0 }) {
-  const ref = useRef(null);
-  const chartRef = useRef(null);
-  useEffect(() => {
-    if (!ref.current) return;
-    if (chartRef.current) chartRef.current.destroy();
-    chartRef.current = new Chart(ref.current, {
-      type: 'doughnut',
-      data: { datasets: [{ data: [value, 100 - value], backgroundColor: [CHART2.barActive, CHART2.track], borderWidth: 0, borderRadius: value > 0 && value < 100 ? R2.md : 0 }] },
-      options: { responsive: false, cutout: '80%', plugins: { legend: { display: false }, tooltip: { callbacks: { label: v => v.raw + '%' } } } },
-    });
-    return () => { if (chartRef.current) chartRef.current.destroy(); };
-  }, [value]);
-  return (
-    <div style={{ position: 'relative', width: SZ2.donut, height: SZ2.donut }}>
-      <canvas ref={ref} width={SZ2.donut} height={SZ2.donut} role="img" aria-label={`Occupancy ${value}%`}>{value}% occupied</canvas>
-      <div style={{ ...UI2.center, position: 'absolute', inset: 0, flexDirection: 'column', pointerEvents: 'none' }}>
-        <div style={{ ...UI2.text.number, fontSize: FS2.display }}>{value}%</div>
-        <div style={{ ...UI2.text.label, fontSize: FS2.base, marginTop: SP2.sm }}>Leased</div>
-      </div>
-    </div>
-  );
-}
-
-function RentBarChart({ data = [] }) {
-  const ref = useRef(null);
-  const chartRef = useRef(null);
-  useEffect(() => {
-    if (!ref.current) return;
-    if (chartRef.current) chartRef.current.destroy();
-    const labels  = data.length ? data.map(d => d.month)  : ['Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov'];
-    const amounts = data.length ? data.map(d => d.amount) : [0, 0, 0, 0, 0, 0];
-    const maxVal  = Math.max(...amounts);
-    const bg = amounts.map(a => (a === maxVal && maxVal > 0) ? CHART2.barActive : CHART2.bar);
-    const tickFont = { size: FS2.xs, family: F2.body };
-    chartRef.current = new Chart(ref.current, {
-      type: 'bar',
-      data: { labels, datasets: [{ data: amounts, backgroundColor: bg, borderRadius: { topLeft: R2.sm, topRight: R2.sm }, borderSkipped: false, barPercentage: 0.62, minBarLength: 2 }] },
-      options: {
-        responsive: true, maintainAspectRatio: false,
-        plugins: { legend: { display: false }, tooltip: { callbacks: { label: v => '$' + Number(v.raw).toLocaleString() } } },
-        scales: {
-          x: { grid: { display: false }, border: { display: false }, ticks: { font: tickFont, color: CHART2.tick } },
-          y: {
-            beginAtZero: true, suggestedMax: maxVal > 0 ? undefined : 1000,
-            border: { display: false }, grid: { color: CHART2.grid },
-            ticks: { font: tickFont, color: CHART2.tick, maxTicksLimit: 6, callback: v => v === 0 ? '$0' : '$' + (v / 1000).toFixed(2) + 'K' },
-          },
-        },
-      },
-    });
-    return () => { if (chartRef.current) chartRef.current.destroy(); };
-  }, [data]);
-  return <canvas ref={ref} role="img" aria-label="Monthly rent collection">Monthly rent bar chart</canvas>;
-}
+// Chart formatting for this page
+const fmtK = v => (v === 0 ? '$0' : '$' + (v / 1000).toFixed(2) + 'K');
+const fmtMoney = v => '$' + Number(v).toLocaleString();
+const fmtPct = v => v + '%';
+const DEFAULT_MONTHS = ['Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov'];
 
 // ─── Main component ───────────────────────────────────────────────────────────
 export default function LandlordDashboard() {
@@ -235,7 +154,7 @@ export default function LandlordDashboard() {
         eyebrow="Executive Profile"
         image={heroImage}
         title={loading
-          ? <span className="un2-skel" style={{ display: 'inline-block', width: 300, height: SZ2.control.sm, opacity: 0.25 }} />
+          ? <span className="un2-skel" style={UI2.skeleton(SZ2.skeletonTitle, SZ2.control.sm, { onDark: true })} />
           : 'Welcome back,'}
         titleAccent={loading ? null : landlordName}
         subtitle={landlord.status || 'Property Owner · Active Portfolio'}
@@ -247,48 +166,55 @@ export default function LandlordDashboard() {
         ]}
         actions={<>
           <button className="un2-btn" style={UI2.btn.light}>
-            <i className="ti ti-plus" style={{ fontSize: FS2.md }} aria-hidden="true" />
+            <i className="ti ti-plus" style={UI2.btnIcon} aria-hidden="true" />
             Add maintenance request
           </button>
           <button className="un2-ghost" style={UI2.btn.ghostOnDark}>
-            <i className="ti ti-message-dots" style={{ fontSize: FS2.md }} aria-hidden="true" />
+            <i className="ti ti-message-dots" style={UI2.btnIcon} aria-hidden="true" />
             Message PM
           </button>
         </>}
       />
 
       {/* ── KPI CARDS ── */}
-      <section className="un2-grid-4">
+      <Grid layout="four">
         {KPIS.map(k => <StatCard key={k.label} {...k} />)}
-      </section>
+      </Grid>
 
       {/* ── RENT COLLECTION + OCCUPANCY ── */}
-      <section className="un2-grid-wide-left">
+      <Grid layout="wideLeft">
         <SectionCard
           icon="ti-building-bank" title="Rent Collection"
           action={<span style={UI2.pill(TONES2.success)}><i className="ti ti-trending-up" aria-hidden="true" />+2.4% from last quarter</span>}
         >
-          <div className="un2-grid-aside">
-            <div style={S.chartWrap}><RentBarChart data={rentTrend} /></div>
+          <Grid layout="aside" as="div">
+            <div style={S.chartWrap}>
+              <BarChart
+                labels={rentTrend.length ? rentTrend.map(d => d.month) : DEFAULT_MONTHS}
+                values={rentTrend.length ? rentTrend.map(d => d.amount) : DEFAULT_MONTHS.map(() => 0)}
+                formatValue={fmtMoney} formatTick={fmtK}
+                ariaLabel="Monthly rent collection"
+              />
+            </div>
             <div style={S.rentSide}>
               {RENT_SUMMARY.map(r => (
                 <div key={r.lbl + r.icon} style={UI2.row(LAYOUT2.rowGap)}>
                   <div style={UI2.iconBox(SZ2.icon.md, { soft: r.tone.tint, strong: r.tone.strong }, { round: true })}>
                     <i className={`ti ${r.icon}`} aria-hidden="true" />
                   </div>
-                  <div style={{ minWidth: 0 }}>
+                  <div style={UI2.minWidth0}>
                     <div style={UI2.text.stat}>{r.val}</div>
                     <div style={S.rentLbl} title={r.title}>{r.lbl}</div>
                   </div>
                 </div>
               ))}
             </div>
-          </div>
+          </Grid>
         </SectionCard>
 
         <SectionCard icon="ti-clipboard-check" title="Occupancy Rate" decoration={<CardWave />}>
           <div style={S.occBody}>
-            <OccupancyDonut value={loading ? 0 : (kpis.occupancy_rate ?? 0)} />
+            <DonutChart value={loading ? 0 : (kpis.occupancy_rate ?? 0)} label="Leased" />
             <div style={S.occTarget}>
               <div style={{ ...UI2.row(LAYOUT2.inlineGap), ...UI2.text.label, fontSize: FS2.base }}>
                 <i className="ti ti-target-arrow" style={{ fontSize: FS2.xl, color: C2.primary }} aria-hidden="true" /> Target
@@ -300,10 +226,10 @@ export default function LandlordDashboard() {
             </div>
           </div>
         </SectionCard>
-      </section>
+      </Grid>
 
       {/* ── PRIME ASSETS + OPEN OPERATIONS ── */}
-      <section className="un2-grid-wide-left">
+      <Grid layout="wideLeft">
         <SectionCard
           icon="ti-building-community" title="Prime Assets" subtitle="High-performance properties in your active portfolio."
           action={
@@ -314,7 +240,7 @@ export default function LandlordDashboard() {
         >
           {loading && [0, 1].map(i => <PropertyListItem key={i} loading />)}
           {!loading && primeAssets.length === 0 && (
-            <div style={{ ...UI2.empty, borderTop: `1px solid ${C2.border}` }}>No active properties yet.</div>
+            <div style={{ ...UI2.empty, borderTop: `${SZ2.hairline}px solid ${C2.border}` }}>No active properties yet.</div>
           )}
           {primeAssets.map((prop, idx) => (
             <PropertyListItem
@@ -347,7 +273,7 @@ export default function LandlordDashboard() {
         </SectionCard>
 
         <SectionCard icon="ti-tool" title="Open Operations" subtitle="Active maintenance & contractor reliability">
-          {!loading && ops.length === 0 && <div style={{ ...UI2.empty, padding: pad(SP2.xs, 0, SP2.md), textAlign: 'left' }}>No open tickets.</div>}
+          {!loading && ops.length === 0 && <div style={UI2.emptyInline}>No open tickets.</div>}
           {ops.slice(0, 2).map((op, i) => {
             const tag = PRIORITY_TAG[op.priority] || PRIORITY_TAG.STANDARD;
             return (
@@ -380,36 +306,27 @@ export default function LandlordDashboard() {
               <div style={UI2.text.titleLg}>Portfolio Analytics</div>
               <div style={{ ...UI2.text.label, marginTop: SP2.xxs }}>Portfolio analytics coming soon</div>
             </div>
-            <i className="ti ti-chevron-right" style={{ fontSize: FS2.xl, color: C2.textSecondary }} aria-hidden="true" />
+            <i className="ti ti-chevron-right" style={UI2.chevron} aria-hidden="true" />
           </div>
         </SectionCard>
-      </section>
+      </Grid>
 
       {/* ── TENANT PULSE + DOCUMENTS + COMMUNICATION HUB ── */}
-      <section className="un2-grid-3">
+      <Grid layout="three">
         <SectionCard
           icon="ti-users" plainIcon title="Tenant Pulse"
-          action={<i className="ti ti-chevron-right" style={{ fontSize: FS2.xl, color: C2.textSecondary, marginTop: SP2.sm }} aria-hidden="true" />}
+          action={<i className="ti ti-chevron-right" style={{ ...UI2.chevron, marginTop: SP2.sm }} aria-hidden="true" />}
         >
-          {!loading && tenants.length === 0 && (
-            <div style={{ ...UI2.center, ...UI2.stack(LAYOUT2.rowGap), minHeight: SZ2.emptyMin }}>
-              <svg width="140" height="74" viewBox="0 0 140 74" aria-hidden="true">
-                <circle cx="36" cy="26" r="11" fill={ILLUS2.personBack} /><path d="M14 66c0-14 10-22 22-22s22 8 22 22z" fill={ILLUS2.personBackBody} />
-                <circle cx="104" cy="26" r="11" fill={ILLUS2.personBack} /><path d="M82 66c0-14 10-22 22-22s22 8 22 22z" fill={ILLUS2.personBackBody} />
-                <circle cx="70" cy="18" r="14" fill={ILLUS2.personFront} /><path d="M42 70c0-18 12-28 28-28s28 10 28 28z" fill={ILLUS2.personFrontBody} />
-              </svg>
-              <div style={{ ...UI2.text.label, fontSize: FS2.md }}>No active tenants.</div>
-            </div>
-          )}
+          {!loading && tenants.length === 0 && <EmptyState illustration="people" text="No active tenants." />}
           {tenants.slice(0, 3).map((t, i) => (
-            <div key={i} className="un2-row-hover" style={{ ...UI2.row(LAYOUT2.rowGap), padding: pad(SP2.md, SP2.sm), borderRadius: R2.md }}>
-              <div style={UI2.avatar(SZ2.icon.md, AVATAR2[i % AVATAR2.length])}>{initials(t.name)}</div>
-              <div style={{ minWidth: 0 }}>
-                <div style={UI2.text.title}>{t.name}</div>
-                <div style={UI2.text.meta}>{t.property_name} {t.unit_ref ? `· ${t.unit_ref}` : ''}</div>
-              </div>
-              <span style={{ ...UI2.pill(TONES2.success), marginLeft: 'auto' }}>Active</span>
-            </div>
+            <ListRow
+              key={i}
+              variant="hover"
+              leading={<div style={UI2.avatar(SZ2.icon.md, AVATAR2[i % AVATAR2.length])}>{initials(t.name)}</div>}
+              title={t.name}
+              meta={`${t.property_name} ${t.unit_ref ? `· ${t.unit_ref}` : ''}`}
+              trailing={<span style={UI2.pill(TONES2.success)}>Active</span>}
+            />
           ))}
         </SectionCard>
 
@@ -418,16 +335,18 @@ export default function LandlordDashboard() {
           action={<button className="un2-link" style={{ ...UI2.btn.link, marginTop: SP2.sm }}>View All <Arrow /></button>}
         >
           {DOCS.map(d => (
-            <div key={d.name} style={UI2.listRow}>
-              <div style={UI2.iconBox(SZ2.icon.md, { soft: d.tone.tint, strong: d.tone.strong })}><i className={`ti ${d.icon}`} aria-hidden="true" /></div>
-              <div style={{ minWidth: 0 }}>
-                <div style={UI2.text.title}>{d.name}</div>
-                <div style={{ ...UI2.text.meta, ...(d.metaCol ? { color: d.metaCol } : {}) }}>{d.meta}</div>
-              </div>
-              <button style={{ ...UI2.btn.icon(SZ2.control.sm), marginLeft: 'auto', color: C2.textSecondary }} aria-label={`Download ${d.name}`}>
-                <i className="ti ti-download" aria-hidden="true" />
-              </button>
-            </div>
+            <ListRow
+              key={d.name}
+              leading={<div style={UI2.iconBox(SZ2.icon.md, { soft: d.tone.tint, strong: d.tone.strong })}><i className={`ti ${d.icon}`} aria-hidden="true" /></div>}
+              title={d.name}
+              meta={d.meta}
+              metaColor={d.metaCol}
+              trailing={
+                <button style={{ ...UI2.btn.icon(SZ2.control.sm), color: C2.textSecondary }} aria-label={`Download ${d.name}`}>
+                  <i className="ti ti-download" aria-hidden="true" />
+                </button>
+              }
+            />
           ))}
         </SectionCard>
 
@@ -436,36 +355,33 @@ export default function LandlordDashboard() {
           action={<span style={UI2.pill({ strong: C2.success }, { solid: true })}>Active</span>}
         >
           {MESSAGES.map(m => (
-            <div key={m.from} style={S.commMsg}>
-              <div style={UI2.rowBetween()}>
-                <span style={{ ...S.commFrom, color: m.col }}>{m.from}</span>
-                <span style={{ fontSize: FS2.xs, color: C2.onDark.textFaint }}>{m.time}</span>
-              </div>
-              <div style={S.commText}>{m.text}</div>
-            </div>
+            <MessageItem key={m.from} from={m.from} fromColor={m.col} time={m.time}>{m.text}</MessageItem>
           ))}
           <button className="un2-btn" style={{ ...UI2.btn.light, width: '100%', minHeight: SZ2.control.lg, marginTop: 'auto' }}>
             <i className="ti ti-message-2" style={{ fontSize: FS2.lg }} aria-hidden="true" />
             Open Messenger
           </button>
         </SectionCard>
-      </section>
+      </Grid>
 
       {/* ── URBANNEST INTELLIGENCE ── */}
-      <SectionCard as="section" title={null}>
-        <div style={{ ...UI2.row(LAYOUT2.rowGap), marginBottom: LAYOUT2.cardHeaderGap }}>
-          <div style={{ ...UI2.iconBox(SZ2.icon.sm, TONES2.primary, { solid: true }), background: G2.primaryButton, boxShadow: SH2.primary }}>
-            <i className="ti ti-sparkles" aria-hidden="true" />
-          </div>
-          <div style={UI2.cardTitle}>UrbanNest Intelligence</div>
-          <span style={UI2.pill(TONES2.primary)}>AI INSIGHTS</span>
-        </div>
-        <div className="un2-grid-2">
+      <SectionCard
+        as="section" icon="ti-sparkles" accentIcon title="UrbanNest Intelligence"
+        badge={<span style={UI2.pill(TONES2.primary)}>AI INSIGHTS</span>}
+      >
+        <Grid layout="two" as="div">
           <InsightCard
             tone={TONES2.success} icon="ti-trending-up" title="Rent Trend Analysis"
             actionLabel="Review Market Comp"
             visual={rentSparkline.length > 0 ? (
-              <div style={{ position: 'relative', width: '100%', height: '100%' }}><RentSparkline data={rentSparkline} /></div>
+              <div style={{ position: 'relative', width: '100%', height: '100%' }}>
+                <Sparkline
+                  labels={rentSparkline.map(d => d.month)}
+                  values={rentSparkline.map(d => d.pct)}
+                  min={Math.max(0, Math.min(...rentSparkline.map(d => d.pct)) - 5)} max={101}
+                  formatValue={fmtPct} ariaLabel="Rent collection trend"
+                />
+              </div>
             ) : (
               <svg width="100%" height="100%" viewBox="0 0 200 80" preserveAspectRatio="none" aria-hidden="true">
                 <defs>
@@ -484,23 +400,15 @@ export default function LandlordDashboard() {
           <InsightCard
             tone={TONES2.warning} icon="ti-alert-triangle" title="Maintenance Forecast" titleColor={C2.warningDark}
             actionLabel="Schedule Preventive Audit"
-            visual={<i className="ti ti-calendar-event" style={{ fontSize: SZ2.icon.lg, color: C2.gold, lineHeight: 1 }} aria-hidden="true" />}
+            visual={<i className="ti ti-calendar-event" style={{ fontSize: SZ2.icon.lg, color: C2.gold, lineHeight: LH2.none }} aria-hidden="true" />}
           >
             HVAC units in The Regent Plaza (South Wing) are approaching their 5-year efficiency limit.
             Predicted failure probability increases to 15% this winter.
           </InsightCard>
-        </div>
+        </Grid>
       </SectionCard>
 
-      {/* Footer */}
-      <footer style={S.footer}>
-        © 2023 UrbanNest Property Management. All Rights Reserved.
-        <div style={S.footLinks}>
-          <span style={{ cursor: 'pointer' }}>Privacy Policy</span>
-          <span style={{ cursor: 'pointer' }}>Terms of Service</span>
-          <span style={{ cursor: 'pointer' }}>Global Compliance</span>
-        </div>
-      </footer>
+      <PageFooter />
 
     </PageShell>
   );

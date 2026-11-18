@@ -1,5 +1,5 @@
 import React from 'react';
-import { C2, G2, R2, SH2, F2, FS2, FW2, LH2, T2, SP2, SZ2, LAYOUT2, pad, UI2 } from '../../constants/v2';
+import { C2, G2, R2, SH2, F2, FS2, FW2, LH2, T2, SP2, SZ2, LAYOUT2, BLUR2, pad, UI2 } from '../../constants/v2';
 
 // ─── HeroBanner + HeroStat (Design System v2) ────────────────────────────────
 // Premium navy banner: deep-navy → sunset-sky gradient with the photo on the
@@ -41,16 +41,15 @@ const S = {
   glow:     { ...fill, background: G2.heroGlow },
   scrim:    { ...fill, background: G2.heroTextScrim },
   vignette: { ...fill, background: G2.heroVignette },
-  content:  { position: 'relative', zIndex: 1, maxWidth: 640 },
+  content:  { position: 'relative', zIndex: 1, maxWidth: SZ2.heroContentMax },
 
-  eyebrow: { ...T2.eyebrow, display: 'inline-block', color: C2.onDark.text, padding: pad(SP2.xs, SP2.md), borderRadius: R2.sm, border: `1px solid ${C2.onDark.border}`, background: C2.onDark.surfaceSoft, backdropFilter: 'blur(4px)', marginBottom: SP2.sm },
+  eyebrow: { ...T2.eyebrow, display: 'inline-block', color: C2.onDark.text, padding: pad(SP2.xs, SP2.md), borderRadius: R2.sm, border: `1px solid ${C2.onDark.border}`, background: C2.onDark.surfaceSoft, backdropFilter: BLUR2.sm, WebkitBackdropFilter: BLUR2.sm, marginBottom: SP2.sm },
   title:   { ...T2.heroTitle, fontWeight: FW2.regular, marginBottom: SP2.xs },
   accent:  { fontWeight: FW2.bold },
   sub:     { ...UI2.row(SP2.sm), fontFamily: F2.body, fontSize: FS2.sm, color: C2.onDark.textSoft },
-  rule:    { height: 1, width: '100%', maxWidth: 560, background: C2.onDark.divider, margin: pad(SP2.md, 0, SP2.sm) },
-  stats:   { display: 'flex', alignItems: 'center', flexWrap: 'wrap', rowGap: LAYOUT2.rowGap },
+  stats:   { display: 'flex', alignItems: 'center', flexWrap: 'wrap', rowGap: LAYOUT2.rowGap, marginTop: SP2.lg },
   stat:    { ...UI2.row(SP2.sm), padding: pad(0, SP2.lg) },
-  sep:     { width: 1, height: SZ2.icon.sm, background: C2.onDark.divider },
+  sep:     { width: SZ2.hairline, height: SZ2.icon.sm, background: C2.onDark.divider },
   icon:    { fontSize: FS2.xl, color: C2.onDark.textSoft },
   value:   { fontSize: FS2.lg, fontWeight: FW2.bold, lineHeight: LH2.none },
   label:   { fontSize: FS2.xs, color: C2.onDark.textMuted, marginTop: SP2.xxs },
@@ -94,7 +93,6 @@ export default function HeroBanner({
         )}
         {stats.length > 0 && (
           <>
-            <div style={S.rule} />
             <div style={S.stats}>
               {stats.map((s, i) => (
                 <React.Fragment key={s.label}>

@@ -44,13 +44,15 @@
 /* ── Section grids ───────────────────────────────────────────────────────────
    Put cards of one section side by side; gap = --un2-grid-gap. Responsive
    collapse is built in (breakpoints = BP2 in constants/v2/layout.js).
+   Column widths come from tokens.css (--un2-col-wide / --un2-col-split / --un2-aside-w).
+   In React prefer <Grid layout="wide-left"> (components/v2/Grid.jsx) or GRID2.wideLeft.
      un2-grid-2          two equal columns
      un2-grid-3          three equal columns
      un2-grid-4          four equal columns (KPI row)
      un2-grid-wide-left  wide main + narrower side   (≈ 60 / 40)
      un2-grid-split      slightly wider left         (≈ 55 / 45)
      un2-grid-wide-right narrower left + wide right  (≈ 40 / 60)
-     un2-grid-aside      content + fixed 192px side column (inside a card)
+     un2-grid-aside      content + fixed 168px side column (inside a card)
    ─────────────────────────────────────────────────────────────────────────── */
 .un2-grid-2, .un2-grid-3, .un2-grid-4,
 .un2-grid-wide-left, .un2-grid-split, .un2-grid-wide-right, .un2-grid-aside {
@@ -60,10 +62,10 @@
 .un2-grid-2          { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 .un2-grid-3          { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 .un2-grid-4          { grid-template-columns: repeat(4, minmax(0, 1fr)); }
-.un2-grid-wide-left  { grid-template-columns: minmax(0, 1.45fr) minmax(0, 1fr); }
-.un2-grid-split      { grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); }
-.un2-grid-wide-right { grid-template-columns: minmax(0, 1fr) minmax(0, 1.45fr); }
-.un2-grid-aside      { grid-template-columns: minmax(0, 1fr) 168px; gap: var(--un2-section-gap); }
+.un2-grid-wide-left  { grid-template-columns: minmax(0, var(--un2-col-wide)) minmax(0, 1fr); }
+.un2-grid-split      { grid-template-columns: minmax(0, var(--un2-col-split)) minmax(0, 1fr); }
+.un2-grid-wide-right { grid-template-columns: minmax(0, 1fr) minmax(0, var(--un2-col-wide)); }
+.un2-grid-aside      { grid-template-columns: minmax(0, 1fr) var(--un2-aside-w); gap: var(--un2-section-gap); }
 
 /* Vertical stack of sections (PageShell content uses this) */
 .un2-stack-sections { display: flex; flex-direction: column; gap: var(--un2-section-gap); }

@@ -176,6 +176,15 @@ export const G2 = {
   heroImageMask: 'linear-gradient(90deg, transparent 0%, rgba(0,0,0,0.35) 14%, rgba(0,0,0,0.85) 30%, #000 42%)',
   heroVignette:  'linear-gradient(180deg, rgba(7,21,38,0) 60%, rgba(7,21,38,0.35) 100%)',
   imageDark:     'linear-gradient(180deg, rgba(11,29,58,0) 0%, rgba(11,29,58,0.92) 70%, #0B1D3A 100%)',
+  // Sidebar promo (NavF):
+  //   photoMask  — alpha mask: photo fades in from fully transparent, so it melts into
+  //                the sidebar behind the nav items (no top edge / seam)
+  //   photoScrim — darkens the lower photo so it sinks under the glass copy panel
+  //   glass      — tint of the frosted copy panel; glassMask fades the blur in softly
+  sidebarPromoPhotoMask: 'linear-gradient(180deg, transparent 0%, rgba(0,0,0,0.35) 14%, #000 34%, #000 100%)',
+  sidebarPromoPhotoScrim:'linear-gradient(180deg, rgba(11,29,58,0) 0%, rgba(11,29,58,0) 78%, rgba(11,29,58,0.55) 90%, #0B1D3A 100%)',
+  sidebarPromoGlass:     'linear-gradient(180deg, rgba(11,29,58,0) 0%, rgba(11,29,58,0.35) 30%, rgba(11,29,58,0.72) 70%, rgba(11,29,58,0.9) 100%)',
+  sidebarPromoGlassMask: 'linear-gradient(180deg, transparent 0%, #000 28%, #000 100%)',
   // Mobile dark cards (FinancialCard / CheckInStatusCard / RentDueCard): gradients.button, top-left → bottom-right
   darkCard:      'linear-gradient(135deg, #03264C 0%, #0659B2 100%)',
   // Frosted-glass light surface (sampled from the reference frame):

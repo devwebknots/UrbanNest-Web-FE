@@ -1,5 +1,5 @@
 import React from 'react';
-import { C2, TONES2, SZ2, LAYOUT2, UI2 } from '../../constants/v2';
+import { C2, G2, SH2, TONES2, SZ2, LAYOUT2, UI2 } from '../../constants/v2';
 
 // ─── SectionCard + CardHeader (Design System v2) ─────────────────────────────
 // White (or dark) card with the standard header: icon box · title · subtitle,
@@ -15,6 +15,8 @@ import { C2, TONES2, SZ2, LAYOUT2, UI2 } from '../../constants/v2';
 //   icon       tabler icon class (e.g. 'ti-tool')
 //   tone       TONES2 entry for the icon box (default primary)
 //   plainIcon  true → icon without the tinted box
+//   accentIcon true → small gradient-filled icon (feature sections, e.g. AI insights)
+//   badge      node shown right after the title (e.g. a UI2.pill)
 //   title, subtitle, action
 //   variant    'light' (default) | 'dark' (navy card, white text)
 //   as         element/tag, default 'div' (use 'section' for page sections)
@@ -22,18 +24,22 @@ import { C2, TONES2, SZ2, LAYOUT2, UI2 } from '../../constants/v2';
 //              (card becomes position: relative + overflow: hidden)
 //   style, className
 
-export function CardHeader({ icon, tone = TONES2.primary, plainIcon = false, title, subtitle, action, dark = false }) {
+export function CardHeader({ icon, tone = TONES2.primary, plainIcon = false, accentIcon = false, title, badge, subtitle, action, dark = false }) {
   const iconTone = dark ? { soft: C2.onDark.surface, strong: C2.white } : tone;
+  const iconStyle = accentIcon
+    ? { ...UI2.iconBox(SZ2.icon.sm, TONES2.primary, { solid: true }), background: G2.primaryButton, boxShadow: SH2.primary }
+    : { ...UI2.iconBox(SZ2.icon.md, iconTone), ...(plainIcon ? { background: 'transparent' } : {}) };
+  const titleEl = <div style={{ ...UI2.cardTitle, ...(dark ? { color: C2.white } : {}) }}>{title}</div>;
   return (
     <div style={UI2.cardHeader}>
       <div style={{ ...UI2.row(LAYOUT2.rowGap), minWidth: 0, flex: 1 }}>
         {icon && (
-          <div style={{ ...UI2.iconBox(SZ2.icon.md, iconTone), ...(plainIcon ? { background: 'transparent' } : {}) }}>
+          <div style={iconStyle}>
             <i className={`ti ${icon}`} aria-hidden="true" />
           </div>
         )}
         <div style={{ minWidth: 0, flex: 1 }}>
-          <div style={{ ...UI2.cardTitle, ...(dark ? { color: C2.white } : {}) }}>{title}</div>
+          {badge ? <div style={UI2.row(LAYOUT2.rowGap)}>{titleEl}{badge}</div> : titleEl}
           {subtitle && <div style={UI2.cardSubtitle}>{subtitle}</div>}
         </div>
       </div>
@@ -43,7 +49,7 @@ export function CardHeader({ icon, tone = TONES2.primary, plainIcon = false, tit
 }
 
 export default function SectionCard({
-  icon, tone, plainIcon, title, subtitle, action,
+  icon, tone, plainIcon, accentIcon, title, badge, subtitle, action,
   variant = 'light', as: Tag = 'div', style, className, children, decoration,
 }) {
   const dark = variant === 'dark';
@@ -51,7 +57,7 @@ export default function SectionCard({
   const content = (
     <>
       {title && (
-        <CardHeader icon={icon} tone={tone} plainIcon={plainIcon} title={title} subtitle={subtitle} action={action} dark={dark} />
+        <CardHeader icon={icon} tone={tone} plainIcon={plainIcon} accentIcon={accentIcon} title={title} badge={badge} subtitle={subtitle} action={action} dark={dark} />
       )}
       {children}
     </>

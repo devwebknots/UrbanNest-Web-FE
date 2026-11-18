@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { C2, G2, R2, SH2, F2, FS2, FW2, LH2, LS2, T2, SP2, SZ2, MOTION2, pad, UI2 } from '../../constants/v2';
 import sidebarBuilding from '../../assets/v2/landlord/sidebar-building.jpg';
+import brandLogo from '../../assets/v2/brand/urban-nest-logo.png';
 
 // ─── NavF — Landlord Portal Left Navigation (Design System v2) ───────────────
 // Reusable across all Landlord portal pages. All values come from constants/v2.
@@ -44,9 +45,11 @@ const S = {
     overflowY: 'auto', overflowX: 'hidden',
   },
   logo:     { ...UI2.row(SP2.sm), padding: pad(SP2.xl, SP2.lg), cursor: 'pointer', flexShrink: 0 },
+  logoMark: { height: SZ2.icon.md, width: 'auto', aspectRatio: SZ2.brandLogoRatio, flexShrink: 0, display: 'block' },
   logoName: { ...T2.brandTitle, lineHeight: LH2.tight, letterSpacing: LS2.snug },
   logoSub:  { ...T2.eyebrow, color: C2.sidebarTextMuted, marginTop: SP2.xs },
-  list:     { padding: pad(0, SP2.md), display: 'flex', flexDirection: 'column', gap: SP2.xxs },
+  // position + zIndex keep nav items above the promo photo, which bleeds up behind them
+  list:     { position: 'relative', zIndex: 1, padding: pad(0, SP2.md), display: 'flex', flexDirection: 'column', gap: SP2.xxs },
   item: (active, hovered) => ({
     ...UI2.row(SP2.md),
     width: '100%',
@@ -68,35 +71,39 @@ const S = {
   icon:    { fontSize: FS2.lg, width: SP2.xl, flexShrink: 0, lineHeight: LH2.none },
   badge:   { ...UI2.countBadge, marginLeft: 'auto' },
   dot:     { ...UI2.dot(C2.success), marginLeft: 'auto', boxShadow: SH2.dotSuccess },
-  divider: { height: 1, background: C2.sidebarDivider, margin: pad(SP2.md, SP2.xl) },
-  sectionLabel: { ...T2.eyebrow, color: C2.sidebarTextMuted, padding: pad(0, SP2.xl + SP2.xxs, SP2.sm) },
-  promo: {
-    position: 'relative', minHeight: SZ2.promoMin, flexShrink: 0,
-    display: 'flex', flexDirection: 'column', justifyContent: 'flex-end',
-    padding: pad(0, SP2.lg, SP2.xl),
-    backgroundImage: `${G2.imageDark}, url(${sidebarBuilding})`,
-    backgroundSize: 'cover', backgroundPosition: 'center 30%',
+  divider: { height: SZ2.hairline, background: C2.sidebarDivider, margin: pad(SP2.md, SP2.xl) },
+  sectionLabel: { ...T2.eyebrow, position: 'relative', zIndex: 1, color: C2.sidebarTextMuted, padding: pad(0, SP2.xl + SP2.xxs, SP2.sm) },
+  // Promo: the photo is shown whole at its natural aspect (full sidebar width, no zoom).
+  // It bleeds up behind the nav (masked to transparent → no seam) and its base slides under
+  // the copy, which sits on a frosted glass panel whose blur fades in.
+  promo: { position: 'relative', flexShrink: 0, display: 'flex', flexDirection: 'column' },
+  promoPhoto: {
+    width: '100%', aspectRatio: SZ2.promoPhotoRatio, flexShrink: 0,
+    marginTop: -SZ2.promoBleed, marginBottom: -SZ2.promoOverlap,
+    backgroundImage: `${G2.sidebarPromoPhotoScrim}, url(${sidebarBuilding})`,
+    backgroundSize: '100% 100%', backgroundRepeat: 'no-repeat',
+    WebkitMaskImage: G2.sidebarPromoPhotoMask, maskImage: G2.sidebarPromoPhotoMask,
+    pointerEvents: 'none',
   },
-  promoFadeTop: { position: 'absolute', top: 0, left: 0, right: 0, height: SZ2.promoMin / 3, background: G2.sidebarFadeTop, pointerEvents: 'none' },
-  promoTitle:   { ...T2.brandTitle, fontSize: FS2.lg, position: 'relative', lineHeight: LH2.heading, marginBottom: SP2.sm },
-  promoText:    { position: 'relative', fontSize: FS2.sm, lineHeight: LH2.body, color: C2.onDark.textMuted, marginBottom: SP2.md },
-  addBtn:       { ...UI2.btn.light, position: 'relative', width: '100%', minHeight: SZ2.control.lg },
+  promoCopy: { position: 'relative', padding: pad(SP2.xl, SP2.lg, SP2.xl) },
+  promoGlass: {
+    ...UI2.darkGlass,
+    position: 'absolute', left: 0, right: 0, top: -SZ2.promoGlassBleed, bottom: 0,
+    WebkitMaskImage: G2.sidebarPromoGlassMask, maskImage: G2.sidebarPromoGlassMask,
+    pointerEvents: 'none',
+  },
+  promoTitle: {
+    position: 'relative',
+    fontFamily: F2.body, fontSize: FS2.xl, fontWeight: FW2.bold, color: C2.white,
+    lineHeight: LH2.tight, letterSpacing: LS2.snug, marginBottom: SP2.sm,
+  },
+  promoText:  { position: 'relative', fontSize: FS2.sm, lineHeight: LH2.body, color: C2.onDark.textMuted, marginBottom: SP2.xl },
+  addBtn:     { ...UI2.btn.primary, position: 'relative', width: '100%', minHeight: SZ2.control.lg, borderRadius: R2.pill, fontSize: FS2.base, fontWeight: FW2.semibold },
 };
 
+// Same house mark as the mobile app (UrbanNestMobile/src/assets/images/brand/urban_nest_logo.png)
 function LogoMark() {
-  return (
-    <svg width={SZ2.icon.md} height={SZ2.icon.md} viewBox="0 0 40 40" aria-hidden="true">
-      <defs>
-        <linearGradient id="navf-logo" x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0" stopColor={C2.logoStart} />
-          <stop offset="1" stopColor={C2.logoEnd} />
-        </linearGradient>
-      </defs>
-      <path d="M5 19 L20 6 L35 19" fill="none" stroke="url(#navf-logo)" strokeWidth="3.2" strokeLinecap="round" strokeLinejoin="round" />
-      <path d="M9.5 16.5 V33 H30.5 V16.5" fill="none" stroke="url(#navf-logo)" strokeWidth="3.2" strokeLinejoin="round" />
-      <rect x="16" y="22" width="8" height="11" rx="1.5" fill={C2.primary} />
-    </svg>
-  );
+  return <img src={brandLogo} alt="" aria-hidden="true" style={S.logoMark} />;
 }
 
 export default function NavF({ activePage = 'dashboard', badges = {} }) {
@@ -148,18 +155,21 @@ export default function NavF({ activePage = 'dashboard', badges = {} }) {
       {/* Promo + Add property */}
       <div style={{ flex: 1, minHeight: SP2.xxl }} />
       <div style={S.promo}>
-        <div style={S.promoFadeTop} />
-        <div style={S.promoTitle}>Manage Your Portfolio Effortlessly</div>
-        <div style={S.promoText}>Leases, maintenance, finances and more — all in one place.</div>
-        <button
-          type="button"
-          className="un2-btn"
-          style={S.addBtn}
-          onClick={() => go('/landlord-portal/add-property')}
-        >
-          <i className="ti ti-plus" style={{ fontSize: FS2.md }} aria-hidden="true" />
-          Add new property
-        </button>
+        <div style={S.promoPhoto} aria-hidden="true" />
+        <div style={S.promoCopy}>
+          <div style={S.promoGlass} aria-hidden="true" />
+          <div style={S.promoTitle}>Manage Your<br />Portfolio Effortlessly</div>
+          <div style={S.promoText}>Leases, maintenance, finances and more — all in one place.</div>
+          <button
+            type="button"
+            className="un2-btn"
+            style={S.addBtn}
+            onClick={() => go('/landlord-portal/add-property')}
+          >
+            <i className="ti ti-plus" style={{ fontSize: FS2.md }} aria-hidden="true" />
+            Add new property
+          </button>
+        </div>
       </div>
     </nav>
   );
