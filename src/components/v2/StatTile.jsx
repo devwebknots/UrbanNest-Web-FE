@@ -21,7 +21,8 @@ import { C2, TONES2, R2, SH2, FS2, FW2, LH2, SP2, SZ2, LAYOUT2, pad, UI2 } from 
 // Narrow tiles (< CQ2.xs) hide the icon so value + label keep the full width.
 
 const S = {
-  tile:   { ...UI2.tile, ...UI2.row(SP2.md), padding: SP2.md, minWidth: 0 },
+  // Borderless tile: no outline / hairline ring, just the soft tile lift (SH2.tile)
+  tile:   { ...UI2.tile, ...UI2.row(SP2.md), padding: SP2.md, minWidth: 0, border: 'none', boxShadow: SH2.tile },
   raised: { ...UI2.card, ...UI2.row(SP2.md), padding: pad(SP2.md, LAYOUT2.cardY), borderRadius: R2.xl, boxShadow: SH2.card, minWidth: 0 },
   value:  { fontSize: FS2.xxl, fontWeight: FW2.bold, lineHeight: LH2.tight, color: C2.textPrimary, ...UI2.truncate },
   status: (tone) => ({ ...UI2.text.titleLg, color: tone === TONES2.primary ? C2.textPrimary : tone.fg }),
