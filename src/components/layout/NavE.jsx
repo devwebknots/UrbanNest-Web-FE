@@ -30,6 +30,7 @@
  *   advertise-advertisers        → /admin-portal/advertise/advertisers
  *   advertise-performance        → /admin-portal/advertise/performance
  *   advertise-promotion-engine   → /admin-portal/advertise/promotion-engine   (Session 48)
+ *   partners-tenant-screening    → /admin-portal/partners/tenant-screening    (Session 70 — new top-level "Partners" section)
  *   config-screening             → /admin-portal/config/screening
  *   config-plans                 → /admin-portal/config/plans
  *   config-emails                → /admin-portal/config/emails
@@ -153,6 +154,20 @@ const NAV_SECTIONS = [
       // the user's explicit Session 48 decision, this is a new addition
       // alongside them, not a replacement/repurposing of any of the three.
       { id: 'advertise-promotion-engine', label: 'Promotion Engine', route: '/admin-portal/advertise/promotion-engine' },
+    ],
+  },
+  {
+    // Session 70 — Partner Management. Deliberately its own top-level
+    // section (not nested under Configurations), per the user's explicit
+    // instruction — "Partners (1st Level) --> Tenant Screening (2nd
+    // level)". Only one child today; leaves room for other non-screening
+    // partner types later without re-nesting this section.
+    type: 'section',
+    id: 'partners',
+    label: 'PARTNERS',
+    icon: 'ti-plug-connected',
+    children: [
+      { id: 'partners-tenant-screening', label: 'Tenant Screening', route: '/admin-portal/partners/tenant-screening' },
     ],
   },
   {

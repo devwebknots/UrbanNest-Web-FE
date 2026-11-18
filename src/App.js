@@ -39,6 +39,11 @@ import PMTransactionsTab    from './pages/PMPortal/AccountSettings/PMTransaction
 import PMIntegrationsTab    from './pages/PMPortal/AccountSettings/PMIntegrationsTab';
 import PMVerificationSettings from './pages/PMPortal/Config/PMVerificationSettings';
 import PMListingReadiness from './pages/PMPortal/Config/PMListingReadiness';
+// Session 68 — fills the previously-reserved, unbuilt `screening-rules` nav
+// slot (NavB.jsx) at /pm-portal/config/screening. See
+// screening-configuration/UrbanNest_ScreeningConfiguration_Figma_Review.md
+// (Claude Project), Section 18.
+import PMScreeningConfiguration from './pages/PMPortal/Config/PMScreeningConfiguration';
 
 // UN Admin Portal
 import UNAdminShell          from './pages/UNAdminPortal/UNAdminShell';
@@ -53,6 +58,19 @@ import UNAdminMiscConfig from './pages/UNAdminPortal/Configurations/Miscellaneou
 // "Listings" tab (unchanged, just relocated) rather than being routed here
 // directly; see UNAdminRuleEngine.jsx.
 import UNAdminRuleEngine from './pages/UNAdminPortal/Configurations/RuleEngine/UNAdminRuleEngine';
+// Session 60 — Screening Configuration. Fills NavE.jsx's existing, previously
+// unbuilt `config-screening` nav slot (/admin-portal/config/screening) — see
+// screening-configuration/UrbanNest_ScreeningConfiguration_Figma_Review.md
+// (Claude Project) for the Figma review this implements. No nav change was
+// needed: this id/route were already reserved, just had no page behind them.
+import UNAdminScreeningConfiguration from './pages/UNAdminPortal/Configurations/Screening/UNAdminScreeningConfiguration';
+
+// Session 70 — Partner Management. Fills NavE.jsx's new top-level
+// "Partners" section (single child: Tenant Screening). No backend model
+// exists yet for Partner/Provider — runs entirely against Sample Data
+// until the real screening-partner backend is built. See
+// UNAdminPartnerManagement.jsx's own header for the approved wireframe.
+import UNAdminPartnerManagement from './pages/UNAdminPortal/Partners/TenantScreening/UNAdminPartnerManagement';
 
 // UN Admin Portal — Advertise & Monetise — Promotion Engine (Session 48).
 // FE-first build, sample-data driven (Product Catalog → Campaigns →
@@ -176,6 +194,26 @@ import MarketplaceHomePage from './pages/Marketplace/Home/MarketplaceHomePage';
 import ListingDetailPage from './pages/Marketplace/Detail/ListingDetailPage';
 import PropertyListingDetailPage from './pages/Marketplace/Detail/PropertyListingDetailPage';
 
+// Application Intake — Session 55, Phase 1. Real household/co-applicant
+// rental application flow (PE-4 intake slice), wired to the Marketplace
+// "Apply Now" CTAs (closing part of MK-7's ComingSoonButton stub — see
+// marketplaceDetailShared.jsx's ListingContactCard). Kept as its own
+// top-level pages/ApplicationIntake/ module rather than nested under
+// pages/Marketplace/, per the user's own call — see that folder's own
+// files for the Figma-vs-approach-doc evaluation and sample-content
+// decisions this implements.
+import ApplicationIntakePage from './pages/ApplicationIntake/ApplicationIntakePage';
+import ApplicationSubmittedPage from './pages/ApplicationIntake/ApplicationSubmittedPage';
+import CoApplicantInvitePage from './pages/ApplicationIntake/CoApplicantInvitePage';
+// Session 59 — Renter-facing "Applications" list (follow application
+// status). Reached from a new "Applications" item in MarketplaceHomePage's
+// account-menu dropdown, right after Favorites. See that file's import
+// comment for why this routes to a real page rather than opening as a
+// modal like Favorites/Alerts & Communications, and
+// ApplicationsListPage.jsx's own header for the local-draft data source
+// and the real backend gap it's standing in for.
+import ApplicationsListPage from './pages/ApplicationIntake/ApplicationsListPage';
+
 // Payment- Cart/Payment Gateway
 import { PaymentCartProvider } from './pages/Payment/PaymentCartContext';
 
@@ -268,6 +306,7 @@ function AppRoutes() {
       <Route path="/pm-portal/account/integrations"    element={<PMIntegrationsTab />} />
       <Route path="/pm-portal/config/verification-settings" element={<PMVerificationSettings />} />
       <Route path="/pm-portal/config/listing-readiness"     element={<PMListingReadiness />} />
+      <Route path="/pm-portal/config/screening"              element={<PMScreeningConfiguration />} />
 
       {/* ── PM Portal/ Approvals ─────────────────────────────────────────────────────── */}
       <Route path="/pm-portal/approvals"           element={<PermissionGuard module="APPROVALS"><PMApprovalsOverview /></PermissionGuard>} />
@@ -351,6 +390,26 @@ function AppRoutes() {
         </UNAdminShell>
       } />
       <Route path="/admin-portal/config/listing-readiness" element={<Navigate to="/admin-portal/config/rule-engine" replace />} />
+      {/* Session 70 — Partner Management. New top-level "Partners" nav
+          section (NavE.jsx), single route hosting a 2-tab shell (Partners
+          list + Capability Matrix). No backend model exists yet — see
+          UNAdminPartnerManagement.jsx's own header. */}
+      <Route path="/admin-portal/partners/tenant-screening" element={
+        <UNAdminShell activeId="partners-tenant-screening" title="Tenant Screening Partners">
+          <UNAdminPartnerManagement />
+        </UNAdminShell>
+      } />
+      {/* Session 60 — Screening Configuration. Real, editable policy values
+          (ratios, credit bands, lookback years, mandatory/locked toggles),
+          saved to this browser's own localStorage — no backend exists yet.
+          Named vendors/engines (Socure, Persona, Plaid, Argyle, TransUnion,
+          LexisNexis) and compliance/version claims are Sample-tagged. See
+          UNAdminScreeningConfiguration.jsx's own header. */}
+      <Route path="/admin-portal/config/screening" element={
+        <UNAdminShell activeId="config-screening" title="Screening Configuration">
+          <UNAdminScreeningConfiguration />
+        </UNAdminShell>
+      } />
       <Route path="/admin-portal/config/miscellaneous" element={
         <UNAdminShell activeId="misc-config" title="Miscellaneous Configurations">
           <UNAdminMiscConfig />
@@ -436,6 +495,23 @@ function AppRoutes() {
           Marketplace_Listing_Design_Review.md §7. */}
       <Route path="/marketplace/listing/:id" element={<ListingDetailPage />} />
       <Route path="/marketplace/property-listing/:id" element={<PropertyListingDetailPage />} />
+
+      {/* ── Application Intake (Session 55, Phase 1) ──────────────────
+          Real "Apply Now" entry point, replacing MK-7's ComingSoonButton
+          stub for Apply (Book Tour / Contact were already real). See
+          pages/ApplicationIntake/ for the full build and its Claude
+          Project review doc. */}
+      <Route path="/marketplace/listing/:id/apply/*" element={<ApplicationIntakePage kind="listing" />} />
+      <Route path="/marketplace/property-listing/:id/apply/*" element={<ApplicationIntakePage kind="property-listing" />} />
+      <Route path="/marketplace/application/invite/:token/*" element={<CoApplicantInvitePage />} />
+      <Route path="/marketplace/application/:applicationId/status" element={<ApplicationSubmittedPage />} />
+
+      {/* Session 59 — Renter "Applications" list (see ApplicationsListPage.jsx
+          and MarketplaceHomePage's account-menu "Applications" entry,
+          added right after Favorites). Unlike Favorites/Alerts &
+          Communications, this has a real route — see that file's own
+          comment for why. */}
+      <Route path="/marketplace/account/applications" element={<ApplicationsListPage />} />
 
     </Routes>
   );

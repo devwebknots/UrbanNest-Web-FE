@@ -261,10 +261,11 @@ export function GalleryPreviewGrid({ photos, onOpen }) {
 // Book A Tour / Connect Now --> Coming soon") — same "honest disabled
 // state" convention AiAssistButton already established elsewhere in this
 // product (see claude/UrbanNest_ActiveBacklog.md, LST-5) rather than a
-// navigate-away placeholder: no application/booking/messaging backend
-// exists yet for any of the three (see the design review's §7.5 CTA
-// reality-check table), so each button stays right here, visibly disabled,
-// with a "Coming soon" sublabel instead of silently doing nothing.
+// navigate-away placeholder: originally none of the three had a backend.
+// Session 55 — Apply Now and Book A Tour are both real now (see
+// ListingContactCard's handleApplyClick/handleBookTourClick below); this
+// component is kept, unused in this file today, for any future CTA that
+// still needs the same honest-disabled treatment.
 export function ComingSoonButton({ icon, label, primary }) {
   return (
     <button
@@ -2395,6 +2396,14 @@ export function ListingContactCard({ contact, listingTitle, compact = false, ext
     setBookTourOpen(true);
   }
 
+  // Session 55 — Apply Now is real now (closing the Apply slice of MK-7's
+  // ComingSoonButton stub; see pages/ApplicationIntake/). Same gate as
+  // Book A Tour above.
+  function handleApplyClick() {
+    if (!user) { navigate('/'); return; }
+    navigate(`/marketplace/${listingKind === 'property-listing' ? 'property-listing' : 'listing'}/${listingId}/apply`);
+  }
+
   const bookTourModal = bookTourOpen && (
     <BookTourModal
       listingId={listingId}
@@ -2486,9 +2495,9 @@ export function ListingContactCard({ contact, listingTitle, compact = false, ext
         <div style={{ width: '100%', borderTop: `2px dotted ${C.cardBorder}`, margin: '16px 0 14px' }} />
 
         <div style={{ display: 'flex', justifyContent: 'center', gap: 28 }}>
-          <button disabled title="Apply Now — Coming soon" aria-label="Apply Now — Coming soon" style={sbBtnStyle}>
-            <span style={sbCircleStyle}><i className="ti ti-file-text" style={{ fontSize: 16, color: C.textTertiary }} /></span>
-            <span style={{ fontFamily: F.body, fontSize: 10, fontWeight: 700, color: C.textTertiary }}>Apply</span>
+          <button onClick={handleApplyClick} title="Apply Now" aria-label="Apply Now" style={{ ...sbBtnStyle, cursor: 'pointer' }}>
+            <span style={{ ...sbCircleStyle, background: C.primary, border: 'none', opacity: 1 }}><i className="ti ti-file-text" style={{ fontSize: 16, color: C.white }} /></span>
+            <span style={{ fontFamily: F.body, fontSize: 10, fontWeight: 700, color: C.textPrimary }}>Apply</span>
           </button>
           <button onClick={handleBookTourClick} title="Book A Tour" aria-label="Book A Tour" style={{ ...sbBtnStyle, cursor: 'pointer' }}>
             <span style={{ ...sbCircleStyle, background: C.primary, border: 'none', opacity: 1 }}><i className="ti ti-calendar" style={{ fontSize: 16, color: C.white }} /></span>
@@ -2550,9 +2559,9 @@ export function ListingContactCard({ contact, listingTitle, compact = false, ext
         </div>
 
         <div style={{ display: 'flex', marginTop: 10 }}>
-          <button disabled title="Apply Now — Coming soon" aria-label="Apply Now — Coming soon" style={compactCtaStyle}>
-            <span style={compactCircleStyle}><i className="ti ti-file-text" style={{ fontSize: 13, color: C.textTertiary }} /></span>
-            <span style={{ fontFamily: F.body, fontSize: 9, fontWeight: 700, color: C.textTertiary }}>Apply</span>
+          <button onClick={handleApplyClick} title="Apply Now" aria-label="Apply Now" style={{ ...compactCtaStyle, cursor: 'pointer' }}>
+            <span style={{ ...compactCircleStyle, background: C.primary, border: 'none', opacity: 1 }}><i className="ti ti-file-text" style={{ fontSize: 13, color: C.white }} /></span>
+            <span style={{ fontFamily: F.body, fontSize: 9, fontWeight: 700, color: C.textPrimary }}>Apply</span>
           </button>
           <button onClick={handleBookTourClick} title="Book A Tour" aria-label="Book A Tour" style={{ ...compactCtaStyle, cursor: 'pointer' }}>
             <span style={{ ...compactCircleStyle, background: C.primary, border: 'none', opacity: 1 }}><i className="ti ti-calendar" style={{ fontSize: 13, color: C.white }} /></span>
@@ -2636,11 +2645,11 @@ export function ListingContactCard({ contact, listingTitle, compact = false, ext
       <div style={{ width: '100%', borderTop: `2px dotted ${C.cardBorder}`, margin: '18px 0 14px' }} />
 
       <div style={{ width: '100%', display: 'flex', justifyContent: 'space-around' }}>
-        <button disabled title="Apply Now — Coming soon" aria-label="Apply Now — Coming soon" style={_disabledIconBtnStyle}>
-          <span style={_disabledIconCircleStyle}>
-            <i className="ti ti-file-text" style={{ fontSize: 18, color: C.textTertiary }} />
+        <button onClick={handleApplyClick} title="Apply Now" aria-label="Apply Now" style={{ ..._disabledIconBtnStyle, cursor: 'pointer' }}>
+          <span style={{ ..._disabledIconCircleStyle, background: C.primary, border: 'none', opacity: 1 }}>
+            <i className="ti ti-file-text" style={{ fontSize: 18, color: C.white }} />
           </span>
-          <span style={{ fontFamily: F.body, fontSize: 11, fontWeight: 700, color: C.textTertiary }}>Apply</span>
+          <span style={{ fontFamily: F.body, fontSize: 11, fontWeight: 700, color: C.textPrimary }}>Apply</span>
         </button>
 
         <button onClick={handleBookTourClick} title="Book A Tour" aria-label="Book A Tour" style={{ ..._disabledIconBtnStyle, cursor: 'pointer' }}>
