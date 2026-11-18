@@ -23,6 +23,8 @@ export const SZ2 = {
   thumbLg: { w: 112, h: 88 },                   // rich list rows (PropertyListItem)
   thumbXl: { w: 144, h: 104 },                  // photo tiles (MediaListItem)
   thumbFeature: { w: 216, h: 120 },             // featured photo tile (MediaListItem size="lg", unit carousel)
+  propertyCardPhoto: 132,                       // PropertyCard photo height (portfolio property grid)
+  searchSm: 240,                                // compact search field in a section header (filters row)
   unitCard: 248,                                // unit card width in the Overview's sideways-scrolling unit row (stacked MediaListItem)
   detailLabel: 84,                              // label column in label/value rows
   tableMin: 560,                                // DataTable min width before it scrolls sideways
@@ -37,6 +39,8 @@ export const SZ2 = {
   kpiMin:  100,
   heroMin: 196,
   heroImageWidth: '64%',
+  heroCompactMin: 132,                          // HeroBanner variant="compact" height (list pages)
+  heroCompactImageWidth: '62%',                 // compact hero photo — wide enough to show the whole building
   heroContentMax:640,                           // HeroBanner text column
   labelMax:140,                                 // truncated side labels (e.g. chart summary)
   skeletonTitle:300,                            // loading placeholder for a hero / page title

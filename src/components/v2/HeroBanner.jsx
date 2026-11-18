@@ -26,7 +26,11 @@ import { C2, G2, R2, SH2, F2, FS2, FW2, LH2, T2, SP2, SZ2, LAYOUT2, BLUR2, pad, 
 //        image, imagePosition (CSS background-position), stats[], actions,
 //        statsVariant 'inline' (default — white stats under the text)
 //                     | 'panel' (frosted white panel top-right, e.g. a property hero),
-//        children (extra content under the subtitle: description, chips…)
+//        children (extra content under the subtitle: description, chips…),
+//        variant 'default' | 'compact' (shorter list-page banner: bright blue gradient G2.heroCompact*,
+//                whole photo on the right, pill eyebrow, bold Inter title — e.g. Portfolio "Property List"),
+//        imageFull (compact only: `image` is complete banner art with its own gradient → fills the
+//                   whole banner unmasked; e.g. assets/v2/landlord/portfolio-hero.jpg)
 //
 // Stat: { icon, label, value, tone? (TONES2 — colours the value/icon in the panel) }
 // The panel sits beside the text and wraps under it on narrow screens.
@@ -59,6 +63,22 @@ const S = {
   pIcon:     { fontSize: FS2.xxxl },
   pValue:    { fontSize: FS2.xl, fontWeight: FW2.bold, lineHeight: LH2.tight, color: C2.textPrimary },
   pLabel:    { fontSize: FS2.sm, color: C2.textSecondary, marginTop: SP2.xxs },
+
+  // variant="compact" — shorter list-page banner: bright blue gradient, whole photo on the right
+  cHero:    { position: 'relative', overflow: 'hidden', isolation: 'isolate', minHeight: SZ2.heroCompactMin, borderRadius: R2.xxl, padding: pad(SP2.lg, LAYOUT2.heroX), color: C2.onDark.text, boxShadow: SH2.hero, background: G2.heroCompactBase, display: 'flex', alignItems: 'center' },
+  cPhoto:   (image, position) => ({
+    position: 'absolute', top: 0, right: 0, bottom: 0, width: SZ2.heroCompactImageWidth, pointerEvents: 'none',
+    backgroundImage: `url(${image})`, backgroundSize: 'cover', backgroundPosition: position, backgroundRepeat: 'no-repeat',
+    // left feather × top fade: the photo can sit lower than the banner top (sky above the roof)
+    WebkitMaskImage: `${G2.heroCompactMask}, ${G2.heroCompactMaskTop}`, maskImage: `${G2.heroCompactMask}, ${G2.heroCompactMaskTop}`,
+    WebkitMaskComposite: 'source-in', maskComposite: 'intersect',
+  }),
+  // imageFull: banner artwork that already contains its gradient — covers the whole banner, no mask
+  cArt:     (image, position) => ({ ...fill, backgroundImage: `url(${image})`, backgroundSize: 'cover', backgroundPosition: position, backgroundRepeat: 'no-repeat' }),
+  cScrim:   { ...fill, background: G2.heroCompactScrim },
+  cEyebrow: { display: 'inline-block', fontFamily: F2.body, fontSize: FS2.xs, fontWeight: FW2.medium, lineHeight: LH2.heading, color: C2.onDark.text, padding: pad(SP2.xxs, SP2.md), borderRadius: R2.pill, border: `1px solid ${C2.onDark.border}`, background: C2.onDark.surface, backdropFilter: BLUR2.sm, WebkitBackdropFilter: BLUR2.sm, marginBottom: SP2.xs },
+  cTitle:   { fontFamily: F2.body, fontSize: FS2.display, fontWeight: FW2.bold, lineHeight: LH2.tight, color: C2.white, marginBottom: SP2.xs },
+  cSub:     { fontFamily: F2.body, fontSize: FS2.base, color: C2.onDark.textSoft },
 
   eyebrow: { ...T2.eyebrow, display: 'inline-block', color: C2.onDark.text, padding: pad(SP2.xs, SP2.md), borderRadius: R2.sm, border: `1px solid ${C2.onDark.border}`, background: C2.onDark.surfaceSoft, backdropFilter: BLUR2.sm, WebkitBackdropFilter: BLUR2.sm, marginBottom: SP2.sm },
   title:   { ...T2.heroTitle, fontWeight: FW2.regular, marginBottom: SP2.xs },
@@ -99,8 +119,25 @@ function PanelStat({ icon, label, value, tone }) {
 
 export default function HeroBanner({
   eyebrow, title, titleAccent, titleAction, subtitle, subtitleIcon,
-  image, imagePosition = 'right center', stats = [], statsVariant = 'inline', actions, children,
+  image, imagePosition = 'right center', stats = [], statsVariant = 'inline', actions, children, variant = 'default',
+  imageFull = false,
 }) {
+  // Compact list-page banner (e.g. Portfolio "Property List"): pill eyebrow · bold title · one line
+  if (variant === 'compact') {
+    return (
+      <section style={S.cHero}>
+        {image && <div style={imageFull ? S.cArt(image, imagePosition) : S.cPhoto(image, imagePosition)} />}
+        <div style={S.cScrim} />
+        <div style={{ position: 'relative', zIndex: 1, maxWidth: SZ2.heroContentMax, minWidth: 0 }}>
+          {eyebrow && <div style={S.cEyebrow}>{eyebrow}</div>}
+          <div style={S.cTitle}>{title}{titleAccent != null && <>{title ? ' ' : ''}{titleAccent}</>}</div>
+          {subtitle && <div style={S.cSub}>{subtitle}</div>}
+          {children}
+          {actions && <div style={S.actions}>{actions}</div>}
+        </div>
+      </section>
+    );
+  }
   const panel = statsVariant === 'panel';
   return (
     <section style={S.hero}>

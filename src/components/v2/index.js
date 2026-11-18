@@ -24,7 +24,8 @@
 //   MediaListItem photo tile + label/value rows (units, listings)
 //   DataTable   header + rows table (ledgers, directories)
 //   ActionTile  tinted 2×2 action tiles · MetricBar label/value + progress bar
-//   BarChart · DonutChart · Sparkline · Gauge   charts in v2 colours
+//   BarChart · DonutChart · Sparkline · LineChart · Gauge   charts in v2 colours
+//   PropertyCard  photo card for portfolio grids · SectionHeader  heading + filters above a card grid
 //
 // Page chrome:
 //   Breadcrumb  trail above a detail hero · TabBar (pill = page sections, underline = in-card)
@@ -52,5 +53,7 @@ export { default as TabBar } from './TabBar';
 export { default as MetricBar } from './MetricBar';
 export { default as ActionTile } from './ActionTile';
 export { default as MediaListItem } from './MediaListItem';
+export { default as PropertyCard } from './PropertyCard';
+export { default as SectionHeader } from './SectionHeader';
 export { default as DataTable } from './DataTable';
-export { BarChart, DonutChart, Sparkline, Gauge } from './Charts';
+export { BarChart, DonutChart, Sparkline, LineChart, Gauge } from './Charts';

@@ -71,6 +71,7 @@ export const C2 = {
   tileBlue:       '#DCE6F4',
   chipBlue:       '#DCE8FB',
   skeleton:       '#E2E8F0',
+  photoBadge:     'rgba(11, 29, 58, 0.62)',      // dark translucent label on a photo (PropertyCard type tag)
 
   // Text
   textPrimary:    '#1E293B',
@@ -144,6 +145,15 @@ export const CHART2 = {
   line:       C2.successStrong,
   lineFill:   'rgba(22, 163, 74, 0.12)',
   lineFillTop:'rgba(22, 163, 74, 0.28)',
+  // Blue trend line with axes (LineChart) — light card / dark card variants
+  trend:            C2.primary,
+  trendFillTop:     'rgba(37, 99, 235, 0.22)',
+  trendFillBottom:  'rgba(37, 99, 235, 0)',
+  trendOnDark:      C2.primaryLight,
+  trendOnDarkFillTop:    'rgba(59, 130, 246, 0.45)',
+  trendOnDarkFillBottom: 'rgba(59, 130, 246, 0)',
+  tickOnDark:       C2.onDark.textMuted,
+  gridOnDark:       C2.onDark.borderSoft,
 };
 
 export const ILLUS2 = {
@@ -190,6 +200,14 @@ export const G2 = {
   heroTextScrim: 'linear-gradient(90deg, rgba(7,21,38,0.78) 0%, rgba(9,40,80,0.55) 30%, rgba(9,40,80,0.12) 50%, rgba(9,40,80,0) 62%)',
   heroImageMask: 'linear-gradient(90deg, transparent 0%, rgba(0,0,0,0.35) 14%, rgba(0,0,0,0.85) 30%, #000 42%)',
   heroVignette:  'linear-gradient(180deg, rgba(7,21,38,0) 60%, rgba(7,21,38,0.35) 100%)',
+  // Compact list-page hero (HeroBanner variant="compact", design: Portfolio "Property List"):
+  //   base  — royal blue, deeper on the left, brightening into the photo's sky on the right
+  //   mask  — short feather so the whole photo stays visible
+  //   scrim — light shade behind the text only
+  heroCompactBase:  'linear-gradient(90deg, #0A2D63 0%, #0E3A80 30%, #1A56B0 58%, #3C7FD8 100%)',
+  heroCompactMask:  'linear-gradient(90deg, transparent 0%, rgba(0,0,0,0.55) 10%, #000 24%)',
+  heroCompactMaskTop: 'linear-gradient(180deg, transparent 0%, #000 34%)',   // fades the photo's top edge when it is pushed down (imagePosition 'center 20px')
+  heroCompactScrim: 'linear-gradient(90deg, rgba(8,30,66,0.45) 0%, rgba(8,30,66,0.15) 32%, rgba(8,30,66,0) 50%)',
   // Property hero (full-bleed photo): readable left text column + soft base for the thumbnail strip
   propertyHeroScrim: 'linear-gradient(90deg, rgba(7,21,38,0.82) 0%, rgba(9,40,80,0.62) 28%, rgba(9,40,80,0.18) 52%, rgba(9,40,80,0) 70%)',
   propertyHeroBase:  'linear-gradient(180deg, rgba(7,21,38,0) 55%, rgba(7,21,38,0.45) 100%)',

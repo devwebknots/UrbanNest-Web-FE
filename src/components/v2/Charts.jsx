@@ -101,6 +101,71 @@ export function Sparkline({ labels = [], values = [], min, max, formatValue = id
   return <canvas ref={ref} role="img" aria-label={ariaLabel}>{ariaLabel}</canvas>;
 }
 
+// Trend line with axes — smooth blue line, white-ringed points, gradient area fill,
+// white tooltip (value on top, label under it). Fills its parent (give the parent a height).
+// Props: labels, values, formatValue (tooltip), formatTick (y axis), tooltipLabel (label → caption,
+//        e.g. month → "Jun 2025"), dark (axis text / grid / line for dark cards), ariaLabel
+//   <div style={{ position: 'relative', height: SZ2.chart }}>
+//     <LineChart dark labels={months} values={rent} formatValue={fmtMoney} formatTick={fmtK} />
+//   </div>
+export function LineChart({
+  labels = [], values = [], formatValue = identity, formatTick = identity, tooltipLabel = identity,
+  dark = false, emptyMax = 1000, ariaLabel = 'Trend chart',
+}) {
+  const ref = useChart(() => {
+    const line = dark ? CHART2.trendOnDark : CHART2.trend;
+    const fillTop = dark ? CHART2.trendOnDarkFillTop : CHART2.trendFillTop;
+    const fillBottom = dark ? CHART2.trendOnDarkFillBottom : CHART2.trendFillBottom;
+    const tickFont = { size: FS2.sm, family: F2.body };
+    const maxVal = Math.max(0, ...values);
+    return {
+      type: 'line',
+      data: {
+        labels,
+        datasets: [{
+          data: values,
+          borderColor: line, borderWidth: 3, tension: 0.4, fill: true,
+          // Area fill fades from the line down to the x axis
+          backgroundColor: ({ chart }) => {
+            const { ctx, chartArea } = chart;
+            if (!chartArea) return fillTop;
+            const g = ctx.createLinearGradient(0, chartArea.top, 0, chartArea.bottom);
+            g.addColorStop(0, fillTop);
+            g.addColorStop(1, fillBottom);
+            return g;
+          },
+          pointRadius: 5, pointHoverRadius: 7, pointBorderWidth: 2,
+          pointBackgroundColor: C2.white, pointBorderColor: line,
+        }],
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        interaction: { mode: 'index', intersect: false },
+        layout: { padding: { top: SP2.sm, right: SP2.sm } },
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            backgroundColor: C2.white, titleColor: C2.navyDeep, bodyColor: C2.textSecondary,
+            titleFont: { size: FS2.md, weight: FW2.bold, family: F2.body }, bodyFont: { size: FS2.xs, family: F2.body },
+            titleAlign: 'center', bodyAlign: 'center', displayColors: false,
+            padding: SP2.sm, cornerRadius: R2.md, caretSize: SP2.sm, yAlign: 'bottom',
+            callbacks: { title: items => formatValue(items[0].raw), label: item => tooltipLabel(item.label) },
+          },
+        },
+        scales: {
+          x: { grid: { display: false }, border: { display: false }, ticks: { font: tickFont, color: dark ? CHART2.tickOnDark : CHART2.tick } },
+          y: {
+            beginAtZero: true, suggestedMax: maxVal > 0 ? undefined : emptyMax,
+            border: { display: false }, grid: { color: dark ? CHART2.gridOnDark : CHART2.grid },
+            ticks: { font: tickFont, color: dark ? CHART2.tickOnDark : CHART2.tick, maxTicksLimit: 4, callback: formatTick },
+          },
+        },
+      },
+    };
+  }, [JSON.stringify(labels), JSON.stringify(values), dark]);
+  return <canvas ref={ref} role="img" aria-label={ariaLabel}>{ariaLabel}</canvas>;
+}
+
 // Score gauge — 270° arc with the score in the middle (0–100). Pure SVG.
 // Props: value, max (default 100), caption, tone (arc colour, TONES2 entry),
 //        dark (white text + translucent track for dark cards), size (default SZ2.gauge)
