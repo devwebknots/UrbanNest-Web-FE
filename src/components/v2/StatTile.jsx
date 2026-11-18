@@ -11,6 +11,7 @@ import { C2, TONES2, FS2, FW2, LH2, SP2, SZ2, UI2 } from '../../constants/v2';
 // Props: icon, label, value, tone (TONES2 — tints the icon; status value colour), labelFirst
 //   labelFirst = status tile: label on top, value is a word ("Clear") → standard title text
 //   (UI2.text.titleLg) in the tone's text colour instead of the big number style.
+// Narrow tiles (< CQ2.xs) hide the icon so value + label keep the full width.
 
 const S = {
   tile:   { ...UI2.tile, ...UI2.row(SP2.md), padding: SP2.md, minWidth: 0 },
@@ -21,8 +22,9 @@ const S = {
 
 export default function StatTile({ icon, label, value, tone = TONES2.primary, labelFirst = false }) {
   return (
-    <div style={S.tile}>
-      <div style={UI2.iconBox(SZ2.icon.lg, tone, { round: true })}><i className={`ti ${icon}`} aria-hidden="true" /></div>
+    <div className="un2-cq" style={S.tile}>
+      {/* icon hides on very narrow tiles (un2-hide-xs) so the label never gets cut */}
+      <div className="un2-hide-xs" style={UI2.iconBox(SZ2.icon.lg, tone, { round: true })}><i className={`ti ${icon}`} aria-hidden="true" /></div>
       <div style={UI2.minWidth0}>
         {labelFirst && <div style={S.label}>{label}</div>}
         <div style={labelFirst ? S.status(tone) : S.value}>{value}</div>

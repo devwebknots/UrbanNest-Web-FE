@@ -93,3 +93,17 @@
 /* Hide scrollbar but keep scrolling */
 .un2-scroll-hidden { scrollbar-width: none; }
 .un2-scroll-hidden::-webkit-scrollbar { display: none; }
+
+/* ── Card-width (container) rules ────────────────────────────────────────────
+   Content adapts to the width of its own card/tile, not the screen, so cards can
+   stay side by side on small laptops without wrapping or cutting text off.
+   Widths = CQ2 in constants/v2/layout.js (measured on the container's inner width, i.e. without its padding).
+     un2-cq            mark a card / tile as the container (SectionCard + StatTile do this)
+     un2-hide-xs       hide when the container is narrower than 120px  (tile icons)
+     un2-hide-narrow   hide when the container is narrower than 300px  (secondary pills, link text, row icons)
+     un2-hide-medium   hide when the container is narrower than 720px  (button labels → icon-only buttons)
+   ─────────────────────────────────────────────────────────────────────────── */
+.un2-cq { container-type: inline-size; }
+@container (max-width: 120px) { .un2-hide-xs     { display: none !important; } }
+@container (max-width: 300px) { .un2-hide-narrow { display: none !important; } }
+@container (max-width: 720px) { .un2-hide-medium { display: none !important; } }

@@ -24,10 +24,11 @@ import { C2, G2, SH2, TONES2, SZ2, LAYOUT2, UI2 } from '../../constants/v2';
 //              (card becomes position: relative + overflow: hidden)
 //   centerBody true → the body fills the card under the header and its content is centred
 //              vertically (empty states in a card stretched to its row's height)
-//   style, className
+//   style, className  (the card is always a width container: class un2-cq — see CQ2)
 
 const S = {
   centerBody: { flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center' },
+  action:     { flexShrink: 0 },
 };
 
 export function CardHeader({ icon, tone = TONES2.primary, plainIcon = false, accentIcon = false, title, badge, subtitle, action, dark = false }) {
@@ -35,7 +36,8 @@ export function CardHeader({ icon, tone = TONES2.primary, plainIcon = false, acc
   const iconStyle = accentIcon
     ? { ...UI2.iconBox(SZ2.icon.sm, TONES2.primary, { solid: true }), background: G2.primaryButton, boxShadow: SH2.primary }
     : { ...UI2.iconBox(SZ2.icon.md, iconTone), ...(plainIcon ? { background: 'transparent' } : {}) };
-  const titleEl = <div style={{ ...UI2.cardTitle, ...(dark ? { color: C2.white } : {}) }}>{title}</div>;
+  // Title stays on one line (… if the card is very narrow) so it never slides under the action
+  const titleEl = <div style={{ ...UI2.cardTitle, ...UI2.truncate, ...(dark ? { color: C2.white } : {}) }} title={typeof title === 'string' ? title : undefined}>{title}</div>;
   return (
     <div style={UI2.cardHeader}>
       <div style={{ ...UI2.row(LAYOUT2.rowGap), minWidth: 0, flex: 1 }}>
@@ -45,11 +47,11 @@ export function CardHeader({ icon, tone = TONES2.primary, plainIcon = false, acc
           </div>
         )}
         <div style={{ minWidth: 0, flex: 1 }}>
-          {badge ? <div style={UI2.row(LAYOUT2.rowGap)}>{titleEl}{badge}</div> : titleEl}
+          {badge ? <div style={{ ...UI2.row(LAYOUT2.rowGap), minWidth: 0 }}>{titleEl}{badge}</div> : titleEl}
           {subtitle && <div style={UI2.cardSubtitle}>{subtitle}</div>}
         </div>
       </div>
-      {action}
+      {action && <div style={S.action}>{action}</div>}
     </div>
   );
 }
@@ -60,6 +62,8 @@ export default function SectionCard({
 }) {
   const dark = variant === 'dark';
   const base = dark ? { ...UI2.darkCard, display: 'flex', flexDirection: 'column' } : UI2.card;
+  // un2-cq: content inside can react to this card's width (un2-hide-narrow / -medium in utilities.css)
+  const cls = ['un2-cq', className].filter(Boolean).join(' ');
   const content = (
     <>
       {title && (
@@ -71,7 +75,7 @@ export default function SectionCard({
   // centerBody: body fills the space under the header, content centred vertically
   if (centerBody && !decoration) {
     return (
-      <Tag className={className} style={{ ...base, display: 'flex', flexDirection: 'column', ...style }}>
+      <Tag className={cls} style={{ ...base, display: 'flex', flexDirection: 'column', ...style }}>
         {content}
       </Tag>
     );
@@ -80,7 +84,7 @@ export default function SectionCard({
   // decoration: background art (e.g. <CardWave />) drawn behind the content
   if (decoration) {
     return (
-      <Tag className={className} style={{ ...base, position: 'relative', overflow: 'hidden', display: 'flex', flexDirection: 'column', ...style }}>
+      <Tag className={cls} style={{ ...base, position: 'relative', overflow: 'hidden', display: 'flex', flexDirection: 'column', ...style }}>
         {decoration}
         <div style={{ position: 'relative', zIndex: 1, flex: 1, display: 'flex', flexDirection: 'column' }}>{content}</div>
       </Tag>
@@ -88,7 +92,7 @@ export default function SectionCard({
   }
 
   return (
-    <Tag className={className} style={{ ...base, ...style }}>
+    <Tag className={cls} style={{ ...base, ...style }}>
       {content}
     </Tag>
   );

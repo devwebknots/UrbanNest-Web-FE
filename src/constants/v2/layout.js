@@ -27,6 +27,7 @@ export const SZ2 = {
   detailLabel: 84,                              // label column in label/value rows
   tableMin: 560,                                // DataTable min width before it scrolls sideways
   tableMinCompact: 320,                         // DataTable with few columns (ledger) — fits a half-width card in a main column
+  tableFitCol: 64,                              // DataTable 'fit' column (amounts) — never narrower than this, same in every row
   gauge: 168,                                   // Gauge chart diameter
   heroThumb: { w: 88, h: 64 },                  // PropertyHero photo strip tiles
   propertyHeroMin: 236,                         // PropertyHero min height
@@ -80,6 +81,10 @@ export const LAYOUT2 = {
 
 // Breakpoints (px, max-width) — same values as the un2-grid-* media queries
 export const BP2 = { xl: 1100, lg: 1024, md: 860, sm: 600 };  // 3-col → 2 at xl · 4-col & 2-col splits → stacked at lg
+
+// Card-width steps (px) for container rules in utilities.css: un2-hide-xs / -narrow / -medium.
+// Content inside a card reacts to the CARD's width (un2-cq), not the screen's.
+export const CQ2 = { xs: 120, narrow: 300, medium: 720 };   // measured on the card's inner (content) width
 
 // ─── Section grid layouts — the ONLY column splits v2 screens use ────────────
 // Each name maps to a CSS class in src/styles/v2/utilities.css (widths from

@@ -962,6 +962,7 @@ const V = {
   disabled:      { opacity: OP2.muted, cursor: 'not-allowed' },
   chartWrap:     { position: 'relative', height: SZ2.chart },
   rentSummary:   { display: 'flex', flexWrap: 'wrap', gap: SP2.lg, marginTop: SP2.lg, paddingTop: SP2.lg, borderTop: `${SZ2.hairline}px solid ${C2.border}` },
+  // Three stats share one line; on a narrow card their icons hide (un2-hide-narrow) so amounts stay in full
   rentStat:      { ...UI2.row(LAYOUT2.rowGap), flex: '1 1 0', minWidth: 0 },
   score:         { fontWeight: FW2.bold, color: C2.successStrong },
   ticketNo:      { fontSize: FS2.xs, fontWeight: FW2.bold },
@@ -1247,14 +1248,17 @@ export default function LandlordPropertyDetailPage() {
     </SectionCard>
   );
 
-  // Header actions shared by the Overview carousel and the Units tab
+  // Header actions shared by the Overview row and the Units tab.
+  // On a narrow card (< CQ2.medium) the labels hide (un2-hide-medium) → icon-only buttons with tooltips.
   const unitHeaderActions = (
     <div style={V.unitActions}>
-      <button type="button" className="un2-raise" style={{ ...UI2.btn.outline, ...UI2.btnSm }} onClick={() => setShowFilter(true)}>
-        <i className="ti ti-filter" style={UI2.btnIcon} aria-hidden="true" /> Filter
+      <button type="button" className="un2-raise" style={{ ...UI2.btn.outline, ...UI2.btnSm }} onClick={() => setShowFilter(true)}
+        title="Filter" aria-label="Filter">
+        <i className="ti ti-filter" style={UI2.btnIcon} aria-hidden="true" /><span className="un2-hide-medium">Filter</span>
       </button>
-      <button type="button" className="un2-raise" style={{ ...UI2.btn.outlineTone(TONES2.primary), ...UI2.btnSm }} onClick={() => setShowBulkAdd(true)}>
-        <i className="ti ti-apps" style={UI2.btnIcon} aria-hidden="true" /> Add Service to All Units
+      <button type="button" className="un2-raise" style={{ ...UI2.btn.outlineTone(TONES2.primary), ...UI2.btnSm }} onClick={() => setShowBulkAdd(true)}
+        title="Add Service to All Units" aria-label="Add Service to All Units">
+        <i className="ti ti-apps" style={UI2.btnIcon} aria-hidden="true" /><span className="un2-hide-medium">Add Service to All Units</span>
       </button>
       {/* "List Ready" gate (LST-8): opens the Unit Selection modal, where readiness
           comes live from the A6 rules engine. Disabled until a unit exists. */}
@@ -1264,12 +1268,13 @@ export default function LandlordPropertyDetailPage() {
         disabled={units.length < 1}
         title={units.length < 1 ? 'Add a unit first to list it on the marketplace' : 'Choose which units to list on the marketplace'}
         onClick={() => setShowUnitSelection(true)}
+        aria-label="List Multi Units"
       >
-        <i className="ti ti-layout-grid" style={UI2.btnIcon} aria-hidden="true" /> List Multi Units
+        <i className="ti ti-layout-grid" style={UI2.btnIcon} aria-hidden="true" /><span className="un2-hide-medium">List Multi Units</span>
       </button>
-      <button type="button" className="un2-btn" style={{ ...UI2.btn.brand, ...UI2.btnSm }}
+      <button type="button" className="un2-btn" style={{ ...UI2.btn.brand, ...UI2.btnSm }} title="Add Unit" aria-label="Add Unit"
         onClick={() => { window.location.href = `/landlord-portal/property/${propId}/add-unit`; }}>
-        <i className="ti ti-plus" style={UI2.btnIcon} aria-hidden="true" /> Add Unit
+        <i className="ti ti-plus" style={UI2.btnIcon} aria-hidden="true" /><span className="un2-hide-medium">Add Unit</span>
       </button>
     </div>
   );
@@ -1362,20 +1367,21 @@ export default function LandlordPropertyDetailPage() {
       action={
         <div style={UI2.row(LAYOUT2.inlineGap)}>
           <span style={UI2.pill(TONES2.success)}>+5.2%</span>
-          <span style={UI2.pill()} title="Placeholder figures until the rent API is connected">Sample data</span>
+          <span className="un2-hide-narrow" style={UI2.pill()} title="Placeholder figures until the rent API is connected">Sample data</span>
         </div>
       }
     >
       <div style={V.chartWrap}>
         <BarChart labels={RENT_MONTHS} values={RENT_SAMPLE} formatValue={fmtMoney} formatTick={fmtK} ariaLabel="Monthly rent collection (sample)" />
       </div>
+      {/* Narrow card: stat icons hide (un2-hide-narrow) so all three amounts stay on one line in full */}
       <div style={V.rentSummary}>
         {RENT_SUMMARY.map(r => (
           <div key={r.lbl} style={V.rentStat}>
-            <div style={UI2.iconBox(SZ2.icon.sm, TONES2.primary)}><i className={`ti ${r.icon}`} aria-hidden="true" /></div>
+            <div className="un2-hide-narrow" style={UI2.iconBox(SZ2.icon.sm, TONES2.primary)}><i className={`ti ${r.icon}`} aria-hidden="true" /></div>
             <div style={UI2.minWidth0}>
               <div style={UI2.text.caption}>{r.lbl}</div>
-              <div style={{ ...UI2.text.stat, ...UI2.truncate }}>{r.val}</div>
+              <div style={{ ...UI2.text.stat, whiteSpace: 'nowrap' }}>{r.val}</div>
             </div>
           </div>
         ))}
@@ -1394,10 +1400,10 @@ export default function LandlordPropertyDetailPage() {
     >
       <DataTable
         columns={[
-          { key: 'date', label: 'Date', render: l => <span style={UI2.text.label}>{l.date}</span> },
-          { key: 'cat',  label: 'Category', width: 1.2 },
+          { key: 'date', label: 'Date', width: 0.7, render: l => <span style={UI2.text.label}>{l.date}</span> },
+          { key: 'cat',  label: 'Category', width: 1.2, optional: true },   // dropped first on a narrow card
           { key: 'who',  label: 'Tenant/Vendor', width: 1.4 },
-          { key: 'amt',  label: 'Amount', align: 'right',
+          { key: 'amt',  label: 'Amount', align: 'right', fit: true,         // never shrinks — amounts always in full
             render: l => <span style={{ fontWeight: FW2.semibold, color: l.pos ? C2.successStrong : C2.errorDark }}>{l.amt}</span> },
         ]}
         rows={LEDGER_ROWS}
@@ -1407,7 +1413,11 @@ export default function LandlordPropertyDetailPage() {
   );
 
   const maintenanceCard = (
-    <SectionCard icon="ti-tool" title="Maintenance Queue" centerBody={tickets.length === 0} action={<button type="button" className="un2-link" style={UI2.btn.link}>Create ticket</button>}>
+    <SectionCard icon="ti-tool" title="Maintenance Queue" centerBody={tickets.length === 0} action={
+      <button type="button" className="un2-link" style={UI2.btn.link} title="Create ticket" aria-label="Create ticket">
+        <i className="ti ti-plus" aria-hidden="true" /><span className="un2-hide-narrow">Create ticket</span>
+      </button>
+    }>
       {tickets.length === 0 ? (
         <EmptyState icon="ti-clipboard-check" title="All clear!" text="No pending maintenance requests.">
           <div style={UI2.text.label}>Vendor score <span style={V.score}>4.8 <i className="ti ti-star-filled" aria-hidden="true" /></span></div>
@@ -1452,7 +1462,11 @@ export default function LandlordPropertyDetailPage() {
   const commsCard = (
     <SectionCard
       icon="ti-messages" title="Communications"
-      action={<button type="button" className="un2-link" style={UI2.btn.link}>Open messenger <i className="ti ti-arrow-right" aria-hidden="true" /></button>}
+      action={
+        <button type="button" className="un2-link" style={UI2.btn.link} title="Open messenger" aria-label="Open messenger">
+          <span className="un2-hide-narrow">Open messenger</span> <i className="ti ti-arrow-right" aria-hidden="true" />
+        </button>
+      }
     >
       <TabBar
         variant="underline" ariaLabel="Communications"
