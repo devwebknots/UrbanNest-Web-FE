@@ -114,7 +114,23 @@ export default function LoginPage() {
       // ── SECURITY: clear ALL previous user data before saving new tokens ──
       // Prevents previous user's org_pms_* wizard state, tokens, and any other
       // localStorage keys from bleeding into the newly logged-in user's session.
+      //
+      // 2026-11-13 follow-up: a small allowlist is preserved across the clear.
+      // These keys aren't per-user session state — they stand in for data that
+      // would live on a real backend (UN Admin's saved Screening Configuration,
+      // and a PM's own override diff of it), shared across whoever is logged
+      // in. Wiping them on every login meant UN Admin's settings silently
+      // reverted the instant anyone logged back in. Everything else — tokens,
+      // wizard state, anything not on this list — is still wiped exactly as
+      // before.
+      const PRESERVE_ACROSS_LOGIN = ['un_admin_screening_config_v1', 'un_pm_screening_overrides_v1'];
+      const preservedAcrossLogin = {};
+      PRESERVE_ACROSS_LOGIN.forEach((k) => {
+        const v = localStorage.getItem(k);
+        if (v !== null) preservedAcrossLogin[k] = v;
+      });
       localStorage.clear();
+      Object.entries(preservedAcrossLogin).forEach(([k, v]) => localStorage.setItem(k, v));
 
       // ── AUTH_WEB_001: Save JWT tokens ──
       // Backend returns tokens nested: { tokens: { access, refresh }, user: {...} }

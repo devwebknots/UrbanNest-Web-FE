@@ -86,8 +86,20 @@ const ACCOUNT_MENU_BROWSE = [
 // Same real-destination treatment as Favorites below it (in-page modal,
 // gated on `user`) — see the click handler in the ACCOUNT_MENU_PERSONAL.map
 // below and RenterNotificationModal (src/pages/Marketplace/RenterNotification).
+// Session 59 — 'Applications' added right after Favorites, per the user's
+// own placement request, so a Renter can follow their application status.
+// Unlike Favorites/Alerts & Communications, this one is NOT an in-page
+// modal — it's a real route (src/pages/ApplicationIntake/
+// ApplicationsListPage.jsx). Alerts & Communications is deliberately
+// shaped like an ephemeral notification inbox (read-once, Email/
+// Notifications/Messages tabs); an application carries real, ongoing
+// multi-stage state (status, co-applicant progress, documents) that's a
+// poor fit for that same reading-pane modal, and that the Apply flow and
+// its own post-submit status page already treat as full routed pages —
+// this stays consistent with that. Gated on `user`, same convention as
+// Favorites/Alerts below.
 const ACCOUNT_MENU_PERSONAL = [
-  'Favorites', 'Alerts / Notifications', 'Notes', 'Suggestions', 'Agent and Co-Shopper',
+  'Favorites', 'Applications', 'Alerts / Notifications', 'Notes', 'Suggestions', 'Agent and Co-Shopper',
 ];
 
 const HERO_IMAGES = [
@@ -2229,6 +2241,14 @@ export default function MarketplaceHomePage() {
                   if (label === 'Favorites') {
                     if (!user) { navigate('/'); return; }
                     setFavoritesModalOpen(true);
+                    return;
+                  }
+                  // Session 59 — 'Applications' is a real route, not a
+                  // modal (see the ACCOUNT_MENU_PERSONAL comment above for
+                  // why). Same logged-out gate as Favorites/Alerts.
+                  if (label === 'Applications') {
+                    if (!user) { navigate('/'); return; }
+                    navigate('/marketplace/account/applications');
                     return;
                   }
                   if (label === 'Alerts / Notifications') {

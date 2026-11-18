@@ -6,9 +6,11 @@
 // Marketplace_Listing_Design_Review.md §7.9/§7.10, all confirmed with the
 // user before this file was written):
 //   #2 Ad banner: sample/placeholder image only (AdPlaceholderCard).
-//   #3 CTAs: Apply Now / Book A Tour / Connect Now all render as "Coming
-//      soon" (ComingSoonButton) — no application/booking/messaging backend
-//      exists yet.
+//   #3 CTAs: Apply Now / Book A Tour / Connect Now originally all rendered
+//      as "Coming soon" (ComingSoonButton) — no application/booking/
+//      messaging backend existed yet. Session 55 — Apply Now is real now,
+//      wired to pages/ApplicationIntake/ (see marketplaceDetailShared.jsx's
+//      ListingContactCard); Book A Tour was already wired Session 52+.
 // Data source: GET /api/marketplace/listing/<id>/
 // (rules_engine.marketplace_display.public_views.MarketplaceListingDetailView
 // — public, AllowAny, same eligibility bar as every other Marketplace read

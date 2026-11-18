@@ -13,8 +13,10 @@
 //      Removed Session 51, Phase 21 per the user's wireframe — see that
 //      phase's header note below; kept here as a historical record of
 //      the decision this page originally shipped with.
-//   #3 CTAs: Apply Now / Book A Tour / Connect Now all render as "Coming
-//      soon" (ComingSoonButton).
+//   #3 CTAs: Apply Now / Book A Tour / Connect Now originally all rendered
+//      as "Coming soon" (ComingSoonButton). Session 55 — Apply Now is real
+//      now, wired to pages/ApplicationIntake/; Book A Tour was already
+//      wired Session 52+.
 //   #4 Unit picker: each tile is a real child Listing (Listing.
 //      property_listing grouping), labeled by its floor plan name / own
 //      title / a positional fallback — never the generic "Room N" the
