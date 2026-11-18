@@ -63,7 +63,7 @@ const S = {
 
   actions: { display: 'flex', gap: SP2.md, marginTop: 'auto' },
   // Design buttons: solid dark navy primary · light grey secondary, both full-height (control.lg)
-  btnMain: { ...UI2.btn.base, flex: 1, minWidth: 0, minHeight: SZ2.control.lg, background: C2.navyDeep, color: C2.white, boxShadow: SH2.brandButton },
+  btnMain: { ...UI2.btn.brand, flex: 1, minWidth: 0, minHeight: SZ2.control.lg },   // standard v2 primary button (G2.brandButton)
   btnAlt:  { ...UI2.btn.base, flex: 1, minWidth: 0, minHeight: SZ2.control.lg, background: C2.background, color: C2.textPrimary, border: `1px solid ${C2.border}` },
 };
 
