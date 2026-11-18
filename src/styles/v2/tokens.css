@@ -51,7 +51,7 @@
   --un2-shadow-card-hover: 0 2px 4px rgba(16, 24, 40, 0.06), 0 12px 24px rgba(16, 24, 40, 0.08), 0 24px 48px -12px rgba(30, 64, 124, 0.24);
   --un2-card-border: #DCE4EE;
   --un2-glass-border: rgba(255, 255, 255, 0.85);
-  --un2-glass-bg: radial-gradient(120% 90% at 0% 100%, rgba(255,255,255,0.95) 0%, rgba(255,255,255,0) 60%), radial-gradient(80% 70% at 30% 0%, rgba(226,235,252,0.40) 0%, rgba(226,235,252,0) 70%), radial-gradient(70% 80% at 100% 30%, rgba(230,239,254,0.65) 0%, rgba(230,239,254,0) 70%), linear-gradient(180deg, #F7F9FE 0%, #FBFCFF 100%);
+  --un2-glass-bg: #FFFFFF;   /* light containers are solid white (same as G2.glass) */
   --un2-shadow-glass: 0 0 0 1px rgba(30, 64, 124, 0.07), inset 0 1px 0 rgba(255, 255, 255, 0.9), 0 1px 2px rgba(16, 24, 40, 0.05), 0 12px 32px -8px rgba(30, 64, 124, 0.16);
   --un2-shadow-control: 0 1px 2px rgba(16, 24, 40, 0.06), 0 2px 6px rgba(30, 64, 124, 0.08);
   --un2-shadow-control-hover: 0 2px 4px rgba(16, 24, 40, 0.08), 0 6px 14px rgba(30, 64, 124, 0.14);

@@ -47,7 +47,7 @@ export const UI2 = {
   truncate:   { whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' },
 
   // ── Surfaces ───────────────────────────────────────────────────────────────
-  // Light container = frosted glass (radial gradients + layer blur + subtle border)
+  // Light container = solid white card (G2.glass) + faint navy hairline shadow (SH2.glass)
   card: {
     fontFamily: F2.body,
     background: G2.glass,
@@ -90,7 +90,7 @@ export const UI2 = {
     padding: pad(LAYOUT2.cardY, LAYOUT2.cardX),
     boxShadow: SH2.tile,
   }),
-  // Inner frosted-glass tile inside a card (list items, mini panels)
+  // Inner white tile inside a card (list items, mini panels)
   tile: {
     fontFamily: F2.body,
     background: G2.glassTile,
