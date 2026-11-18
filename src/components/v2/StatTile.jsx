@@ -25,6 +25,7 @@ const S = {
   tile:   { ...UI2.tile, ...UI2.row(SP2.md), padding: SP2.md, minWidth: 0, border: 'none', boxShadow: SH2.tile },
   raised: { ...UI2.card, ...UI2.row(SP2.md), padding: pad(SP2.md, LAYOUT2.cardY), borderRadius: R2.xl, boxShadow: SH2.card, minWidth: 0 },
   value:  { fontSize: FS2.xxl, fontWeight: FW2.bold, lineHeight: LH2.tight, color: C2.textPrimary, ...UI2.truncate },
+  valueSm:{ fontSize: FS2.lg, fontWeight: FW2.semibold },   // 16px / 600
   status: (tone) => ({ ...UI2.text.titleLg, color: tone === TONES2.primary ? C2.textPrimary : tone.fg }),
   label:  { ...UI2.text.label, ...UI2.truncate },
 };
@@ -33,7 +34,8 @@ export default function StatTile({
   icon, label, value, tone = TONES2.primary, labelFirst = false, labelAbove = false, raised = false, valueColor,
 }) {
   const top = labelFirst || labelAbove;
-  const valueStyle = labelFirst ? S.status(tone) : { ...S.value, ...(valueColor ? { color: valueColor } : {}) };
+  // In-card tiles (snapshot 2×2) use a smaller value: 16px / semibold. Raised page tiles keep the big KPI number.
+  const valueStyle = labelFirst ? S.status(tone) : { ...S.value, ...(raised ? {} : S.valueSm), ...(valueColor ? { color: valueColor } : {}) };
   return (
     <div className={raised ? 'un2-cq un2-hover-lift' : 'un2-cq'} style={raised ? S.raised : S.tile}>
       {/* icon hides on very narrow tiles (un2-hide-xs) so the label never gets cut */}
