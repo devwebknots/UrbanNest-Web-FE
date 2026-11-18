@@ -9,18 +9,18 @@
   --un2-font-body: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
 
   /* Type scale */
-  --un2-fs-xxs: 11px; --un2-fs-xs: 12px; --un2-fs-sm: 13px; --un2-fs-base: 14px; --un2-fs-md: 16px;
-  --un2-fs-lg: 18px; --un2-fs-xl: 20px; --un2-fs-xxl: 24px; --un2-fs-xxxl: 28px; --un2-fs-display: 32px;
+  --un2-fs-xxs: 10px; --un2-fs-xs: 11px; --un2-fs-sm: 12px; --un2-fs-base: 13px; --un2-fs-md: 14px;
+  --un2-fs-lg: 16px; --un2-fs-xl: 18px; --un2-fs-xxl: 20px; --un2-fs-xxxl: 24px; --un2-fs-display: 28px;
 
   /* Spacing (4px grid) */
   --un2-sp-xxs: 2px; --un2-sp-xs: 4px; --un2-sp-sm: 8px; --un2-sp-md: 12px; --un2-sp-lg: 16px;
   --un2-sp-xl: 20px; --un2-sp-xxl: 24px; --un2-sp-xxxl: 32px; --un2-sp-huge: 40px;
 
   /* Page & section rhythm (same as LAYOUT2 in constants/v2/layout.js) */
-  --un2-page-x: 32px; --un2-page-top: 24px; --un2-page-bottom: 32px;
-  --un2-section-gap: 20px; --un2-grid-gap: 16px;
-  --un2-card-x: 24px; --un2-card-y: 20px; --un2-card-header-gap: 16px;
-  --un2-row-gap: 12px; --un2-inline-gap: 8px;
+  --un2-page-x: 24px; --un2-page-top: 20px; --un2-page-bottom: 24px;
+  --un2-section-gap: 16px; --un2-grid-gap: 12px;
+  --un2-card-x: 20px; --un2-card-y: 16px; --un2-card-header-gap: 12px;
+  --un2-row-gap: 8px; --un2-inline-gap: 8px;
 
   /* Radii */
   --un2-r-xs: 4px; --un2-r-sm: 6px; --un2-r-md: 8px; --un2-r-lg: 12px; --un2-r-xl: 16px; --un2-r-xxl: 20px;
@@ -44,6 +44,9 @@
   --un2-shadow-card: 0 1px 2px rgba(16, 24, 40, 0.06), 0 4px 12px rgba(16, 24, 40, 0.05), 0 12px 32px -8px rgba(30, 64, 124, 0.16);
   --un2-shadow-card-hover: 0 2px 4px rgba(16, 24, 40, 0.06), 0 12px 24px rgba(16, 24, 40, 0.08), 0 24px 48px -12px rgba(30, 64, 124, 0.24);
   --un2-card-border: #DCE4EE;
+  --un2-glass-border: rgba(255, 255, 255, 0.85);
+  --un2-glass-bg: radial-gradient(120% 90% at 0% 100%, rgba(255,255,255,0.95) 0%, rgba(255,255,255,0) 60%), radial-gradient(80% 70% at 30% 0%, rgba(226,235,252,0.40) 0%, rgba(226,235,252,0) 70%), radial-gradient(70% 80% at 100% 30%, rgba(230,239,254,0.65) 0%, rgba(230,239,254,0) 70%), linear-gradient(180deg, #F7F9FE 0%, #FBFCFF 100%);
+  --un2-shadow-glass: 0 0 0 1px rgba(30, 64, 124, 0.07), inset 0 1px 0 rgba(255, 255, 255, 0.9), 0 1px 2px rgba(16, 24, 40, 0.05), 0 12px 32px -8px rgba(30, 64, 124, 0.16);
   --un2-shadow-control: 0 1px 2px rgba(16, 24, 40, 0.06), 0 2px 6px rgba(30, 64, 124, 0.08);
   --un2-shadow-control-hover: 0 2px 4px rgba(16, 24, 40, 0.08), 0 6px 14px rgba(30, 64, 124, 0.14);
   --un2-shadow-focus: 0 0 0 3px rgba(37, 99, 235, 0.12);

@@ -64,6 +64,7 @@ export const C2 = {
   surface:        '#FFFFFF',
   surfaceMuted:   '#F1F5F9',
   border:         '#E2E8F0',
+  glassBorder:    'rgba(255, 255, 255, 0.85)',  // frosted-glass edge (with SH2.glass hairline)
   cardBorder:     '#DCE4EE',   // card outline — one step darker than pageBg so edges read
   borderLight:    '#F1F5F9',
   tileBlue:       '#DCE6F4',
@@ -155,6 +156,8 @@ export const ILLUS2 = {
 export const G2 = {
   header:        'linear-gradient(135deg, #032B57 0%, #518EF9 100%)',
   button:        'linear-gradient(135deg, #03264C 0%, #0659B2 100%)',
+  // Mobile app "brand" button: gradients.button left → right (UrbanNestMobile/src/components/Button.tsx)
+  brandButton:   'linear-gradient(90deg, #03264C 0%, #0659B2 100%)',
   primaryButton: 'linear-gradient(135deg, #1D4ED8 0%, #3B82F6 100%)',
   successButton: 'linear-gradient(135deg, #059669 0%, #10B981 100%)',
   sidebar:       'linear-gradient(180deg, #0B1D3A 0%, #0B2A5B 55%, #0B1D3A 100%)',
@@ -173,7 +176,23 @@ export const G2 = {
   heroImageMask: 'linear-gradient(90deg, transparent 0%, rgba(0,0,0,0.35) 14%, rgba(0,0,0,0.85) 30%, #000 42%)',
   heroVignette:  'linear-gradient(180deg, rgba(7,21,38,0) 60%, rgba(7,21,38,0.35) 100%)',
   imageDark:     'linear-gradient(180deg, rgba(11,29,58,0) 0%, rgba(11,29,58,0.92) 70%, #0B1D3A 100%)',
-  darkCard:      'linear-gradient(160deg, #0B2A5B 0%, #0B1D3A 100%)',
+  // Mobile dark cards (FinancialCard / CheckInStatusCard / RentDueCard): gradients.button, top-left → bottom-right
+  darkCard:      'linear-gradient(135deg, #03264C 0%, #0659B2 100%)',
+  // Frosted-glass light surface (sampled from the reference frame):
+  //   white glow bottom-left · soft blue tint across the top · cool tint on the right
+  //   over a near-white base. Pair with C2.glassBorder + SH2.glass + backdrop blur (UI2.glass).
+  glass: [
+    'radial-gradient(120% 90% at 0% 100%, rgba(255,255,255,0.95) 0%, rgba(255,255,255,0) 60%)',
+    'radial-gradient(80% 70% at 30% 0%, rgba(226,235,252,0.40) 0%, rgba(226,235,252,0) 70%)',
+    'radial-gradient(70% 80% at 100% 30%, rgba(230,239,254,0.65) 0%, rgba(230,239,254,0) 70%)',
+    'linear-gradient(180deg, #F7F9FE 0%, #FBFCFF 100%)',
+  ].join(', '),
+  glassTile: [
+    'radial-gradient(100% 100% at 0% 100%, rgba(255,255,255,0.9) 0%, rgba(255,255,255,0) 65%)',
+    'radial-gradient(90% 80% at 100% 0%, rgba(230,239,254,0.35) 0%, rgba(230,239,254,0) 70%)',
+    'linear-gradient(180deg, #F9FBFE 0%, #FDFEFF 100%)',
+  ].join(', '),
+  thumbShade:    'linear-gradient(180deg, rgba(11,29,58,0) 45%, rgba(11,29,58,0.55) 100%)',  // photo bottom fade under overlay tags
   // Light diagonal wash for a tone: G2.tone(TONES2.success) / G2.panel(TONES2.warning)
   tone:  (t) => `linear-gradient(135deg, #FFFFFF 0%, ${t.cardTint} 100%)`,
   panel: (t) => `linear-gradient(135deg, ${t.panelFrom} 0%, ${t.panelTo} 100%)`,
@@ -190,11 +209,14 @@ export const SH2 = {
   // Cards sit on the light-blue pageBg, so their shadow is layered and navy-tinted:
   //   contact edge (crisp) + soft spread + wide ambient glow
   card:       '0 1px 2px rgba(16, 24, 40, 0.06), 0 4px 12px rgba(16, 24, 40, 0.05), 0 12px 32px -8px rgba(30, 64, 124, 0.16)',
+  // Frosted glass: faint navy hairline + inner top highlight + soft lift
+  glass:      '0 0 0 1px rgba(30, 64, 124, 0.07), inset 0 1px 0 rgba(255, 255, 255, 0.9), 0 1px 2px rgba(16, 24, 40, 0.05), 0 12px 32px -8px rgba(30, 64, 124, 0.16)',
+  glassTile:  '0 0 0 1px rgba(30, 64, 124, 0.06), inset 0 1px 0 rgba(255, 255, 255, 0.9), 0 4px 10px -2px rgba(30, 64, 124, 0.08)',
   cardHover:  '0 2px 4px rgba(16, 24, 40, 0.06), 0 12px 24px rgba(16, 24, 40, 0.08), 0 24px 48px -12px rgba(30, 64, 124, 0.24)',
   primary:    '0 6px 16px rgba(37, 99, 235, 0.35)',
   success:    '0 6px 14px rgba(16, 185, 129, 0.30)',
   hero:       '0 10px 28px rgba(3, 43, 87, 0.18)',
-  dark:       '0 16px 34px rgba(11, 29, 58, 0.28)',
+  dark:       '0 16px 34px rgba(3, 38, 76, 0.30)',
   // Elevation ladder on the light-blue page (lowest → highest):
   //   tile (inner panels inside a card) → control (inputs, white buttons)
   //   → card → cardHover / hero / dark
@@ -202,6 +224,8 @@ export const SH2 = {
   control:      '0 1px 2px rgba(16, 24, 40, 0.06), 0 2px 6px rgba(30, 64, 124, 0.08)',
   controlHover: '0 2px 4px rgba(16, 24, 40, 0.08), 0 6px 14px rgba(30, 64, 124, 0.14)',
   darkButton:   '0 6px 14px rgba(15, 23, 42, 0.25)',
+  brandButton:  '0 6px 14px rgba(3, 38, 76, 0.28)',
+  lightButton:  '0 4px 12px rgba(3, 38, 76, 0.22)',
   focus:      '0 0 0 3px rgba(37, 99, 235, 0.12)',
   avatarRing: '0 0 0 3px #FFFFFF, 0 0 0 4px #E2E8F0',
   dotSuccess: '0 0 0 3px rgba(16, 185, 129, 0.18)',

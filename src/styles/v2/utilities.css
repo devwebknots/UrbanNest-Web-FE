@@ -5,6 +5,9 @@
    Imported once from src/index.js.
    ───────────────────────────────────────────────────────────────────────────── */
 
+/* Frosted-glass light container for plain CSS / non-React markup */
+.un2-glass { background: var(--un2-glass-bg); border: 1px solid var(--un2-glass-border); box-shadow: var(--un2-shadow-glass); backdrop-filter: blur(16px) saturate(140%); -webkit-backdrop-filter: blur(16px) saturate(140%); border-radius: var(--un2-r-xxl); }
+
 /* Cards that rise on hover */
 .un2-hover-lift { transition: transform var(--un2-motion-base), box-shadow var(--un2-motion-base); }
 .un2-hover-lift:hover { transform: translateY(-2px); box-shadow: var(--un2-shadow-card-hover); }
@@ -60,17 +63,17 @@
 .un2-grid-wide-left  { grid-template-columns: minmax(0, 1.45fr) minmax(0, 1fr); }
 .un2-grid-split      { grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); }
 .un2-grid-wide-right { grid-template-columns: minmax(0, 1fr) minmax(0, 1.45fr); }
-.un2-grid-aside      { grid-template-columns: minmax(0, 1fr) 192px; gap: var(--un2-section-gap); }
+.un2-grid-aside      { grid-template-columns: minmax(0, 1fr) 168px; gap: var(--un2-section-gap); }
 
 /* Vertical stack of sections (PageShell content uses this) */
 .un2-stack-sections { display: flex; flex-direction: column; gap: var(--un2-section-gap); }
 .un2-stack-sections > * { flex-shrink: 0; }
 
-@media (max-width: 1360px) {
+@media (max-width: 1100px) {
   .un2-grid-3 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .un2-grid-3 > :last-child:nth-child(odd) { grid-column: 1 / -1; }
 }
-@media (max-width: 1180px) {
+@media (max-width: 1024px) {
   .un2-grid-4 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .un2-grid-wide-left, .un2-grid-split, .un2-grid-wide-right { grid-template-columns: minmax(0, 1fr); }
 }

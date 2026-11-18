@@ -11,22 +11,24 @@ export const pad = (...v) => v.map(n => (typeof n === 'number' ? `${n}px` : n)).
 
 // Component sizes (px)
 export const SZ2 = {
-  icon:    { xs: 24, sm: 32, md: 40, lg: 48 },   // square icon boxes / avatars
-  control: { sm: 32, md: 40, lg: 48 },           // buttons, inputs, nav items
-  dot:     8,
-  progress:8,
-  sidebar: 248,
-  topbar:  64,
-  search:  380,
-  thumb:   { w: 120, h: 88 },                    // list thumbnails
-  donut:   200,
-  chart:   240,
-  kpiMin:  128,
-  heroMin: 248,
+  icon:    { xs: 20, sm: 28, md: 32, lg: 40 },   // square icon boxes / avatars (compact)
+  control: { sm: 28, md: 34, lg: 40 },           // buttons, inputs, nav items (compact)
+  dot:     6,
+  progress:6,
+  sidebar: 224,
+  topbar:  56,
+  search:  320,
+  thumb:   { w: 96, h: 72 },                    // list thumbnails
+  thumbLg: { w: 112, h: 88 },                   // rich list rows (PropertyListItem)
+  donut:   148,
+  chart:   180,
+  kpiMin:  100,
+  heroMin: 196,
   heroImageWidth: '64%',
-  panelMin:168,
-  promoMin:320,
-  emptyMin:192,
+  panelMin:132,
+  insightVisual: { w: 120, h: 56 },             // InsightCard right-hand chart / illustration
+  promoMin:240,
+  emptyMin:140,
 };
 
 // Page & section rhythm — the spacing pattern every v2 screen follows.
@@ -43,22 +45,22 @@ export const SZ2 = {
 //   │ pageBottom                                                     │
 //   └────────────────────────────────────────────────────────────────┘
 export const LAYOUT2 = {
-  pageX:         SP2.xxxl,  // 32 — left/right page padding
-  pageTop:       SP2.xxl,   // 24
-  pageBottom:    SP2.xxxl,  // 32
-  sectionGap:    SP2.xl,    // 20 — between stacked sections
-  gridGap:       SP2.lg,    // 16 — between cards in a grid row
-  cardX:         SP2.xxl,   // 24 — card horizontal padding
-  cardY:         SP2.xl,    // 20 — card vertical padding
-  cardHeaderGap: SP2.lg,    // 16 — card header → card body
-  rowGap:        SP2.md,    // 12 — between list rows / stacked blocks in a card
+  pageX:         SP2.xxl,   // 24 — left/right page padding
+  pageTop:       SP2.xl,    // 20
+  pageBottom:    SP2.xxl,   // 24
+  sectionGap:    SP2.lg,    // 16 — between stacked sections
+  gridGap:       SP2.md,    // 12 — between cards in a grid row
+  cardX:         SP2.xl,    // 20 — card horizontal padding
+  cardY:         SP2.lg,    // 16 — card vertical padding
+  cardHeaderGap: SP2.md,    // 12 — card header → card body
+  rowGap:        SP2.sm,    // 8  — between list rows / stacked blocks in a card
   inlineGap:     SP2.sm,    // 8  — between items on one line (icon + text, buttons)
-  heroX:         SP2.xxxl,  // 32
-  heroY:         SP2.xxl,   // 24
+  heroX:         SP2.xxl,   // 24
+  heroY:         SP2.xl,    // 20
 };
 
 // Breakpoints (px, max-width) — same values as the un2-grid-* media queries
-export const BP2 = { xl: 1360, lg: 1180, md: 860, sm: 600 };
+export const BP2 = { xl: 1100, lg: 1024, md: 860, sm: 600 };  // 3-col → 2 at xl · 4-col & 2-col splits → stacked at lg
 
 export const MOTION2 = {
   fast: '0.15s ease',

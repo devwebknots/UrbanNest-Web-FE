@@ -16,11 +16,14 @@ import { SP2, SZ2, MOTION2, LAYOUT2, pad } from './layout';
 
 const center = { display: 'flex', alignItems: 'center', justifyContent: 'center' };
 
+// Layer blur behind frosted-glass surfaces
+const GLASS_BLUR = 'blur(16px) saturate(140%)';
+
 const btnBase = {
   ...center,
   gap: SP2.sm,
   minHeight: SZ2.control.md,
-  padding: pad(SP2.sm, SP2.lg),
+  padding: pad(SP2.xs, SP2.md),
   border: 'none',
   borderRadius: R2.button,
   fontFamily: F2.body,
@@ -44,14 +47,19 @@ export const UI2 = {
   truncate:   { whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' },
 
   // ── Surfaces ───────────────────────────────────────────────────────────────
+  // Light container = frosted glass (radial gradients + layer blur + subtle border)
   card: {
-    background: C2.surface,
-    border: `1px solid ${C2.cardBorder}`,
+    fontFamily: F2.body,
+    background: G2.glass,
+    border: `1px solid ${C2.glassBorder}`,
     borderRadius: R2.xxl,
-    boxShadow: SH2.card,
+    boxShadow: SH2.glass,
+    backdropFilter: GLASS_BLUR,
+    WebkitBackdropFilter: GLASS_BLUR,
     padding: pad(LAYOUT2.cardY, LAYOUT2.cardX),
   },
   darkCard: {
+    fontFamily: F2.body,
     background: G2.darkCard,
     color: C2.onDark.text,
     borderRadius: R2.xxl,
@@ -59,6 +67,7 @@ export const UI2 = {
     padding: pad(LAYOUT2.cardY, LAYOUT2.cardY),
   },
   toneCard: (t) => ({
+    fontFamily: F2.body,
     position: 'relative',
     overflow: 'hidden',
     background: G2.tone(t),
@@ -75,12 +84,13 @@ export const UI2 = {
     padding: pad(LAYOUT2.cardY, LAYOUT2.cardX),
     boxShadow: SH2.tile,
   }),
-  // White inner tile inside a card (list items, mini panels)
+  // Inner frosted-glass tile inside a card (list items, mini panels)
   tile: {
-    background: C2.surface,
-    border: `1px solid ${C2.cardBorder}`,
+    fontFamily: F2.body,
+    background: G2.glassTile,
+    border: `1px solid ${C2.glassBorder}`,
     borderRadius: R2.lg,
-    boxShadow: SH2.tile,
+    boxShadow: SH2.glassTile,
   },
   listRow: { display: 'flex', alignItems: 'center', gap: LAYOUT2.rowGap, padding: pad(LAYOUT2.rowGap, SP2.xs), borderTop: `1px solid ${C2.border}` },
 
@@ -166,8 +176,22 @@ export const UI2 = {
   dot: (color = C2.success) => ({ width: SZ2.dot, height: SZ2.dot, borderRadius: R2.round, background: color, flexShrink: 0 }),
 
   // ── Buttons ────────────────────────────────────────────────────────────────
+  // App buttons — same four styles as the mobile app (components/Button.tsx).
+  // Use these for every new screen:
+  //   brand → main action (navy gradient, white text)
+  //   soft  → secondary action (light blue fill, navy text)
+  //   light → any action on a dark / photo background (white fill, navy text)
+  //   textLink → inline navy text action with arrow
+  // The older primary / success / dark / outline styles stay for existing pages.
   btn: {
     base:    btnBase,
+    brand:   { ...btnBase, background: G2.brandButton, color: C2.white, boxShadow: SH2.brandButton },
+    soft:    { ...btnBase, background: C2.chipBlue, color: C2.navy },
+    light:   { ...btnBase, background: C2.white, color: C2.navy, boxShadow: SH2.lightButton },
+    textLink: {
+      display: 'inline-flex', alignItems: 'center', gap: SP2.xs, padding: 0, background: 'none', border: 'none', cursor: 'pointer',
+      fontFamily: F2.body, fontSize: FS2.sm, fontWeight: FW2.semibold, color: C2.navy, whiteSpace: 'nowrap',
+    },
     primary: { ...btnBase, background: G2.primaryButton, color: C2.white, boxShadow: SH2.primary },
     success: { ...btnBase, background: G2.successButton, color: C2.white, boxShadow: SH2.success },
     dark:    { ...btnBase, background: C2.black, color: C2.white, boxShadow: SH2.darkButton },
@@ -186,6 +210,16 @@ export const UI2 = {
       borderRadius: R2.button, border: `1px solid ${C2.cardBorder}`, background: C2.white, color: C2.textPrimary, cursor: 'pointer', fontSize: FS2.lg,
       boxShadow: SH2.control,
     }),
+  },
+
+  // Size modifier — spread AFTER a button style: { ...UI2.btn.outline, ...UI2.btnSm }
+  btnSm: { minHeight: SZ2.control.sm, padding: pad(0, SP2.md), fontSize: FS2.sm, gap: SP2.xs },
+
+  // Small bordered "label value" chip, e.g. Occupancy 92%
+  metricChip: {
+    display: 'inline-flex', alignItems: 'center', gap: SP2.xs, padding: pad(SP2.xs, SP2.sm),
+    borderRadius: R2.pill, background: C2.background, border: `1px solid ${C2.cardBorder}`,
+    fontSize: FS2.xs, color: C2.textSecondary, lineHeight: LH2.heading, whiteSpace: 'nowrap',
   },
 
   // ── Inputs ─────────────────────────────────────────────────────────────────

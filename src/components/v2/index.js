@@ -19,3 +19,6 @@ export { default as TopBar } from './TopBar';
 export { default as HeroBanner, HeroStat } from './HeroBanner';
 export { default as SectionCard, CardHeader } from './SectionCard';
 export { default as StatCard, Wave } from './StatCard';
+export { default as PropertyListItem } from './PropertyListItem';
+export { default as InsightCard } from './InsightCard';
+export { default as CardWave } from './CardWave';

@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Chart, registerables } from 'chart.js';
-import { PageShell, HeroBanner, SectionCard, StatCard } from '../../components/v2';
+import { PageShell, HeroBanner, SectionCard, StatCard, PropertyListItem, InsightCard, CardWave } from '../../components/v2';
 import {
   C2, TONES2, AVATAR2, CHART2, ILLUS2, G2, R2, SH2,
-  F2, FS2, FW2, LH2, LS2, T2,
+  F2, FS2, FW2, LH2, LS2,
   SP2, SZ2, LAYOUT2, pad, UI2,
 } from '../../constants/v2';
 import heroImage from '../../assets/v2/landlord/dashboard-hero.jpg';
@@ -25,26 +25,20 @@ const API_BASE = process.env.REACT_APP_API_BASE_URL || 'http://localhost:8001/ap
 // ─── Card-internal styles specific to this page (tokens only) ────────────────
 const S = {
   chartWrap: { position: 'relative', height: SZ2.chart },
-  rentSide:  { ...UI2.stack(SP2.lg), justifyContent: 'center', paddingLeft: SP2.xl, borderLeft: `1px solid ${C2.border}` },
+  rentSide:  { ...UI2.stack(SP2.md), justifyContent: 'center', paddingLeft: SP2.lg, borderLeft: `1px solid ${C2.border}` },
   rentLbl:   { ...UI2.text.label, ...UI2.truncate, maxWidth: 140 },
 
   occBody:   { display: 'flex', alignItems: 'center', justifyContent: 'space-around', gap: SP2.lg, flexWrap: 'wrap' },
   occTarget: { display: 'flex', flexDirection: 'column', alignItems: 'center', gap: LAYOUT2.inlineGap },
 
-  propRow:   { display: 'grid', gridTemplateColumns: `${SZ2.thumb.w}px minmax(0,1fr) auto`, gap: SP2.lg, alignItems: 'center', padding: pad(SP2.lg, SP2.xs), borderTop: `1px solid ${C2.border}` },
-  propMeta:  { display: 'flex', alignItems: 'center', gap: LAYOUT2.inlineGap, flexWrap: 'wrap', fontSize: FS2.sm, color: C2.textSecondary, margin: pad(SP2.sm, 0, SP2.md) },
 
-  opItem:    { ...UI2.tile, padding: pad(SP2.md, SP2.lg), marginBottom: LAYOUT2.rowGap },
-  analytics: { ...UI2.tonePanel(TONES2.primary), ...UI2.row(SP2.lg), marginTop: SP2.xl },
+  opItem:    { ...UI2.tile, padding: pad(SP2.sm, SP2.md), marginBottom: LAYOUT2.rowGap },
+  analytics: { ...UI2.tonePanel(TONES2.primary), ...UI2.row(SP2.md), marginTop: SP2.md, padding: pad(SP2.md, SP2.lg) },
 
-  commMsg:   { padding: pad(SP2.md, SP2.lg), borderRadius: R2.lg, background: C2.onDark.surfaceSoft, border: `1px solid ${C2.onDark.borderSoft}`, marginBottom: LAYOUT2.rowGap },
+  commMsg:   { padding: pad(SP2.sm, SP2.md), borderRadius: R2.lg, background: C2.onDark.surfaceSoft, border: `1px solid ${C2.onDark.borderSoft}`, marginBottom: LAYOUT2.rowGap },
   commFrom:  { fontSize: FS2.xs, fontWeight: FW2.bold, letterSpacing: LS2.wide, textTransform: 'uppercase' },
   commText:  { fontSize: FS2.sm, lineHeight: LH2.body, color: C2.onDark.textSoft, marginTop: SP2.xs },
 
-  intelCard: (t) => ({ ...UI2.tonePanel(t), minHeight: SZ2.panelMin }),
-  intelHead: { ...UI2.row(LAYOUT2.rowGap), marginBottom: LAYOUT2.rowGap },
-  intelBody: { ...T2.body, position: 'relative', maxWidth: '72%', marginBottom: LAYOUT2.rowGap },
-  intelLink: (col) => ({ ...UI2.btn.link, position: 'relative', fontWeight: FW2.bold, letterSpacing: LS2.wide, textTransform: 'uppercase', color: col }),
 
   footer:    { textAlign: 'center', ...UI2.text.caption, padding: pad(SP2.lg, 0, SP2.xs), borderTop: `1px solid ${C2.border}` },
   footLinks: { marginTop: SP2.sm, display: 'flex', justifyContent: 'center', gap: SP2.lg },
@@ -252,7 +246,7 @@ export default function LandlordDashboard() {
           { icon: 'ti-users',    label: 'Active Tenants', value: portfolio.active_tenants   ?? '—' },
         ]}
         actions={<>
-          <button className="un2-btn" style={UI2.btn.success}>
+          <button className="un2-btn" style={UI2.btn.light}>
             <i className="ti ti-plus" style={{ fontSize: FS2.md }} aria-hidden="true" />
             Add maintenance request
           </button>
@@ -292,7 +286,7 @@ export default function LandlordDashboard() {
           </div>
         </SectionCard>
 
-        <SectionCard icon="ti-clipboard-check" title="Occupancy Rate">
+        <SectionCard icon="ti-clipboard-check" title="Occupancy Rate" decoration={<CardWave />}>
           <div style={S.occBody}>
             <OccupancyDonut value={loading ? 0 : (kpis.occupancy_rate ?? 0)} />
             <div style={S.occTarget}>
@@ -309,7 +303,7 @@ export default function LandlordDashboard() {
       </section>
 
       {/* ── PRIME ASSETS + OPEN OPERATIONS ── */}
-      <section className="un2-grid-split">
+      <section className="un2-grid-wide-left">
         <SectionCard
           icon="ti-building-community" title="Prime Assets" subtitle="High-performance properties in your active portfolio."
           action={
@@ -318,59 +312,38 @@ export default function LandlordDashboard() {
             </button>
           }
         >
-          {loading && [0, 1].map(i => (
-            <div key={i} style={S.propRow}>
-              <img src={propertyPlaceholder} alt="" style={{ ...UI2.thumb, opacity: 0.6 }} />
-              <div style={UI2.stack(LAYOUT2.rowGap)}>
-                <div className="un2-skel" style={{ width: 180, height: SP2.lg }} />
-                <div className="un2-skel" style={{ width: 260, height: SP2.md }} />
-                <div className="un2-skel" style={{ width: 200, height: SZ2.control.sm }} />
-              </div>
-              <div />
-            </div>
-          ))}
+          {loading && [0, 1].map(i => <PropertyListItem key={i} loading />)}
           {!loading && primeAssets.length === 0 && (
             <div style={{ ...UI2.empty, borderTop: `1px solid ${C2.border}` }}>No active properties yet.</div>
           )}
-          {primeAssets.map((prop, idx) => {
-            const badge = prop.badge === 'ELITE LISTING'
-              ? { tone: TONES2.warning, label: 'ELITE LISTING' }
-              : { tone: TONES2.success, label: prop.badge || 'STABILIZED' };
-            const mgmtBadge = mgmtBadgeFor(prop.management_tag);
-            return (
-              <div key={prop.id || idx} style={S.propRow}>
-                <img src={propertyPlaceholder} alt="" style={UI2.thumb} />
-                <div style={{ minWidth: 0 }}>
-                  <div style={{ ...UI2.row(LAYOUT2.inlineGap), flexWrap: 'wrap', marginBottom: SP2.sm }}>
-                    <span style={UI2.tag(badge.tone)}>{badge.label}</span>
-                    {mgmtBadge && <span style={UI2.tag(mgmtBadge.tone)}>{mgmtBadge.label}</span>}
-                  </div>
-                  <div style={{ ...UI2.row(LAYOUT2.inlineGap), ...UI2.text.titleLg }}>
-                    {prop.name}
-                    <span style={{ ...UI2.row(SP2.xs), fontSize: FS2.sm, fontWeight: FW2.semibold, color: C2.successDark }}>
-                      <i className="ti ti-circle-check" aria-hidden="true" /> Paid
-                    </span>
-                  </div>
-                  <div style={{ ...UI2.text.meta, marginTop: SP2.xxs }}>{prop.address}{prop.total_units ? ` · ${prop.total_units} Units` : ''}</div>
-                  <div style={S.propMeta}>
-                    <span>Occupancy <strong style={{ color: C2.textPrimary }}>{prop.occupancy_pct ?? 0}%</strong></span>
-                    <span style={{ color: C2.textMuted }}>·</span>
-                    <span>
-                      Maintenance{' '}
-                      <strong style={{ color: prop.maint_open > 0 ? C2.errorDark : C2.successStrong }}>
-                        {prop.maint_open > 0 ? `${prop.maint_open} Open` : 'Clear'}
-                      </strong>
-                    </span>
-                  </div>
-                  <div style={{ display: 'flex', gap: LAYOUT2.inlineGap, flexWrap: 'wrap' }}>
-                    <button className="un2-raise" style={{ ...UI2.btn.outline, minHeight: SZ2.control.sm, padding: pad(SP2.xs, SP2.xl) }}>Details</button>
-                    <button className="un2-btn" style={{ ...UI2.btn.dark, minHeight: SZ2.control.sm, padding: pad(SP2.xs, SP2.lg) }}>Message Tenants</button>
-                  </div>
-                </div>
-                <button className="un2-raise" style={UI2.btn.iconOutline()} aria-label="More actions"><i className="ti ti-dots-vertical" aria-hidden="true" /></button>
-              </div>
-            );
-          })}
+          {primeAssets.map((prop, idx) => (
+            <PropertyListItem
+              key={prop.id || idx}
+              image={propertyPlaceholder}
+              name={prop.name}
+              address={prop.address}
+              units={prop.total_units}
+              status={prop.badge === 'ELITE LISTING'
+                ? { tone: TONES2.warning, label: 'ELITE LISTING' }
+                : { tone: TONES2.success, label: prop.badge || 'STABILIZED' }}
+              tag={mgmtBadgeFor(prop.management_tag)}
+              paid
+              metrics={[
+                { icon: 'ti-home-check', label: 'Occupancy', value: `${prop.occupancy_pct ?? 0}%` },
+                { icon: 'ti-tool', label: 'Maintenance',
+                  value: prop.maint_open > 0 ? `${prop.maint_open} Open` : 'Clear',
+                  color: prop.maint_open > 0 ? C2.errorDark : C2.successStrong },
+              ]}
+              actions={<>
+                <button className="un2-btn" style={{ ...UI2.btn.soft, ...UI2.btnSm }}>
+                  <i className="ti ti-eye" aria-hidden="true" /> Details
+                </button>
+                <button className="un2-btn" style={{ ...UI2.btn.brand, ...UI2.btnSm }}>
+                  <i className="ti ti-message-2" aria-hidden="true" /> Message Tenants
+                </button>
+              </>}
+            />
+          ))}
         </SectionCard>
 
         <SectionCard icon="ti-tool" title="Open Operations" subtitle="Active maintenance & contractor reliability">
@@ -471,7 +444,7 @@ export default function LandlordDashboard() {
               <div style={S.commText}>{m.text}</div>
             </div>
           ))}
-          <button className="un2-btn" style={{ ...UI2.btn.success, width: '100%', minHeight: SZ2.control.lg, marginTop: 'auto' }}>
+          <button className="un2-btn" style={{ ...UI2.btn.light, width: '100%', minHeight: SZ2.control.lg, marginTop: 'auto' }}>
             <i className="ti ti-message-2" style={{ fontSize: FS2.lg }} aria-hidden="true" />
             Open Messenger
           </button>
@@ -481,53 +454,41 @@ export default function LandlordDashboard() {
       {/* ── URBANNEST INTELLIGENCE ── */}
       <SectionCard as="section" title={null}>
         <div style={{ ...UI2.row(LAYOUT2.rowGap), marginBottom: LAYOUT2.cardHeaderGap }}>
-          <div style={{ ...UI2.iconBox(SZ2.icon.md, TONES2.primary, { solid: true }), background: G2.primaryButton, boxShadow: SH2.primary }}>
+          <div style={{ ...UI2.iconBox(SZ2.icon.sm, TONES2.primary, { solid: true }), background: G2.primaryButton, boxShadow: SH2.primary }}>
             <i className="ti ti-sparkles" aria-hidden="true" />
           </div>
           <div style={UI2.cardTitle}>UrbanNest Intelligence</div>
           <span style={UI2.pill(TONES2.primary)}>AI INSIGHTS</span>
         </div>
         <div className="un2-grid-2">
-          <div style={S.intelCard(TONES2.success)}>
-            <div style={S.intelHead}>
-              <div style={UI2.iconBox(SZ2.icon.sm, TONES2.success, { solid: true })}><i className="ti ti-trending-up" aria-hidden="true" /></div>
-              <div style={{ ...UI2.text.titleLg, fontWeight: FW2.bold }}>Rent Trend Analysis</div>
-            </div>
-            <div style={S.intelBody}>
-              Local market data suggests a 4.2% potential increase for 2-bedroom units in Chelsea.
-              Consider adjusting Emerald Gardens rates during next renewal cycle.
-            </div>
-            <button className="un2-link" style={S.intelLink(C2.successDark)}>Review Market Comp <Arrow /></button>
-            <div style={{ position: 'absolute', right: SP2.md, bottom: SP2.md, width: '34%', height: SZ2.icon.lg + SZ2.icon.sm }}>
-              {rentSparkline.length > 0 ? (
-                <RentSparkline data={rentSparkline} />
-              ) : (
-                <svg width="100%" height="100%" viewBox="0 0 200 80" preserveAspectRatio="none" aria-hidden="true">
-                  <defs>
-                    <linearGradient id="lld-spark" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="0" stopColor={CHART2.line} stopOpacity="0.28" /><stop offset="1" stopColor={CHART2.line} stopOpacity="0" />
-                    </linearGradient>
-                  </defs>
-                  <path d="M0 72 C30 70 45 62 70 64 C95 66 105 44 130 46 C150 48 160 30 178 22 L190 10 L200 10 L200 80 L0 80 Z" fill="url(#lld-spark)" />
-                  <path d="M0 72 C30 70 45 62 70 64 C95 66 105 44 130 46 C150 48 160 30 178 22 L190 10" fill="none" stroke={CHART2.line} strokeWidth="3" strokeLinecap="round" />
-                  <circle cx="190" cy="10" r="5" fill={CHART2.line} />
-                </svg>
-              )}
-            </div>
-          </div>
-          <div style={S.intelCard(TONES2.warning)}>
-            <div style={S.intelHead}>
-              <div style={UI2.iconBox(SZ2.icon.sm, TONES2.warning, { solid: true })}><i className="ti ti-alert-triangle" aria-hidden="true" /></div>
-              <div style={{ ...UI2.text.titleLg, fontWeight: FW2.bold, color: C2.warningDark }}>Maintenance Forecast</div>
-            </div>
-            <div style={S.intelBody}>
-              HVAC units in The Regent Plaza (South Wing) are approaching their 5-year efficiency limit.
-              Predicted failure probability increases to 15% this winter.
-            </div>
-            <button className="un2-link" style={S.intelLink(C2.warningIcon)}>Schedule Preventive Audit <Arrow /></button>
-            {/* Decorative illustration icon — intentionally larger than the type scale */}
-            <i className="ti ti-calendar-event" style={{ position: 'absolute', right: SP2.xxl, bottom: SP2.xxl, fontSize: SZ2.icon.lg * 1.5, color: C2.gold, opacity: 0.9 }} aria-hidden="true" />
-          </div>
+          <InsightCard
+            tone={TONES2.success} icon="ti-trending-up" title="Rent Trend Analysis"
+            actionLabel="Review Market Comp"
+            visual={rentSparkline.length > 0 ? (
+              <div style={{ position: 'relative', width: '100%', height: '100%' }}><RentSparkline data={rentSparkline} /></div>
+            ) : (
+              <svg width="100%" height="100%" viewBox="0 0 200 80" preserveAspectRatio="none" aria-hidden="true">
+                <defs>
+                  <linearGradient id="lld-spark" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0" stopColor={CHART2.line} stopOpacity="0.28" /><stop offset="1" stopColor={CHART2.line} stopOpacity="0" />
+                  </linearGradient>
+                </defs>
+                <path d="M0 72 C30 70 45 62 70 64 C95 66 105 44 130 46 C150 48 160 30 178 22 L190 10 L200 10 L200 80 L0 80 Z" fill="url(#lld-spark)" />
+                <path d="M0 72 C30 70 45 62 70 64 C95 66 105 44 130 46 C150 48 160 30 178 22 L190 10" fill="none" stroke={CHART2.line} strokeWidth="3" strokeLinecap="round" vectorEffect="non-scaling-stroke" />
+              </svg>
+            )}
+          >
+            Local market data suggests a 4.2% potential increase for 2-bedroom units in Chelsea.
+            Consider adjusting Emerald Gardens rates during next renewal cycle.
+          </InsightCard>
+          <InsightCard
+            tone={TONES2.warning} icon="ti-alert-triangle" title="Maintenance Forecast" titleColor={C2.warningDark}
+            actionLabel="Schedule Preventive Audit"
+            visual={<i className="ti ti-calendar-event" style={{ fontSize: SZ2.icon.lg, color: C2.gold, lineHeight: 1 }} aria-hidden="true" />}
+          >
+            HVAC units in The Regent Plaza (South Wing) are approaching their 5-year efficiency limit.
+            Predicted failure probability increases to 15% this winter.
+          </InsightCard>
         </div>
       </SectionCard>
 

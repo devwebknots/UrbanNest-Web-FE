@@ -14,18 +14,18 @@ export const F2 = {
 
 export const FW2 = { regular: 400, medium: 500, semibold: 600, bold: 700 };
 
-// Standard web type scale (px). Use ONLY these sizes — no in-between values.
-//   xxs 11 → badges, tags, eyebrows (minimum readable size)
-//   xs  12 → captions, timestamps, meta text
-//   sm  13 → secondary text, labels, links
-//   base 14 → body text, buttons, nav items (default)
-//   md  16 → emphasized body, list item titles
-//   lg  18 → card titles (Playfair), stat values
-//   xl  20 → topbar / page-section titles
-//   xxl 24 → KPI values
-//   xxxl 28 → hero / page headline (Playfair)
-//   display 32 → big chart numbers
-export const FS2 = { xxs: 11, xs: 12, sm: 13, base: 14, md: 16, lg: 18, xl: 20, xxl: 24, xxxl: 28, display: 32 };
+// Standard web type scale (px) — compact dashboard density. Use ONLY these sizes — no in-between values.
+//   xxs 10 → badges, tags, eyebrows (minimum readable size)
+//   xs  11 → captions, timestamps, meta text
+//   sm  12 → secondary text, labels, links
+//   base 13 → body text, buttons, nav items (default)
+//   md  14 → emphasized body, list item titles
+//   lg  16 → card titles (Playfair), stat values
+//   xl  18 → topbar / page-section titles
+//   xxl 20 → KPI values
+//   xxxl 24 → hero / page headline (Playfair)
+//   display 28 → big chart numbers
+export const FS2 = { xxs: 10, xs: 11, sm: 12, base: 13, md: 14, lg: 16, xl: 18, xxl: 20, xxxl: 24, display: 28 };
 
 // Line heights paired with the scale: none for big numbers, tight for stats,
 // heading for titles, body for paragraphs.

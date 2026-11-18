@@ -10,12 +10,12 @@ import { C2, TONES2, FS2, FW2, LH2, T2, SP2, SZ2, pad, UI2 } from '../../constan
 //             pill="+5 this month" pillIcon="ti-arrow-up" />
 
 const S = {
-  card:  (t) => ({ ...UI2.toneCard(t), minHeight: SZ2.kpiMin, padding: pad(SP2.lg, SP2.lg, SP2.xl), display: 'flex', gap: SP2.md }),
-  pill:  { position: 'absolute', top: SP2.lg, right: SP2.lg },
-  value: { ...T2.statValue, marginTop: SP2.xxl },
+  card:  (t) => ({ ...UI2.toneCard(t), minHeight: SZ2.kpiMin, padding: pad(SP2.md, SP2.md, SP2.lg), display: 'flex', gap: SP2.md }),
+  pill:  { position: 'absolute', top: SP2.md, right: SP2.md },
+  value: { ...T2.statValue, marginTop: SP2.xl },
   name:  { fontSize: FS2.md, fontWeight: FW2.semibold, color: C2.textPrimary, lineHeight: LH2.heading },
   label: { ...UI2.text.label, marginTop: SP2.xxs },
-  wave:  { position: 'absolute', right: 0, bottom: 0, width: '62%', height: SZ2.icon.lg + SP2.sm, pointerEvents: 'none' },
+  wave:  { position: 'absolute', right: 0, bottom: 0, width: '62%', height: SZ2.icon.lg, pointerEvents: 'none' },
 };
 
 export function Wave({ color, style }) {

@@ -18,6 +18,8 @@ import { C2, TONES2, SZ2, LAYOUT2, UI2 } from '../../constants/v2';
 //   title, subtitle, action
 //   variant    'light' (default) | 'dark' (navy card, white text)
 //   as         element/tag, default 'div' (use 'section' for page sections)
+//   decoration background art behind the content, e.g. <CardWave />
+//              (card becomes position: relative + overflow: hidden)
 //   style, className
 
 export function CardHeader({ icon, tone = TONES2.primary, plainIcon = false, title, subtitle, action, dark = false }) {
@@ -42,16 +44,32 @@ export function CardHeader({ icon, tone = TONES2.primary, plainIcon = false, tit
 
 export default function SectionCard({
   icon, tone, plainIcon, title, subtitle, action,
-  variant = 'light', as: Tag = 'div', style, className, children,
+  variant = 'light', as: Tag = 'div', style, className, children, decoration,
 }) {
   const dark = variant === 'dark';
   const base = dark ? { ...UI2.darkCard, display: 'flex', flexDirection: 'column' } : UI2.card;
-  return (
-    <Tag className={className} style={{ ...base, ...style }}>
+  const content = (
+    <>
       {title && (
         <CardHeader icon={icon} tone={tone} plainIcon={plainIcon} title={title} subtitle={subtitle} action={action} dark={dark} />
       )}
       {children}
+    </>
+  );
+
+  // decoration: background art (e.g. <CardWave />) drawn behind the content
+  if (decoration) {
+    return (
+      <Tag className={className} style={{ ...base, position: 'relative', overflow: 'hidden', display: 'flex', flexDirection: 'column', ...style }}>
+        {decoration}
+        <div style={{ position: 'relative', zIndex: 1, flex: 1, display: 'flex', flexDirection: 'column' }}>{content}</div>
+      </Tag>
+    );
+  }
+
+  return (
+    <Tag className={className} style={{ ...base, ...style }}>
+      {content}
     </Tag>
   );
 }

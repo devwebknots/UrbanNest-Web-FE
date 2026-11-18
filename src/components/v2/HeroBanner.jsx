@@ -19,7 +19,7 @@ import { C2, G2, R2, SH2, F2, FS2, FW2, LH2, T2, SP2, SZ2, LAYOUT2, pad, UI2 } f
 //               subtitle="Property Owner · Active Portfolio" subtitleIcon="ti-user-circle"
 //               image={heroImg}
 //               stats={[{ icon: 'ti-building', label: 'Properties', value: 4 }, …]}
-//               actions={<button className="un2-btn" style={UI2.btn.success}>…</button>} />
+//               actions={<button className="un2-btn" style={UI2.btn.light}>…</button>} />
 //
 // Props: eyebrow, title (node), titleAccent (bold part after title), subtitle,
 //        subtitleIcon, image, imagePosition (CSS background-position), stats[], actions
@@ -43,18 +43,18 @@ const S = {
   vignette: { ...fill, background: G2.heroVignette },
   content:  { position: 'relative', zIndex: 1, maxWidth: 640 },
 
-  eyebrow: { ...T2.eyebrow, display: 'inline-block', color: C2.onDark.text, padding: pad(SP2.xs, SP2.md), borderRadius: R2.sm, border: `1px solid ${C2.onDark.border}`, background: C2.onDark.surfaceSoft, backdropFilter: 'blur(4px)', marginBottom: SP2.md },
+  eyebrow: { ...T2.eyebrow, display: 'inline-block', color: C2.onDark.text, padding: pad(SP2.xs, SP2.md), borderRadius: R2.sm, border: `1px solid ${C2.onDark.border}`, background: C2.onDark.surfaceSoft, backdropFilter: 'blur(4px)', marginBottom: SP2.sm },
   title:   { ...T2.heroTitle, fontWeight: FW2.regular, marginBottom: SP2.xs },
   accent:  { fontWeight: FW2.bold },
   sub:     { ...UI2.row(SP2.sm), fontFamily: F2.body, fontSize: FS2.sm, color: C2.onDark.textSoft },
-  rule:    { height: 1, width: '100%', maxWidth: 560, background: C2.onDark.divider, margin: pad(SP2.lg, 0, SP2.md) },
+  rule:    { height: 1, width: '100%', maxWidth: 560, background: C2.onDark.divider, margin: pad(SP2.md, 0, SP2.sm) },
   stats:   { display: 'flex', alignItems: 'center', flexWrap: 'wrap', rowGap: LAYOUT2.rowGap },
-  stat:    { ...UI2.row(SP2.md), padding: pad(0, SP2.xl) },
+  stat:    { ...UI2.row(SP2.sm), padding: pad(0, SP2.lg) },
   sep:     { width: 1, height: SZ2.icon.sm, background: C2.onDark.divider },
-  icon:    { fontSize: FS2.xxl, color: C2.onDark.textSoft },
+  icon:    { fontSize: FS2.xl, color: C2.onDark.textSoft },
   value:   { fontSize: FS2.lg, fontWeight: FW2.bold, lineHeight: LH2.none },
   label:   { fontSize: FS2.xs, color: C2.onDark.textMuted, marginTop: SP2.xxs },
-  actions: { display: 'flex', flexWrap: 'wrap', gap: SP2.md, marginTop: SP2.lg },
+  actions: { display: 'flex', flexWrap: 'wrap', gap: SP2.sm, marginTop: SP2.md },
 };
 
 export function HeroStat({ icon, label, value, first = false }) {
