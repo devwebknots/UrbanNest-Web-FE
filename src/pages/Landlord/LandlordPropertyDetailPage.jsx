@@ -960,6 +960,10 @@ const V = {
   snapshotEdit:  { ...UI2.btn.outline, ...UI2.btnSm },
   newChatBtn:    { ...UI2.btn.brand, width: 'fit-content', margin: pad(SP2.md, 'auto', 0), padding: pad(0, SP2.xl) },  // dark-blue brand button, centred
   disabled:      { opacity: OP2.muted, cursor: 'not-allowed' },
+  // Quick Actions rows — lighter text (trial; move into ListRow once confirmed):
+  //   title medium weight (not semibold) · meta one step smaller in muted grey
+  qaTitle:       { fontSize: FS2.base, fontWeight: FW2.medium, color: C2.textPrimary },
+  qaMeta:        { fontSize: FS2.xs, color: C2.textMuted },
   chartWrap:     { position: 'relative', height: SZ2.chart },
   rentSummary:   { display: 'flex', flexWrap: 'wrap', gap: SP2.lg, marginTop: SP2.lg, paddingTop: SP2.lg, borderTop: `${SZ2.hairline}px solid ${C2.border}` },
   // Three stats share one line; on a narrow card their icons hide (un2-hide-narrow) so amounts stay in full
@@ -1240,8 +1244,8 @@ export default function LandlordPropertyDetailPage() {
         <ListRow
           key={q.title}
           leading={<div style={UI2.iconBox(SZ2.icon.md, QA_TONES[i], { round: true })}><i className={`ti ${q.icon}`} aria-hidden="true" /></div>}
-          title={q.title}
-          meta={q.sub}
+          title={<span style={V.qaTitle}>{q.title}</span>}
+          meta={<span style={V.qaMeta}>{q.sub}</span>}
           trailing={<span style={UI2.text.caption}>{q.time}</span>}
         />
       ))}
