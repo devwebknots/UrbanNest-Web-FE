@@ -225,3 +225,93 @@
 /* Card header closes with its own hairline (UI2.cardHeader) — hide the first row's top border
    right under it so there is never a double line */
 .un2-card-head + * { border-top-color: transparent !important; }
+
+/* ── PhotoBento (detail-page gallery): big photo left · 2 × 2 tiles right ─────
+   ≤ 860px: main photo on top, the four tiles in one row under it.            */
+.un2-bento { display: grid; grid-template-columns: minmax(0, 1.15fr) minmax(0, 1fr); gap: var(--un2-grid-gap); height: var(--un2-bento-h); }
+.un2-bento-tiles { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); grid-template-rows: repeat(2, minmax(0, 1fr)); gap: var(--un2-grid-gap); min-height: 0; }
+@media (max-width: 860px) {
+  .un2-bento { grid-template-columns: minmax(0, 1fr); height: auto; }
+  .un2-bento > :first-child { height: var(--un2-bento-h-sm); }
+  .un2-bento-tiles { grid-template-columns: repeat(4, minmax(0, 1fr)); grid-template-rows: none; }
+  .un2-bento-tiles > * { height: var(--un2-bento-thumb-sm); }
+}
+
+/* ── Divided columns inside ONE container (no box per column) ────────────────
+   <div class="un2-cols" style="--un2-cols: 3">: equal columns split by hairlines.
+   ≤ 1024px: columns stack, separated by a top hairline.                      */
+.un2-cols { display: grid; grid-template-columns: repeat(var(--un2-cols, 3), minmax(0, 1fr)); }
+.un2-cols > * { min-width: 0; padding: 0 var(--un2-sp-xxl); }
+.un2-cols > :first-child { padding-left: 0; }
+.un2-cols > :last-child { padding-right: 0; }
+.un2-cols > * + * { border-left: 1px solid var(--un2-border); }
+@media (max-width: 1024px) {
+  .un2-cols { grid-template-columns: minmax(0, 1fr); }
+  .un2-cols > * { padding: 0; }
+  .un2-cols > * + * { border-left: none; border-top: 1px solid var(--un2-border); padding-top: var(--un2-sp-xl); margin-top: var(--un2-sp-xl); }
+}
+
+/* ── StatGroup: open header stats (no box), hairline dividers; 4 → 2 × 2 on phones ── */
+.un2-stat-group { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, auto); }
+.un2-stat-group > * + * { border-left: 1px solid var(--un2-border); }
+@media (max-width: 600px) {
+  .un2-stat-group { grid-auto-flow: row; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .un2-stat-group > :nth-child(odd) { border-left: none; }
+  .un2-stat-group > :nth-child(n+3) { border-top: 1px solid var(--un2-border); }
+}
+
+/* ── DetailHeader + StatGroup: stats stay beside the title above phones ──────
+   The group steps down in size instead of wrapping under the title.
+     ≤ 1280px  tighter padding · value one step smaller
+     ≤ 1100px  rings / icons hide (label + value only)
+     ≤  860px  header stacks: stats go under the title, full width            */
+@media (max-width: 1280px) {
+  .un2-stat-group .un2-stat { padding: var(--un2-sp-xs) var(--un2-sp-lg) !important; gap: var(--un2-sp-sm) !important; }
+  .un2-stat-group .un2-stat-value { font-size: var(--un2-fs-md) !important; }
+}
+@media (max-width: 1100px) {
+  .un2-stat-group .un2-stat-icon { display: none; }
+  .un2-stat-group .un2-stat { padding: var(--un2-sp-xs) var(--un2-sp-md) !important; }
+}
+/* DetailHeader grid: row 1 = title line + aside (centred on the title line) · row 2 = meta */
+.un2-detail-header { display: grid; grid-template-columns: minmax(0, 1fr) auto; column-gap: var(--un2-sp-xl); align-items: center; }
+.un2-detail-title { grid-column: 1; grid-row: 1; }
+.un2-detail-meta  { grid-column: 1; grid-row: 2; }
+.un2-detail-aside { grid-column: 2; grid-row: 1; }
+@media (max-width: 860px) {
+  .un2-detail-header { grid-template-columns: minmax(0, 1fr); }
+  .un2-detail-aside { grid-column: 1; grid-row: 3; margin-top: var(--un2-sp-lg); }
+  .un2-detail-header .un2-stat-group { grid-auto-columns: minmax(0, 1fr); }
+}
+@media (max-width: 600px) { .un2-detail-title { flex-wrap: wrap !important; } }
+
+/* Open StatGroup: outer stats sit flush with the header edges (no container padding) — after the
+   responsive rules on purpose so it wins at every width */
+.un2-stat-open > :first-child { padding-left: 0 !important; }
+.un2-stat-open > :last-child { padding-right: 0 !important; }
+@media (max-width: 600px) { .un2-stat-open > :nth-child(odd) { padding-left: 0 !important; } .un2-stat-open > * { padding-top: var(--un2-sp-sm) !important; padding-bottom: var(--un2-sp-sm) !important; } }
+
+/* ── AssetRow spread (CQ2.medium = 720px): wide card → metrics as divided columns across the row;
+      narrower card → back to the compact row with inline metrics ── */
+/* Column template: photo · name (shrinks / wraps) · N metric columns (never narrower than their
+   content, then share the free space) · actions */
+.un2-asset-spread { grid-template-columns: var(--un2-asset-thumb-w) minmax(max-content, 1.4fr) repeat(var(--un2-asset-cols, 3), minmax(max-content, 1fr)) auto; }
+@container (min-width: 821px) {
+  .un2-asset-spread .un2-asset-inline { display: none !important; }   /* !important: beats the inline display:flex */
+}
+/* Compact step (card 821–1100px = CQ2.spreadCompact): smaller photo, gaps, values and buttons; long button labels shorten */
+@container (min-width: 821px) and (max-width: 1100px) {
+  .un2-asset-spread { grid-template-columns: var(--un2-asset-thumb-w-sm) minmax(max-content, 1.2fr) repeat(var(--un2-asset-cols, 3), minmax(max-content, 1fr)) auto; column-gap: var(--un2-sp-md) !important; }
+  .un2-asset-spread .un2-asset-thumb { height: var(--un2-asset-thumb-h-sm) !important; }
+  .un2-asset-spread .un2-asset-col { padding-left: var(--un2-sp-md) !important; }
+  .un2-asset-spread .un2-asset-name { font-size: var(--un2-fs-base) !important; }
+  .un2-asset-spread .un2-asset-colval { font-size: var(--un2-fs-sm) !important; }
+  .un2-asset-spread .un2-asset-actions { gap: var(--un2-sp-xs) !important; flex-wrap: nowrap !important; }
+  .un2-asset-spread .un2-asset-actions > button { padding: 0 var(--un2-sp-sm) !important; font-size: var(--un2-fs-xs) !important; }
+  .un2-asset-spread .un2-label-full  { display: none; }
+  .un2-asset-spread .un2-label-short { display: inline; }
+}
+@container (max-width: 820px) {   /* CQ2.spread — below this the spread row falls back to the inline row */
+  .un2-asset-spread { grid-template-columns: var(--un2-asset-thumb-w) minmax(0, 1fr) auto !important; }
+  .un2-asset-spread .un2-asset-col { display: none !important; }
+}

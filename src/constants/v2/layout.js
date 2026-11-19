@@ -60,10 +60,14 @@ export const SZ2 = {
   ringStroke: 10,                               // ProgressRing stroke
   miniBars: { h: 64, w: 18, fitStagger: 24 },   // MiniBars plot height · bar width · bars staggered in fit mode
   assetThumb: { w: 88, h: 64 },                 // AssetRow photo
+  assetThumbSm: { w: 72, h: 56 },               // AssetRow photo in the compact spread step — --un2-asset-thumb-*-sm
   accentBar: 3,                                 // coloured left rule on a list item (priority)
   profileHeroTextEnd: 560,                      // hero photo never starts before this (padding + title + 3 stats) — --un2-phero-text-end
   profileHeroPhotoStart: '40%',                 // hero photo start on wide screens — --un2-phero-photo-start
   profileHeroPhotoSm: 180,                      // hero photo strip height on phones (≤ 860px) — --un2-phero-photo-sm
+  // Detail pages (property / unit): PhotoBento gallery + DetailHeader
+  bento:   { h: 320, hSm: 200, thumbSm: 88 },   // gallery height · main photo height on phones · thumb strip height on phones — --un2-bento-*
+  scoreFigure: 40,                              // big health / score figure (Inter Medium) — not on the type scale on purpose: one hero number
 };
 
 // Page & section rhythm — the spacing pattern every v2 screen follows.
@@ -99,7 +103,7 @@ export const BP2 = { xl: 1100, lg: 1024, md: 860, sm: 600 };  // 3-col → 2 at 
 
 // Card-width steps (px) for container rules in utilities.css: un2-hide-xs / -narrow / -medium.
 // Content inside a card reacts to the CARD's width (un2-cq), not the screen's.
-export const CQ2 = { xs: 120, narrow: 300, asset: 560, medium: 720 };   // measured on the card's inner (content) width
+export const CQ2 = { xs: 120, narrow: 300, asset: 560, medium: 720, spread: 820, spreadCompact: 1100 };   // measured on the card's inner (content) width
 // (asset = AssetRow compact mode: short button labels, "Paid" hidden — utilities.css @container 560px.
 //  CSS can't read variables inside @container / @media conditions, so keep the px there in sync with these.)
 

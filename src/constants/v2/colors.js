@@ -42,7 +42,9 @@ export const C2 = {
   successLight:   '#DCFCE7',
   successTint:    '#ECFDF5',
   error:          '#EF4444',
-  errorDark:      '#DC2626',
+  errorDark:      '#DC2626',   // THE red for text (solid — red text never uses a gradient)
+  errorDeep:      '#D93636',   // red gradient start (GSTOPS2.error)
+  errorBright:    '#F98B8B',   // red gradient end
   errorLight:     '#FEE2E2',
   errorTint:      '#FEF2F2',
   warning:        '#F59E0B',
@@ -183,10 +185,17 @@ export const ILLUS2 = {
 // palette (UrbanNestMobile/src/config/theme.ts colors.successDark → the bright
 // "active" green), running dark → light like mobile gradients.button.
 // Use it for every green fill: score gauges, progress bars, success buttons.
+// error = THE UrbanNest red gradient, built like success (deep → bright, left → right).
+// Every red FILL uses it (bars, dots, solid icon boxes / pills, danger buttons) — via G2.errorBar /
+// G2.errorButton / G2.toneFill(TONES2.error). Red TEXT stays solid C2.errorDark.
 export const GSTOPS2 = {
   primary: ['#1D4ED8', '#3B82F6'],
   success: [C2.successDark, C2.successBright],
+  error:   [C2.errorDeep, C2.errorBright],
 };
+
+const G2_ERROR_BAR   = `linear-gradient(90deg, ${GSTOPS2.error[0]} 0%, ${GSTOPS2.error[1]} 100%)`;
+const G2_SUCCESS_BAR = `linear-gradient(90deg, ${GSTOPS2.success[0]} 0%, ${GSTOPS2.success[1]} 100%)`;
 
 // Gradients (CSS strings) — same stops as mobile `gradients`
 export const G2 = {
@@ -198,6 +207,13 @@ export const G2 = {
   successButton: `linear-gradient(135deg, ${GSTOPS2.success[0]} 0%, ${GSTOPS2.success[1]} 100%)`,
   successBar:    `linear-gradient(90deg, ${GSTOPS2.success[0]} 0%, ${GSTOPS2.success[1]} 100%)`,   // progress fills, left → right
   primaryBar:    `linear-gradient(90deg, ${GSTOPS2.primary[0]} 0%, ${GSTOPS2.primary[1]} 100%)`,   // brand-blue progress fills (KpiStrip)
+  errorButton:   `linear-gradient(135deg, ${GSTOPS2.error[0]} 0%, ${GSTOPS2.error[1]} 100%)`,       // danger buttons
+  errorBar:      `linear-gradient(90deg, ${GSTOPS2.error[0]} 0%, ${GSTOPS2.error[1]} 100%)`,        // red progress fills, status dots
+  // Standard FILL for a tone: red and green → their gradient, every other tone → its solid strong colour.
+  // Use it for any filled shape coloured by a tone (bars, dots, solid icon boxes / pills).
+  // Bar fill in a metric's ACCENT2 colour (dark → light, left → right): G2.accentBar(ACCENT2.teal)
+  accentBar: (a) => `linear-gradient(90deg, ${a.bar[0]} 0%, ${a.bar[1]} 100%)`,
+  toneFill: (t) => (t === TONES2.error ? G2_ERROR_BAR : t === TONES2.success ? G2_SUCCESS_BAR : t.strong),
   sidebar:       'linear-gradient(180deg, #0B1D3A 0%, #0B2A5B 55%, #0B1D3A 100%)',
   sidebarFadeTop:'linear-gradient(180deg, #0B1D3A 0%, rgba(11,29,58,0) 100%)',
   heroScrim:     'linear-gradient(90deg, rgba(3,43,87,0.96) 0%, rgba(3,43,87,0.82) 38%, rgba(3,43,87,0.15) 75%, rgba(3,43,87,0) 100%)',
@@ -289,6 +305,7 @@ export const SH2 = {
   cardHover:  '0 2px 4px rgba(16, 24, 40, 0.06), 0 12px 24px rgba(16, 24, 40, 0.08), 0 24px 48px -12px rgba(30, 64, 124, 0.24)',
   primary:    '0 6px 16px rgba(37, 99, 235, 0.35)',
   success:    '0 6px 14px rgba(16, 185, 129, 0.30)',
+  error:      '0 6px 14px rgba(220, 38, 38, 0.28)',
   hero:       '0 10px 28px rgba(3, 43, 87, 0.18)',
   dark:       '0 16px 34px rgba(3, 38, 76, 0.30)',
   // Elevation ladder on the light-blue page (lowest → highest):

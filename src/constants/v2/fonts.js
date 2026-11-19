@@ -28,6 +28,7 @@ export const F2 = {
 //                          buttons + text links (all UI2.btn.*), item / row titles (UI2.text.rowTitle),
 //                          nav items, status text, KPI labels
 //    300 Light ........... not used (too thin for figures — user feedback 2026-11-19)
+//    500 Medium (16px) ... small inline stat values next to a label (T2.statInline — header StatGroup)
 //    600 SemiBold ........ pills, tags, eyebrows (caps), numbers 16-20px
 //                          (T2.statValue, UI2.text.stat), amounts, emphasised values in a sentence
 //    700 Bold ............ not used
@@ -83,6 +84,8 @@ export const T2 = {
   statValue:      { fontFamily: F2.body, fontSize: FS2.xxl, fontWeight: FW2.semibold, lineHeight: LH2.tight, letterSpacing: LS2.tight, color: C2.textPrimary },
   // Display figures (>= 24px) — Inter Medium: rent total (figure), KPI strip values (figureMd)
   figure:         { fontFamily: F2.body, fontSize: FS2.display, fontWeight: FW2.medium, lineHeight: LH2.none, letterSpacing: LS2.tight, color: C2.navyDeep },
+  // Small inline stat value (header StatGroup, compact summaries) — calm, never bulky
+  statInline:     { fontFamily: F2.body, fontSize: FS2.lg, fontWeight: FW2.medium, lineHeight: LH2.tight, letterSpacing: LS2.normal, color: C2.navyDeep },
   figureMd:       { fontFamily: F2.body, fontSize: FS2.xxxl, fontWeight: FW2.medium, lineHeight: LH2.none, letterSpacing: LS2.tight, color: C2.navyDeep },
   price:          { fontFamily: F2.body, fontSize: FS2.md, fontWeight: FW2.semibold, lineHeight: LH2.heading, color: C2.textPrimary },
 };

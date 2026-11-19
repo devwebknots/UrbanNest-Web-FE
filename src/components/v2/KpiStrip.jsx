@@ -31,7 +31,7 @@ const S = {
   head:  { display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: SP2.sm },
   label: { ...UI2.row(SP2.sm), minWidth: 0, fontSize: FS2.sm, fontWeight: FW2.medium, color: C2.textSecondary, lineHeight: LH2.heading },
   pill:  { ...UI2.pill(TONES2.neutral), padding: pad(SP2.xxs, SP2.sm), color: C2.textSecondary, background: C2.surfaceMuted },
-  dot:   (t) => ({ ...UI2.dot(t.strong) }),
+  dot:   (t) => UI2.statusDot(t),   // red / green dots use their gradient
   body:  { display: 'flex', alignItems: 'baseline', gap: SP2.sm, marginTop: SP2.md, minWidth: 0 },
   value: { ...T2.figureMd, whiteSpace: 'nowrap' },
   sub:   { ...UI2.text.caption, ...UI2.truncate, minWidth: 0 },

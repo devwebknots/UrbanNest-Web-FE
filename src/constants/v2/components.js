@@ -141,7 +141,7 @@ export const UI2 = {
     height: size,
     flexShrink: 0,
     borderRadius: round ? R2.round : (size >= SZ2.icon.md ? R2.lg : R2.md),
-    background: solid ? tone.strong : tone.soft,
+    background: solid ? (tone.soft ? G2.toneFill(tone) : tone.strong) : tone.soft,
     color: solid ? C2.white : tone.strong,
     fontSize: glyphFor(size),
   }),
@@ -164,7 +164,7 @@ export const UI2 = {
     gap: SP2.xs,
     padding: pad(SP2.xs, SP2.md),
     borderRadius: R2.pill,
-    background: solid ? tone.strong : tone.soft,
+    background: solid ? (tone.soft ? G2.toneFill(tone) : tone.strong) : tone.soft,
     color: solid ? C2.white : tone.fg,
     fontSize: FS2.xs,
     fontWeight: FW2.semibold,
@@ -194,6 +194,8 @@ export const UI2 = {
     fontWeight: FW2.semibold,
   },
   dot: (color = C2.success) => ({ width: SZ2.dot, height: SZ2.dot, borderRadius: R2.round, background: color, flexShrink: 0 }),
+  // Status dot coloured by a tone — red / green use their gradient (G2.toneFill)
+  statusDot: (tone = TONES2.success) => ({ width: SZ2.dot, height: SZ2.dot, borderRadius: R2.round, background: G2.toneFill(tone), flexShrink: 0 }),
 
   // ── Buttons ────────────────────────────────────────────────────────────────
   // App buttons — same four styles as the mobile app (components/Button.tsx).
@@ -216,6 +218,7 @@ export const UI2 = {
     },
     primary: { ...btnBase, background: G2.primaryButton, color: C2.white, boxShadow: SH2.primary },
     success: { ...btnBase, background: G2.successButton, color: C2.white, boxShadow: SH2.success },
+    danger:  { ...btnBase, background: G2.errorButton, color: C2.white, boxShadow: SH2.error },     // destructive action (red gradient)
     dark:    { ...btnBase, background: C2.black, color: C2.white, boxShadow: SH2.darkButton },
     outline: { ...btnBase, background: C2.white, color: C2.textPrimary, border: `1px solid ${C2.cardBorder}`, boxShadow: SH2.control },
     // Coloured outline (secondary actions with meaning): UI2.btn.outlineTone(TONES2.success)
@@ -324,6 +327,26 @@ export const UI2 = {
   },
   thumb: { width: SZ2.thumb.w, height: SZ2.thumb.h, borderRadius: R2.lg, objectFit: 'cover', display: 'block', boxShadow: SH2.md },
 
+  // ── Tables (DataTable) — one style per column TYPE, used by every table ────
+  table: {
+    // Layout (Stripe / Linear / Airbnb-host pattern): header = soft rounded grey band, no underline ·
+    // rows ~44px tall with faint separators + hover tint · cell padding = header padding so text lines up
+    headBand:  { background: C2.background, borderRadius: R2.md, padding: pad(SP2.sm, SP2.md) },
+    rowPad:    pad(SP2.md, SP2.md),
+    rule:      C2.borderLight,    // line between rows (very faint)
+    ruleLight: C2.borderLight,
+    // ONE size + ONE weight for every cell (13px Regular) — names, dates, categories and amounts alike.
+    // Only colour differs (grey for secondary, green / red sign colour on amounts via UI2.signColor).
+    // Header is LARGER than the content (14px Medium vs 13px Regular cells) so the two are clearly distinct.
+    th:        { fontFamily: F2.body, fontSize: FS2.md, fontWeight: FW2.medium, lineHeight: LH2.heading, color: C2.textSecondary, whiteSpace: 'nowrap' },   // header 14px Medium — LARGER than the 13px cells
+    cell:      { minWidth: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', fontFamily: F2.body, lineHeight: LH2.heading },
+    primary:   { fontSize: FS2.base, fontWeight: FW2.regular, color: C2.textPrimary },                                         // main entity
+    secondary: { fontSize: FS2.base, fontWeight: FW2.regular, color: C2.textSecondary, fontVariantNumeric: 'tabular-nums' },  // dates, refs
+    text:      { fontSize: FS2.base, fontWeight: FW2.regular, color: C2.textPrimary },                                       // plain values — identical to primary
+    amount:    { fontSize: FS2.base, fontWeight: FW2.regular, color: C2.textPrimary, fontVariantNumeric: 'tabular-nums' },   // money — same size + weight as all cells
+    status:    { overflow: 'visible' },                                                                                       // pill rendered by the column — never clipped
+  },
+
   // ── Dashboard card patterns (Landlord Dashboard is the reference) ──────────
   //   <SectionCard style={UI2.cardFill}>                         body is a column → footer pins to the bottom
   //     <div style={UI2.labelRow}><span style={UI2.capsLabel}>Rent collection</span>
@@ -340,6 +363,10 @@ export const UI2 = {
   cardFoot:  { ...rowBetween(), flexWrap: 'wrap', rowGap: SP2.xs, marginTop: 'auto', paddingTop: SP2.md, borderTop: hairline, ...T2.label },
   strong:    { fontWeight: FW2.semibold, color: C2.textPrimary },                                 // emphasised value inside a sentence
   delta:     (up = true) => ({ display: 'inline-flex', alignItems: 'center', gap: SP2.xxs, fontWeight: FW2.semibold, color: up ? C2.successStrong : C2.errorDark }),
+  // Status pill with a leading dot (tables, lists): ● Active / ● Overdue — UI2.statusPill(TONES2.success)
+  statusPill: (tone = TONES2.success) => ({ display: 'inline-flex', alignItems: 'center', gap: SP2.sm, padding: pad(SP2.xxs, SP2.sm), borderRadius: R2.pill, background: tone.soft, color: tone.fg, fontFamily: F2.body, fontSize: FS2.base, fontWeight: FW2.regular, lineHeight: LH2.heading, whiteSpace: 'nowrap' }),   // same 13px Regular as table cells
+  // Colour-only sign for amounts inside tables / text (no size or weight change): UI2.signColor(isPositive)
+  signColor: (positive = true) => ({ color: positive ? C2.successStrong : C2.errorDark }),
   amount:    (positive = true) => ({ fontSize: FS2.base, fontWeight: FW2.semibold, color: positive ? C2.successStrong : C2.errorDark }),
   // Legend: ● key ………… value  (charts, rings)
   legendRow: { ...rowBetween(), fontSize: FS2.sm, color: C2.textSecondary, lineHeight: LH2.heading },
@@ -347,6 +374,14 @@ export const UI2 = {
   legendVal: { fontWeight: FW2.semibold, color: C2.textPrimary },
   // List item marked by a coloured left rule instead of a box (tickets by priority): UI2.accentItem(TONES2.error)
   accentItem: (tone = TONES2.primary) => ({ padding: pad(SP2.xxs, 0, SP2.xxs, SP2.md), borderLeft: `${SZ2.accentBar}px solid ${tone.strong}`, marginTop: SP2.lg }),
+  // Section heading INSIDE a divided panel column (un2-cols): plain icon + Playfair title, no box
+  colHead:   { display: 'flex', alignItems: 'center', gap: SP2.sm, minWidth: 0 },
+  colIcon:   { fontSize: FS2.xl, color: C2.primary, flexShrink: 0 },
+  // Soft tinted feature chip (amenities): UI2.featureChip(TONES2.success)
+  featureChip: (tone = TONES2.success) => ({
+    display: 'inline-flex', alignItems: 'center', gap: SP2.sm, padding: pad(SP2.xs, SP2.md), borderRadius: R2.md,
+    background: tone.soft, color: tone.fg, fontFamily: F2.body, fontSize: FS2.sm, fontWeight: FW2.medium, lineHeight: LH2.heading, whiteSpace: 'nowrap',
+  }),
   // Borderless tinted row at the bottom of a card (feature teaser / shortcut)
   tintRow:   { display: 'flex', alignItems: 'center', gap: SP2.md, padding: SP2.md, borderRadius: R2.lg, background: C2.primaryWash },
 };
