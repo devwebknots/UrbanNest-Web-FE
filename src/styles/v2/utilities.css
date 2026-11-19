@@ -107,3 +107,119 @@
 @container (max-width: 120px) { .un2-hide-xs     { display: none !important; } }
 @container (max-width: 300px) { .un2-hide-narrow { display: none !important; } }
 @container (max-width: 720px) { .un2-hide-medium { display: none !important; } }
+
+/* ── Motion ──────────────────────────────────────────────────────────────────
+   un2-enter-stagger  on a section stack (PageShell `animate`): each section rises in,
+                      one after another; grid sections stagger their cards instead.
+                      fill-mode is `backwards` so hover transforms still work afterwards.
+   un2-grow-x / -y    progress fills / bars grow from 0 (set --un2-delay to offset)
+   un2-live-dot       soft pulsing ring on a status dot ("Active", "Live")
+   un2-zoom           photo inside zooms slightly when the row / card is hovered
+   un2-lift-soft      glass container rises a touch on hover (lighter than un2-hover-lift)
+   Everything is switched off for prefers-reduced-motion.
+   ─────────────────────────────────────────────────────────────────────────── */
+@keyframes un2-rise   { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: none; } }
+@keyframes un2-fade   { from { opacity: 0; } to { opacity: 1; } }
+@keyframes un2-grow-x { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+@keyframes un2-grow-y { from { transform: scaleY(0); } to { transform: scaleY(1); } }
+@keyframes un2-ring   { from { stroke-dashoffset: var(--un2-ring-from); } }
+@keyframes un2-ping   { 0% { box-shadow: 0 0 0 0 var(--un2-ping, rgba(16, 185, 129, 0.45)); } 80%, 100% { box-shadow: 0 0 0 6px rgba(16, 185, 129, 0); } }
+
+.un2-enter-stagger > * { animation: un2-rise var(--un2-motion-enter) backwards; animation-delay: calc(var(--un2-i, 0) * var(--un2-stagger)); }
+.un2-enter-stagger > :nth-child(2) { --un2-i: 1; }
+.un2-enter-stagger > :nth-child(3) { --un2-i: 2; }
+.un2-enter-stagger > :nth-child(4) { --un2-i: 3; }
+.un2-enter-stagger > :nth-child(5) { --un2-i: 4; }
+.un2-enter-stagger > :nth-child(6) { --un2-i: 5; }
+.un2-enter-stagger > :nth-child(7) { --un2-i: 6; }
+.un2-enter-stagger > :nth-child(n+8) { --un2-i: 7; }
+/* grid sections: the cards inside enter one by one */
+.un2-enter-stagger > [class*="un2-grid-"] { animation: none; }
+.un2-enter-stagger > [class*="un2-grid-"] > * { animation: un2-rise var(--un2-motion-enter) backwards; animation-delay: calc((var(--un2-i, 0) + var(--un2-j, 0)) * var(--un2-stagger)); }
+.un2-enter-stagger > [class*="un2-grid-"] > :nth-child(2) { --un2-j: 1; }
+.un2-enter-stagger > [class*="un2-grid-"] > :nth-child(3) { --un2-j: 2; }
+.un2-enter-stagger > [class*="un2-grid-"] > :nth-child(4) { --un2-j: 3; }
+
+.un2-grow-x { transform-origin: left center; animation: un2-grow-x 1s var(--un2-ease) backwards; animation-delay: var(--un2-delay, 0.35s); }
+.un2-grow-y { transform-origin: center bottom; animation: un2-grow-y 0.9s var(--un2-ease) backwards; animation-delay: var(--un2-delay, 0.3s); }
+.un2-ring-arc { animation: un2-ring 1.2s var(--un2-ease) backwards; animation-delay: var(--un2-delay, 0.3s); }
+.un2-live-dot { animation: un2-ping 2s ease-out infinite; }
+
+.un2-zoom img, .un2-zoom .un2-zoom-target { transition: transform 0.5s var(--un2-ease); }
+.un2-zoom:hover img, .un2-zoom:hover .un2-zoom-target { transform: scale(1.06); }
+
+.un2-lift-soft { transition: transform var(--un2-motion-base), box-shadow var(--un2-motion-base); }
+.un2-lift-soft:hover { transform: translateY(-2px); box-shadow: var(--un2-shadow-glass-hover) !important; }
+
+/* Arrow inside a text link nudges right on hover */
+.un2-link-arrow .ti-arrow-right { transition: transform var(--un2-motion-fast); }
+.un2-link-arrow:hover .ti-arrow-right { transform: translateX(3px); }
+
+/* Mini bar (MiniBars) brightens on hover */
+.un2-bar { transition: filter var(--un2-motion-fast), transform var(--un2-motion-fast); }
+.un2-bar:hover { filter: brightness(1.05) saturate(1.1); }
+
+@media (prefers-reduced-motion: reduce) {
+  .un2-enter-stagger > *, .un2-enter-stagger > [class*="un2-grid-"] > *,
+  .un2-grow-x, .un2-grow-y, .un2-ring-arc, .un2-live-dot { animation: none !important; }
+  .un2-zoom:hover img, .un2-zoom:hover .un2-zoom-target, .un2-lift-soft:hover { transform: none; }
+}
+
+/* ── ProfileHero (light hero with a photo on the right) ─────────────────────
+   Desktop: photo fills the right side behind the text, its left edge feathered.
+   ≤ 860px: photo becomes a strip above the text (fades into the hero at its base).
+   ─────────────────────────────────────────────────────────────────────────── */
+.un2-phero { padding: var(--un2-sp-xxl) var(--un2-sp-xxxl); }
+.un2-phero-photo {
+  position: absolute; top: 0; right: 0; bottom: 0; width: 60%;
+  -webkit-mask-image: var(--un2-profile-hero-mask); mask-image: var(--un2-profile-hero-mask);
+}
+.un2-phero-stats { display: flex; flex-wrap: wrap; row-gap: var(--un2-sp-lg); }
+.un2-phero-stats > * + * { border-left: 1px solid var(--un2-border); }
+@media (max-width: 1100px) { .un2-phero-photo { width: 52%; } }
+@media (max-width: 860px) {
+  .un2-phero { display: flex; flex-direction: column; }
+  .un2-phero-glow { display: none; }
+  .un2-phero-photo {
+    position: relative; width: auto; height: 180px; margin: calc(var(--un2-sp-xxl) * -1) calc(var(--un2-sp-xxxl) * -1) var(--un2-sp-xs);
+    -webkit-mask-image: var(--un2-profile-hero-mask-top); mask-image: var(--un2-profile-hero-mask-top);
+  }
+}
+@media (max-width: 600px) {
+  .un2-phero { padding: var(--un2-sp-xl) var(--un2-sp-lg); }
+  .un2-phero-photo { margin: calc(var(--un2-sp-xl) * -1) calc(var(--un2-sp-lg) * -1) var(--un2-sp-xs); }
+  .un2-phero-stats { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .un2-phero-stats > * + * { border-left: none; }
+  .un2-phero-stats > * { padding-left: 0 !important; padding-right: 0 !important; }
+}
+
+/* ── KpiStrip (four metrics in ONE container, hairline dividers) ────────────
+   4 columns → 2 × 2 (≤ 1024px) → 1 column (≤ 600px). Dividers follow the layout.
+   ─────────────────────────────────────────────────────────────────────────── */
+.un2-kpi-strip { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.un2-kpi-strip > * + * { border-left: 1px solid var(--un2-border); }
+@media (max-width: 1024px) {
+  .un2-kpi-strip { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .un2-kpi-strip > :nth-child(odd) { border-left: none; }
+  .un2-kpi-strip > :nth-child(n+3) { border-top: 1px solid var(--un2-border); }
+}
+@media (max-width: 600px) {
+  .un2-kpi-strip { grid-template-columns: minmax(0, 1fr); }
+  .un2-kpi-strip > * + * { border-left: none; border-top: 1px solid var(--un2-border); }
+}
+
+/* ── AssetRow: narrow card → buttons stay in the row (top, right side); long button labels switch
+      to their short form: <span class="un2-label-full">Message Tenants</span><span class="un2-label-short">Message</span> ── */
+.un2-label-short { display: none; }
+@container (max-width: 560px) {
+  .un2-asset-row .un2-label-full  { display: none; }
+  .un2-asset-row .un2-label-short { display: inline; }
+  .un2-asset-row .un2-asset-paid  { display: none !important; }   /* "Paid" hides on narrow cards */
+}
+
+/* Two blocks side by side that wrap under each other in a narrow card (Rent / Occupancy) */
+.un2-split-row { display: flex; flex-wrap: wrap; align-items: flex-end; justify-content: space-between; gap: var(--un2-sp-xxl); }
+
+/* Card header closes with its own hairline (UI2.cardHeader) — hide the first row's top border
+   right under it so there is never a double line */
+.un2-card-head + * { border-top-color: transparent !important; }

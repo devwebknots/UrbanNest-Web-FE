@@ -964,8 +964,8 @@ const V = {
   rentSummary:   { display: 'flex', flexWrap: 'wrap', gap: SP2.lg, marginTop: SP2.lg, paddingTop: SP2.lg, borderTop: `${SZ2.hairline}px solid ${C2.border}` },
   // Three stats share one line; on a narrow card their icons hide (un2-hide-narrow) so amounts stay in full
   rentStat:      { ...UI2.row(LAYOUT2.rowGap), flex: '1 1 0', minWidth: 0 },
-  score:         { fontWeight: FW2.bold, color: C2.successStrong },
-  ticketNo:      { fontSize: FS2.xs, fontWeight: FW2.bold },
+  score:         { fontWeight: FW2.semibold, color: C2.successStrong },
+  ticketNo:      { fontSize: FS2.xs, fontWeight: FW2.semibold },
   commBody:      { marginTop: LAYOUT2.rowGap },
   thread:        { ...UI2.stack(SP2.sm), maxHeight: SZ2.threadMax, overflowY: 'auto', marginBottom: SP2.sm },
   sendBtn:       { width: SZ2.control.md, padding: 0, flexShrink: 0 },

@@ -61,7 +61,7 @@ const S = {
   pStat:     { ...UI2.row(SP2.sm), padding: pad(0, SP2.lg) },
   pSep:      { width: SZ2.hairline, alignSelf: 'stretch', background: C2.border },
   pIcon:     { fontSize: FS2.xxxl },
-  pValue:    { fontSize: FS2.xl, fontWeight: FW2.bold, lineHeight: LH2.tight, color: C2.textPrimary },
+  pValue:    { fontSize: FS2.xl, fontWeight: FW2.semibold, lineHeight: LH2.tight, color: C2.textPrimary },
   pLabel:    { fontSize: FS2.sm, color: C2.textSecondary, marginTop: SP2.xxs },
 
   // variant="compact" — shorter list-page banner: bright blue gradient, whole photo on the right
@@ -77,18 +77,18 @@ const S = {
   cArt:     (image, position) => ({ ...fill, backgroundImage: `url(${image})`, backgroundSize: 'cover', backgroundPosition: position, backgroundRepeat: 'no-repeat' }),
   cScrim:   { ...fill, background: G2.heroCompactScrim },
   cEyebrow: { display: 'inline-block', fontFamily: F2.body, fontSize: FS2.xs, fontWeight: FW2.medium, lineHeight: LH2.heading, color: C2.onDark.text, padding: pad(SP2.xxs, SP2.md), borderRadius: R2.pill, border: `1px solid ${C2.onDark.border}`, background: C2.onDark.surface, backdropFilter: BLUR2.sm, WebkitBackdropFilter: BLUR2.sm, marginBottom: SP2.xs },
-  cTitle:   { fontFamily: F2.body, fontSize: FS2.display, fontWeight: FW2.bold, lineHeight: LH2.tight, color: C2.white, marginBottom: SP2.xs },
+  cTitle:   { fontFamily: F2.heading, fontSize: FS2.display, fontWeight: FW2.semibold, lineHeight: LH2.tight, color: C2.white, marginBottom: SP2.xs },
   cSub:     { fontFamily: F2.body, fontSize: FS2.base, color: C2.onDark.textSoft },
 
   eyebrow: { ...T2.eyebrow, display: 'inline-block', color: C2.onDark.text, padding: pad(SP2.xs, SP2.md), borderRadius: R2.sm, border: `1px solid ${C2.onDark.border}`, background: C2.onDark.surfaceSoft, backdropFilter: BLUR2.sm, WebkitBackdropFilter: BLUR2.sm, marginBottom: SP2.sm },
   title:   { ...T2.heroTitle, fontWeight: FW2.regular, marginBottom: SP2.xs },
-  accent:  { fontWeight: FW2.bold },
+  accent:  { fontWeight: FW2.semibold },
   sub:     { ...UI2.row(SP2.sm), fontFamily: F2.body, fontSize: FS2.sm, color: C2.onDark.textSoft },
   stats:   { display: 'flex', alignItems: 'center', flexWrap: 'wrap', rowGap: LAYOUT2.rowGap, marginTop: SP2.lg },
   stat:    { ...UI2.row(SP2.sm), padding: pad(0, SP2.lg) },
   sep:     { width: SZ2.hairline, height: SZ2.icon.sm, background: C2.onDark.divider },
   icon:    { fontSize: FS2.xl, color: C2.onDark.textSoft },
-  value:   { fontSize: FS2.lg, fontWeight: FW2.bold, lineHeight: LH2.none },
+  value:   { fontSize: FS2.lg, fontWeight: FW2.semibold, lineHeight: LH2.none },
   label:   { fontSize: FS2.xs, color: C2.onDark.textMuted, marginTop: SP2.xxs },
   actions: { display: 'flex', flexWrap: 'wrap', gap: SP2.sm, marginTop: SP2.md },
 };

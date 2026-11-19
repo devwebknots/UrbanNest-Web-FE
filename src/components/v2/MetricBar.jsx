@@ -25,7 +25,7 @@ export default function MetricBar({ label, value, pct = 0, tone = TONES2.primary
         }}>{value}</span>
       </div>
       <div style={{ height: SZ2.progress, borderRadius: R2.pill, overflow: 'hidden', background: dark ? C2.onDark.surfaceHover : C2.surfaceMuted }}>
-        <div style={{ width: `${w}%`, height: '100%', borderRadius: R2.pill, background: fill }} />
+        <div className="un2-grow-x" style={{ width: `${w}%`, height: '100%', borderRadius: R2.pill, background: fill }} />
       </div>
     </div>
   );

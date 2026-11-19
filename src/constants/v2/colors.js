@@ -132,6 +132,18 @@ export const TONES2 = {
              panelFrom: C2.background, panelTo: C2.surfaceMuted, panelBorder: C2.border },
 };
 
+// Harmonised accent set for side-by-side metrics (KpiStrip). Matched lightness + saturation so
+// four different colours sit together calmly (no rainbow): teal → blue → violet → rose run around
+// one side of the colour wheel. NO yellow / amber anywhere (user decision 2026-11-19).
+//   soft  icon background · fg  icon glyph · bar  [from, to] progress gradient (dark → light)
+// Status (good / warning / urgent) is NOT shown with these — use a TONES2 status dot instead.
+export const ACCENT2 = {
+  teal:   { soft: '#E3F6F3', fg: '#0F9488', bar: ['#0F9488', '#5EDACB'] },
+  blue:   { soft: '#E6EEFD', fg: '#2563EB', bar: ['#2563EB', '#7AAAF8'] },
+  violet: { soft: '#ECEAFD', fg: '#6B5CE7', bar: ['#6B5CE7', '#A9A1F5'] },
+  rose:   { soft: '#FCE9EF', fg: '#D6457A', bar: ['#D6457A', '#F19DBA'] },
+};
+
 // Avatar color cycle (initials avatars)
 export const AVATAR2 = [TONES2.primary, TONES2.purple, TONES2.warning, TONES2.success];
 
@@ -185,6 +197,7 @@ export const G2 = {
   primaryButton: `linear-gradient(135deg, ${GSTOPS2.primary[0]} 0%, ${GSTOPS2.primary[1]} 100%)`,
   successButton: `linear-gradient(135deg, ${GSTOPS2.success[0]} 0%, ${GSTOPS2.success[1]} 100%)`,
   successBar:    `linear-gradient(90deg, ${GSTOPS2.success[0]} 0%, ${GSTOPS2.success[1]} 100%)`,   // progress fills, left → right
+  primaryBar:    `linear-gradient(90deg, ${GSTOPS2.primary[0]} 0%, ${GSTOPS2.primary[1]} 100%)`,   // brand-blue progress fills (KpiStrip)
   sidebar:       'linear-gradient(180deg, #0B1D3A 0%, #0B2A5B 55%, #0B1D3A 100%)',
   sidebarFadeTop:'linear-gradient(180deg, #0B1D3A 0%, rgba(11,29,58,0) 100%)',
   heroScrim:     'linear-gradient(90deg, rgba(3,43,87,0.96) 0%, rgba(3,43,87,0.82) 38%, rgba(3,43,87,0.15) 75%, rgba(3,43,87,0) 100%)',
@@ -238,6 +251,21 @@ export const G2 = {
     'radial-gradient(90% 80% at 100% 0%, rgba(230,239,254,0.2) 0%, rgba(230,239,254,0) 70%)',
     'linear-gradient(180deg, #FCFDFF 0%, #FFFFFF 100%)',
   ].join(', '),
+  // Light profile hero (ProfileHero, Landlord dashboard): soft blue wash building up towards
+  // the photo on the right. The photo's left edge is feathered with profileHeroMask (desktop);
+  // on phones the photo sits above the text and fades out with profileHeroMaskTop
+  // (widths / heights live on the un2-phero-* classes in utilities.css).
+  profileHero: [
+    'radial-gradient(70% 120% at 100% 0%, rgba(224,232,252,0.9) 0%, rgba(224,232,252,0) 75%)',
+    'radial-gradient(60% 90% at 0% 100%, rgba(255,255,255,1) 0%, rgba(255,255,255,0) 70%)',
+    'linear-gradient(180deg, #FBFCFF 0%, #F6F9FF 100%)',
+  ].join(', '),
+  // Soft glow behind the hero text column (same tint as the hero surface) — keeps the stats readable
+  // where the text runs over the photo on narrower screens; invisible where it sits on plain surface.
+  profileHeroGlow: 'linear-gradient(90deg, rgba(249,251,255,0.8) 0%, rgba(249,251,255,0.7) 55%, rgba(249,251,255,0.35) 78%, rgba(249,251,255,0) 100%)',
+  // MiniBars (rent trend): past months = soft blue, current month = primary gradient
+  miniBar:       'linear-gradient(180deg, #DBE7FB 0%, #C7D9FA 100%)',
+  miniBarActive: 'linear-gradient(180deg, #3B82F6 0%, #1D4ED8 100%)',
   thumbShade:    'linear-gradient(180deg, rgba(11,29,58,0) 45%, rgba(11,29,58,0.55) 100%)',  // photo bottom fade under overlay tags
   // Light diagonal wash for a tone: G2.tone(TONES2.success) / G2.panel(TONES2.warning)
   tone:  (t) => `linear-gradient(135deg, #FFFFFF 0%, ${t.cardTint} 100%)`,
@@ -275,4 +303,5 @@ export const SH2 = {
   focus:      '0 0 0 3px rgba(37, 99, 235, 0.12)',
   avatarRing: '0 0 0 3px #FFFFFF, 0 0 0 4px #E2E8F0',
   dotSuccess: '0 0 0 3px rgba(16, 185, 129, 0.18)',
+  miniBarActive: '0 4px 10px -2px rgba(37, 99, 235, 0.45)',
 };

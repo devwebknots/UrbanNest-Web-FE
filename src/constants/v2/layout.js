@@ -53,6 +53,14 @@ export const SZ2 = {
   promoOverlap:64,                              // how far the photo's base slides under the promo copy
   promoGlassBleed:24,                           // how far the frosted copy panel fades in above the title
   emptyMin:140,
+  // Landlord dashboard (ProfileHero · KpiStrip · ProgressRing · MiniBars · AssetRow)
+  profileHeroMin: 248,                          // light profile hero height
+  profileHeroContentMax: 560,                   // its text column
+  ring:    120,                                 // ProgressRing diameter
+  ringStroke: 10,                               // ProgressRing stroke
+  miniBars: { h: 64, w: 18, fitStagger: 24 },   // MiniBars plot height · bar width · bars staggered in fit mode
+  assetThumb: { w: 88, h: 64 },                 // AssetRow photo
+  accentBar: 3,                                 // coloured left rule on a list item (priority)
 };
 
 // Page & section rhythm — the spacing pattern every v2 screen follows.
@@ -121,6 +129,10 @@ export const GRID2 = {
 export const MOTION2 = {
   fast: '0.15s ease',
   base: '0.18s ease',
+  // Entrance / data motion (un2-enter-stagger, un2-grow-*, ProgressRing, CountUp) — same values as tokens.css
+  ease:    'cubic-bezier(0.22, 1, 0.36, 1)',    // soft ease-out
+  enter:   '0.6s cubic-bezier(0.22, 1, 0.36, 1)',
+  countMs: 900,                                 // CountUp duration
 };
 
 // Backdrop blurs (frosted glass). Use with backdropFilter + WebkitBackdropFilter.

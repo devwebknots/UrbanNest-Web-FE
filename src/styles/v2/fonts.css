@@ -1,12 +1,16 @@
 /* ─────────────────────────────────────────────────────────────────────────────
    UrbanNest — Design System v2 · Font faces
    Same font files as the UrbanNest mobile app (src/assets/fonts there):
-     Headings → Playfair Display (400/500/600/700)
-     Body/UI  → Inter            (400/500/600/700)
+     Headings → Playfair Display (400/500/600/700 + italic 400/500/600)
+     Body/UI  → Inter            (300/400/500/600/700)
+   Light + italic files are web-only (woff2, latin subset, from Fontsource / OFL).
+   Which weight / style goes where: see the TYPE RULES in src/constants/v2/fonts.js.
    Imported once from src/index.js. Use via F2 in src/constants/v2/fonts.js.
    ───────────────────────────────────────────────────────────────────────────── */
 
+@font-face { font-family: 'Inter'; font-style: normal; font-weight: 300; font-display: swap; src: url('../../assets/fonts/v2/Inter-Light.woff2') format('woff2'); }
 @font-face { font-family: 'Inter'; font-style: normal; font-weight: 400; font-display: swap; src: url('../../assets/fonts/v2/Inter-Regular.ttf') format('truetype'); }
+@font-face { font-family: 'Inter'; font-style: italic; font-weight: 400; font-display: swap; src: url('../../assets/fonts/v2/Inter-Italic.woff2') format('woff2'); }
 @font-face { font-family: 'Inter'; font-style: normal; font-weight: 500; font-display: swap; src: url('../../assets/fonts/v2/Inter-Medium.ttf') format('truetype'); }
 @font-face { font-family: 'Inter'; font-style: normal; font-weight: 600; font-display: swap; src: url('../../assets/fonts/v2/Inter-SemiBold.ttf') format('truetype'); }
 @font-face { font-family: 'Inter'; font-style: normal; font-weight: 700; font-display: swap; src: url('../../assets/fonts/v2/Inter-Bold.ttf') format('truetype'); }
@@ -15,3 +19,7 @@
 @font-face { font-family: 'Playfair Display'; font-style: normal; font-weight: 500; font-display: swap; src: url('../../assets/fonts/v2/PlayfairDisplay-Medium.ttf') format('truetype'); }
 @font-face { font-family: 'Playfair Display'; font-style: normal; font-weight: 600; font-display: swap; src: url('../../assets/fonts/v2/PlayfairDisplay-SemiBold.ttf') format('truetype'); }
 @font-face { font-family: 'Playfair Display'; font-style: normal; font-weight: 700; font-display: swap; src: url('../../assets/fonts/v2/PlayfairDisplay-Bold.ttf') format('truetype'); }
+
+@font-face { font-family: 'Playfair Display'; font-style: italic; font-weight: 400; font-display: swap; src: url('../../assets/fonts/v2/PlayfairDisplay-Italic.woff2') format('woff2'); }
+@font-face { font-family: 'Playfair Display'; font-style: italic; font-weight: 500; font-display: swap; src: url('../../assets/fonts/v2/PlayfairDisplay-MediumItalic.woff2') format('woff2'); }
+@font-face { font-family: 'Playfair Display'; font-style: italic; font-weight: 600; font-display: swap; src: url('../../assets/fonts/v2/PlayfairDisplay-SemiBoldItalic.woff2') format('woff2'); }

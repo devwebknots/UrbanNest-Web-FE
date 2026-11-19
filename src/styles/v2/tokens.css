@@ -60,4 +60,11 @@
   /* Motion */
   --un2-motion-fast: 0.15s ease;
   --un2-motion-base: 0.18s ease;
+  --un2-ease: cubic-bezier(0.22, 1, 0.36, 1);   /* MOTION2.ease */
+  --un2-motion-enter: 0.6s var(--un2-ease);     /* MOTION2.enter */
+  --un2-stagger: 70ms;                          /* delay step between entering sections */
+  --un2-primary-tint: #EFF6FF;
+  --un2-shadow-glass-hover: 0 0 0 1px rgba(30, 64, 124, 0.08), inset 0 1px 0 rgba(255, 255, 255, 0.9), 0 2px 4px rgba(16, 24, 40, 0.05), 0 18px 40px -10px rgba(30, 64, 124, 0.22);
+  --un2-profile-hero-mask: linear-gradient(90deg, transparent 0%, rgba(0,0,0,0.55) 8%, #000 20%);
+  --un2-profile-hero-mask-top: linear-gradient(0deg, transparent 0%, rgba(0,0,0,0.6) 30%, #000 60%);
 }

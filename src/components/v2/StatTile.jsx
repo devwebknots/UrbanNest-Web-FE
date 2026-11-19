@@ -24,7 +24,7 @@ const S = {
   // Borderless tile: no outline / hairline ring, just the soft tile lift (SH2.tile)
   tile:   { ...UI2.tile, ...UI2.row(SP2.md), padding: SP2.md, minWidth: 0, border: 'none', boxShadow: SH2.tile },
   raised: { ...UI2.card, ...UI2.row(SP2.md), padding: pad(SP2.md, LAYOUT2.cardY), borderRadius: R2.xl, boxShadow: SH2.card, minWidth: 0 },
-  value:  { fontSize: FS2.xxl, fontWeight: FW2.bold, lineHeight: LH2.tight, color: C2.textPrimary, ...UI2.truncate },
+  value:  { fontSize: FS2.xxl, fontWeight: FW2.semibold, lineHeight: LH2.tight, color: C2.textPrimary, ...UI2.truncate },
   valueSm:{ fontSize: FS2.lg, fontWeight: FW2.semibold },   // 16px / 600
   status: (tone) => ({ ...UI2.text.titleLg, color: tone === TONES2.primary ? C2.textPrimary : tone.fg }),
   label:  { ...UI2.text.label, ...UI2.truncate },

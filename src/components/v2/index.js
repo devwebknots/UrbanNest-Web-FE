@@ -26,6 +26,12 @@
 //   ActionTile  tinted 2×2 action tiles · MetricBar label/value + progress bar
 //   BarChart · DonutChart · Sparkline · LineChart · Gauge   charts in v2 colours
 //   PropertyCard  photo card for portfolio grids · SectionHeader  heading + filters above a card grid
+//   AssetRow    light property row (photo · tags · inline metrics · actions) for dashboards
+//   ProgressRing · MiniBars  animated ring / small month bars · CountUp  animated number
+//
+// Dashboard pieces (Landlord dashboard is the reference):
+//   ProfileHero light hero, photo feathered in on the right · KpiStrip  4 KPIs in ONE container
+//   <PageShell animate> staggers the sections in on load
 //
 // Page chrome:
 //   Breadcrumb  trail above a detail hero · TabBar (pill = page sections, underline = in-card)
@@ -56,4 +62,8 @@ export { default as MediaListItem } from './MediaListItem';
 export { default as PropertyCard } from './PropertyCard';
 export { default as SectionHeader } from './SectionHeader';
 export { default as DataTable } from './DataTable';
-export { BarChart, DonutChart, Sparkline, LineChart, Gauge } from './Charts';
+export { default as ProfileHero } from './ProfileHero';
+export { default as KpiStrip } from './KpiStrip';
+export { default as AssetRow } from './AssetRow';
+export { default as CountUp } from './CountUp';
+export { BarChart, DonutChart, Sparkline, LineChart, Gauge, ProgressRing, MiniBars } from './Charts';

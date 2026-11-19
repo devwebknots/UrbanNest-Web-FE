@@ -1,6 +1,6 @@
 import React, { useEffect, useRef } from 'react';
 import { Chart, registerables } from 'chart.js';
-import { C2, CHART2, F2, FS2, FW2, R2, SP2, SZ2, UI2 } from '../../constants/v2';
+import { C2, CHART2, G2, GSTOPS2, SH2, F2, FS2, FW2, LH2, R2, SP2, SZ2, pad, UI2 } from '../../constants/v2';
 
 Chart.register(...registerables);
 
@@ -54,7 +54,24 @@ export function BarChart({ labels = [], values = [], formatValue = identity, for
         responsive: true, maintainAspectRatio: false,
         plugins: { legend: { display: false }, tooltip: { callbacks: { label: v => formatValue(v.raw) } } },
         scales: {
-          x: { grid: { display: false }, border: { display: false }, ticks: { font: tickFont, color: CHART2.tick } },
+          // Every label stays visible and horizontal (never tilted, never skipped). Room per bar
+          // decides the label: ≥ 30px → full label at FS2.xs · ≥ 22px → full label at FS2.xxs ·
+          // narrower → first letter only (J F M A …).
+          x: {
+            grid: { display: false }, border: { display: false },
+            ticks: {
+              color: CHART2.tick, maxRotation: 0, minRotation: 0, autoSkip: false,
+              font: ({ chart }) => {
+                const per = (chart.chartArea ? chart.chartArea.width : chart.width) / Math.max(1, labels.length);
+                return { ...tickFont, size: per >= 30 ? FS2.xs : FS2.xxs };
+              },
+              callback(value) {
+                const label = String(this.getLabelForValue(value));
+                const per = (this.chart.chartArea ? this.chart.chartArea.width : this.chart.width) / Math.max(1, labels.length);
+                return per >= 22 ? label : label.charAt(0);
+              },
+            },
+          },
           y: {
             beginAtZero: true, suggestedMax: maxVal > 0 ? undefined : emptyMax,
             border: { display: false }, grid: { color: CHART2.grid },
@@ -79,7 +96,7 @@ export function DonutChart({ value = 0, label, size = SZ2.donut }) {
     <div style={{ position: 'relative', width: size, height: size }}>
       <canvas ref={ref} width={size} height={size} role="img" aria-label={`${label || 'Value'} ${value}%`}>{value}%</canvas>
       <div style={{ ...UI2.center, position: 'absolute', inset: 0, flexDirection: 'column', pointerEvents: 'none' }}>
-        <div style={{ ...UI2.text.number, fontSize: FS2.display }}>{value}%</div>
+        <div style={{ ...UI2.text.number, fontSize: FS2.display, fontWeight: FW2.medium }}>{value}%</div>
         {label && <div style={{ ...UI2.text.label, fontSize: FS2.base, marginTop: SP2.sm }}>{label}</div>}
       </div>
     </div>
@@ -146,7 +163,7 @@ export function LineChart({
           legend: { display: false },
           tooltip: {
             backgroundColor: C2.white, titleColor: C2.navyDeep, bodyColor: C2.textSecondary,
-            titleFont: { size: FS2.md, weight: FW2.bold, family: F2.body }, bodyFont: { size: FS2.xs, family: F2.body },
+            titleFont: { size: FS2.md, weight: FW2.semibold, family: F2.body }, bodyFont: { size: FS2.xs, family: F2.body },
             titleAlign: 'center', bodyAlign: 'center', displayColors: false,
             padding: SP2.sm, cornerRadius: R2.md, caretSize: SP2.sm, yAlign: 'bottom',
             callbacks: { title: items => formatValue(items[0].raw), label: item => tooltipLabel(item.label) },
@@ -164,6 +181,100 @@ export function LineChart({
     };
   }, [JSON.stringify(labels), JSON.stringify(values), dark]);
   return <canvas ref={ref} role="img" aria-label={ariaLabel}>{ariaLabel}</canvas>;
+}
+
+// Progress ring — full circle that draws itself in (CSS un2-ring-arc), anything in the middle.
+// Props: value (0–100), size (SZ2.ring), stroke (SZ2.ringStroke),
+//        gradient ([from, to] stops, default GSTOPS2.success), track (default C2.successLight),
+//        ariaLabel, children (centre content — e.g. value + caption)
+//   <ProgressRing value={96}><div>96%</div><div>Leased</div></ProgressRing>
+let ringSeq = 0;
+export function ProgressRing({
+  value = 0, size = SZ2.ring, stroke = SZ2.ringStroke, gradient = GSTOPS2.success, track = C2.successLight,
+  ariaLabel, children,
+}) {
+  const gradId = useRef(null);
+  if (gradId.current === null) gradId.current = `un2-ring-${++ringSeq}`;
+  const r = (size - stroke) / 2;
+  const circ = 2 * Math.PI * r;
+  const pct = Math.max(0, Math.min(100, Number(value) || 0)) / 100;
+  const common = { cx: size / 2, cy: size / 2, r, fill: 'none', strokeWidth: stroke, transform: `rotate(-90 ${size / 2} ${size / 2})` };
+  return (
+    <div style={{ position: 'relative', width: size, height: size, flexShrink: 0 }}>
+      <svg width={size} height={size} role="img" aria-label={ariaLabel || `${Math.round(pct * 100)}%`}>
+        <defs>
+          <linearGradient id={gradId.current} x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0%" stopColor={gradient[0]} />
+            <stop offset="100%" stopColor={gradient[1]} />
+          </linearGradient>
+        </defs>
+        <circle {...common} stroke={track} />
+        {pct > 0 && (
+          <circle
+            {...common}
+            className="un2-ring-arc"
+            stroke={`url(#${gradId.current})`}
+            strokeLinecap="round"
+            strokeDasharray={circ}
+            strokeDashoffset={circ * (1 - pct)}
+            style={{ '--un2-ring-from': circ }}
+          />
+        )}
+      </svg>
+      <div style={{ ...UI2.center, position: 'absolute', inset: 0, flexDirection: 'column', pointerEvents: 'none' }}>
+        {children}
+      </div>
+    </div>
+  );
+}
+
+// Mini bar trend — small column bars with month labels under them, no axes. Bars grow in
+// one after another; the active bar (default: the last = current month) is the primary
+// gradient, the rest soft blue. Hover shows the formatted value (title).
+// Props: items [{ label, value }] (oldest → newest), activeIndex (default last), formatValue,
+//        height (SZ2.miniBars.h),
+//        fit (true → fills its parent's width: shows the NEWEST months that fit, ending at the right
+//             edge; older months that don't fit are left out — bar size / spacing never change)
+//   <MiniBars items={[{ label: 'Jun', value: 1200 }, …]} formatValue={v => '$' + v} />
+export function MiniBars({ items = [], activeIndex, formatValue = identity, height = SZ2.miniBars.h, fit = false, ariaLabel = 'Trend' }) {
+  const active = activeIndex ?? items.length - 1;
+  const max = Math.max(0, ...items.map(i => Number(i.value) || 0));
+  // fit: newest first in a right-to-left wrapping row, one line tall — columns that don't fit
+  // wrap onto a hidden second line, so only whole bars show and the newest sits at the right edge.
+  const labelH = Math.ceil(FS2.xs * LH2.heading);
+  const rowStyle = fit
+    ? { display: 'flex', flexDirection: 'row-reverse', flexWrap: 'wrap', alignItems: 'flex-end', columnGap: SP2.md, rowGap: height,
+        width: '100%', height: height + SP2.xs + labelH, overflow: 'hidden' }
+    : { display: 'flex', alignItems: 'flex-end', gap: SP2.md };
+  const order = items.map((it, i) => ({ it, i }));
+  if (fit) order.reverse();
+  return (
+    <div role="img" aria-label={ariaLabel} style={rowStyle}>
+      {order.map(({ it, i }, pos) => {
+        const on = i === active;
+        const h = max > 0 ? Math.max(0.08, (Number(it.value) || 0) / max) : 0.08;
+        // bars grow in from the left; in fit mode the visible run is the newest end of the list
+        const step = fit ? Math.max(0, SZ2.miniBars.fitStagger - pos) : i;
+        return (
+          <div key={`${it.label}-${i}`} style={{ ...UI2.stack(SP2.xs), alignItems: 'center' }} title={`${it.label}: ${formatValue(it.value)}`}>
+            <div style={{ height, display: 'flex', alignItems: 'flex-end' }}>
+              <div
+                className="un2-bar un2-grow-y"
+                style={{
+                  width: SZ2.miniBars.w, height: `${h * 100}%`, borderRadius: pad(R2.sm, R2.sm, R2.xs, R2.xs),
+                  background: on ? G2.miniBarActive : G2.miniBar, boxShadow: on ? SH2.miniBarActive : 'none',
+                  '--un2-delay': `${0.3 + step * 0.04}s`,
+                }}
+              />
+            </div>
+            <span style={{ fontSize: FS2.xs, lineHeight: LH2.heading, color: on ? C2.primary : C2.textMuted, fontWeight: on ? FW2.semibold : FW2.regular }}>
+              {it.label}
+            </span>
+          </div>
+        );
+      })}
+    </div>
+  );
 }
 
 // Score gauge — 270° arc with the score in the middle (0–100). Pure SVG.
@@ -201,7 +312,7 @@ export function Gauge({ value = 0, max = 100, caption, tone, gradient, dark = fa
         <circle {...common} stroke={color} strokeDasharray={`${arc * pct} ${circ}`} />
       </svg>
       <div style={{ ...UI2.center, position: 'absolute', inset: 0, flexDirection: 'column', pointerEvents: 'none' }}>
-        <div style={{ ...UI2.text.number, fontFamily: F2.body, fontSize: FS2.score, color: dark ? C2.white : C2.navyDeep }}>{value}</div>
+        <div style={{ ...UI2.text.number, fontSize: FS2.score, fontWeight: FW2.medium, color: dark ? C2.white : C2.navyDeep }}>{value}</div>
         <div style={{ fontSize: FS2.lg, fontWeight: FW2.semibold, color: dark ? C2.onDark.textSoft : C2.textSecondary, marginTop: SP2.xs }}>/ {max}</div>
         {caption && <div style={{ fontSize: FS2.sm, color: dark ? C2.onDark.textMuted : C2.textSecondary, marginTop: SP2.xs }}>{caption}</div>}
       </div>

@@ -39,7 +39,7 @@ export function CardHeader({ icon, tone = TONES2.primary, plainIcon = false, acc
   // Title stays on one line (… if the card is very narrow) so it never slides under the action
   const titleEl = <div style={{ ...UI2.cardTitle, ...UI2.truncate, ...(dark ? { color: C2.white } : {}) }} title={typeof title === 'string' ? title : undefined}>{title}</div>;
   return (
-    <div style={UI2.cardHeader}>
+    <div className="un2-card-head" style={{ ...UI2.cardHeader, ...(dark ? { borderBottomColor: C2.onDark.borderSoft } : {}) }}>
       <div style={{ ...UI2.row(LAYOUT2.rowGap), minWidth: 0, flex: 1 }}>
         {icon && (
           <div style={iconStyle}>
@@ -48,7 +48,7 @@ export function CardHeader({ icon, tone = TONES2.primary, plainIcon = false, acc
         )}
         <div style={{ minWidth: 0, flex: 1 }}>
           {badge ? <div style={{ ...UI2.row(LAYOUT2.rowGap), minWidth: 0 }}>{titleEl}{badge}</div> : titleEl}
-          {subtitle && <div style={UI2.cardSubtitle}>{subtitle}</div>}
+          {subtitle && <div style={{ ...UI2.cardSubtitle, ...(dark ? { color: C2.onDark.textMuted } : {}) }}>{subtitle}</div>}
         </div>
       </div>
       {action && <div style={S.action}>{action}</div>}

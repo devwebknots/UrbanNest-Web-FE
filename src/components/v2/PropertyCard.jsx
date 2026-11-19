@@ -46,19 +46,19 @@ const S = {
 
   body:    { ...UI2.stack(SP2.lg), flex: 1, padding: pad(SP2.md, SP2.lg, SP2.lg) },
   head:    { display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: SP2.sm },
-  name:    { fontSize: FS2.lg, fontWeight: FW2.bold, color: C2.textPrimary, lineHeight: LH2.heading, ...UI2.truncate },
+  name:    { fontFamily: F2.heading, fontSize: FS2.lg, fontWeight: FW2.semibold, color: C2.textPrimary, lineHeight: LH2.heading, ...UI2.truncate },
   addr:    { ...UI2.row(SP2.xs), ...UI2.text.meta, marginTop: SP2.xxs, minWidth: 0 },
   share:   {
     ...UI2.stack(0), alignItems: 'center', flexShrink: 0, padding: pad(SP2.sm, SP2.md), borderRadius: R2.xl,
     background: TONES2.success.soft, color: TONES2.success.fg,
   },
-  shareVal:{ fontSize: FS2.md, fontWeight: FW2.bold, lineHeight: LH2.heading },
+  shareVal:{ fontSize: FS2.md, fontWeight: FW2.semibold, lineHeight: LH2.heading },
   shareLbl:{ fontSize: FS2.xs, lineHeight: LH2.heading },
 
   stats:   { display: 'flex', gap: SP2.sm },
   stat:    { ...UI2.row(SP2.sm), alignItems: 'flex-start', flex: 1, minWidth: 0 },
   statIcon:{ fontSize: FS2.xl, color: C2.navyButton, lineHeight: LH2.none },
-  statVal: { fontSize: FS2.md, fontWeight: FW2.bold, color: C2.textPrimary, lineHeight: LH2.heading, ...UI2.truncate },
+  statVal: { fontSize: FS2.md, fontWeight: FW2.semibold, color: C2.textPrimary, lineHeight: LH2.heading, ...UI2.truncate },
   statLbl: { ...UI2.text.caption, color: C2.textSecondary, ...UI2.truncate },
 
   actions: { display: 'flex', gap: SP2.md, marginTop: 'auto' },

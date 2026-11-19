@@ -28,7 +28,7 @@ const btnBase = {
   borderRadius: R2.button,
   fontFamily: F2.body,
   fontSize: FS2.base,
-  fontWeight: FW2.semibold,
+  fontWeight: FW2.medium,
   lineHeight: LH2.heading,
   whiteSpace: 'nowrap',
   cursor: 'pointer',
@@ -85,23 +85,25 @@ export const UI2 = {
     position: 'relative',
     overflow: 'hidden',
     background: G2.panel(t),
-    border: `1px solid ${t.panelBorder}`,
+    border: 'none',                 // inner boxes never have a border — the tint groups them
     borderRadius: R2.xl,
     padding: pad(LAYOUT2.cardY, LAYOUT2.cardX),
-    boxShadow: SH2.tile,
+    boxShadow: 'none',
   }),
   // Inner light-tint tile inside a card (list items, mini panels)
   tile: {
     fontFamily: F2.body,
     background: G2.glassTile,
-    border: `1px solid ${C2.glassBorder}`,
+    border: 'none',                 // no border / hairline ring — soft lift only
     borderRadius: R2.lg,
-    boxShadow: SH2.glassTile,
+    boxShadow: SH2.tile,
   },
   listRow: { display: 'flex', alignItems: 'center', gap: LAYOUT2.rowGap, padding: pad(LAYOUT2.rowGap, SP2.xs), borderTop: `1px solid ${C2.border}` },
 
   // ── Card header ────────────────────────────────────────────────────────────
-  cardHeader:   { display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: LAYOUT2.rowGap, marginBottom: LAYOUT2.cardHeaderGap },
+  // Card header = its own zone: title + quiet subtitle, closed by a hairline so it never reads as
+  // part of the list below (the first row's own top border is hidden — .un2-card-head + * in utilities.css).
+  cardHeader:   { display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: LAYOUT2.rowGap, paddingBottom: LAYOUT2.cardHeaderGap, marginBottom: SP2.sm, borderBottom: `1px solid ${C2.borderLight}` },
   cardTitle:    { ...T2.sectionTitle },
   cardSubtitle: { ...T2.cardSubtitle, marginTop: SP2.xxs },
 
@@ -114,12 +116,16 @@ export const UI2 = {
     body:     { ...T2.body },
     // Sub text / description under an item title (list rows, tiles, unit & property cards, addresses):
     // Playfair, 11px, muted grey — the ONE style for every description line. Use it, don't restyle per page.
-    meta:     { fontFamily: F2.heading, fontSize: FS2.xs, color: C2.textMuted, lineHeight: LH2.body },
+    meta:     { fontFamily: F2.heading, fontWeight: FW2.regular, fontSize: FS2.xs, color: C2.textMuted, lineHeight: LH2.body },
     label:    { fontSize: FS2.sm, color: C2.textSecondary, lineHeight: LH2.body },
     caption:  { ...T2.caption },
-    stat:     { fontSize: FS2.lg, fontWeight: FW2.bold, color: C2.textPrimary, lineHeight: LH2.tight },
+    stat:     { fontSize: FS2.lg, fontWeight: FW2.semibold, color: C2.textPrimary, lineHeight: LH2.tight },
+    figure:   { ...T2.figure },
     statLg:   { ...T2.statValue },
-    number:   { fontFamily: F2.heading, fontWeight: FW2.bold, color: C2.navyDeep, lineHeight: LH2.none },
+    // Numbers are always Inter: semibold here (<= 20px); big display numbers use figure / FW2.light
+    number:   { fontFamily: F2.body, fontWeight: FW2.semibold, color: C2.navyDeep, lineHeight: LH2.none },
+    lead:     { ...T2.lead },
+    quote:    { ...T2.quote },
     eyebrow:  { ...T2.eyebrow },
   },
 
@@ -168,7 +174,7 @@ export const UI2 = {
     background: tone.soft,
     color: tone.fg,
     fontSize: FS2.xxs,
-    fontWeight: FW2.bold,
+    fontWeight: FW2.semibold,
     letterSpacing: LS2.wide,
     lineHeight: LH2.body,
   }),
@@ -178,10 +184,10 @@ export const UI2 = {
     height: SZ2.icon.xs,
     padding: pad(0, SP2.sm),
     borderRadius: R2.pill,
-    background: C2.warning,
+    background: C2.white,          // white pill on the navy sidebar (no yellow in the UI)
     color: C2.navyDeep,
     fontSize: FS2.xs,
-    fontWeight: FW2.bold,
+    fontWeight: FW2.semibold,
   },
   dot: (color = C2.success) => ({ width: SZ2.dot, height: SZ2.dot, borderRadius: R2.round, background: color, flexShrink: 0 }),
 
@@ -191,6 +197,8 @@ export const UI2 = {
   //   brand → main action (navy gradient, white text)
   //   soft  → secondary action (light blue fill, navy text)
   //   light → any action on a dark / photo background (white fill, navy text)
+  //   RULE: on light / white surfaces the secondary action is ALWAYS soft — never a white button
+  //         (light / outline). White buttons are only for dark or photo backgrounds.
   //   textLink → inline navy text action with arrow
   // The older primary / success / dark / outline styles stay for existing pages.
   btn: {
@@ -200,7 +208,7 @@ export const UI2 = {
     light:   { ...btnBase, background: C2.white, color: C2.navy, boxShadow: SH2.lightButton },
     textLink: {
       display: 'inline-flex', alignItems: 'center', gap: SP2.xs, padding: 0, background: 'none', border: 'none', cursor: 'pointer',
-      fontFamily: F2.body, fontSize: FS2.sm, fontWeight: FW2.semibold, color: C2.navy, whiteSpace: 'nowrap',
+      fontFamily: F2.body, fontSize: FS2.sm, fontWeight: FW2.medium, color: C2.navy, whiteSpace: 'nowrap',
     },
     primary: { ...btnBase, background: G2.primaryButton, color: C2.white, boxShadow: SH2.primary },
     success: { ...btnBase, background: G2.successButton, color: C2.white, boxShadow: SH2.success },
@@ -211,7 +219,7 @@ export const UI2 = {
     ghostOnDark: { ...btnBase, background: C2.onDark.surface, color: C2.white, border: `1px solid ${C2.onDark.border}`, backdropFilter: BLUR2.md, WebkitBackdropFilter: BLUR2.md },
     link: {
       display: 'inline-flex', alignItems: 'center', gap: SP2.xs, padding: 0, background: 'none', border: 'none', cursor: 'pointer',
-      fontFamily: F2.body, fontSize: FS2.sm, fontWeight: FW2.semibold, color: C2.primary, whiteSpace: 'nowrap',
+      fontFamily: F2.body, fontSize: FS2.sm, fontWeight: FW2.medium, color: C2.primary, whiteSpace: 'nowrap',
     },
     icon: (size = SZ2.control.md) => ({
       ...center, position: 'relative', width: size, height: size, flexShrink: 0, padding: 0,
@@ -256,7 +264,7 @@ export const UI2 = {
   }),
 
   // Recessed panel inside a card (expanded thread, inline form)
-  inset: { background: C2.background, border: `1px solid ${C2.border}`, borderRadius: R2.lg, padding: SP2.md },
+  inset: { background: C2.background, border: 'none', borderRadius: R2.lg, padding: SP2.md },
 
   // ── Filter chips (segmented choices above a list) ─────────────────────────
   //   <button style={UI2.filterChip(active)}>Vacant (1)</button>
