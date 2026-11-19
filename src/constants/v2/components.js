@@ -15,6 +15,10 @@ import { F2, FS2, FW2, LH2, LS2, T2 } from './fonts';
 import { SP2, SZ2, MOTION2, LAYOUT2, BLUR2, OP2, pad } from './layout';
 
 const center = { display: 'flex', alignItems: 'center', justifyContent: 'center' };
+const rowBetween = (gap = SP2.md) => ({ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap });
+const hairline = `1px solid ${C2.borderLight}`;
+// Small caps label used as a card's heading when it has no icon header ("RENT COLLECTION")
+const capsLabel = { ...T2.eyebrow, fontSize: FS2.xs, color: C2.textSecondary, letterSpacing: LS2.wide };
 
 // Layer blur behind frosted-glass surfaces
 const GLASS_BLUR = BLUR2.glass;
@@ -42,7 +46,7 @@ export const UI2 = {
   // ── Layout helpers ─────────────────────────────────────────────────────────
   center,
   row:        (gap = SP2.sm) => ({ display: 'flex', alignItems: 'center', gap }),
-  rowBetween: (gap = SP2.md) => ({ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap }),
+  rowBetween,
   stack:      (gap = SP2.sm) => ({ display: 'flex', flexDirection: 'column', gap }),
   truncate:   { whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' },
 
@@ -319,4 +323,30 @@ export const UI2 = {
     background: C2.errorTint, border: `1px solid ${C2.errorLight}`, color: C2.errorDark, fontSize: FS2.base,
   },
   thumb: { width: SZ2.thumb.w, height: SZ2.thumb.h, borderRadius: R2.lg, objectFit: 'cover', display: 'block', boxShadow: SH2.md },
+
+  // ── Dashboard card patterns (Landlord Dashboard is the reference) ──────────
+  //   <SectionCard style={UI2.cardFill}>                         body is a column → footer pins to the bottom
+  //     <div style={UI2.labelRow}><span style={UI2.capsLabel}>Rent collection</span>
+  //                               <span style={UI2.context}><i className="ti ti-calendar" /> This month</span></div>
+  //     …  <div style={UI2.subhead}>Recent payments</div>  …
+  //     <div style={UI2.cardFoot}>Last month <span style={UI2.strong}>$412,800</span>
+  //                               <span style={UI2.delta(true)}>+3.8% MoM</span></div>
+  //   </SectionCard>
+  cardFill:  { display: 'flex', flexDirection: 'column' },
+  capsLabel,
+  labelRow:  { ...rowBetween(), flexWrap: 'wrap', rowGap: SP2.xs, marginBottom: SP2.lg },        // caps label · context on the right
+  context:   { display: 'flex', alignItems: 'center', gap: SP2.xs, ...T2.caption },               // small grey "icon + text" (This month, Target 96%)
+  subhead:   { ...capsLabel, margin: pad(SP2.xl, 0, SP2.xs) },                                    // caps sub-section title inside a card body
+  cardFoot:  { ...rowBetween(), flexWrap: 'wrap', rowGap: SP2.xs, marginTop: 'auto', paddingTop: SP2.md, borderTop: hairline, ...T2.label },
+  strong:    { fontWeight: FW2.semibold, color: C2.textPrimary },                                 // emphasised value inside a sentence
+  delta:     (up = true) => ({ display: 'inline-flex', alignItems: 'center', gap: SP2.xxs, fontWeight: FW2.semibold, color: up ? C2.successStrong : C2.errorDark }),
+  amount:    (positive = true) => ({ fontSize: FS2.base, fontWeight: FW2.semibold, color: positive ? C2.successStrong : C2.errorDark }),
+  // Legend: ● key ………… value  (charts, rings)
+  legendRow: { ...rowBetween(), fontSize: FS2.sm, color: C2.textSecondary, lineHeight: LH2.heading },
+  legendKey: { display: 'flex', alignItems: 'center', gap: SP2.sm },
+  legendVal: { fontWeight: FW2.semibold, color: C2.textPrimary },
+  // List item marked by a coloured left rule instead of a box (tickets by priority): UI2.accentItem(TONES2.error)
+  accentItem: (tone = TONES2.primary) => ({ padding: pad(SP2.xxs, 0, SP2.xxs, SP2.md), borderLeft: `${SZ2.accentBar}px solid ${tone.strong}`, marginTop: SP2.lg }),
+  // Borderless tinted row at the bottom of a card (feature teaser / shortcut)
+  tintRow:   { display: 'flex', alignItems: 'center', gap: SP2.md, padding: SP2.md, borderRadius: R2.lg, background: C2.primaryWash },
 };

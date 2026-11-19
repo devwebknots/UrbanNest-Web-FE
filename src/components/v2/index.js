@@ -32,6 +32,9 @@
 // Dashboard pieces (Landlord dashboard is the reference):
 //   ProfileHero light hero, photo feathered in on the right · KpiStrip  4 KPIs in ONE container
 //   <PageShell animate> staggers the sections in on load
+//   TextLink    "View All →" text action with sliding arrow (never hand-build link buttons)
+//   Card patterns in UI2: cardFill · capsLabel · labelRow · context · subhead · cardFoot · strong ·
+//   delta() · amount() · legendRow/Key/Val · accentItem() · tintRow  (see constants/v2/components.js)
 //
 // Page chrome:
 //   Breadcrumb  trail above a detail hero · TabBar (pill = page sections, underline = in-card)
@@ -66,4 +69,5 @@ export { default as ProfileHero } from './ProfileHero';
 export { default as KpiStrip } from './KpiStrip';
 export { default as AssetRow } from './AssetRow';
 export { default as CountUp } from './CountUp';
+export { default as TextLink } from './TextLink';
 export { BarChart, DonutChart, Sparkline, LineChart, Gauge, ProgressRing, MiniBars } from './Charts';

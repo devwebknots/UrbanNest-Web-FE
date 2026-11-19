@@ -118,12 +118,12 @@
    un2-lift-soft      glass container rises a touch on hover (lighter than un2-hover-lift)
    Everything is switched off for prefers-reduced-motion.
    ─────────────────────────────────────────────────────────────────────────── */
-@keyframes un2-rise   { from { opacity: 0; transform: translateY(12px); } to { opacity: 1; transform: none; } }
+@keyframes un2-rise   { from { opacity: 0; transform: translateY(var(--un2-rise)); } to { opacity: 1; transform: none; } }
 @keyframes un2-fade   { from { opacity: 0; } to { opacity: 1; } }
 @keyframes un2-grow-x { from { transform: scaleX(0); } to { transform: scaleX(1); } }
 @keyframes un2-grow-y { from { transform: scaleY(0); } to { transform: scaleY(1); } }
 @keyframes un2-ring   { from { stroke-dashoffset: var(--un2-ring-from); } }
-@keyframes un2-ping   { 0% { box-shadow: 0 0 0 0 var(--un2-ping, rgba(16, 185, 129, 0.45)); } 80%, 100% { box-shadow: 0 0 0 6px rgba(16, 185, 129, 0); } }
+@keyframes un2-ping   { 0% { box-shadow: 0 0 0 0 var(--un2-ping); } 80%, 100% { box-shadow: 0 0 0 var(--un2-sp-sm) var(--un2-ping-end); } }
 
 .un2-enter-stagger > * { animation: un2-rise var(--un2-motion-enter) backwards; animation-delay: calc(var(--un2-i, 0) * var(--un2-stagger)); }
 .un2-enter-stagger > :nth-child(2) { --un2-i: 1; }
@@ -153,7 +153,7 @@
 
 /* Arrow inside a text link nudges right on hover */
 .un2-link-arrow .ti-arrow-right { transition: transform var(--un2-motion-fast); }
-.un2-link-arrow:hover .ti-arrow-right { transform: translateX(3px); }
+.un2-link-arrow:hover .ti-arrow-right { transform: translateX(var(--un2-nudge)); }
 
 /* Mini bar (MiniBars) brightens on hover */
 .un2-bar { transition: filter var(--un2-motion-fast), transform var(--un2-motion-fast); }
@@ -170,11 +170,11 @@
    ≤ 860px: photo becomes a strip above the text (fades into the hero at its base).
    ─────────────────────────────────────────────────────────────────────────── */
 .un2-phero { padding: var(--un2-sp-xxl) var(--un2-sp-xxxl); }
-/* The photo never starts before the text column ends (~560px: padding + title + 3 stats), so on
+/* The photo never starts before the text column ends (--un2-phero-text-end: padding + title + 3 stats), so on
    every width the text sits on the clean surface and the trees begin after it — like the wide-screen
    look. The artwork is anchored left (ProfileHero imagePosition) so its trees always stay visible. */
 .un2-phero-photo {
-  position: absolute; top: 0; right: 0; bottom: 0; left: max(40%, 560px);
+  position: absolute; top: 0; right: 0; bottom: 0; left: max(var(--un2-phero-photo-start), var(--un2-phero-text-end));
   -webkit-mask-image: var(--un2-profile-hero-mask); mask-image: var(--un2-profile-hero-mask);
 }
 .un2-phero-stats { display: flex; flex-wrap: wrap; row-gap: var(--un2-sp-lg); }
@@ -183,7 +183,7 @@
   .un2-phero { display: flex; flex-direction: column; }
   .un2-phero-glow { display: none; }
   .un2-phero-photo {
-    position: relative; left: auto; width: auto; height: 180px; margin: calc(var(--un2-sp-xxl) * -1) calc(var(--un2-sp-xxxl) * -1) var(--un2-sp-xs);
+    position: relative; left: auto; width: auto; height: var(--un2-phero-photo-sm); margin: calc(var(--un2-sp-xxl) * -1) calc(var(--un2-sp-xxxl) * -1) var(--un2-sp-xs);
     -webkit-mask-image: var(--un2-profile-hero-mask-top); mask-image: var(--un2-profile-hero-mask-top);
   }
 }
@@ -210,7 +210,7 @@
   .un2-kpi-strip > * + * { border-left: none; border-top: 1px solid var(--un2-border); }
 }
 
-/* ── AssetRow: narrow card → buttons stay in the row (top, right side); long button labels switch
+/* ── AssetRow (CQ2.asset = 560px): narrow card → buttons stay in the row (top, right side); long button labels switch
       to their short form: <span class="un2-label-full">Message Tenants</span><span class="un2-label-short">Message</span> ── */
 .un2-label-short { display: none; }
 @container (max-width: 560px) {

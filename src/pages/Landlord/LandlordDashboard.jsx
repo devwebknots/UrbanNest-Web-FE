@@ -2,12 +2,12 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   PageShell, Grid, ProfileHero, KpiStrip, SectionCard, AssetRow, InsightCard, MetricBar,
-  ListRow, EmptyState, MessageItem, PageFooter, BarChart, Sparkline, ProgressRing, MiniBars, CountUp,
+  ListRow, EmptyState, MessageItem, PageFooter, BarChart, Sparkline, ProgressRing, MiniBars, CountUp, TextLink,
 } from '../../components/v2';
 import {
   C2, TONES2, ACCENT2, AVATAR2, CHART2,
-  T2, FS2, FW2, LH2, LS2,
-  R2, SP2, SZ2, LAYOUT2, pad, UI2,
+  T2, FS2, LH2, LS2,
+  SP2, SZ2, LAYOUT2, UI2,
 } from '../../constants/v2';
 import heroImage from '../../assets/v2/landlord/dashboard-hero-light.jpg';   // bright building + soft waves (cut from the dashboard design, Downloads/image 40.png)
 import propertyPlaceholder from '../../assets/v2/landlord/property-placeholder.jpg';
@@ -30,44 +30,29 @@ const API_BASE = process.env.REACT_APP_API_BASE_URL || 'http://localhost:8001/ap
 // <PageShell animate> staggers the sections in; numbers count up, bars / rings draw in.
 
 // ─── Card-internal styles specific to this page (tokens only) ────────────────
-const hairline = `${SZ2.hairline}px solid ${C2.borderLight}`;
 
+// Shared card patterns (UI2.cardFill · capsLabel · labelRow · context · subhead · cardFoot · strong ·
+// delta · amount · legend* · accentItem · tintRow) come from constants/v2/components.js.
+// Only layout that is specific to this page stays here.
 const S = {
-  fill:      { display: 'flex', flexDirection: 'column' },      // card body column (footer pinned with marginTop: auto)
-
-  // Headline cards (Rent collection / Occupancy): caps label instead of an icon header
-  eyebrowRow:{ ...UI2.rowBetween(), flexWrap: 'wrap', rowGap: SP2.xs, marginBottom: SP2.lg },
-  eyebrow:   { ...T2.eyebrow, fontSize: FS2.xs, color: C2.textSecondary, letterSpacing: LS2.wide },
-  context:   { ...UI2.row(SP2.xs), ...UI2.text.caption },
   figureRow: { ...UI2.row(SP2.md), flexWrap: 'wrap', rowGap: SP2.sm },
   rentText:  { flex: '0 1 auto', minWidth: 0 },
   rentBars:  { flex: `1 1 ${SZ2.search - SP2.huge * 2}px`, minWidth: 0 },      // takes all free width (beside or under the figure)
   note:      { ...UI2.text.label, marginTop: SP2.md, maxWidth: SZ2.profileHeroContentMax },
-  strong:    { fontWeight: FW2.semibold, color: C2.textPrimary },
-  foot:      { ...UI2.rowBetween(), flexWrap: 'wrap', rowGap: SP2.xs, marginTop: 'auto', paddingTop: SP2.md, borderTop: hairline, ...UI2.text.label },
-  delta:     (up) => ({ ...UI2.row(SP2.xxs), fontWeight: FW2.semibold, color: up ? C2.successStrong : C2.errorDark }),
 
   occBody:   { display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: SP2.xxl, marginBottom: SP2.lg },
   ringValue: { ...T2.statValue, color: C2.navyDeep },
   ringLabel: { ...UI2.text.caption, marginTop: SP2.xs, textTransform: 'uppercase', letterSpacing: LS2.wide },
   legend:    { ...UI2.stack(SP2.md), flex: 1, minWidth: SZ2.labelMax },
-  legendRow: { ...UI2.rowBetween(), fontSize: FS2.sm, color: C2.textSecondary, lineHeight: LH2.heading },
-  legendKey: { ...UI2.row(SP2.sm) },
-  legendVal: { fontWeight: FW2.semibold, color: C2.textPrimary },
 
-  // Prime assets / payments
-  cardFoot:  { ...UI2.rowBetween(), flexWrap: 'wrap', rowGap: SP2.xs, marginTop: 'auto', paddingTop: SP2.md, borderTop: hairline },
   chartWrap: { position: 'relative', height: SZ2.chart },
-  subhead:   { ...T2.eyebrow, fontSize: FS2.xs, color: C2.textSecondary, letterSpacing: LS2.wide, margin: pad(SP2.xl, 0, SP2.xs) },
-  amount:    { fontSize: FS2.base, fontWeight: FW2.semibold, color: C2.successStrong },
 
-  // Open operations
-  op:        (tone) => ({ padding: pad(SP2.xxs, 0, SP2.xxs, SP2.md), borderLeft: `${SZ2.accentBar}px solid ${tone.strong}`, marginTop: SP2.lg }),
+  // Open operations (items use UI2.accentItem)
   opHead:    { ...UI2.rowBetween(SP2.sm), alignItems: 'flex-start' },
   opTitle:   { ...UI2.text.rowTitle, ...UI2.clamp(2) },
   opMeta:    { ...UI2.text.meta, ...UI2.truncate, marginTop: SP2.xxs },
   opFoot:    { ...UI2.rowBetween(SP2.sm), marginTop: SP2.sm },
-  analytics: { ...UI2.row(SP2.md), marginTop: 'auto', padding: pad(SP2.md, SP2.md), borderRadius: R2.lg, background: C2.primaryWash },
+  analytics: { ...UI2.tintRow, marginTop: 'auto' },
   opsBody:   { marginBottom: SP2.xl },
 
   messenger: { ...UI2.btn.light, width: '100%', minHeight: SZ2.control.lg, marginTop: 'auto' },
@@ -96,12 +81,6 @@ const PRIORITY_TAG = {
   LOW:      { tone: TONES2.neutral, label: 'STANDARD' },
 };
 
-const Arrow = () => <i className="ti ti-arrow-right" aria-hidden="true" />;
-const LinkBtn = ({ children, onClick, style }) => (
-  <button type="button" className="un2-link-arrow" style={{ ...UI2.btn.link, ...style }} onClick={onClick}>
-    {children} <Arrow />
-  </button>
-);
 
 // Chart formatting for this page
 const fmtK = v => (v === 0 ? '$0' : '$' + (v / 1000).toFixed(0) + 'K');
@@ -260,10 +239,10 @@ export default function LandlordDashboard() {
 
       {/* ── HEADLINE: RENT COLLECTION + OCCUPANCY ── */}
       <Grid layout="wideLeft">
-        <SectionCard style={S.fill}>
-          <div style={S.eyebrowRow}>
-            <span style={S.eyebrow}>Rent collection</span>
-            <span style={S.context}><i className="ti ti-calendar" aria-hidden="true" /> This month</span>
+        <SectionCard style={UI2.cardFill}>
+          <div style={UI2.labelRow}>
+            <span style={UI2.capsLabel}>Rent collection</span>
+            <span style={UI2.context}><i className="ti ti-calendar" aria-hidden="true" /> This month</span>
           </div>
 
           <div className="un2-split-row" style={{ marginBottom: SP2.xl }}>
@@ -274,7 +253,7 @@ export default function LandlordDashboard() {
               </div>
               <div style={S.note} title={latestPayment ? `${latestPayment.tenant_name} · ${latestPayment.property_name}${latestPayment.unit_ref ? `, ${latestPayment.unit_ref}` : ''}` : undefined}>
                 {latestPayment
-                  ? <>Latest payment <span style={S.strong}>+{fmtCurrency(latestPayment.amount)}</span> from {latestPayment.tenant_name} · {latestPayment.property_name}</>
+                  ? <>Latest payment <span style={UI2.strong}>+{fmtCurrency(latestPayment.amount)}</span> from {latestPayment.tenant_name} · {latestPayment.property_name}</>
                   : dash('No payments recorded this month yet.')}
               </div>
             </div>
@@ -283,10 +262,10 @@ export default function LandlordDashboard() {
             </div>
           </div>
 
-          <div style={S.foot}>
-            <span>Last month <span style={S.strong}>{lastMonth ? fmtMoney(lastMonth.value) : '—'}</span></span>
+          <div style={UI2.cardFoot}>
+            <span>Last month <span style={UI2.strong}>{lastMonth ? fmtMoney(lastMonth.value) : '—'}</span></span>
             {mom != null && (
-              <span style={S.delta(mom >= 0)}>
+              <span style={UI2.delta(mom >= 0)}>
                 <i className={`ti ${mom >= 0 ? 'ti-trending-up' : 'ti-trending-down'}`} aria-hidden="true" />
                 {mom >= 0 ? '+' : ''}{mom.toFixed(1)}% MoM
               </span>
@@ -294,10 +273,10 @@ export default function LandlordDashboard() {
           </div>
         </SectionCard>
 
-        <SectionCard style={S.fill}>
-          <div style={S.eyebrowRow}>
-            <span style={S.eyebrow}>Occupancy rate</span>
-            <span style={S.context}><i className="ti ti-target-arrow" aria-hidden="true" /> Target {OCCUPANCY_TARGET}%</span>
+        <SectionCard style={UI2.cardFill}>
+          <div style={UI2.labelRow}>
+            <span style={UI2.capsLabel}>Occupancy rate</span>
+            <span style={UI2.context}><i className="ti ti-target-arrow" aria-hidden="true" /> Target {OCCUPANCY_TARGET}%</span>
           </div>
 
           <div style={S.occBody}>
@@ -306,18 +285,18 @@ export default function LandlordDashboard() {
               <div style={S.ringLabel}>Leased</div>
             </ProgressRing>
             <div style={S.legend}>
-              <div style={S.legendRow}>
-                <span style={S.legendKey}><span style={UI2.dot(C2.successStrong)} /> Occupied units</span>
-                <span style={S.legendVal}>{dash(occupiedUnits ?? '—')}</span>
+              <div style={UI2.legendRow}>
+                <span style={UI2.legendKey}><span style={UI2.dot(C2.successStrong)} /> Occupied units</span>
+                <span style={UI2.legendVal}>{dash(occupiedUnits ?? '—')}</span>
               </div>
-              <div style={S.legendRow}>
-                <span style={S.legendKey}><span style={UI2.dot(C2.successLight)} /> Vacant &amp; listed</span>
-                <span style={S.legendVal}>{dash(vacantUnits ?? '—')}</span>
+              <div style={UI2.legendRow}>
+                <span style={UI2.legendKey}><span style={UI2.dot(C2.successLight)} /> Vacant &amp; listed</span>
+                <span style={UI2.legendVal}>{dash(vacantUnits ?? '—')}</span>
               </div>
             </div>
           </div>
 
-          <div style={S.foot}>
+          <div style={UI2.cardFoot}>
             <span>{occupancy >= OCCUPANCY_TARGET ? 'Above target' : `${fmtPct1(Math.max(0, OCCUPANCY_TARGET - occupancy))} to target`}</span>
             <span style={UI2.pill(TONES2.success)}><i className="ti ti-calendar-check" aria-hidden="true" /> By year end</span>
           </div>
@@ -330,9 +309,9 @@ export default function LandlordDashboard() {
       {/* ── PRIME ASSETS + MONTHLY RENT COLLECTION ── */}
       <Grid layout="wideLeft">
         <SectionCard
-          style={S.fill}
+          style={UI2.cardFill}
           icon="ti-building-community" title="Prime Assets" subtitle="High-performance properties in your active portfolio"
-          action={<LinkBtn onClick={() => navigate('/landlord-portal/portfolio')}><span className="un2-hide-narrow">View Portfolio</span></LinkBtn>}
+          action={<TextLink onClick={() => navigate('/landlord-portal/portfolio')}><span className="un2-hide-narrow">View Portfolio</span></TextLink>}
         >
           <div>
             {loading && [0, 1, 2].map(i => <AssetRow key={i} loading first={i === 0} />)}
@@ -376,17 +355,17 @@ export default function LandlordDashboard() {
           </div>
 
           {!loading && primeAssets.length > 0 && (
-            <div style={S.cardFoot}>
+            <div style={UI2.cardFoot}>
               <span style={UI2.text.caption}>
                 Showing top {shownAssets.length}{portfolio.total_properties ? ` of ${portfolio.total_properties}` : ''} properties
               </span>
-              <LinkBtn onClick={() => navigate('/landlord-portal/portfolio')}>Manage all properties</LinkBtn>
+              <TextLink onClick={() => navigate('/landlord-portal/portfolio')}>Manage all properties</TextLink>
             </div>
           )}
         </SectionCard>
 
         <SectionCard
-          style={S.fill}
+          style={UI2.cardFill}
           icon="ti-chart-bar" title="Monthly Rent Collection" subtitle="Ledger tracking & recurring payments"
           action={<span className="un2-hide-narrow" style={UI2.pill(TONES2.neutral)}>{chartMonths.length} months</span>}
         >
@@ -399,7 +378,7 @@ export default function LandlordDashboard() {
             />
           </div>
 
-          <div style={S.subhead}>Recent payments</div>
+          <div style={UI2.subhead}>Recent payments</div>
           {!loading && payments.length === 0 && <div style={UI2.emptyInline}>No payments recorded yet.</div>}
           {payments.slice(0, 3).map((p, i) => (
             <ListRow
@@ -408,7 +387,7 @@ export default function LandlordDashboard() {
               leading={<span className="un2-live-dot" style={UI2.dot(C2.success)} aria-hidden="true" />}
               title={p.tenant_name}
               meta={`${p.property_name || ''}${p.unit_ref ? ` · ${p.unit_ref}` : ''}`}
-              trailing={<span style={S.amount}>+{fmtCurrency(p.amount)}</span>}
+              trailing={<span style={UI2.amount()}>+{fmtCurrency(p.amount)}</span>}
             />
           ))}
         </SectionCard>
@@ -417,7 +396,7 @@ export default function LandlordDashboard() {
       {/* ── OPERATIONS + DOCUMENTS + COMMUNICATION HUB ── */}
       <Grid layout="three">
         <SectionCard
-          style={S.fill}
+          style={UI2.cardFill}
           icon="ti-tool" title="Open Operations" subtitle="Active maintenance & contractor reliability"
           badge={<span className="un2-live-dot" style={UI2.dot(C2.success)} aria-label="Live" />}
         >
@@ -428,7 +407,7 @@ export default function LandlordDashboard() {
             {ops.slice(0, 2).map((op, i) => {
               const tag = PRIORITY_TAG[op.priority] || PRIORITY_TAG.STANDARD;
               return (
-                <div key={op.id || i} style={S.op(tag.tone)}>
+                <div key={op.id || i} style={UI2.accentItem(tag.tone)}>
                   <div style={S.opHead}>
                     <span style={S.opTitle}>{op.title}</span>
                     <span style={UI2.tag(tag.tone)}>{tag.label}</span>
@@ -438,7 +417,7 @@ export default function LandlordDashboard() {
                     <span style={UI2.text.caption}>
                       {op.status === 'IN_PROGRESS' ? 'In Progress' : 'Open'}{op.time_ago ? ` · ${op.time_ago}` : ''}
                     </span>
-                    <LinkBtn style={{ fontSize: FS2.xs }}>{op.status === 'OPEN' ? 'Assign Vendor' : 'View Details'}</LinkBtn>
+                    <TextLink size="xs">{op.status === 'OPEN' ? 'Assign Vendor' : 'View Details'}</TextLink>
                   </div>
                 </div>
               );
@@ -457,7 +436,7 @@ export default function LandlordDashboard() {
 
         <SectionCard
           icon="ti-file-text" title="Recent Documents" subtitle="Leases, reports & filings"
-          action={<LinkBtn>View All</LinkBtn>}
+          action={<TextLink>View All</TextLink>}
         >
           {DOCS.map((d, i) => (
             <ListRow
@@ -494,7 +473,7 @@ export default function LandlordDashboard() {
       <Grid layout="wideRight">
         <SectionCard
           icon="ti-users" title="Tenant Pulse" subtitle="Residents across your portfolio"
-          action={<LinkBtn><span className="un2-hide-narrow">View all</span></LinkBtn>}
+          action={<TextLink><span className="un2-hide-narrow">View all</span></TextLink>}
         >
           {!loading && tenants.length === 0 && <EmptyState illustration="people" text="No active tenants." />}
           {tenants.slice(0, 3).map((t, i) => (
