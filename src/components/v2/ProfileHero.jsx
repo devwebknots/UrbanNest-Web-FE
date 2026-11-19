@@ -58,7 +58,7 @@ const S = {
 };
 
 export default function ProfileHero({
-  eyebrow, status, title, subtitle, image, imagePosition = 'right center', stats = [], actions,
+  eyebrow, status, title, subtitle, image, imagePosition = 'left center', stats = [], actions,
 }) {
   return (
     <section className="un2-phero" style={S.hero}>

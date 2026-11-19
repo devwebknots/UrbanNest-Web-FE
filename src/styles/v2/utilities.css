@@ -170,18 +170,20 @@
    ≤ 860px: photo becomes a strip above the text (fades into the hero at its base).
    ─────────────────────────────────────────────────────────────────────────── */
 .un2-phero { padding: var(--un2-sp-xxl) var(--un2-sp-xxxl); }
+/* The photo never starts before the text column ends (~560px: padding + title + 3 stats), so on
+   every width the text sits on the clean surface and the trees begin after it — like the wide-screen
+   look. The artwork is anchored left (ProfileHero imagePosition) so its trees always stay visible. */
 .un2-phero-photo {
-  position: absolute; top: 0; right: 0; bottom: 0; width: 60%;
+  position: absolute; top: 0; right: 0; bottom: 0; left: max(40%, 560px);
   -webkit-mask-image: var(--un2-profile-hero-mask); mask-image: var(--un2-profile-hero-mask);
 }
 .un2-phero-stats { display: flex; flex-wrap: wrap; row-gap: var(--un2-sp-lg); }
 .un2-phero-stats > * + * { border-left: 1px solid var(--un2-border); }
-@media (max-width: 1100px) { .un2-phero-photo { width: 52%; } }
 @media (max-width: 860px) {
   .un2-phero { display: flex; flex-direction: column; }
   .un2-phero-glow { display: none; }
   .un2-phero-photo {
-    position: relative; width: auto; height: 180px; margin: calc(var(--un2-sp-xxl) * -1) calc(var(--un2-sp-xxxl) * -1) var(--un2-sp-xs);
+    position: relative; left: auto; width: auto; height: 180px; margin: calc(var(--un2-sp-xxl) * -1) calc(var(--un2-sp-xxxl) * -1) var(--un2-sp-xs);
     -webkit-mask-image: var(--un2-profile-hero-mask-top); mask-image: var(--un2-profile-hero-mask-top);
   }
 }
