@@ -51,11 +51,11 @@ export const UI2 = {
   truncate:   { whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' },
 
   // ── Surfaces ───────────────────────────────────────────────────────────────
-  // Light container = near-white card with a light blue tint (G2.glass) + faint navy hairline shadow (SH2.glass)
+  // Light container = near-white card with a light blue tint (G2.glass), NO border, minimal soft shadow (SH2.glass)
   card: {
     fontFamily: F2.body,
     background: G2.glass,
-    border: `1px solid ${C2.glassBorder}`,
+    border: 'none',
     borderRadius: R2.xxl,
     boxShadow: SH2.glass,
     backdropFilter: GLASS_BLUR,

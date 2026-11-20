@@ -24,7 +24,7 @@ import { C2, G2, R2, SH2, TONES2, ACCENT2, F2, T2, SP2, SZ2, LAYOUT2, pad, UI2 }
 
 const S = {
   strip: {
-    fontFamily: F2.body, background: G2.glass, border: `1px solid ${C2.glassBorder}`, borderRadius: R2.xxl,
+    fontFamily: F2.body, background: G2.glass, border: 'none', borderRadius: R2.xxl,   // container standard: no border, minimal SH2.glass shadow
     boxShadow: SH2.glass, overflow: 'hidden',
   },
   item:  { minWidth: 0, padding: pad(SP2.xl, LAYOUT2.cardX), display: 'flex', flexDirection: 'column' },

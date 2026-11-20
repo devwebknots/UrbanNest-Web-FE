@@ -28,7 +28,7 @@ import { C2, G2, R2, SH2, TONES2, F2, FS2, FW2, LH2, LS2, T2, SP2, SZ2, pad, UI2
 const S = {
   hero: {
     position: 'relative', overflow: 'hidden', isolation: 'isolate', minHeight: SZ2.profileHeroMin,
-    borderRadius: R2.xxl, background: G2.profileHero, border: `1px solid ${C2.glassBorder}`, boxShadow: SH2.glass,
+    borderRadius: R2.xxl, background: G2.profileHero, border: 'none', boxShadow: SH2.glass,   // container standard: no border, minimal shadow
     fontFamily: F2.body,
   },
   photo: (image, position) => ({

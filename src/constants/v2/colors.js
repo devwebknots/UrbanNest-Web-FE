@@ -316,11 +316,11 @@ export const SH2 = {
   lg:         '0 8px 24px rgba(15, 23, 42, 0.08)',
   // Cards sit on the light-blue pageBg, so their shadow is layered and navy-tinted:
   //   contact edge (crisp) + soft spread + wide ambient glow
-  card:       '0 1px 2px rgba(16, 24, 40, 0.06), 0 4px 12px rgba(16, 24, 40, 0.05), 0 12px 32px -8px rgba(30, 64, 124, 0.16)',
-  // Frosted glass: faint navy hairline + inner top highlight + soft lift
-  glass:      '0 0 0 1px rgba(30, 64, 124, 0.07), inset 0 1px 0 rgba(255, 255, 255, 0.9), 0 1px 2px rgba(16, 24, 40, 0.05), 0 12px 32px -8px rgba(30, 64, 124, 0.16)',
+  card:       '0 1px 3px rgba(16, 24, 40, 0.04), 0 4px 12px -4px rgba(30, 64, 124, 0.06)',   // minimal (user decision 2026-11-20)
+  // Light container: no border / hairline ring — separated only by a minimal soft shadow (user decision 2026-11-20)
+  glass:      '0 1px 3px rgba(16, 24, 40, 0.04), 0 4px 12px -4px rgba(30, 64, 124, 0.06)',
   glassTile:  '0 0 0 1px rgba(30, 64, 124, 0.06), inset 0 1px 0 rgba(255, 255, 255, 0.9), 0 4px 10px -2px rgba(30, 64, 124, 0.08)',
-  cardHover:  '0 2px 4px rgba(16, 24, 40, 0.06), 0 12px 24px rgba(16, 24, 40, 0.08), 0 24px 48px -12px rgba(30, 64, 124, 0.24)',
+  cardHover:  '0 2px 6px rgba(16, 24, 40, 0.05), 0 8px 18px -6px rgba(30, 64, 124, 0.09)',
   primary:    '0 6px 16px rgba(37, 99, 235, 0.35)',
   success:    '0 6px 14px rgba(16, 185, 129, 0.30)',
   error:      '0 6px 14px rgba(220, 38, 38, 0.28)',
