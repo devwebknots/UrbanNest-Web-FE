@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
 import {
   PageShell, Grid, SectionCard, Breadcrumb, TabBar, ListRow, EmptyState, PageFooter,
-  DataTable, MetricBar, BarChart, CountUp, TextLink, DetailHeader, StatGroup, PhotoBento, AssetRow,
+  DataTable, MetricBar, BarChart, Gauge, TextLink, DetailHeader, StatGroup, PhotoBento, AssetRow,
 } from '../../components/v2';
-import { C2, G2, TONES2, ACCENT2, AVATAR2, T2, F2, FS2, FW2, LS2, SP2, SZ2, LAYOUT2, OP2, pad, UI2 } from '../../constants/v2';
+import { C2, G2, GSTOPS2, TONES2, ACCENT2, AVATAR2, T2, FS2, FW2, SP2, SZ2, LAYOUT2, OP2, pad, UI2 } from '../../constants/v2';
 import { C, F } from './landlordTokens';
 import { CustomDropdown } from '../../components/ui';
 import LandlordUnitSelection from './Listing/LandlordUnitSelection';
@@ -968,9 +968,9 @@ const V = {
   chips:       { display: 'flex', flexWrap: 'wrap', gap: SP2.sm },
   ownerRow:    { ...UI2.row(SP2.md), minWidth: 0 },
   healthHead:  { ...UI2.rowBetween(SP2.sm) },
-  scoreRow:    { display: 'flex', alignItems: 'baseline', gap: SP2.sm },
-  // score = brand primary blue (C2.primary) — the status colour lives only in the Good / Fair / Needs attention pill
-  score:       { fontFamily: F2.body, fontSize: SZ2.scoreFigure, fontWeight: FW2.medium, lineHeight: 1, letterSpacing: LS2.tight, color: C2.primary },
+  // Gauge │ metric bars (restored layout): wraps to Gauge above the bars when the column is narrow
+  healthBody:    { display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'center', gap: SP2.lg },
+  healthMetrics: { ...UI2.stack(SP2.md), flex: `1 1 ${SZ2.thumbXl.w}px`, minWidth: 0, paddingLeft: SP2.lg, borderLeft: `${SZ2.hairline}px solid ${C2.border}` },
   healthNote:  { ...UI2.context, marginTop: SP2.xs },
   unitActions: { display: 'flex', flexWrap: 'wrap', gap: LAYOUT2.inlineGap },
   unitChips:   { ...UI2.row(LAYOUT2.inlineGap), flexWrap: 'wrap', marginBottom: SP2.xs },
@@ -1175,6 +1175,7 @@ export default function LandlordPropertyDetailPage() {
   // Health: Good (green) · Fair (blue) · Needs attention (red) — no yellow
   const healthTone  = healthScore >= 70 ? TONES2.success : healthScore >= 40 ? TONES2.primary : TONES2.error;
   const healthLabel = healthScore >= 70 ? 'Good' : healthScore >= 40 ? 'Fair' : 'Needs attention';
+  const healthStops = healthScore >= 70 ? GSTOPS2.success : healthScore >= 40 ? GSTOPS2.primary : GSTOPS2.error;   // Gauge arc gradient
   const isVacant = u => unitPillCfg(u.status).label === 'VACANT';
   const vacantCount = viewUnits.filter(isVacant).length;
   const shownUnits = viewUnits.filter(u => unitFilter === 'all' || (unitFilter === 'vacant' ? isVacant(u) : !isVacant(u)));
@@ -1280,17 +1281,20 @@ export default function LandlordPropertyDetailPage() {
         </div>
         <span style={UI2.pill(healthTone)}>{healthLabel}</span>
       </div>
-      <div style={V.scoreRow}>
-        <span style={V.score}>{loading ? '—' : <CountUp value={healthScore} />}</span>
-        <span style={UI2.text.label}>Overall score / 100</span>
+      {/* Restored layout (git 648864d^): score Gauge │ metric bars. Gauge arc follows the status pill
+          (Good green · Fair blue · Needs attention red — no amber). */}
+      <div style={V.healthBody}>
+        <Gauge value={loading ? 0 : healthScore} caption="Overall score" tone={healthTone} gradient={healthStops} size={SZ2.donut} />
+        <div style={V.healthMetrics}>
+          {/* Progress bars = the standard green gradient (G2.successBar); values stay dark.
+              Status colour (good / bad) is shown only by the pill above — never on every bar. */}
+          <MetricBar label="Occupancy" value={`${occ}%`} pct={occ} tone={occ >= 80 ? TONES2.success : TONES2.error} valueTone />
+          <MetricBar label="Rent collection" value={`${stats.collection_pct ?? 0}%`} pct={stats.collection_pct ?? 0} gradient={G2.successBar} />
+          <MetricBar label="Maintenance" value={stats.maint_open > 0 ? `${stats.maint_open} open` : 'Clear'}
+            pct={maintScore} gradient={G2.successBar} />
+          <MetricBar label="Lease renewals" value="0 due" pct={0} gradient={G2.successBar} />
+        </div>
       </div>
-      {/* Progress bars = the standard green gradient (G2.successBar); values stay dark.
-          Status colour (good / bad) is shown only by the pill above — never on every bar. */}
-      <MetricBar label="Occupancy" value={`${occ}%`} pct={occ} tone={occ >= 80 ? TONES2.success : TONES2.error} valueTone />
-      <MetricBar label="Rent collection" value={`${stats.collection_pct ?? 0}%`} pct={stats.collection_pct ?? 0} gradient={G2.successBar} />
-      <MetricBar label="Maintenance" value={stats.maint_open > 0 ? `${stats.maint_open} open` : 'Clear'}
-        pct={maintScore} gradient={G2.successBar} />
-      <MetricBar label="Lease renewals" value="0 due" pct={0} gradient={G2.successBar} />
       <div style={V.healthNote}><i className="ti ti-info-circle" aria-hidden="true" /> Updates monthly from live data</div>
     </div>
   );

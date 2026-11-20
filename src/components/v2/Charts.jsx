@@ -327,9 +327,10 @@ export function Gauge({ value = 0, max = 100, caption, tone, gradient, dark = fa
         <circle {...common} stroke={color} strokeDasharray={`${arc * pct} ${circ}`} />
       </svg>
       <div style={{ ...UI2.center, position: 'absolute', inset: 0, flexDirection: 'column', pointerEvents: 'none' }}>
-        <div style={{ ...UI2.text.number, fontSize: FS2.score, fontWeight: FW2.medium, color: dark ? C2.white : C2.navyDeep }}>{value}</div>
-        <div style={{ fontSize: FS2.lg, fontWeight: FW2.semibold, color: dark ? C2.onDark.textSoft : C2.textSecondary, marginTop: SP2.xs }}>/ {max}</div>
-        {caption && <div style={{ fontSize: FS2.sm, color: dark ? C2.onDark.textMuted : C2.textSecondary, marginTop: SP2.xs }}>{caption}</div>}
+        <div style={{ ...T2.figure, color: dark ? C2.white : C2.navyDeep }}>{value}</div>
+        {/* Type presets (fonts.js rules): score = T2.figure (Inter 500 28, same as Portfolio Insights) · "/ max" = number 16px → Inter 600 · caption = T2.label (Inter 400 12) */}
+        <div style={{ ...UI2.text.number, fontSize: FS2.lg, color: dark ? C2.onDark.textSoft : C2.textSecondary, marginTop: SP2.xs }}>/ {max}</div>
+        {caption && <div style={{ ...T2.label, color: dark ? C2.onDark.textMuted : T2.label.color, marginTop: SP2.xs }}>{caption}</div>}
       </div>
     </div>
   );
