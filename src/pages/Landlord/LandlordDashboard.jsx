@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   PageShell, Grid, ProfileHero, KpiStrip, SectionCard, AssetRow, InsightCard, MetricBar,
-  ListRow, EmptyState, MessageItem, PageFooter, BarChart, Sparkline, MiniBars, CountUp, TextLink,
+  ListRow, EmptyState, MessageItem, PageFooter, BarChart, Sparkline, CountUp, TextLink,
   CardWave, DonutChart,
 } from '../../components/v2';
 import {
@@ -36,10 +36,8 @@ const API_BASE = process.env.REACT_APP_API_BASE_URL || 'http://localhost:8001/ap
 // delta · amount · legend* · accentItem · tintRow) come from constants/v2/components.js.
 // Only layout that is specific to this page stays here.
 const S = {
-  figureRow: { ...UI2.row(SP2.md), flexWrap: 'wrap', rowGap: SP2.sm },
-  rentText:  { flex: '0 1 auto', minWidth: 0 },
-  rentBars:  { flex: `1 1 ${SZ2.search - SP2.huge * 2}px`, minWidth: 0 },      // takes all free width (beside or under the figure)
-  note:      { ...UI2.text.label, marginTop: SP2.md, maxWidth: SZ2.profileHeroContentMax },
+  rentSide:  { ...UI2.stack(SP2.md), justifyContent: 'center', paddingLeft: SP2.lg, borderLeft: `${SZ2.hairline}px solid ${C2.border}` },
+  rentLbl:   { ...T2.label, ...UI2.truncate, maxWidth: SZ2.labelMax },
 
   occBody:       { display: 'flex', alignItems: 'center', justifyContent: 'space-around', gap: SP2.lg, flexWrap: 'wrap' },
   occTarget:     { display: 'flex', flexDirection: 'column', alignItems: 'center', gap: LAYOUT2.inlineGap },
@@ -146,7 +144,20 @@ export default function LandlordDashboard() {
   const lastMonth = trend.length > 1 ? trend[trend.length - 2] : null;
   const thisMonth = trend[trend.length - 1];
   const chartMonths = trend.slice(-12);   // big monthly chart: last 12 months at most
+  const rentCardMonths = trend.slice(-DEFAULT_MONTHS.length);   // Rent Collection card: last 6 months, as in the old design
   const mom = lastMonth && lastMonth.value > 0 ? ((thisMonth.value - lastMonth.value) / lastMonth.value) * 100 : null;
+
+  // Rent Collection card — summary list beside the bar chart (no yellow: collection rate uses violet)
+  const RENT_SUMMARY = [
+    { key: 'collected', tone: TONES2.primary, icon: 'ti-wallet',
+      val: loading ? '—' : <CountUp value={collected} format={fmtWhole} />, lbl: 'Collected' },
+    { key: 'rate', tone: { soft: ACCENT2.violet.soft, strong: ACCENT2.violet.fg }, icon: 'ti-percentage',
+      val: loading ? '—' : <CountUp value={collectionPct} format={fmtPct1} />, lbl: 'Collection rate' },
+    { key: 'latest', tone: TONES2.success, icon: 'ti-receipt',
+      val: latestPayment ? `+${fmtCurrency(latestPayment.amount)}` : dash('$0.00'),
+      lbl: latestPayment ? latestPayment.tenant_name : 'Latest payment',
+      title: latestPayment ? `${latestPayment.tenant_name} · ${latestPayment.property_name}${latestPayment.unit_ref ? `, ${latestPayment.unit_ref}` : ''}` : undefined },
+  ];
 
   // Occupancy
   const occupancy = Number(kpis.occupancy_rate ?? 0);
@@ -240,38 +251,40 @@ export default function LandlordDashboard() {
 
       {/* ── HEADLINE: RENT COLLECTION + OCCUPANCY ── */}
       <Grid layout="wideLeft">
-        <SectionCard style={UI2.cardFill}>
-          <div style={UI2.labelRow}>
-            <span style={UI2.capsLabel}>Rent collection</span>
-            <span style={UI2.context}><i className="ti ti-calendar" aria-hidden="true" /> This month</span>
-          </div>
-
-          <div className="un2-split-row" style={{ marginBottom: SP2.xl }}>
-            <div style={S.rentText}>
-              <div style={S.figureRow}>
-                <span style={UI2.text.figure}>{loading ? '—' : <CountUp value={collected} format={fmtWhole} />}</span>
-                <span style={UI2.pill(TONES2.success)}>{dash(`${fmtPct1(collectionPct)} collected`)}</span>
-              </div>
-              <div style={S.note} title={latestPayment ? `${latestPayment.tenant_name} · ${latestPayment.property_name}${latestPayment.unit_ref ? `, ${latestPayment.unit_ref}` : ''}` : undefined}>
-                {latestPayment
-                  ? <>Latest payment <span style={UI2.strong}>+{fmtCurrency(latestPayment.amount)}</span> from {latestPayment.tenant_name} · {latestPayment.property_name}</>
-                  : dash('No payments recorded this month yet.')}
-              </div>
+        {/* Rent collection — previous design restored (icon header + trend pill, bar chart │ summary list), current fonts */}
+        <SectionCard
+          style={UI2.cardFill}
+          icon="ti-building-bank" title="Rent Collection"
+          action={mom != null && (
+            <span style={UI2.pill(mom >= 0 ? TONES2.success : TONES2.error)}>
+              <i className={`ti ${mom >= 0 ? 'ti-trending-up' : 'ti-trending-down'}`} aria-hidden="true" />
+              {mom >= 0 ? '+' : ''}{mom.toFixed(1)}% from last month
+            </span>
+          )}
+        >
+          <Grid layout="aside" as="div">
+            <div style={S.chartWrap}>
+              <BarChart
+                labels={rentCardMonths.map(d => d.label)}
+                values={rentCardMonths.map(d => d.value)}
+                formatValue={fmtMoney} formatTick={fmtK}
+                ariaLabel="Monthly rent collection"
+              />
             </div>
-            <div style={S.rentBars}>
-              <MiniBars fit items={trend} formatValue={fmtMoney} ariaLabel="Rent collected by month" />
+            <div style={S.rentSide}>
+              {RENT_SUMMARY.map(r => (
+                <div key={r.key} style={UI2.row(LAYOUT2.rowGap)}>
+                  <div style={UI2.iconBox(SZ2.icon.md, r.tone, { round: true })}>
+                    <i className={`ti ${r.icon}`} aria-hidden="true" />
+                  </div>
+                  <div style={UI2.minWidth0}>
+                    <div style={T2.statInline}>{r.val}</div>
+                    <div style={S.rentLbl} title={r.title}>{r.lbl}</div>
+                  </div>
+                </div>
+              ))}
             </div>
-          </div>
-
-          <div style={UI2.cardFoot}>
-            <span>Last month <span style={UI2.strong}>{lastMonth ? fmtMoney(lastMonth.value) : '—'}</span></span>
-            {mom != null && (
-              <span style={UI2.delta(mom >= 0)}>
-                <i className={`ti ${mom >= 0 ? 'ti-trending-up' : 'ti-trending-down'}`} aria-hidden="true" />
-                {mom >= 0 ? '+' : ''}{mom.toFixed(1)}% MoM
-              </span>
-            )}
-          </div>
+          </Grid>
         </SectionCard>
 
         {/* Occupancy — previous design restored (icon header, donut + target, wave art), current fonts */}
