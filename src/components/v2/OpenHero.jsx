@@ -3,32 +3,42 @@ import { C2, G2, T2, F2, SP2, SZ2, LAYOUT2, pad } from '../../constants/v2';
 
 // ─── OpenHero (Design System v2) ─────────────────────────────────────────────
 // OPEN page hero for list pages (Landlord → Properties) — NOT a box: no border, radius or shadow.
-// It bleeds to the page edges right under the top bar: pale sky wash with two soft waves sweeping
-// across, the building photo (pale sky, assets/v2/landlord/portfolio-hero-building.jpg) on the right
-// with its left edge feathered into the wash, and an optional stats band running full width underneath.
+// The photo IS the hero background, full width and edge to edge (sunset sky on the left, building
+// on the right — assets/v2/landlord/portfolio-hero-sunset.jpg). With <PageShell heroBehindTopBar> it
+// also runs up BEHIND the top bar (underTopBar). An optional stats band runs full width underneath.
 //
+//   [ top bar floats over the photo ]
 //   PORTFOLIO
-//   Property List                                   [ building photo ]
+//   Property List                                   [ building in the photo ]
 //   Explore and manage all your properties…
 //   ───────────────────────────────────────────────────────────────────
 //   (▦) Total Properties │ (≋) Total Units │ (%) Avg Occupancy │ (▭) Rent This Month
 //
-//   <OpenHero eyebrow="Portfolio" title="Property List" subtitle="…" image={img}
+//   <OpenHero underTopBar eyebrow="Portfolio" title="Property List" subtitle="…" image={img}
 //             stats={<StatGroup size="lg" items={…} />} />
 //
-// Props: eyebrow, title, subtitle, image, imagePosition, stats (node, usually <StatGroup size="lg">)
-// The photo is shown whole at the hero's height, anchored bottom-right (never stretched or zoomed).
+// Props: eyebrow, title, subtitle, image (photo sized from the hero height — SZ2.openHeroPhotoH — and
+//        right-aligned, so the whole building reads clearly; the sky continues to its left),
+//        underTopBar (photo runs up behind the floating top bar; text pushed down by the bar's height),
+//        stats (node, usually <StatGroup size="lg">)
+// Height follows the width (SZ2.openHeroRatio, min SZ2.openHeroMin) → same framing at every width.
+// The photo needs a light sky on its left so the dark text reads on it.
 // Use it as the FIRST child of PageShell (the negative margins cancel the page padding).
-// Responsive (utilities.css un2-ohero*): ≤ 860px photo fades behind the text · ≤ 600px photo hides.
 
 const S = {
   hero:  { position: 'relative', margin: pad(-LAYOUT2.pageTop, -LAYOUT2.pageX, 0), background: G2.openHero, fontFamily: F2.body, overflow: 'hidden' },
-  waves: { position: 'absolute', inset: 0, width: '100%', height: '100%', pointerEvents: 'none' },
-  top:   { position: 'relative', minHeight: SZ2.openHeroMin, display: 'flex', alignItems: 'center' },
-  photo: (image, position) => ({
-    position: 'absolute', top: 0, right: 0, bottom: 0, width: SZ2.openHeroPhotoW, pointerEvents: 'none',
-    backgroundImage: `url(${image})`, backgroundSize: 'auto 100%', backgroundPosition: position, backgroundRepeat: 'no-repeat',
-    mixBlendMode: 'multiply',   // the photo's sky is pure white → it vanishes and the wash + waves show through behind the building
+  // sky = the photo's own left-edge colours (G2.openHeroSky) → it runs on seamlessly to the left of the photo
+  top:   (underTopBar) => ({
+    position: 'relative', minHeight: SZ2.openHeroMin, aspectRatio: SZ2.openHeroRatio, boxSizing: 'border-box',
+    overflow: 'hidden',   // the photo is taller than this area (SZ2.openHeroPhotoH) — clip it here, never under the stats band
+    display: 'flex', alignItems: 'center', background: G2.openHeroSky, ...(underTopBar ? { paddingTop: SZ2.topbar } : {}),
+  }),
+  // photo sized from the hero's HEIGHT (SZ2.openHeroPhotoH), its own ratio → never stretched; right + top
+  // aligned so the roofline sits under the top bar and the floors / low wings below stay in view.
+  // Left edge feathered into the sky (un2-ohero-photo in utilities.css).
+  photo: (image) => ({
+    position: 'absolute', top: 0, right: 0, height: SZ2.openHeroPhotoH, aspectRatio: SZ2.openHeroPhotoRatio, pointerEvents: 'none',
+    backgroundImage: `url(${image})`, backgroundSize: 'cover', backgroundRepeat: 'no-repeat',
   }),
   text:  { position: 'relative', zIndex: 1, padding: pad(SP2.xxxl, LAYOUT2.pageX), maxWidth: SZ2.heroContentMax, minWidth: 0 },
   eyebrow: { ...T2.eyebrow, color: C2.textSecondary },
@@ -37,37 +47,11 @@ const S = {
   band:  { position: 'relative', zIndex: 1, padding: pad(SP2.lg, LAYOUT2.pageX), background: G2.openHeroBand, borderTop: `${SZ2.hairline}px solid ${C2.glassBorder}` },
 };
 
-// ONE soft wave (design, Downloads/Gemini_Generated_Image_l552q1…): it starts at the BOTTOM about a
-// third of the way across, curves up through the middle and runs on behind the building towards the
-// top right. The swell UNDER the curve is a slightly deeper periwinkle (fading in from its left end);
-// above / left of it stays the light sky wash (G2.openHero). No edge line. The swell fades out
-// before the building (≈ 66% across), so it never shows through the gaps behind / beside it.
-function Waves() {
-  const blue = G2.openHeroWaves[1];
-  // Same start (bottom, ~⅓ across); rises steeply so the crest sits up above the building's roofline
-  const curve = 'M500,300 C640,196 790,96 980,44 C1140,4 1300,-6 1440,-4';
-  return (
-    <svg viewBox="0 0 1440 300" preserveAspectRatio="none" aria-hidden="true" style={S.waves}>
-      <defs>
-        {/* fades in from its left end, fully gone before the building — nothing shows behind / beside it */}
-        <linearGradient id="un2-ohero-swell" gradientUnits="userSpaceOnUse" x1="500" y1="0" x2="1440" y2="0">
-          <stop offset="0%" stopColor={blue} stopOpacity="0" />
-          <stop offset="25%" stopColor={blue} stopOpacity="0.85" />
-          <stop offset="55%" stopColor={blue} stopOpacity="0.65" />
-          <stop offset="80%" stopColor={blue} stopOpacity="0" />
-        </linearGradient>
-      </defs>
-      <path d={`${curve} L1440,300 Z`} fill="url(#un2-ohero-swell)" />
-    </svg>
-  );
-}
-
-export default function OpenHero({ eyebrow, title, subtitle, image, imagePosition = 'right bottom', stats }) {
+export default function OpenHero({ eyebrow, title, subtitle, image, underTopBar = false, stats }) {
   return (
     <section className="un2-ohero" style={S.hero}>
-      <div style={S.top}>
-        <Waves />
-        {image && <div className="un2-ohero-photo" style={S.photo(image, imagePosition)} aria-hidden="true" />}
+      <div style={S.top(underTopBar)}>
+        {image && <div className="un2-ohero-photo" style={S.photo(image)} aria-hidden="true" />}
         <div style={S.text}>
           {eyebrow && <div style={S.eyebrow}>{eyebrow}</div>}
           <h1 style={S.title}>{title}</h1>

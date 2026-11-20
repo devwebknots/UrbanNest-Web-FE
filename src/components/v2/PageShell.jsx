@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import NavF from '../layout/NavF';
 import TopBar from './TopBar';
 import { C2, F2, LAYOUT2, pad } from '../../constants/v2';
@@ -22,20 +22,27 @@ import { C2, F2, LAYOUT2, pad } from '../../constants/v2';
 //        nav (custom sidebar node, replaces NavF) · children
 //        animate (true → sections rise in one after another on load; grid rows stagger their
 //                 cards — class un2-enter-stagger in utilities.css, off for reduced motion)
+//        heroBehindTopBar (true → the first section, an <OpenHero underTopBar>, runs up BEHIND the top
+//                 bar: the bar floats transparent over the photo and turns back into the normal glass
+//                 bar once the content scrolls. Opt-in per page — Portfolio. Off everywhere else.)
 
 const S = {
   shell:   { display: 'flex', height: '100vh', overflow: 'hidden', fontFamily: F2.body, background: C2.pageBg, color: C2.textPrimary },
-  main:    { flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', minWidth: 0 },
+  main:    { flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', minWidth: 0, position: 'relative' },
   content: { flex: 1, overflowY: 'auto', padding: pad(LAYOUT2.pageTop, LAYOUT2.pageX, LAYOUT2.pageBottom) },
 };
 
-export default function PageShell({ activePage, badges, nav, animate = false, children, ...topBarProps }) {
+export default function PageShell({ activePage, badges, nav, animate = false, heroBehindTopBar = false, children, ...topBarProps }) {
+  const [scrolled, setScrolled] = useState(false);
+  const onScroll = heroBehindTopBar
+    ? e => { const s = e.currentTarget.scrollTop > 0; if (s !== scrolled) setScrolled(s); }
+    : undefined;
   return (
     <div style={S.shell}>
       {nav || <NavF activePage={activePage} badges={badges} />}
       <div style={S.main}>
-        <TopBar {...topBarProps} />
-        <main className={animate ? 'un2-stack-sections un2-enter-stagger' : 'un2-stack-sections'} style={S.content}>
+        <TopBar {...topBarProps} overlay={heroBehindTopBar} solid={scrolled} />
+        <main className={animate ? 'un2-stack-sections un2-enter-stagger' : 'un2-stack-sections'} style={S.content} onScroll={onScroll}>
           {children}
         </main>
       </div>

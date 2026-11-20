@@ -8,7 +8,7 @@ import {
   C2, TONES2, ACCENT2, GSTOPS2, accentTone,
   T2, F2, FS2, SP2, SZ2, LAYOUT2, UI2,
 } from '../../constants/v2';
-import heroImage from '../../assets/v2/landlord/portfolio-hero-building.jpg';   // building + trees cropped from Downloads/image 39 (1).png (left edge feathered by OpenHero)
+import heroImage from '../../assets/v2/landlord/portfolio-hero-sunset.jpg';   // sunset sky + building (Downloads/image 57.png) — full-width hero photo behind the top bar
 import propertyPlaceholder from '../../assets/v2/landlord/property-placeholder.jpg';
 
 const API_BASE = process.env.REACT_APP_API_BASE_URL || 'http://localhost:8001/api';
@@ -206,6 +206,7 @@ export default function LandlordPortfolioPage() {
   return (
     <PageShell
       animate
+      heroBehindTopBar
       activePage="properties"
       title="UrbanNest Landlord"
       searchPlaceholder="Search properties, units, tenants…"
@@ -219,6 +220,7 @@ export default function LandlordPortfolioPage() {
         title="Property List"
         subtitle="Explore and manage all your properties in one place."
         image={heroImage}
+        underTopBar
         stats={<StatGroup size="lg" items={STATS} />}
       />
 

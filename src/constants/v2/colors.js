@@ -291,9 +291,10 @@ export const G2 = {
     'radial-gradient(60% 110% at 100% 0%, rgba(218,229,248,0.9) 0%, rgba(218,229,248,0) 70%)',   // light sky blue top-right
     'linear-gradient(90deg, #F5F8FE 0%, #EFF4FC 45%, #E5EDFA 100%)',                              // near-white left → pale blue right
   ].join(', '),
-  // OpenHero wave: [white edge highlight, periwinkle swell under the curve]
-  openHeroWaves: ['#FFFFFF', '#D3DFF5'],   // opacity ramps live in OpenHero's SVG gradients
   openHeroBand: 'linear-gradient(180deg, rgba(255,255,255,0.7) 0%, rgba(255,255,255,0.35) 100%)',
+  // OpenHero sky to the LEFT of the photo (portfolio-hero-sunset.jpg): the photo's own left-edge colours,
+  // top → bottom over the full photo height — continues its sunset sky seamlessly
+  openHeroSky: 'linear-gradient(180deg, #9CA7E8 0%, #C3BAF3 20%, #EBD2F7 40%, #FDE2E5 60%, #FDCD9B 80%, #E9C6B6 100%)',
   // Soft glow behind the hero text column (same tint as the hero surface) — keeps the stats readable
   // where the text runs over the photo on narrower screens; invisible where it sits on plain surface.
   profileHeroGlow: 'linear-gradient(90deg, rgba(249,251,255,0.8) 0%, rgba(249,251,255,0.7) 55%, rgba(249,251,255,0.35) 78%, rgba(249,251,255,0) 100%)',

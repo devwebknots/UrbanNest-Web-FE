@@ -21,6 +21,9 @@ const S = {
   kbd:      { fontSize: FS2.xs, fontWeight: FW2.semibold, color: C2.textSecondary, background: C2.surfaceMuted, border: `1px solid ${C2.border}`, borderRadius: R2.sm, padding: pad(SP2.xxs, SP2.sm) },
   bellDot:  { ...UI2.statusDot(TONES2.error), position: 'absolute', top: SP2.sm, right: SP2.sm, border: `2px solid ${C2.pageBg}`, boxSizing: 'content-box' },
   avatar:   { ...UI2.avatar(SZ2.icon.md, { soft: C2.navyDeep, fg: C2.white }), cursor: 'pointer', boxShadow: SH2.avatarRing },
+  // overlay: floats over the hero photo; turns back into the normal glass bar when the page scrolls
+  overlay:  (solid) => ({ position: 'absolute', top: 0, left: 0, right: 0, zIndex: 5, transition: 'background 0.2s ease, border-color 0.2s ease',
+    ...(solid ? {} : { background: 'transparent', borderBottomColor: 'transparent' }) }),
 };
 
 export default function TopBar({
@@ -31,9 +34,11 @@ export default function TopBar({
   avatarText = '',
   avatarLabel = 'Profile',
   actions = null,
+  overlay = false,   // floats ON the page hero (PageShell heroBehindTopBar)
+  solid = false,     // overlay only: normal glass bar again once the page scrolls
 }) {
   return (
-    <header style={S.bar}>
+    <header style={overlay ? { ...S.bar, ...S.overlay(solid) } : S.bar}>
       <div style={S.title}>{title}</div>
       <div style={UI2.row(SP2.md)}>
         {searchPlaceholder !== null && (

@@ -69,7 +69,9 @@ export const SZ2 = {
   bento:   { h: 320, hSm: 200, thumbSm: 88 },   // gallery height · main photo height on phones · thumb strip height on phones — --un2-bento-*
   // Open page hero (OpenHero): text block min height · photo width on the right
   openHeroMin: 200,
-  openHeroPhotoW: '55%',
+  openHeroRatio: '5 / 1',                      // OpenHero height follows its width (photo framing like the design)
+  openHeroPhotoH: '100%',                      // OpenHero photo height = the hero's: the WHOLE photo shows (nothing cut off), building at design scale
+  openHeroPhotoRatio: '3 / 1',                 // portfolio-hero-sunset.jpg (2400 × 800) — keeps the photo unstretched
   // Portfolio (property list): PropertyRow — compact row photo
   propertyRowPhoto: { w: 128, h: 84 },          // PropertyRow photo (compact list row)
   scoreFigure: 40,                             // big health / score figure (Inter Medium) — not on the type scale on purpose: one hero number
