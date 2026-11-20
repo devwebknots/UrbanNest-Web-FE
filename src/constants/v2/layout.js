@@ -15,6 +15,8 @@ export const SZ2 = {
   control: { sm: 28, md: 34, lg: 40 },           // buttons, inputs, nav items (compact)
   hairline:1,                                   // dividers, separators, 1px rules
   dashed:  1.5,                                 // dashed outline of an empty "Add …" upload slot (UI2.addTile)
+  pageWave: 240,                                // PageWave backdrop height — top bar + breadcrumb + detail header
+  pillFixed: 72,                               // fixed-width status pills in a list column (Critical / Medium / Low) — fits the longest label
   dot:     6,
   progress:6,
   sidebar: 224,

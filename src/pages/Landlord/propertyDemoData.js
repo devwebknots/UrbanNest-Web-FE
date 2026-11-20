@@ -55,3 +55,30 @@ export const PROPERTY_DEMO = {
     { month: 'OCT', amount: 4250 },
   ],
 };
+
+// ─── Landlord Unit Detail — sample (demo) data ───────────────────────────────
+// Shown ONLY in the unit page's Tenant card when GET /landlord/property/<id>/unit/<uid>/ has no
+// tenant_profile (current) or no past_tenants (past). Display only: the header's Vacant / Occupied
+// and the Unit Status card always use the REAL tenant. Fields match the API shape so the eye
+// detail pop-up works for sample rows too.
+export const UNIT_DEMO = {
+  tenant: {
+    id: 'demo-t1', name: 'Olivia Bennett', email: 'olivia.bennett@example.com',
+    occupation: 'Product Designer', company: 'Northwind Studio',
+    move_in_date: 'Apr 01, 2025', renewal_window: 'Jan 01 – Mar 31, 2027', payment_rating: 5,
+  },
+  past_tenants: [
+    { id: 'demo-t2', name: 'James Whitaker', email: 'james.whitaker@example.com',
+      occupation: 'Software Engineer', company: 'Brightline Labs',
+      move_in_date: 'Mar 15, 2023', lease_end_date: 'Mar 14, 2025', payment_rating: 4 },
+    { id: 'demo-t3', name: 'Sophia Clarke', email: 'sophia.clarke@example.com',
+      occupation: 'Nurse', company: 'St. Mary Hospital',
+      move_in_date: 'Feb 01, 2021', lease_end_date: 'Jan 31, 2023', payment_rating: 5 },
+  ],
+  // Maintenance Queue — shown when the unit has no tickets (same fields as the API's maintenance rows)
+  maintenance: [
+    { id: 'demo-m1', title: 'Leaking kitchen faucet',       priority: 'HIGH',   time_ago: '2h ago' },
+    { id: 'demo-m2', title: 'AC not cooling in bedroom',    priority: 'MEDIUM', time_ago: '1d ago' },
+    { id: 'demo-m3', title: 'Replace hallway light bulb',   priority: 'LOW',    time_ago: '3d ago' },
+  ],
+};

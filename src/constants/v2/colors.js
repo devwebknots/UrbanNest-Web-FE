@@ -292,6 +292,13 @@ export const G2 = {
     'linear-gradient(90deg, #F5F8FE 0%, #EFF4FC 45%, #E5EDFA 100%)',                              // near-white left → pale blue right
   ].join(', '),
   openHeroBand: 'linear-gradient(180deg, rgba(255,255,255,0.7) 0%, rgba(255,255,255,0.35) 100%)',
+  // Page backdrop gradient (PageWave — unit detail): soft sky behind the top bar + header, colour sampled from the
+  // design (#DBE8FD, strongest top-centre) fading into the page background; bottom edge melts away (pageWaveMask)
+  pageWave: [
+    'radial-gradient(70% 140% at 50% 0%, rgba(219,232,253,1) 0%, rgba(219,232,253,0.55) 45%, rgba(219,232,253,0) 100%)',
+    `linear-gradient(180deg, ${C2.primaryTint} 0%, ${C2.pageBg} 100%)`,
+  ].join(', '),
+  pageWaveMask: 'linear-gradient(180deg, #000 70%, transparent 100%)',
   // OpenHero sky to the LEFT of the photo (portfolio-hero-sunset.jpg): the photo's own left-edge colours,
   // top → bottom over the full photo height — continues its sunset sky seamlessly
   openHeroSky: 'linear-gradient(180deg, #9CA7E8 0%, #C3BAF3 20%, #EBD2F7 40%, #FDE2E5 60%, #FDCD9B 80%, #E9C6B6 100%)',

@@ -1,12 +1,13 @@
 import React, { useState, useRef } from 'react';
 import {
   PageShell, Grid, SectionCard, Breadcrumb, ListRow, EmptyState, PageFooter,
-  DataTable, TextLink, DetailHeader, PhotoBento, CardWave,
+  DataTable, TextLink, DetailHeader, PhotoBento, CardWave, PageWave,
 } from '../../components/v2';
 import {
-  C2, TONES2, ACCENT2, AVATAR2, accentTone, T2, FS2, SP2, SZ2, LAYOUT2, OP2, pad, UI2,
+  C2, TONES2, ACCENT2, AVATAR2, accentTone, T2, FS2, SH2, SP2, SZ2, LAYOUT2, OP2, pad, UI2,
 } from '../../constants/v2';
 import { C, F } from './landlordTokens';
+import { UNIT_DEMO, orDemo, isDemoId } from './propertyDemoData';
 
 // Session 57 fix — same colored icon-chip treatment as
 // LandlordPropertyDetailPage.jsx's amenityStyle() (itself ported from
@@ -934,6 +935,7 @@ const RATING_MAX    = 5;
 // Page-specific layout only — shared patterns come from UI2 and the v2 components.
 const V = {
   headActions: { ...UI2.row(LAYOUT2.inlineGap), flexWrap: 'wrap', justifyContent: 'flex-end' },
+  headBtn:     { ...UI2.btn.light, boxShadow: SH2.glass },   // white button on the PageWave gradient, same mild shadow as containers
   statusPill:  (tone) => ({ ...UI2.pill(tone), flexShrink: 0 }),
   disabled:    { opacity: OP2.muted, cursor: 'not-allowed' },
   hidden:      { display: 'none' },
@@ -967,6 +969,7 @@ const V = {
   stars:       { ...UI2.row(SP2.xxs), color: C2.primary },
   starOff:     { color: C2.textSubtle },
   ownerName:   { ...UI2.row(SP2.xs), minWidth: 0 },
+  priorityPill:(tone) => ({ ...UI2.pill(tone), width: SZ2.pillFixed, justifyContent: 'center' }),   // same width for Critical / Medium / Low
   primaryStar: { color: C2.primary, fontSize: FS2.sm },
 };
 
@@ -1284,16 +1287,17 @@ export default function LandlordUnitDetailPage() {
   const listingTitle = listing
     ? (listing.status === 'ACTIVE' ? 'This unit is already listed on the Marketplace.' : 'A listing is already in progress for this unit.')
     : undefined;
+  // Secondary header actions sit on the PageWave gradient → white light buttons (soft would blend into the blue)
   const headerActions = (
     <div style={V.headActions}>
       {!loading && unit.id && (
-        <button type="button" className="un2-btn" style={UI2.btn.soft} onClick={() => setShowEditUnit(true)}>
+        <button type="button" className="un2-btn" style={V.headBtn} onClick={() => setShowEditUnit(true)}>
           <i className="ti ti-pencil" style={UI2.btnIcon} aria-hidden="true" /> Edit
         </button>
       )}
       <button
         type="button" className="un2-btn"
-        style={{ ...UI2.btn.soft, ...(listing ? V.disabled : {}) }}
+        style={{ ...V.headBtn, ...(listing ? V.disabled : {}) }}
         disabled={!!listing}
         title={listingTitle}
         onClick={() => {
@@ -1303,7 +1307,7 @@ export default function LandlordUnitDetailPage() {
       >
         <i className="ti ti-building-store" style={UI2.btnIcon} aria-hidden="true" /> {listingLabel}
       </button>
-      <button type="button" className="un2-btn" style={UI2.btn.soft}>
+      <button type="button" className="un2-btn" style={V.headBtn}>
         <i className="ti ti-share" style={UI2.btnIcon} aria-hidden="true" /> Share Detail
       </button>
       <button type="button" className="un2-btn" style={UI2.btn.brand}>
@@ -1477,14 +1481,18 @@ export default function LandlordUnitDetailPage() {
   );
 
   // ── Maintenance Queue │ Financial Command ────────────────────────────────
+  // REAL tickets first; when the unit has none (once loaded), sample tickets from UNIT_DEMO with a "Sample" pill
+  const viewMaintenance = loading ? [] : orDemo(maintenance, UNIT_DEMO.maintenance);
+  const maintIsSample = viewMaintenance.some(t => isDemoId(t.id));
   const maintenanceCard = (
     <SectionCard
-      style={UI2.cardFill} centerBody={maintenance.length === 0} icon="ti-tool" title="Maintenance Queue"
+      style={UI2.cardFill} centerBody={viewMaintenance.length === 0} icon="ti-tool" title="Maintenance Queue"
+      badge={maintIsSample && <span style={UI2.pill()} title="Sample data until a ticket is logged">Sample</span>}
       action={<TextLink arrow={false}><i className="ti ti-plus" aria-hidden="true" /> Add ticket</TextLink>}
     >
-      {maintenance.length === 0 ? (
+      {viewMaintenance.length === 0 ? (
         <EmptyState icon="ti-clipboard-check" text="No open tickets." />
-      ) : maintenance.map(t => {
+      ) : viewMaintenance.map(t => {
         const p = PRIORITY_CFG(t.priority);
         return (
           <ListRow
@@ -1492,7 +1500,7 @@ export default function LandlordUnitDetailPage() {
             leading={<div style={UI2.iconBox(SZ2.icon.md, p.tone)}><i className="ti ti-tool" aria-hidden="true" /></div>}
             title={t.title}
             meta={t.time_ago}
-            trailing={<span style={UI2.pill(p.tone)}>{p.label}</span>}
+            trailing={<span style={V.priorityPill(p.tone)}>{p.label}</span>}
           />
         );
       })}
@@ -1567,11 +1575,17 @@ export default function LandlordUnitDetailPage() {
     </button>
   );
 
-  const tenantRows = tenantTab === 'current' ? (tenant.name ? [tenant] : []) : pastTenants;
+  // Tenant card: REAL tenant / past tenants first; when the API has none (once loaded), sample rows from
+  // UNIT_DEMO (propertyDemoData.js) fill the card, flagged with a "Sample" pill. Display only.
+  const viewTenant      = tenant.name ? tenant : (loading ? null : UNIT_DEMO.tenant);
+  const viewPastTenants = loading ? [] : orDemo(pastTenants, UNIT_DEMO.past_tenants);
+  const tenantRows = tenantTab === 'current' ? (viewTenant ? [viewTenant] : []) : viewPastTenants;
+  const tenantIsSample = tenantRows.some(t => isDemoId(t.id));
   const tenantCard = (
     <SectionCard
       style={UI2.cardFill} centerBody={tenantRows.length === 0} icon="ti-users" title="Tenant"
-      action={segment(tenantTab, setTenantTab, pastTenants.length)}
+      badge={tenantIsSample && <span style={UI2.pill()} title="Sample data until a tenant is assigned">Sample</span>}
+      action={segment(tenantTab, setTenantTab, viewPastTenants.length)}
     >
       {tenantRows.length === 0 ? (
         <EmptyState illustration="people" text={tenantTab === 'current' ? 'No tenant assigned to this unit.' : 'No past tenant records for this unit yet.'} />
@@ -1633,6 +1647,7 @@ export default function LandlordUnitDetailPage() {
     <>
       <PageShell
         animate
+        backdrop={<PageWave />}
         activePage="properties"
         title="UrbanNest Landlord"
         avatarText={initials(userLabel || 'L')}
