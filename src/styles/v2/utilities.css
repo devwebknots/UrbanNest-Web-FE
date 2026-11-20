@@ -341,3 +341,8 @@
 
 /* ── OpenHero: photo right-aligned, its left edge feathered into the sky (G2.openHeroSky) ── */
 .un2-ohero-photo { -webkit-mask-image: linear-gradient(90deg, transparent 0%, #000 18%); mask-image: linear-gradient(90deg, transparent 0%, #000 18%); }
+
+/* ── FilterMenu dropdown (components/v2/FilterMenu.jsx): row hover — !important beats the inline transparent bg ── */
+.un2-menu-item { transition: background var(--un2-motion-fast); }
+.un2-menu-item[aria-selected="false"]:hover,
+.un2-menu-item[aria-selected="false"]:focus-visible { background: var(--un2-background) !important; outline: none; }

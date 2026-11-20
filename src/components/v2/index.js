@@ -38,6 +38,7 @@
 //   Detail pages: DetailHeader (title · pill · Edit · address + aside) · StatGroup (stats in one container)
 //                 PhotoBento (big photo + 2×2 tiles + Add) · un2-cols (divided columns in one panel)
 //   TextLink    "View All →" text action with sliding arrow (never hand-build link buttons)
+//   FilterMenu  filter icon in a card header → dropdown to pick one option (e.g. a property)
 //   Card patterns in UI2: cardFill · capsLabel · labelRow · context · subhead · cardFoot · strong ·
 //   delta() · amount() · legendRow/Key/Val · accentItem() · tintRow  (see constants/v2/components.js)
 //
@@ -80,5 +81,6 @@ export { default as CountUp } from './CountUp';
 export { default as TextLink } from './TextLink';
 export { default as DetailHeader } from './DetailHeader';
 export { default as StatGroup } from './StatGroup';
+export { default as FilterMenu } from './FilterMenu';
 export { default as PhotoBento } from './PhotoBento';
 export { BarChart, DonutChart, Sparkline, LineChart, Gauge, ProgressRing, MiniBars } from './Charts';

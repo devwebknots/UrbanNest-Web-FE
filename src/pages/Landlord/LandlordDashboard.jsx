@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import {
   PageShell, Grid, ProfileHero, KpiStrip, SectionCard, AssetRow, InsightCard, MetricBar,
   ListRow, EmptyState, MessageItem, PageFooter, BarChart, Sparkline, CountUp, TextLink,
-  CardWave, DonutChart,
+  CardWave, DonutChart, FilterMenu,
 } from '../../components/v2';
 import {
   C2, TONES2, ACCENT2, AVATAR2, CHART2,
@@ -23,7 +23,7 @@ const API_BASE = process.env.REACT_APP_API_BASE_URL || 'http://localhost:8001/ap
 //
 // Composition (top → bottom), hierarchy through type + spacing rather than boxes:
 //   ProfileHero (light, photo feathered in)        — who / portfolio size / main actions
-//   Rent collection │ Occupancy                    — the two headline numbers (mini bars │ donut + wave card)
+//   Portfolio Collection │ Occupancy                  — the two headline numbers (mini bars │ donut + wave card)
 //   KpiStrip                                       — 4 KPIs in ONE container, hairline split
 //   Prime Assets │ Monthly Rent Collection         — property rows │ chart + recent payments
 //   Open Operations │ Recent Documents │ Comms Hub
@@ -89,6 +89,11 @@ const DEFAULT_MONTHS = ['Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov'];
 const OCCUPANCY_TARGET = 96;
 const MAX_PRIME_ASSETS = 3;   // Prime Assets card lists at most 3 properties (full list: Manage all properties)
 const COLLECTION_TARGET = 95;
+// Recent Documents filter options (FilterMenu) — matches DOCS[].scope
+const DOC_SCOPES = [
+  { value: 'PROPERTY', label: 'Property' },
+  { value: 'UNIT',     label: 'Unit' },
+];
 
 // ─── Main component ───────────────────────────────────────────────────────────
 export default function LandlordDashboard() {
@@ -96,6 +101,22 @@ export default function LandlordDashboard() {
   const [data, setData]       = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError]     = useState(null);
+  const [myProperties, setMyProperties] = useState([]);     // landlord's own properties (Open Operations filter)
+  const [opsProperty, setOpsProperty]   = useState(null);   // selected filter option value · null = all properties
+  const [rentProperty, setRentProperty] = useState(null);   // Monthly Rent Collection filter · null = all properties
+  const [docScope, setDocScope]         = useState(null);   // Recent Documents filter: 'PROPERTY' | 'UNIT' · null = all
+
+  // Full property list for the Open Operations filter — same endpoint as the Portfolio page.
+  // On failure the filter falls back to the property names already on the dashboard.
+  useEffect(() => {
+    const token = localStorage.getItem('access_token');
+    fetch(`${API_BASE}/landlord/portfolio/`, {
+      headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
+    })
+      .then(r => (r.ok ? r.json() : null))
+      .then(j => setMyProperties(j?.properties || []))
+      .catch(() => setMyProperties([]));
+  }, []);
 
   useEffect(() => {
     const token = localStorage.getItem('access_token');
@@ -128,6 +149,24 @@ export default function LandlordDashboard() {
   const tenants       = ready ? orDemo(data?.tenant_pulse,    DASHBOARD_DEMO.tenant_pulse)    : [];
   const payments      = ready ? orDemo(data?.recent_payments, DASHBOARD_DEMO.recent_payments) : [];
   const shownAssets   = primeAssets.slice(0, MAX_PRIME_ASSETS);
+
+  // Open Operations property filter: options = the landlord's properties (portfolio API); if that
+  // list is empty, the unique property names already shown on the dashboard. Tickets match by
+  // property id when the API sends one, otherwise by property name.
+  const propertyOptions = myProperties.length
+    ? myProperties.map(p => ({ value: String(p.id ?? p.name), label: p.name || `Property #${p.id}` }))
+    : [...new Set([...primeAssets, ...ops].map(x => x.property_name || x.name).filter(Boolean))]
+        .map(name => ({ value: name, label: name }));
+  const opsFilter = propertyOptions.find(o => o.value === opsProperty) || null;
+  const shownOps = opsFilter
+    ? ops.filter(op => (op.property_id != null && String(op.property_id) === opsFilter.value) || op.property_name === opsFilter.label)
+    : ops;
+  // Monthly Rent Collection filter — same property options; narrows the recent payments list
+  // (the bar chart stays portfolio-wide: the dashboard API sends monthly totals, not per property)
+  const rentFilter = propertyOptions.find(o => o.value === rentProperty) || null;
+  const shownPayments = rentFilter
+    ? payments.filter(p => (p.property_id != null && String(p.property_id) === rentFilter.value) || p.property_name === rentFilter.label)
+    : payments;
 
   const landlordName   = landlord.name || 'Landlord';
   const avatarInitials = initials(landlordName);
@@ -190,11 +229,14 @@ export default function LandlordDashboard() {
   ];
 
   // Recent Documents — static for now, wire to docs API when built
+  // scope: PROPERTY (building-level filing) · UNIT (unit-level, e.g. a lease) — drives the header filter
   const DOCS = [
-    { tone: TONES2.primary, icon: 'ti-file-text',    name: 'Lease Agreement - #402', meta: 'Updated 2 days ago · 1.2MB' },
-    { tone: TONES2.success, icon: 'ti-report-money', name: 'Q3 Financial Report',    meta: 'Aug 15, 2023 · 4.0MB' },
-    { tone: TONES2.purple,  icon: 'ti-shield-check', name: 'Insurance Certificate',  meta: 'Expires in 4 months', metaCol: C2.purple },
+    { tone: TONES2.primary, icon: 'ti-file-text',    scope: 'UNIT',     name: 'Lease Agreement - #402', meta: 'Updated 2 days ago · 1.2MB' },
+    { tone: TONES2.success, icon: 'ti-report-money', scope: 'PROPERTY', name: 'Q3 Financial Report',    meta: 'Aug 15, 2023 · 4.0MB' },
+    { tone: TONES2.purple,  icon: 'ti-shield-check', scope: 'PROPERTY', name: 'Insurance Certificate',  meta: 'Expires in 4 months', metaCol: C2.purple },
   ];
+  const docsFilter = DOC_SCOPES.find(o => o.value === docScope) || null;
+  const shownDocs  = docsFilter ? DOCS.filter(d => d.scope === docsFilter.value) : DOCS;
 
   const MESSAGES = [
     { from: 'Estate Manager',   col: C2.skyOnDark, time: '14:20', text: '"The inspection for Emerald Gardens is finalized. Sending over the report now."' },
@@ -249,12 +291,12 @@ export default function LandlordDashboard() {
         </>}
       />
 
-      {/* ── HEADLINE: RENT COLLECTION + OCCUPANCY ── */}
+      {/* ── HEADLINE: PORTFOLIO COLLECTION + OCCUPANCY ── */}
       <Grid layout="wideLeft">
-        {/* Rent collection — previous design restored (icon header + trend pill, bar chart │ summary list), current fonts */}
+        {/* Portfolio Collection — previous design restored (icon header + trend pill, bar chart │ summary list), current fonts */}
         <SectionCard
           style={UI2.cardFill}
-          icon="ti-building-bank" title="Rent Collection"
+          icon="ti-building-bank" title="Portfolio Collection"
           action={mom != null && (
             <span style={UI2.pill(mom >= 0 ? TONES2.success : TONES2.error)}>
               <i className={`ti ${mom >= 0 ? 'ti-trending-up' : 'ti-trending-down'}`} aria-hidden="true" />
@@ -368,7 +410,14 @@ export default function LandlordDashboard() {
         <SectionCard
           style={UI2.cardFill}
           icon="ti-chart-bar" title="Monthly Rent Collection" subtitle="Ledger tracking & recurring payments"
-          action={<span className="un2-hide-narrow" style={UI2.pill(TONES2.neutral)}>{chartMonths.length} months</span>}
+          /* months pill replaced by the property filter (kept for reference):
+             action={<span className="un2-hide-narrow" style={UI2.pill(TONES2.neutral)}>{chartMonths.length} months</span>} */
+          action={
+            <FilterMenu
+              title="Filter by property" allLabel="All properties" ariaLabel="Filter rent collection by property"
+              options={propertyOptions} value={rentFilter ? rentFilter.value : null} onChange={setRentProperty}
+            />
+          }
         >
           <div style={S.chartWrap}>
             <BarChart
@@ -380,8 +429,10 @@ export default function LandlordDashboard() {
           </div>
 
           <div style={UI2.subhead}>Recent payments</div>
-          {!loading && payments.length === 0 && <div style={UI2.emptyInline}>No payments recorded yet.</div>}
-          {payments.slice(0, 3).map((p, i) => (
+          {!loading && shownPayments.length === 0 && (
+            <div style={UI2.emptyInline}>{rentFilter ? `No payments recorded for ${rentFilter.label} yet.` : 'No payments recorded yet.'}</div>
+          )}
+          {shownPayments.slice(0, 3).map((p, i) => (
             <ListRow
               key={p.id || i}
               style={i === 0 ? { borderTop: 'none' } : undefined}
@@ -400,12 +451,22 @@ export default function LandlordDashboard() {
           style={UI2.cardFill}
           icon="ti-tool" title="Open Operations" subtitle="Active maintenance & contractor reliability"
           badge={<span className="un2-live-dot" style={UI2.dot(C2.success)} aria-label="Live" />}
+          action={
+            <FilterMenu
+              title="Filter by property" allLabel="All properties" ariaLabel="Filter open operations by property"
+              options={propertyOptions} value={opsFilter ? opsFilter.value : null} onChange={setOpsProperty}
+            />
+          }
         >
           <div style={S.opsBody}>
             <MetricBar label="Vendor reliability" value="96%" pct={96} tone={TONES2.success} valueTone gradient />
 
-            {!loading && ops.length === 0 && <div style={{ ...UI2.emptyInline, marginTop: SP2.lg }}>No open tickets.</div>}
-            {ops.slice(0, 2).map((op, i) => {
+            {!loading && shownOps.length === 0 && (
+              <div style={{ ...UI2.emptyInline, marginTop: SP2.lg }}>
+                {opsFilter ? `No open tickets for ${opsFilter.label}.` : 'No open tickets.'}
+              </div>
+            )}
+            {shownOps.slice(0, 2).map((op, i) => {
               const tag = PRIORITY_TAG[op.priority] || PRIORITY_TAG.STANDARD;
               return (
                 <div key={op.id || i} style={UI2.accentItem(tag.tone)}>
@@ -436,10 +497,19 @@ export default function LandlordDashboard() {
         </SectionCard>
 
         <SectionCard
+          style={UI2.cardFill}
           icon="ti-file-text" title="Recent Documents" subtitle="Leases, reports & filings"
-          action={<TextLink>View All</TextLink>}
+          action={
+            <FilterMenu
+              title="Filter by type" allLabel="All documents" ariaLabel="Filter documents by property or unit"
+              options={DOC_SCOPES} value={docScope} onChange={setDocScope}
+            />
+          }
         >
-          {DOCS.map((d, i) => (
+          {shownDocs.length === 0 && (
+            <div style={UI2.emptyInline}>No {docsFilter ? docsFilter.label.toLowerCase() : ''} documents yet.</div>
+          )}
+          {shownDocs.map((d, i) => (
             <ListRow
               key={d.name}
               style={i === 0 ? { borderTop: 'none' } : undefined}
@@ -454,6 +524,14 @@ export default function LandlordDashboard() {
               }
             />
           ))}
+
+          {/* footer: count left · View All bottom-right (UI2.cardFoot sits at the card bottom via cardFill) */}
+          <div style={UI2.cardFoot}>
+            <span style={UI2.text.caption}>
+              {shownDocs.length} {docsFilter ? `${docsFilter.label.toLowerCase()} ` : ''}document{shownDocs.length === 1 ? '' : 's'}
+            </span>
+            <TextLink>View All</TextLink>
+          </div>
         </SectionCard>
 
         <SectionCard

@@ -18,6 +18,7 @@ export const SZ2 = {
   pageWave: 240,                                // PageWave backdrop height — top bar + breadcrumb + detail header
   pillFixed: 72,                               // fixed-width status pills in a list column (Critical / Medium / Low) — fits the longest label
   dot:     6,
+  menu:    { w: 240, maxH: 280 },           // FilterMenu dropdown: width · max height before it scrolls
   progress:6,
   sidebar: 224,
   topbar:  56,
@@ -166,3 +167,6 @@ export const BLUR2 = {
 
 // Opacity steps
 export const OP2 = { faint: 0.25, muted: 0.45, soft: 0.7 };
+
+// Stacking order for floating layers (rendered in a portal on document.body)
+export const ZI2 = { menu: 1000 };   // FilterMenu dropdown — above cards, top bar and sidebar
