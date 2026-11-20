@@ -30,7 +30,7 @@ const S = {
   value: { ...T2.statInline, marginTop: SP2.xxs, whiteSpace: 'nowrap' },   // standard small stat: Inter 16px Medium
   // size="lg"
   itemLg:  { ...UI2.row(SP2.md), padding: pad(SP2.xs, SP2.xxxl), minWidth: 0 },
-  labelLg: { ...T2.label, whiteSpace: 'nowrap' },
+  labelLg: { ...T2.kpiLabel, whiteSpace: 'nowrap' },   // same KPI label as KpiStrip (Inter Medium 12)
   valueLg: { ...T2.figureMd, marginTop: SP2.xs, whiteSpace: 'nowrap' },
 };
 

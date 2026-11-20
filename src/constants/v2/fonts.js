@@ -79,6 +79,8 @@ export const T2 = {
   bodyMedium:     { fontFamily: F2.body, fontSize: FS2.base, fontWeight: FW2.medium, lineHeight: LH2.body, color: C2.textBody },
   bodyBold:       { fontFamily: F2.body, fontSize: FS2.base, fontWeight: FW2.semibold, lineHeight: LH2.body, color: C2.textPrimary },
   label:          { fontFamily: F2.body, fontSize: FS2.sm, fontWeight: FW2.regular, lineHeight: LH2.body, color: C2.textSecondary },
+  // KPI label above a big figure (KpiStrip, StatGroup size="lg") — Inter Medium 12px, grey
+  kpiLabel:       { fontFamily: F2.body, fontSize: FS2.sm, fontWeight: FW2.medium, lineHeight: LH2.heading, color: C2.textSecondary },
   caption:        { fontFamily: F2.body, fontSize: FS2.xs, fontWeight: FW2.regular, lineHeight: LH2.body, color: C2.textMuted },
   badge:          { fontFamily: F2.body, fontSize: FS2.xxs, fontWeight: FW2.semibold, lineHeight: LH2.snug },
   button:         { fontFamily: F2.body, fontSize: FS2.base, fontWeight: FW2.medium, lineHeight: LH2.snug },

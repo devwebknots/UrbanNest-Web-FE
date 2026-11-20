@@ -85,15 +85,22 @@ const S = {
   toolBtn:   (on) => ({ ...UI2.btn.iconOutline(SZ2.control.md), ...(on ? { color: C2.primary, borderColor: C2.primary } : {}) }),
   search:    { ...UI2.searchField, width: SZ2.searchSm, maxWidth: '100%', marginTop: LAYOUT2.cardHeaderGap },
   input:     { flex: 1, minWidth: 0, border: 'none', outline: 'none', background: 'transparent', fontFamily: F2.body, fontSize: FS2.base, color: C2.textPrimary },
-  list:      { marginTop: SP2.xl },
+  // My Properties: open section (column so an empty state can fill + centre in the remaining height)
+  open:      { display: 'flex', flexDirection: 'column', minWidth: 0 },
+  openHead:  { display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: SP2.md, marginBottom: LAYOUT2.cardHeaderGap },
+  // Playfair's lowercase sits low in its line box (Inter on the buttons sits centred), so a box-centred
+  // title reads ~2px low. The bottom margin lifts it by half its size (SP2.xs → 2px) in the flex-centred
+  // row, putting the title's optical centre level with the buttons.
+  openTitle: { ...T2.pageTitle, margin: 0, marginBottom: SP2.xs },
+  list:      { marginTop: SP2.xs },   // rows carry their own vertical padding
   // empty / no-match: fills the rest of the card and centres the EmptyState both ways
   listEmpty: { flex: 1, display: 'flex', alignItems: 'center', justifyContent: 'center', marginTop: SP2.xl },
 
-  insightTop:{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: SP2.md, flexWrap: 'wrap' },
+  insightTop:{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: SP2.md, flexWrap: 'wrap', paddingTop: SP2.md },   // same start under the header line as the list cards
   insightSub:{ ...T2.label, marginTop: SP2.xs },
   deltaCol:  { ...UI2.stack(SP2.xs), alignItems: 'flex-end' },
   chartWrap: { position: 'relative', height: SZ2.chart, marginTop: SP2.lg },
-  sampleNote:{ ...UI2.row(SP2.xs), ...T2.caption, marginTop: SP2.sm },
+  sampleNote:{ ...UI2.row(SP2.xs), ...T2.caption, marginTop: SP2.sm, paddingBottom: SP2.md },   // same bottom room as the list cards
 };
 
 // ─── Main component ───────────────────────────────────────────────────────────
@@ -223,22 +230,21 @@ export default function LandlordPortfolioPage() {
 
       {/* ── MY PROPERTIES │ INSIGHTS · ACTIVITY · QUICK ACTIONS ── */}
       <Grid layout="mainSide">
-        <SectionCard
-          style={UI2.cardFill}
-          icon="ti-home-2" title="My Properties"
-          action={
+        {/* My Properties — OPEN section (no card: no background, border or shadow), sits on the page */}
+        <section className="un2-cq" style={S.open}>
+          <div style={S.openHead}>
+            <h2 style={S.openTitle}>My Properties</h2>
             <div style={S.tools}>
               <button type="button" className="un2-raise" style={S.toolBtn(searchOpen || !!search)} aria-label="Search properties" aria-pressed={searchOpen}
                 onClick={() => setSearchOpen(o => !o)}>
                 <i className="ti ti-search" aria-hidden="true" />
               </button>
-              <button type="button" className="un2-btn" style={{ ...UI2.btn.brand, ...UI2.btnSm }} onClick={() => navigate('/landlord-portal/add-property')}>
+              <button type="button" className="un2-btn" style={UI2.btn.brand} onClick={() => navigate('/landlord-portal/add-property')}>
                 <i className="ti ti-plus" style={UI2.btnIcon} aria-hidden="true" />
                 <span className="un2-hide-narrow">Add Property</span>
               </button>
             </div>
-          }
-        >
+          </div>
           <TabBar variant="underline" ariaLabel="Property filters" value={activeFilter} onChange={onFilterChange} tabs={FILTERS} />
 
           {(searchOpen || search) && (
@@ -288,12 +294,12 @@ export default function LandlordPortfolioPage() {
                     typeLabel={PROP_TYPE_LABEL[prop.property_type] || prop.property_type}
                     share={share}
                     stats={[
-                      { icon: 'ti-buildings',      value: prop.total_units ?? 0,       label: prop.total_units === 1 ? 'Total Unit' : 'Total Units' },
+                      { icon: 'ti-buildings',      value: prop.total_units ?? 0,       label: prop.total_units === 1 ? 'Unit' : 'Units' },
                       { icon: 'ti-percentage',     value: `${prop.occupancy_pct ?? 0}%`, label: 'Occupancy' },
                       { icon: 'ti-calendar-check', value: prop.renewals_30d ?? 0,       label: 'Upcoming' },
                     ]}
                     primaryAction={{ label: 'View Property', onClick: toProperty }}
-                    secondaryAction={{ label: 'View Units', onClick: toUnits }}
+                    secondaryAction={{ label: 'Units', onClick: toUnits }}
                     menu={[
                       { icon: 'ti-eye',     label: 'View property', onClick: toProperty },
                       { icon: 'ti-stack-2', label: 'View units',    onClick: toUnits },
@@ -304,7 +310,7 @@ export default function LandlordPortfolioPage() {
               })
             )}
           </div>
-        </SectionCard>
+        </section>
 
         <div style={S.side}>
           {/* Portfolio Insights */}
@@ -372,12 +378,12 @@ export default function LandlordPortfolioPage() {
 
           {/* Quick Actions */}
           <SectionCard icon="ti-bolt" title="Quick Actions">
-            <Grid layout="two" as="div">
-              <ActionTile centered tone={TONES2.primary}             icon="ti-file-text"  title="Lease Details" onClick={() => (firstUnit ? toUnit(firstUnit) : navigate('/landlord-portal/leases'))} />
-              <ActionTile centered tone={accentTone(ACCENT2.rose)}   icon="ti-tool"       title="Maintenance"   onClick={() => navigate('/landlord-portal/maintenance')} />
-              <ActionTile centered tone={accentTone(ACCENT2.violet)} icon="ti-chart-bar"  title="Financials"    onClick={() => navigate('/landlord-portal/finances')} />
-              <ActionTile centered tone={TONES2.success}             icon="ti-chart-pie"  title="Analytics" />
-            </Grid>
+            <div style={UI2.quickActions}>
+              <ActionTile plain tone={TONES2.primary}             icon="ti-file-text"  title="Lease Details" onClick={() => (firstUnit ? toUnit(firstUnit) : navigate('/landlord-portal/leases'))} />
+              <ActionTile plain tone={accentTone(ACCENT2.rose)}   icon="ti-tool"       title="Maintenance"   onClick={() => navigate('/landlord-portal/maintenance')} />
+              <ActionTile plain tone={accentTone(ACCENT2.violet)} icon="ti-chart-bar"  title="Financials"    onClick={() => navigate('/landlord-portal/finances')} />
+              <ActionTile plain tone={TONES2.success}             icon="ti-chart-pie"  title="Analytics" />
+            </div>
           </SectionCard>
         </div>
       </Grid>

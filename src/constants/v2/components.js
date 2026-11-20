@@ -356,6 +356,11 @@ export const UI2 = {
   //                               <span style={UI2.delta(true)}>+3.8% MoM</span></div>
   //   </SectionCard>
   cardFill:  { display: 'flex', flexDirection: 'column' },
+  // Quick actions grid: <ActionTile plain> (icon over label) in a 2 × 2 grid
+  //   <div style={UI2.quickActions}> <ActionTile plain …/> ×4 </div>   (2 columns · rows SP2.lg apart)
+  // paddingTop / paddingBottom SP2.md = a list row's own padding (UI2.listRowHover), so the icons sit the same
+  // distance from the header line and the card bottom as the rows of a list card (e.g. Recent Unit Activities)
+  quickActions: { display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', columnGap: SP2.lg, rowGap: SP2.lg, alignItems: 'start', paddingTop: SP2.md, paddingBottom: SP2.md },
   capsLabel,
   labelRow:  { ...rowBetween(), flexWrap: 'wrap', rowGap: SP2.xs, marginBottom: SP2.lg },        // caps label · context on the right
   context:   { display: 'flex', alignItems: 'center', gap: SP2.xs, ...T2.caption },               // small grey "icon + text" (This month, Target 96%)

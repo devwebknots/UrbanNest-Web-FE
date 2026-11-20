@@ -1,5 +1,5 @@
 import React from 'react';
-import { C2, G2, R2, SH2, TONES2, ACCENT2, F2, FS2, FW2, LH2, T2, SP2, SZ2, LAYOUT2, pad, UI2 } from '../../constants/v2';
+import { C2, G2, R2, SH2, TONES2, ACCENT2, F2, T2, SP2, SZ2, LAYOUT2, pad, UI2 } from '../../constants/v2';
 
 // ─── KpiStrip (Design System v2) ─────────────────────────────────────────────
 // Four KPIs in ONE light container, separated by hairlines — not four boxes.
@@ -29,7 +29,7 @@ const S = {
   },
   item:  { minWidth: 0, padding: pad(SP2.xl, LAYOUT2.cardX), display: 'flex', flexDirection: 'column' },
   head:  { display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: SP2.sm },
-  label: { ...UI2.row(SP2.sm), minWidth: 0, fontSize: FS2.sm, fontWeight: FW2.medium, color: C2.textSecondary, lineHeight: LH2.heading },
+  label: { ...UI2.row(SP2.sm), minWidth: 0, ...T2.kpiLabel },
   pill:  { ...UI2.pill(TONES2.neutral), padding: pad(SP2.xxs, SP2.sm), color: C2.textSecondary, background: C2.surfaceMuted },
   dot:   (t) => UI2.statusDot(t),   // red / green dots use their gradient
   body:  { display: 'flex', alignItems: 'baseline', gap: SP2.sm, marginTop: SP2.md, minWidth: 0 },

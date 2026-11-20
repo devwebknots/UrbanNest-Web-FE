@@ -70,9 +70,8 @@ export const SZ2 = {
   // Open page hero (OpenHero): text block min height · photo width on the right
   openHeroMin: 200,
   openHeroPhotoW: '55%',
-  // Portfolio (property list): PropertyRow — photo · details · ownership ring
-  propertyRowPhoto: { w: 248, h: 168 },         // PropertyRow photo — --un2-prow-photo-w / -h
-  ownershipRing: 56,                            // PropertyRow ownership-share ring diameter
+  // Portfolio (property list): PropertyRow — compact row photo
+  propertyRowPhoto: { w: 128, h: 84 },          // PropertyRow photo (compact list row)
   scoreFigure: 40,                             // big health / score figure (Inter Medium) — not on the type scale on purpose: one hero number
 };
 
