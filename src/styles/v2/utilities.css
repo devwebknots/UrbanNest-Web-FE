@@ -277,7 +277,7 @@
      ≤  860px  header stacks: stats go under the title, full width            */
 @media (max-width: 1280px) {
   .un2-stat-group .un2-stat { padding: var(--un2-sp-xs) var(--un2-sp-lg) !important; gap: var(--un2-sp-sm) !important; }
-  .un2-stat-group .un2-stat-value { font-size: var(--un2-fs-md) !important; }
+  .un2-stat-group:not(.un2-stat-lg) .un2-stat-value { font-size: var(--un2-fs-md) !important; }   /* small header stats only — never the lg (Portfolio) figures */
 }
 @media (max-width: 1100px) {
   .un2-stat-group .un2-stat-icon { display: none; }
@@ -328,9 +328,9 @@
 
 
 /* ── StatGroup size="lg": page-level summary (Portfolio) — big figures, keep the size and icons down to tablets ── */
-/* Above 1280px the inline T2.figureMd (24px) applies untouched. 1101–1280px: undo the generic StatGroup
-   step-down (.un2-stat-group .un2-stat-value → 14px) so the big figure stays 24px. */
-@media (max-width: 1280px) { .un2-stat-group.un2-stat-lg .un2-stat-value { font-size: var(--un2-fs-xxxl) !important; } }
+/* Down to 1101px the inline T2.figureMd (Inter Medium 24px) applies untouched: the generic StatGroup
+   step-down (≤ 1280px → 14px) skips lg groups via :not(.un2-stat-lg), so NO override is needed here.
+   Do not re-add a ≤ 1280px font-size !important rule for lg — it strikes out the standard inline size. */
 @media (max-width: 1100px) {
   .un2-stat-group.un2-stat-lg .un2-stat-icon { display: flex; }
   /* 20px → SemiBold (numbers 16–20px are 600, fonts.js weight rules) */
