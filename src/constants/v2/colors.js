@@ -188,6 +188,8 @@ export const ILLUS2 = {
 // error = THE UrbanNest red gradient, built like success (deep → bright, left → right).
 // Every red FILL uses it (bars, dots, solid icon boxes / pills, danger buttons) — via G2.errorBar /
 // G2.errorButton / G2.toneFill(TONES2.error). Red TEXT stays solid C2.errorDark.
+// primary = THE UrbanNest blue gradient (dark → light). Every blue progress FILL uses it:
+// bars via G2.primaryBar, rings / donut arcs via these stops (DonutChart default, ProgressRing gradient=…).
 export const GSTOPS2 = {
   primary: ['#1D4ED8', '#3B82F6'],
   success: [C2.successDark, C2.successBright],

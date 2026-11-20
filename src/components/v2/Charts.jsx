@@ -1,6 +1,6 @@
 import React, { useEffect, useRef } from 'react';
 import { Chart, registerables } from 'chart.js';
-import { C2, CHART2, G2, GSTOPS2, SH2, F2, FS2, FW2, LH2, R2, SP2, SZ2, pad, UI2 } from '../../constants/v2';
+import { C2, CHART2, G2, GSTOPS2, SH2, T2, F2, FS2, FW2, LH2, R2, SP2, SZ2, pad, UI2 } from '../../constants/v2';
 
 Chart.register(...registerables);
 
@@ -85,19 +85,34 @@ export function BarChart({ labels = [], values = [], formatValue = identity, for
 }
 
 // Donut with the value + label in the centre (0–100).
-// Props: value, label, size (default SZ2.donut)
-export function DonutChart({ value = 0, label, size = SZ2.donut }) {
-  const ref = useChart(() => ({
-    type: 'doughnut',
-    data: { datasets: [{ data: [value, 100 - value], backgroundColor: [CHART2.barActive, CHART2.track], borderWidth: 0, borderRadius: value > 0 && value < 100 ? R2.md : 0 }] },
-    options: { responsive: false, cutout: '80%', plugins: { legend: { display: false }, tooltip: { callbacks: { label: v => v.raw + '%' } } } },
-  }), [value]);
+// Progress arc is filled with THE standard blue gradient (GSTOPS2.primary, dark → light,
+// diagonal — same as ProgressRing / G2.primaryBar); pass `gradient` for another tone's stops.
+// Props: value, label, size (default SZ2.donut), gradient ([from, to], default GSTOPS2.primary)
+export function DonutChart({ value = 0, label, size = SZ2.donut, gradient = GSTOPS2.primary }) {
+  const ref = useChart(() => {
+    // Scriptable per segment (Chart.js does NOT call functions placed inside a colour array):
+    // segment 0 = value arc → gradient, segment 1 = remainder → track
+    const segmentFill = ({ chart, dataIndex }) => {
+      if (dataIndex !== 0) return CHART2.track;
+      const a = chart.chartArea;
+      if (!a) return gradient[0];   // first layout pass — area not measured yet
+      const g = chart.ctx.createLinearGradient(a.left, a.top, a.right, a.bottom);
+      g.addColorStop(0, gradient[0]);
+      g.addColorStop(1, gradient[1]);
+      return g;
+    };
+    return {
+      type: 'doughnut',
+      data: { datasets: [{ data: [value, 100 - value], backgroundColor: segmentFill, hoverBackgroundColor: segmentFill, borderWidth: 0, borderRadius: value > 0 && value < 100 ? R2.md : 0 }] },
+      options: { responsive: false, cutout: '80%', plugins: { legend: { display: false }, tooltip: { callbacks: { label: v => v.raw + '%' } } } },
+    };
+  }, [value, gradient[0], gradient[1]]);
   return (
     <div style={{ position: 'relative', width: size, height: size }}>
       <canvas ref={ref} width={size} height={size} role="img" aria-label={`${label || 'Value'} ${value}%`}>{value}%</canvas>
       <div style={{ ...UI2.center, position: 'absolute', inset: 0, flexDirection: 'column', pointerEvents: 'none' }}>
-        <div style={{ ...UI2.text.number, fontSize: FS2.display, fontWeight: FW2.medium }}>{value}%</div>
-        {label && <div style={{ ...UI2.text.label, fontSize: FS2.base, marginTop: SP2.sm }}>{label}</div>}
+        <div style={T2.figure}>{value}%</div>
+        {label && <div style={{ ...T2.label, marginTop: SP2.sm }}>{label}</div>}
       </div>
     </div>
   );

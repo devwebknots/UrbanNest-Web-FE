@@ -2,11 +2,12 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
   PageShell, Grid, ProfileHero, KpiStrip, SectionCard, AssetRow, InsightCard, MetricBar,
-  ListRow, EmptyState, MessageItem, PageFooter, BarChart, Sparkline, ProgressRing, MiniBars, CountUp, TextLink,
+  ListRow, EmptyState, MessageItem, PageFooter, BarChart, Sparkline, MiniBars, CountUp, TextLink,
+  CardWave, DonutChart,
 } from '../../components/v2';
 import {
   C2, TONES2, ACCENT2, AVATAR2, CHART2,
-  T2, FS2, LH2, LS2,
+  T2, FS2, LH2,
   SP2, SZ2, LAYOUT2, UI2,
 } from '../../constants/v2';
 import heroImage from '../../assets/v2/landlord/dashboard-hero-light.jpg';   // bright building + soft waves (cut from the dashboard design, Downloads/image 40.png)
@@ -22,7 +23,7 @@ const API_BASE = process.env.REACT_APP_API_BASE_URL || 'http://localhost:8001/ap
 //
 // Composition (top → bottom), hierarchy through type + spacing rather than boxes:
 //   ProfileHero (light, photo feathered in)        — who / portfolio size / main actions
-//   Rent collection │ Occupancy                    — the two headline numbers (ring + mini bars)
+//   Rent collection │ Occupancy                    — the two headline numbers (mini bars │ donut + wave card)
 //   KpiStrip                                       — 4 KPIs in ONE container, hairline split
 //   Prime Assets │ Monthly Rent Collection         — property rows │ chart + recent payments
 //   Open Operations │ Recent Documents │ Comms Hub
@@ -40,10 +41,10 @@ const S = {
   rentBars:  { flex: `1 1 ${SZ2.search - SP2.huge * 2}px`, minWidth: 0 },      // takes all free width (beside or under the figure)
   note:      { ...UI2.text.label, marginTop: SP2.md, maxWidth: SZ2.profileHeroContentMax },
 
-  occBody:   { display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: SP2.xxl, marginBottom: SP2.lg },
-  ringValue: { ...T2.statValue, color: C2.navyDeep },
-  ringLabel: { ...UI2.text.caption, marginTop: SP2.xs, textTransform: 'uppercase', letterSpacing: LS2.wide },
-  legend:    { ...UI2.stack(SP2.md), flex: 1, minWidth: SZ2.labelMax },
+  occBody:       { display: 'flex', alignItems: 'center', justifyContent: 'space-around', gap: SP2.lg, flexWrap: 'wrap' },
+  occTarget:     { display: 'flex', flexDirection: 'column', alignItems: 'center', gap: LAYOUT2.inlineGap },
+  occTargetLbl:  { ...UI2.row(LAYOUT2.inlineGap), ...T2.label },
+  occTargetIcon: { fontSize: FS2.xl, color: C2.primary },
 
   chartWrap: { position: 'relative', height: SZ2.chart },
 
@@ -273,32 +274,19 @@ export default function LandlordDashboard() {
           </div>
         </SectionCard>
 
-        <SectionCard style={UI2.cardFill}>
-          <div style={UI2.labelRow}>
-            <span style={UI2.capsLabel}>Occupancy rate</span>
-            <span style={UI2.context}><i className="ti ti-target-arrow" aria-hidden="true" /> Target {OCCUPANCY_TARGET}%</span>
-          </div>
-
+        {/* Occupancy — previous design restored (icon header, donut + target, wave art), current fonts */}
+        <SectionCard style={UI2.cardFill} icon="ti-clipboard-check" title="Occupancy Rate" decoration={<CardWave />}>
           <div style={S.occBody}>
-            <ProgressRing value={loading ? 0 : occupancy} ariaLabel={`Occupancy ${occupancy}%`}>
-              <div style={S.ringValue}>{loading ? '—' : <CountUp value={occupancy} format={fmtPct1} />}</div>
-              <div style={S.ringLabel}>Leased</div>
-            </ProgressRing>
-            <div style={S.legend}>
-              <div style={UI2.legendRow}>
-                <span style={UI2.legendKey}><span style={UI2.dot(C2.successStrong)} /> Occupied units</span>
-                <span style={UI2.legendVal}>{dash(occupiedUnits ?? '—')}</span>
+            <DonutChart value={loading ? 0 : occupancy} label="Leased" />
+            <div style={S.occTarget}>
+              <div style={S.occTargetLbl}>
+                <i className="ti ti-target-arrow" style={S.occTargetIcon} aria-hidden="true" /> Target
               </div>
-              <div style={UI2.legendRow}>
-                <span style={UI2.legendKey}><span style={UI2.dot(C2.successLight)} /> Vacant &amp; listed</span>
-                <span style={UI2.legendVal}>{dash(vacantUnits ?? '—')}</span>
-              </div>
+              <div style={T2.figureMd}>{OCCUPANCY_TARGET}%</div>
+              <span style={{ ...UI2.pill(TONES2.success), marginTop: SP2.sm }}>
+                <i className="ti ti-calendar-check" aria-hidden="true" /> By year end
+              </span>
             </div>
-          </div>
-
-          <div style={UI2.cardFoot}>
-            <span>{occupancy >= OCCUPANCY_TARGET ? 'Above target' : `${fmtPct1(Math.max(0, OCCUPANCY_TARGET - occupancy))} to target`}</span>
-            <span style={UI2.pill(TONES2.success)}><i className="ti ti-calendar-check" aria-hidden="true" /> By year end</span>
           </div>
         </SectionCard>
       </Grid>
