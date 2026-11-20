@@ -327,6 +327,24 @@ export const UI2 = {
   },
   thumb: { width: SZ2.thumb.w, height: SZ2.thumb.h, borderRadius: R2.lg, objectFit: 'cover', display: 'block', boxShadow: SH2.md },
 
+  // ── Photo tiles + upload slots (PhotoBento gallery, floor plans) ──────────
+  //   <div className="un2-zoom" style={UI2.photoTile}><img style={UI2.photoMedia} /></div>
+  //   <button className="un2-raise" style={UI2.addTile(busy)}><i style={UI2.addTileIcon} /> Add images</button>
+  // The add tile is the ONE place a dashed outline is used — it marks an empty upload slot, not a container.
+  photoTile:   { position: 'relative', overflow: 'hidden', borderRadius: R2.xl, background: C2.surfaceMuted, boxShadow: SH2.md, minHeight: 0 },
+  photoMedia:  { position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', display: 'block' },
+  addTile: (busy = false) => ({
+    ...center, flexDirection: 'column', gap: SP2.xs, width: '100%', height: '100%', minHeight: 0, padding: 0, boxSizing: 'border-box',
+    borderRadius: R2.xl, border: `${SZ2.dashed}px dashed ${C2.cardBorder}`, background: C2.primaryWash,
+    color: C2.textSecondary, fontFamily: F2.body, fontSize: FS2.sm, fontWeight: FW2.medium, lineHeight: LH2.heading,
+    cursor: busy ? 'progress' : 'pointer',
+  }),
+  addTileIcon: { fontSize: FS2.xxl, color: C2.primary },
+  // Small round "×" on a photo (remove) — light button rule: white fill on photos
+  photoRemove: { ...center, position: 'absolute', top: SP2.xs, right: SP2.xs, width: SZ2.icon.xs, height: SZ2.icon.xs, padding: 0, border: 'none', borderRadius: R2.round, background: C2.white, color: C2.navyDeep, boxShadow: SH2.lightButton, fontSize: FS2.sm, cursor: 'pointer' },
+  // Round light arrow on a photo (gallery ‹ ›): position left / right with UI2.photoArrow('left')
+  photoArrow: (side = 'left') => ({ ...center, position: 'absolute', top: '50%', [side]: SP2.md, transform: 'translateY(-50%)', width: SZ2.control.md, height: SZ2.control.md, padding: 0, border: 'none', borderRadius: R2.round, background: C2.white, color: C2.navyDeep, boxShadow: SH2.lightButton, fontSize: FS2.lg, cursor: 'pointer' }),
+
   // ── Tables (DataTable) — one style per column TYPE, used by every table ────
   table: {
     // Layout (Stripe / Linear / Airbnb-host pattern): header = soft rounded grey band, no underline ·

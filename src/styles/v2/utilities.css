@@ -210,6 +210,7 @@
   .un2-kpi-strip > * + * { border-left: none; border-top: 1px solid var(--un2-border); }
 }
 
+
 /* ── AssetRow (CQ2.asset = 560px): narrow card → buttons stay in the row (top, right side); long button labels switch
       to their short form: <span class="un2-label-full">Message Tenants</span><span class="un2-label-short">Message</span> ── */
 .un2-label-short { display: none; }
@@ -235,6 +236,15 @@
   .un2-bento > :first-child { height: var(--un2-bento-h-sm); }
   .un2-bento-tiles { grid-template-columns: repeat(4, minmax(0, 1fr)); grid-template-rows: none; }
   .un2-bento-tiles > * { height: var(--un2-bento-thumb-sm); }
+}
+
+/* PhotoBento stacked (unit detail): big photo + ONE column of 2 photos and the Add tile (3 rows).
+   ≤ 860px: photo on top, the 3 tiles in one row under it.                                        */
+.un2-bento-stacked { grid-template-columns: minmax(0, 3fr) minmax(0, 1fr); }
+.un2-bento-stacked .un2-bento-tiles { grid-template-columns: minmax(0, 1fr); grid-template-rows: repeat(3, minmax(0, 1fr)); }
+@media (max-width: 860px) {
+  .un2-bento-stacked { grid-template-columns: minmax(0, 1fr); }
+  .un2-bento-stacked .un2-bento-tiles { grid-template-columns: repeat(3, minmax(0, 1fr)); grid-template-rows: none; }
 }
 
 /* ── Divided columns inside ONE container (no box per column) ────────────────

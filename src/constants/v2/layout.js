@@ -14,6 +14,7 @@ export const SZ2 = {
   icon:    { xs: 20, sm: 28, md: 32, lg: 40 },   // square icon boxes / avatars (compact)
   control: { sm: 28, md: 34, lg: 40 },           // buttons, inputs, nav items (compact)
   hairline:1,                                   // dividers, separators, 1px rules
+  dashed:  1.5,                                 // dashed outline of an empty "Add …" upload slot (UI2.addTile)
   dot:     6,
   progress:6,
   sidebar: 224,
