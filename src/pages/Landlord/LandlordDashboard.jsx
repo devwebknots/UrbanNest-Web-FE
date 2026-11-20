@@ -354,7 +354,8 @@ export default function LandlordDashboard() {
         <SectionCard
           style={UI2.cardFill}
           icon="ti-building-community" title="Prime Assets" subtitle="High-performance properties in your active portfolio"
-          action={<TextLink onClick={() => navigate('/landlord-portal/portfolio')}><span className="un2-hide-narrow">View Portfolio</span></TextLink>}
+          /* View Portfolio link hidden (footer "Manage all properties" goes to the same page):
+             action={<TextLink onClick={() => navigate('/landlord-portal/portfolio')}><span className="un2-hide-narrow">View Portfolio</span></TextLink>} */
         >
           <div>
             {loading && [0, 1, 2].map(i => <AssetRow key={i} loading first={i === 0} />)}
