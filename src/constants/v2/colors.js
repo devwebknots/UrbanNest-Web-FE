@@ -146,6 +146,13 @@ export const ACCENT2 = {
   rose:   { soft: '#FCE9EF', fg: '#D6457A', bar: ['#D6457A', '#F19DBA'] },
 };
 
+// An ACCENT2 colour shaped like a TONES2 entry, for components that take a `tone`
+// (UI2.iconBox, ActionTile, ListRow icons): accentTone(ACCENT2.teal)
+export const accentTone = (a) => ({
+  fg: a.fg, strong: a.fg, soft: a.soft, tint: a.soft,
+  cardTint: a.soft, cardBorder: a.soft, panelFrom: a.soft, panelTo: a.soft, panelBorder: a.soft, wave: a.bar[1],
+});
+
 // Avatar color cycle (initials avatars)
 export const AVATAR2 = [TONES2.primary, TONES2.purple, TONES2.warning, TONES2.success];
 
@@ -278,6 +285,15 @@ export const G2 = {
     'radial-gradient(60% 90% at 0% 100%, rgba(255,255,255,1) 0%, rgba(255,255,255,0) 70%)',
     'linear-gradient(180deg, #FBFCFF 0%, #F6F9FF 100%)',
   ].join(', '),
+  // Open page hero (OpenHero): same wash as profileHero but no box — runs edge to edge under the
+  // top bar and fades into pageBg at the bottom; the stats band under it is a faint white strip.
+  openHero: [
+    'radial-gradient(60% 110% at 100% 0%, rgba(218,229,248,0.9) 0%, rgba(218,229,248,0) 70%)',   // light sky blue top-right
+    'linear-gradient(90deg, #F5F8FE 0%, #EFF4FC 45%, #E5EDFA 100%)',                              // near-white left → pale blue right
+  ].join(', '),
+  // OpenHero wave: [white edge highlight, periwinkle swell under the curve]
+  openHeroWaves: ['#FFFFFF', '#D3DFF5'],   // opacity ramps live in OpenHero's SVG gradients
+  openHeroBand: 'linear-gradient(180deg, rgba(255,255,255,0.7) 0%, rgba(255,255,255,0.35) 100%)',
   // Soft glow behind the hero text column (same tint as the hero surface) — keeps the stats readable
   // where the text runs over the photo on narrower screens; invisible where it sits on plain surface.
   profileHeroGlow: 'linear-gradient(90deg, rgba(249,251,255,0.8) 0%, rgba(249,251,255,0.7) 55%, rgba(249,251,255,0.35) 78%, rgba(249,251,255,0) 100%)',

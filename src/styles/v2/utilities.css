@@ -315,3 +315,24 @@
   .un2-asset-spread { grid-template-columns: var(--un2-asset-thumb-w) minmax(0, 1fr) auto !important; }
   .un2-asset-spread .un2-asset-col { display: none !important; }
 }
+
+/* ── PropertyRow (portfolio list): photo │ details. Card narrower than 600px → photo on top ── */
+.un2-prow { display: grid; grid-template-columns: var(--un2-prow-photo-w) minmax(0, 1fr); column-gap: var(--un2-sp-xxl); row-gap: var(--un2-sp-lg); align-items: stretch; }
+.un2-prow-photo { min-height: var(--un2-prow-photo-h); }
+@container (max-width: 600px) {
+  .un2-prow { grid-template-columns: minmax(0, 1fr); }
+  .un2-prow-photo { height: var(--un2-prow-photo-h); }
+}
+
+/* ── StatGroup size="lg": page-level summary (Portfolio) — big figures, keep the size and icons down to tablets ── */
+.un2-stat-group.un2-stat-lg .un2-stat-value { font-size: var(--un2-fs-xxxl) !important; }
+@media (max-width: 1100px) {
+  .un2-stat-group.un2-stat-lg .un2-stat-icon { display: flex; }
+  .un2-stat-group.un2-stat-lg .un2-stat-value { font-size: var(--un2-fs-xxl) !important; }
+}
+@media (max-width: 860px) { .un2-stat-group.un2-stat-lg .un2-stat-icon { display: none; } }
+
+/* ── OpenHero: open page hero (no box). Photo feathered into the wash on its left edge ── */
+.un2-ohero-photo { -webkit-mask-image: var(--un2-profile-hero-mask); mask-image: var(--un2-profile-hero-mask); }
+@media (max-width: 860px) { .un2-ohero-photo { opacity: 0.35; width: 100% !important; } }
+@media (max-width: 600px) { .un2-ohero-photo { display: none; } }

@@ -26,11 +26,13 @@
 //   ActionTile  tinted 2×2 action tiles · MetricBar label/value + progress bar
 //   BarChart · DonutChart · Sparkline · LineChart · Gauge   charts in v2 colours
 //   PropertyCard  photo card for portfolio grids · SectionHeader  heading + filters above a card grid
+//   PropertyRow wide property row (photo · name/status · ownership ring · stats · links) for the portfolio list
 //   AssetRow    light property row (photo · tags · inline metrics · actions) for dashboards
 //   ProgressRing · MiniBars  animated ring / small month bars · CountUp  animated number
 //
 // Dashboard pieces (Landlord dashboard is the reference):
 //   ProfileHero light hero, photo feathered in on the right · KpiStrip  4 KPIs in ONE container
+//   OpenHero    open page hero (no box, bleeds to the edges) + full-width stats band — list pages (Portfolio)
 //   <PageShell animate> staggers the sections in on load
 //   Detail pages: DetailHeader (title · pill · Edit · address + aside) · StatGroup (stats in one container)
 //                 PhotoBento (big photo + 2×2 tiles + Add) · un2-cols (divided columns in one panel)
@@ -64,10 +66,12 @@ export { default as TabBar } from './TabBar';
 export { default as MetricBar } from './MetricBar';
 export { default as ActionTile } from './ActionTile';
 export { default as MediaListItem } from './MediaListItem';
-export { default as PropertyCard } from './PropertyCard';
+export { default as PropertyCard, OptionsMenu } from './PropertyCard';
+export { default as PropertyRow } from './PropertyRow';
 export { default as SectionHeader } from './SectionHeader';
 export { default as DataTable } from './DataTable';
 export { default as ProfileHero } from './ProfileHero';
+export { default as OpenHero } from './OpenHero';
 export { default as KpiStrip } from './KpiStrip';
 export { default as AssetRow } from './AssetRow';
 export { default as CountUp } from './CountUp';

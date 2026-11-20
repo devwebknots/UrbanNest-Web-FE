@@ -1,5 +1,14 @@
 import React from 'react';
-import { FS2, ILLUS2, LAYOUT2, SZ2, UI2 } from '../../constants/v2';
+import { ILLUS2, T2, SP2, SZ2, UI2 } from '../../constants/v2';
+
+// Standard type: title = UI2.cardTitle (Playfair 16 semibold, same as card titles) ·
+// text = T2.label under a title, T2.body when it stands alone · centred, max one readable line width.
+const S = {
+  wrap:  { ...UI2.center, ...UI2.stack(SP2.sm), minHeight: SZ2.emptyMin, textAlign: 'center' },
+  title: { ...UI2.cardTitle, marginTop: SP2.xs },
+  text:  (hasTitle) => ({ ...(hasTitle ? T2.label : { ...T2.body, color: T2.label.color }), maxWidth: SZ2.search }),
+  extra: { marginTop: SP2.md },
+};
 
 // ─── EmptyState (Design System v2) ───────────────────────────────────────────
 // Centred illustration + message for an empty card body.
@@ -26,13 +35,13 @@ const ILLUSTRATIONS = {
 export default function EmptyState({ illustration, icon, title, text, children }) {
   const art = typeof illustration === 'string' ? ILLUSTRATIONS[illustration] : illustration;
   return (
-    <div style={{ ...UI2.center, ...UI2.stack(LAYOUT2.rowGap), minHeight: SZ2.emptyMin }}>
+    <div style={S.wrap}>
       {art || (icon && (
         <div style={UI2.iconBox(SZ2.icon.lg, undefined, { round: true })}><i className={`ti ${icon}`} aria-hidden="true" /></div>
       ))}
-      {title && <div style={{ ...UI2.text.titleLg, fontSize: FS2.lg }}>{title}</div>}
-      {text && <div style={{ ...UI2.text.label, fontSize: title ? FS2.sm : FS2.md }}>{text}</div>}
-      {children}
+      {title && <div style={S.title}>{title}</div>}
+      {text && <div style={S.text(!!title)}>{text}</div>}
+      {children && <div style={S.extra}>{children}</div>}
     </div>
   );
 }

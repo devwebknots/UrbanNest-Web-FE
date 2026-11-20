@@ -62,7 +62,10 @@ export const LS2 = { tighter: -0.5, tight: -0.3, snug: -0.2, normal: 0, wide: 0.
 // Keep weights light: titles / figures semibold; bold is not used for headings or numbers.
 export const T2 = {
   heroTitle:      { fontFamily: F2.heading, fontSize: FS2.xxxl, fontWeight: FW2.semibold, lineHeight: LH2.heading, letterSpacing: LS2.tighter, color: C2.white },
-  pageTitle:      { fontFamily: F2.heading, fontSize: FS2.xl, fontWeight: FW2.semibold, lineHeight: LH2.heading, letterSpacing: LS2.snug, color: C2.textPrimary },
+  // Open page hero (OpenHero — list pages like Portfolio): big Playfair title + Inter sub line
+  pageHeroTitle:  { fontFamily: F2.heading, fontSize: FS2.score, fontWeight: FW2.semibold, lineHeight: LH2.tight, letterSpacing: LS2.tighter, color: C2.navyDeep },
+  pageHeroSub:    { fontFamily: F2.body, fontSize: FS2.md, fontWeight: FW2.regular, lineHeight: LH2.body, color: C2.textSecondary },
+  pageTitle:     { fontFamily: F2.heading, fontSize: FS2.xl, fontWeight: FW2.semibold, lineHeight: LH2.heading, letterSpacing: LS2.snug, color: C2.textPrimary },
   sectionTitle:   { fontFamily: F2.heading, fontSize: FS2.lg, fontWeight: FW2.semibold, lineHeight: LH2.heading, letterSpacing: LS2.snug, color: C2.textPrimary },
   brandTitle:     { fontFamily: F2.heading, fontSize: FS2.xl, fontWeight: FW2.semibold, color: C2.white },
   // Playfair: greeting / tagline under a hero title (upright) · quoted message text (italic — quotes only)

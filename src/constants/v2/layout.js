@@ -67,7 +67,13 @@ export const SZ2 = {
   profileHeroPhotoSm: 180,                      // hero photo strip height on phones (≤ 860px) — --un2-phero-photo-sm
   // Detail pages (property / unit): PhotoBento gallery + DetailHeader
   bento:   { h: 320, hSm: 200, thumbSm: 88 },   // gallery height · main photo height on phones · thumb strip height on phones — --un2-bento-*
-  scoreFigure: 40,                              // big health / score figure (Inter Medium) — not on the type scale on purpose: one hero number
+  // Open page hero (OpenHero): text block min height · photo width on the right
+  openHeroMin: 200,
+  openHeroPhotoW: '55%',
+  // Portfolio (property list): PropertyRow — photo · details · ownership ring
+  propertyRowPhoto: { w: 248, h: 168 },         // PropertyRow photo — --un2-prow-photo-w / -h
+  ownershipRing: 56,                            // PropertyRow ownership-share ring diameter
+  scoreFigure: 40,                             // big health / score figure (Inter Medium) — not on the type scale on purpose: one hero number
 };
 
 // Page & section rhythm — the spacing pattern every v2 screen follows.
