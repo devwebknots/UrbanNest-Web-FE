@@ -1160,7 +1160,8 @@ export default function LandlordPropertyDetailPage() {
 
   // View lists: real data when present, sample rows otherwise. `units` / `amenities` stay REAL for the
   // modals and API calls (Bulk Add Service, List Multi Units, Edit Property).
-  const viewUnits     = loading ? [] : orDemo(units, PROPERTY_DEMO.units);
+  // Units are REAL only (no sample rows) — every row's View Unit must open a real unit detail page
+  const viewUnits     = loading ? [] : units;
   const viewAmenities = loading ? [] : orDemo(amenities, PROPERTY_DEMO.amenities);
   const tenantUnits   = loading ? [] : orDemo(viewUnits.filter(u => u.tenant_name), PROPERTY_DEMO.units.filter(u => u.tenant_name));
 
