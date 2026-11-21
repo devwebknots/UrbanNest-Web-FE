@@ -4,7 +4,7 @@
 // (Co-Applicant Invitation Workflow). Everything on this screen is real,
 // functional form state (ApplicationIntakeContext) — no sample content.
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useApplicationIntake } from './ApplicationIntakeContext';
 import { ApplicationIntakeShell, StageFooterNav, FieldLabel, inputStyle, SectionHeading, Card } from './ApplicationIntakeShell';
@@ -111,6 +111,20 @@ export default function Stage1_ApplicantHousehold() {
   }
 
   const coApplicants = application?.coApplicants || [];
+  const dependents = application?.dependents || [];
+
+  // Protected/auto-calculated per request — avoids a hand-typed count
+  // drifting from the household's actual, real composition. 1 (this
+  // applicant) + every co-applicant + every dependent. Kept in sync on
+  // `applicant.occupantCount` too (not just displayed), so the stored value
+  // is never stale if this is ever read elsewhere (review, submission).
+  const occupantCount = 1 + coApplicants.length + dependents.length;
+  useEffect(() => {
+    if (applicant.occupantCount !== occupantCount) {
+      updateApplicantFields({ occupantCount });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [occupantCount]);
 
   return (
     <ApplicationIntakeShell activeStage={1}>
@@ -173,7 +187,13 @@ export default function Stage1_ApplicantHousehold() {
           </div>
           <div>
             <FieldLabel>Number of Occupants</FieldLabel>
-            <input type="number" min="1" style={inputStyle} {...field('occupantCount')} />
+            <input
+              type="number" disabled value={occupantCount}
+              style={{ ...inputStyle, background: C.divider, color: C.textSecondary, cursor: 'not-allowed' }}
+            />
+            <div style={{ fontFamily: F.body, fontSize: 10.5, color: C.textTertiary, marginTop: 4 }}>
+              Automatically calculated — you + {coApplicants.length} co-applicant{coApplicants.length === 1 ? '' : 's'} + {dependents.length} dependent{dependents.length === 1 ? '' : 's'}.
+            </div>
           </div>
         </div>
       </Card>
@@ -245,7 +265,7 @@ export default function Stage1_ApplicantHousehold() {
           Anyone else who will live at this unit but is not applying — a child or other family member, for example. Dependents don't complete a section of their own.
         </div>
 
-        {(application?.dependents || []).map((d) => (
+        {dependents.map((d) => (
           <DependentRow key={d.id} dependent={d} onRemove={() => removeDependent(d.id)} />
         ))}
 

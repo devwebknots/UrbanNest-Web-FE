@@ -3,21 +3,27 @@
 // Approach doc §2, Screen 4 ("Documents, Review & Consent") — consolidated
 // review + the real consent set the doc actually asks for (accuracy
 // attestation, background/credit screening authorization, privacy
-// consent, optional electronic communication consent). The credit/
-// background screening "live engine" panel, the e-signature capture box's
-// biometric/crypto styling, and the fee/waiver ledger are sample content
-// (sampleInstitutionalContent.js) — the typed name field itself is stored
-// as a real part of the accuracy attestation, it just isn't a
-// cryptographically bound legal signature (see that file's SAMPLE_ESIGN
-// note and the hard rule in the Claude Project review doc §4).
+// consent, optional electronic communication consent). The e-signature
+// capture box's biometric/crypto styling and the fee/waiver ledger are
+// sample content (sampleInstitutionalContent.js) — the typed name field
+// itself is stored as a real part of the accuracy attestation, it just
+// isn't a cryptographically bound legal signature (see that file's
+// SAMPLE_ESIGN note and the hard rule in the Claude Project review doc
+// §4).
+//
+// [occupant-count/employment-dates/pets-vehicles request] — the
+// "Background & Credit Screening" sample panel (illustrative bureaus,
+// SAMPLE_SCREENING) has been removed from this review page entirely per
+// explicit request; the real BACKGROUND_SCREENING_AUTH consent below is
+// unaffected (that's a real consent record, not the removed panel).
 
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useApplicationIntake } from './ApplicationIntakeContext';
 import { ApplicationIntakeShell, StageFooterNav, SectionHeading, Card } from './ApplicationIntakeShell';
 import { C, F } from './applicationIntakeTokens';
-import { SampleCard, SampleTag, SAMPLE_SCREENING, SAMPLE_ESIGN, SAMPLE_FEE_LEDGER } from './sampleInstitutionalContent';
-import { currencySymbol, additionalIncomeSourceLabel } from './applicationIntakeOptions';
+import { SampleCard, SAMPLE_ESIGN, SAMPLE_FEE_LEDGER } from './sampleInstitutionalContent';
+import { currencySymbol, additionalIncomeSourceLabel, additionalIncomeFrequencyLabel } from './applicationIntakeOptions';
 
 const CONSENTS = [
   { type: 'ACCURACY_ATTESTATION', label: 'Truth & Accuracy Attestation', text: 'I declare that all statements, disclosures, and uploaded documents provided in this application are true, accurate, and complete.', required: true },
@@ -68,14 +74,21 @@ export default function Stage4_ReviewConsentSubmit() {
   const addressLine = [applicant.addressStreet1, applicant.addressStreet2].filter(Boolean).join(', ');
   const addressCityStateZip = [applicant.addressCity, applicant.addressState, applicant.addressZip].filter(Boolean).join(', ');
   const fullAddress = [addressLine, addressCityStateZip].filter(Boolean).join(' · ');
-  const additionalIncomeTotal = (applicant.employment.additionalIncome || []).reduce((sum, e) => sum + (Number(e.amount) || 0), 0);
+  // Per-entry breakdown rather than a single summed total — entries can
+  // now carry different frequencies (Monthly/Annually/Weekly/One Time
+  // Payment), so a flat sum would silently misrepresent a one-time estate
+  // payment as recurring monthly income.
+  const additionalIncomeEntries = applicant.employment.additionalIncome || [];
 
-  // Session 58 — real pet/parking counts picked in Stage 3
-  // (CountedAmenity), multiplied against the listing's real per-unit fee.
-  const numberOfPets = application?.propertyRequirements?.numberOfPets || 0;
-  const numberOfParkingSpots = application?.propertyRequirements?.numberOfParkingSpots || 0;
-  const petMonthlyTotal = numberOfPets > 0 && listingSummary?.petRent != null ? numberOfPets * listingSummary.petRent : null;
-  const parkingMonthlyTotal = numberOfParkingSpots > 0 && listingSummary?.parkingFeeAmount != null ? numberOfParkingSpots * listingSummary.parkingFeeAmount : null;
+  // Pets/Vehicles: the real repeatable lists from Stage 3 — the list's
+  // own length is the count (see ApplicationIntakeContext.jsx's
+  // addPet()/addVehicle()).
+  const pets = application?.propertyRequirements?.pets || [];
+  const vehicles = application?.propertyRequirements?.vehicles || [];
+  const hasPets = !!application?.propertyRequirements?.hasPets;
+  const hasVehicles = !!application?.propertyRequirements?.hasVehicles;
+  const petMonthlyTotal = pets.length > 0 && listingSummary?.petRent != null ? pets.length * listingSummary.petRent : null;
+  const parkingMonthlyTotal = vehicles.length > 0 && listingSummary?.parkingFeeAmount != null ? vehicles.length * listingSummary.parkingFeeAmount : null;
 
   return (
     <ApplicationIntakeShell activeStage={4}>
@@ -105,36 +118,24 @@ export default function Stage4_ReviewConsentSubmit() {
         <ReviewRow label="Monthly Income" value={applicant.employment.incomeAmount ? `${currency}${applicant.employment.incomeAmount}` : null} />
         <ReviewRow
           label="Additional Income"
-          value={(applicant.employment.additionalIncome || []).length
-            ? `${currency}${additionalIncomeTotal}/mo (${applicant.employment.additionalIncome.map((e) => additionalIncomeSourceLabel(e.source)).join(', ')})`
+          value={additionalIncomeEntries.length
+            ? additionalIncomeEntries.map((e) => `${additionalIncomeSourceLabel(e.source)}: ${currency}${e.amount} (${additionalIncomeFrequencyLabel(e.frequency)})`).join('; ')
             : null}
         />
         <ReviewRow label="Documents Uploaded" value={`${applicant.documents.length} of 4`} />
-        {listingSummary?.petsAllowed && (
-          <ReviewRow
-            label="Pets"
-            value={numberOfPets > 0 ? `${numberOfPets}${petMonthlyTotal != null ? ` (${currency}${petMonthlyTotal}/mo)` : ''}` : 'None'}
-          />
-        )}
-        {listingSummary?.parkingAvailable && (
-          <ReviewRow
-            label="Parking Spots"
-            value={numberOfParkingSpots > 0 ? `${numberOfParkingSpots}${parkingMonthlyTotal != null ? ` (${currency}${parkingMonthlyTotal}/mo)` : ''}` : 'None'}
-          />
-        )}
+        <ReviewRow
+          label="Pets"
+          value={hasPets && pets.length > 0
+            ? `${pets.length}${petMonthlyTotal != null ? ` (${currency}${petMonthlyTotal}/mo)` : ''} — ${pets.map((p) => p.petType).join(', ')}`
+            : 'None'}
+        />
+        <ReviewRow
+          label="Vehicles"
+          value={hasVehicles && vehicles.length > 0
+            ? `${vehicles.length}${parkingMonthlyTotal != null ? ` (${currency}${parkingMonthlyTotal}/mo)` : ''} — ${vehicles.map((v) => v.vehicleType).join(', ')}`
+            : 'None'}
+        />
       </Card>
-
-      <SampleCard tagLabel="Sample — no real screening vendor integration">
-        <Card>
-          <div style={{ fontFamily: F.body, fontSize: 13, fontWeight: 800, color: C.textPrimary, marginBottom: 6, textTransform: 'uppercase', letterSpacing: '0.03em' }}>
-            Background &amp; Credit Screening
-          </div>
-          <div style={{ fontFamily: F.body, fontSize: 11.5, color: C.textSecondary, marginBottom: 6 }}>
-            Illustrative bureaus: {SAMPLE_SCREENING.bureaus.join(', ')} · <SampleTag label={SAMPLE_SCREENING.tierLabel} />
-          </div>
-          <div style={{ fontFamily: F.body, fontSize: 10.5, color: C.textTertiary }}>{SAMPLE_SCREENING.description}</div>
-        </Card>
-      </SampleCard>
 
       <SampleCard tagLabel="Sample — no real charge is made">
         <Card>

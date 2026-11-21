@@ -51,10 +51,22 @@ function emptyApplicant(role, seed = {}) {
     // addresses below, and the real `Property` address shape elsewhere in
     // this app, are already composed — street1/street2/city/state/zip).
     addressStreet1: '', addressStreet2: '', addressCity: '', addressState: '', addressZip: '',
+    // occupantCount is no longer a free-text field a renter types in — per
+    // request, it's protected/auto-calculated (1 primary + co-applicants +
+    // dependents; see Stage1_ApplicantHousehold.jsx's own effect that keeps
+    // it in sync) to avoid an inconsistent, hand-typed count drifting from
+    // the household's real composition.
     desiredMoveInDate: '', occupantCount: '', isOccupant: true,
     rentalHistory: [],
     employment: {
-      status: '', employerName: '', jobTitle: '', employmentDuration: '',
+      status: '', employerName: '', jobTitle: '',
+      // Session [occupant-count/employment-dates request] — employmentDuration
+      // (free text, e.g. "2 years 3 months") replaced with explicit
+      // employmentStartDate/employmentEndDate (blank end = current
+      // employer); duration itself is now always derived from these two
+      // dates (applicationIntakeOptions.js's employmentDurationLabel()) so
+      // it can never be typed inconsistently with the actual dates.
+      employmentStartDate: '', employmentEndDate: '',
       employerContact: '', incomeAmount: '', incomeFrequency: 'MONTHLY',
       // Session 56 — was a single free-text field; now a real list of
       // { id, source, amount } entries (source from a fixed dropdown —
@@ -189,10 +201,16 @@ export function ApplicationIntakeProvider({ kind, listingId, listingSummary, inv
     });
   }, [application, backendConnected, persistLocal]);
 
+  // `isCurrent` (new field, per request — "we need to know which residence
+  // is current") is kept exclusive: adding a new entry marked current
+  // un-marks every existing one, so at most one residence is ever "current"
+  // at a time. Same exclusivity enforced in setCurrentResidence() below for
+  // marking an already-added entry current after the fact.
   const addRentalHistoryEntry = useCallback((entry) => {
     setApplicant((prev) => {
       const localEntry = { id: `local-${Date.now()}`, ...entry };
-      const next = { ...prev, rentalHistory: [...prev.rentalHistory, localEntry] };
+      const existing = entry.isCurrent ? prev.rentalHistory.map((e) => ({ ...e, isCurrent: false })) : prev.rentalHistory;
+      const next = { ...prev, rentalHistory: [...existing, localEntry] };
       persistLocal(application, next);
       if (backendConnected && application?.id && next.id) {
         api.apiAddRentalHistory(application.id, next.id, entry).catch((e) =>
@@ -209,6 +227,18 @@ export function ApplicationIntakeProvider({ kind, listingId, listingSummary, inv
       if (backendConnected && application?.id && next.id && !String(entryId).startsWith('local-')) {
         api.apiDeleteRentalHistory(application.id, next.id, entryId).catch((e) =>
           console.warn('[ApplicationIntake] remote rental history delete failed', e));
+      }
+      return next;
+    });
+  }, [application, backendConnected, persistLocal]);
+
+  const setCurrentResidence = useCallback((entryId) => {
+    setApplicant((prev) => {
+      const next = { ...prev, rentalHistory: prev.rentalHistory.map((e) => ({ ...e, isCurrent: e.id === entryId })) };
+      persistLocal(application, next);
+      if (backendConnected && application?.id && next.id && !String(entryId).startsWith('local-')) {
+        api.apiUpdateRentalHistory(application.id, next.id, entryId, { isCurrent: true }).catch((e) =>
+          console.warn('[ApplicationIntake] remote rental history update failed, kept locally', e));
       }
       return next;
     });
@@ -276,24 +306,66 @@ export function ApplicationIntakeProvider({ kind, listingId, listingSummary, inv
     });
   }, [applicant, persistLocal]);
 
-  // ── Property Requirements — pet/parking counts (Session 58) ──────────
-  // User ask: when a listing's own real fee data says it allows pets or
-  // has parking, let the applicant actually pick a count and see it
-  // multiplied against that listing's real per-unit fee (pet rent/deposit,
-  // parking fee) — real arithmetic on real listing numbers, not another
-  // illustrative field. Same gap as Dependents above: neither the approach
-  // doc's data model nor the real backend (ListingRentalTerms has the
-  // per-unit fee, but ApplicationApplicant/ApplicantDocument have no field
-  // for "how many pets/spots this applicant is requesting") carries this
-  // yet, so it's stored household-level on `application.
-  // propertyRequirements` ({ numberOfPets, numberOfParkingSpots }),
-  // local/localStorage-only, same as dependents — flagged here and in the
-  // Claude Project review doc as a real architecture gap, not silently
-  // absorbed into an existing field. See Stage3_PropertyDocuments.jsx for
-  // where the multiplication actually happens.
+  // ── Property Requirements — Pets & Vehicles ───────────────────────────
+  // Replaces the old numberOfPets/numberOfParkingSpots counters (Session 58)
+  // per request: the applicant is now asked a plain yes/no ("Do you have
+  // pets?" / "Do you have vehicles?" — setPropertyRequirements({hasPets}/
+  // {hasVehicles})), and, if yes, adds one entry per pet/vehicle with real
+  // detail (pet type/breed/weight; vehicle type/brand) via addPet/addVehicle
+  // below — the "count" the user asked to collect is simply that list's own
+  // length, so it can never drift out of sync with the detail entries the
+  // way a separately-typed number could. Storage Allocation is removed
+  // entirely per request (no field, no state, no UI).
+  // Same architecture gap as Dependents above: neither the approach doc's
+  // data model nor the real backend has a field for per-applicant
+  // pet/vehicle records yet, so this is stored household-level on
+  // `application.propertyRequirements`, local/localStorage-only — flagged
+  // here and in the Claude Project review doc as a real gap to close once a
+  // backend intake slice exists, not silently absorbed into an existing
+  // field. See Stage3_PropertyDocuments.jsx for where the listing's real
+  // per-unit pet-rent/parking-fee data is still multiplied against these
+  // list lengths for an at-a-glance monthly total.
   const setPropertyRequirements = useCallback((patch) => {
     setApplication((prev) => {
       const next = { ...prev, propertyRequirements: { ...(prev?.propertyRequirements || {}), ...patch } };
+      persistLocal(next, applicant);
+      return next;
+    });
+  }, [applicant, persistLocal]);
+
+  const addPet = useCallback((petData) => {
+    setApplication((prev) => {
+      const localPet = { id: `local-pet-${Date.now()}`, ...petData };
+      const propertyRequirements = { ...(prev?.propertyRequirements || {}), pets: [...((prev?.propertyRequirements?.pets) || []), localPet] };
+      const next = { ...prev, propertyRequirements };
+      persistLocal(next, applicant);
+      return next;
+    });
+  }, [applicant, persistLocal]);
+
+  const removePet = useCallback((petId) => {
+    setApplication((prev) => {
+      const propertyRequirements = { ...(prev?.propertyRequirements || {}), pets: ((prev?.propertyRequirements?.pets) || []).filter((p) => p.id !== petId) };
+      const next = { ...prev, propertyRequirements };
+      persistLocal(next, applicant);
+      return next;
+    });
+  }, [applicant, persistLocal]);
+
+  const addVehicle = useCallback((vehicleData) => {
+    setApplication((prev) => {
+      const localVehicle = { id: `local-vehicle-${Date.now()}`, ...vehicleData };
+      const propertyRequirements = { ...(prev?.propertyRequirements || {}), vehicles: [...((prev?.propertyRequirements?.vehicles) || []), localVehicle] };
+      const next = { ...prev, propertyRequirements };
+      persistLocal(next, applicant);
+      return next;
+    });
+  }, [applicant, persistLocal]);
+
+  const removeVehicle = useCallback((vehicleId) => {
+    setApplication((prev) => {
+      const propertyRequirements = { ...(prev?.propertyRequirements || {}), vehicles: ((prev?.propertyRequirements?.vehicles) || []).filter((v) => v.id !== vehicleId) };
+      const next = { ...prev, propertyRequirements };
       persistLocal(next, applicant);
       return next;
     });
@@ -422,13 +494,13 @@ export function ApplicationIntakeProvider({ kind, listingId, listingSummary, inv
     kind, listingId, listingSummary, basePath: basePath || `/marketplace/${kind}/${listingId}/apply`,
     application, applicant, loading, error, backendConnected, lastSavedAt,
     updateApplicantFields, setEmployment,
-    addRentalHistoryEntry, removeRentalHistoryEntry,
+    addRentalHistoryEntry, removeRentalHistoryEntry, setCurrentResidence,
     addAdditionalIncomeEntry, removeAdditionalIncomeEntry,
     addDocument, removeDocument,
     setConsent,
     addCoApplicant, removeCoApplicant, resendInvitation,
     addDependent, removeDependent,
-    setPropertyRequirements,
+    setPropertyRequirements, addPet, removePet, addVehicle, removeVehicle,
     submitApplicantSection,
   };
 

@@ -78,13 +78,14 @@ export const SAMPLE_PAYROLL = {
   description: 'In a live integration, employment records and recent paystubs would be verified automatically via a payroll data provider. No such integration exists today — this applicant\'s income is reviewed manually from the documents they upload in Stage 3.',
 };
 
-// ─── Credit / background screening (sample) ────────────────────────────────
-
-export const SAMPLE_SCREENING = {
-  bureaus: ['Experian', 'TransUnion', 'National Registry Clearinghouse'],
-  tierLabel: 'Tier 1 Rating (Sample)',
-  description: 'In a live integration, this panel would show a real-time credit and background screening pipeline. UrbanNest has no consumer-reporting-agency integration today — real screening (where applicable) is performed manually by the landlord/PM after all required applicants submit, under their own FCRA-compliant process.',
-};
+// ─── Credit / background screening ─────────────────────────────────────────
+// [occupant-count/employment-dates/pets-vehicles request] — the sample
+// "Background & Credit Screening" panel this used to feed
+// (Stage4_ReviewConsentSubmit.jsx) was removed entirely per explicit
+// request, so the SAMPLE_SCREENING export that only fed that panel was
+// removed too. Real screening (where applicable) is still performed
+// manually by the landlord/PM via the real BACKGROUND_SCREENING_AUTH
+// consent record — unaffected by this removal.
 
 // ─── Underwriting ledger (sample — rent-to-income, guarantor coverage) ─────
 
@@ -124,11 +125,13 @@ export const SAMPLE_FEE_LEDGER = {
 // `listingSummary.listingAgent` — the same `leadContact` data Marketplace's
 // own ListingContactCard already renders). No sample replacement needed.
 
-// ─── Property-operations inventory (sample — no real inventory model) ─────
-// Only shown when the listing's own real amenity tags (from the actual
-// Listing/PropertyListing data) suggest it's relevant, e.g. a pet-friendly
-// or parking-included listing — see Stage3_PropertyDocuments.jsx.
-
-export const SAMPLE_PROPERTY_LOGISTICS = {
-  description: 'UrbanNest does not yet model assignable building inventory (a specific parking stall, storage locker, etc.) — amenities today are descriptive tags on the listing, not allocatable assets. The detail below is sample content illustrating what a future property-operations module could capture.',
-};
+// ─── Property-operations inventory ─────────────────────────────────────────
+// [occupant-count/employment-dates/pets-vehicles request] — Pets and
+// Vehicles on Stage 3 (Stage3_PropertyDocuments.jsx) are no longer
+// illustrative placeholders; they're real, functional repeatable lists
+// (no backend model yet, same documented gap as Dependents — see
+// ApplicationIntakeContext.jsx's addPet()/addVehicle()), so the
+// SAMPLE_PROPERTY_LOGISTICS export that used to badge them as sample
+// content was removed. Storage Allocation (which this also used to
+// describe) was removed from the application entirely per that same
+// request.

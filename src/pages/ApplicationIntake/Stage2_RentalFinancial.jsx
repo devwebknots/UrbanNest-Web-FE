@@ -24,6 +24,8 @@ import { SampleCard, SampleTag, SAMPLE_PAYROLL, sampleUnderwritingLedger } from 
 import {
   currencySymbol, TENANTSHIP_OPTIONS, tenantshipNeedsLandlordFields,
   ADDITIONAL_INCOME_SOURCES, additionalIncomeSourceLabel,
+  ADDITIONAL_INCOME_FREQUENCY_OPTIONS, additionalIncomeFrequencyLabel,
+  employmentDurationLabel,
 } from './applicationIntakeOptions';
 
 function CurrencyInput({ prefix, ...rest }) {
@@ -47,12 +49,19 @@ function tenantshipLabel(value) {
   return TENANTSHIP_OPTIONS.find((o) => o.value === value)?.label || null;
 }
 
-function RentalHistoryEntry({ entry, currency, onRemove }) {
+function RentalHistoryEntry({ entry, currency, onRemove, onMarkCurrent }) {
   return (
-    <div style={{ border: `1px solid ${C.cardBorder}`, borderRadius: 10, padding: 12, marginTop: 10 }}>
-      <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-        <div style={{ fontFamily: F.body, fontSize: 13, fontWeight: 700, color: C.textPrimary }}>{addressLineFor(entry)}</div>
-        <button onClick={onRemove} style={{ background: 'none', border: 'none', color: C.danger, fontSize: 11.5, fontWeight: 700, cursor: 'pointer' }}>Remove</button>
+    <div style={{ border: `1px solid ${entry.isCurrent ? C.navy : C.cardBorder}`, borderRadius: 10, padding: 12, marginTop: 10 }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+          <div style={{ fontFamily: F.body, fontSize: 13, fontWeight: 700, color: C.textPrimary }}>{addressLineFor(entry)}</div>
+          {entry.isCurrent && (
+            <span style={{ fontFamily: F.body, fontSize: 9.5, fontWeight: 800, letterSpacing: '0.04em', textTransform: 'uppercase', color: C.navy, background: C.divider, padding: '2px 8px', borderRadius: 20 }}>
+              Current Residence
+            </span>
+          )}
+        </div>
+        <button onClick={onRemove} style={{ background: 'none', border: 'none', color: C.danger, fontSize: 11.5, fontWeight: 700, cursor: 'pointer', flexShrink: 0 }}>Remove</button>
       </div>
       <div style={{ fontFamily: F.body, fontSize: 11.5, color: C.textSecondary, marginTop: 4 }}>
         {tenantshipLabel(entry.tenantshipType) && `${tenantshipLabel(entry.tenantshipType)} · `}
@@ -60,6 +69,11 @@ function RentalHistoryEntry({ entry, currency, onRemove }) {
         {entry.startDate} – {entry.endDate || 'Present'} · {currency}{entry.monthlyRent}/mo
       </div>
       {entry.reasonForLeaving && <div style={{ fontFamily: F.body, fontSize: 11, color: C.textTertiary, marginTop: 2 }}>Reason for leaving: {entry.reasonForLeaving}</div>}
+      {!entry.isCurrent && (
+        <button onClick={onMarkCurrent} style={{ marginTop: 8, background: 'none', border: 'none', color: C.navy, fontSize: 11, fontWeight: 700, cursor: 'pointer', padding: 0 }}>
+          Mark as current residence
+        </button>
+      )}
     </div>
   );
 }
@@ -68,13 +82,19 @@ function AddRentalHistoryForm({ currency, onAdd, onCancel }) {
   const [form, setForm] = useState({
     tenantshipType: '', landlordName: '', landlordContact: '',
     addressStreet1: '', addressStreet2: '', city: '', state: '', zip: '',
-    startDate: '', endDate: '', monthlyRent: '', reasonForLeaving: '',
+    startDate: '', endDate: '', monthlyRent: '', reasonForLeaving: '', isCurrent: false,
   });
   function set(k) { return { value: form[k], onChange: (e) => setForm({ ...form, [k]: e.target.value }) }; }
   const showLandlordFields = tenantshipNeedsLandlordFields(form.tenantshipType);
   return (
     <div style={{ border: `1px dashed ${C.cardBorder}`, borderRadius: 10, padding: 14, marginTop: 10 }}>
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+        <div style={{ gridColumn: '1 / -1' }}>
+          <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontFamily: F.body, fontSize: 12.5, fontWeight: 700, color: C.textPrimary, cursor: 'pointer' }}>
+            <input type="checkbox" checked={form.isCurrent} onChange={(e) => setForm({ ...form, isCurrent: e.target.checked })} />
+            This is my current residence
+          </label>
+        </div>
         <div style={{ gridColumn: '1 / -1' }}>
           <FieldLabel>How did you hold this residence?</FieldLabel>
           <select style={inputStyle} {...set('tenantshipType')}>
@@ -97,7 +117,7 @@ function AddRentalHistoryForm({ currency, onAdd, onCancel }) {
         <div><FieldLabel>Start Date</FieldLabel><input type="date" style={inputStyle} {...set('startDate')} /></div>
         <div><FieldLabel>End Date (blank if current)</FieldLabel><input type="date" style={inputStyle} {...set('endDate')} /></div>
         <div>
-          <FieldLabel>Monthly Rent</FieldLabel>
+          <FieldLabel>Monthly Rent/Mortgage</FieldLabel>
           <CurrencyInput prefix={currency} {...set('monthlyRent')} />
         </div>
         <div><FieldLabel>Reason for Leaving</FieldLabel><input style={inputStyle} {...set('reasonForLeaving')} /></div>
@@ -120,7 +140,9 @@ function AdditionalIncomeRow({ entry, currency, onRemove }) {
     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '7px 0', borderBottom: `1px dashed ${C.cardBorder}` }}>
       <span style={{ fontFamily: F.body, fontSize: 12.5, color: C.textPrimary }}>{additionalIncomeSourceLabel(entry.source)}</span>
       <span style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-        <span style={{ fontFamily: F.body, fontSize: 12.5, fontWeight: 700, color: C.textPrimary }}>{currency}{entry.amount}/mo</span>
+        <span style={{ fontFamily: F.body, fontSize: 12.5, fontWeight: 700, color: C.textPrimary }}>
+          {currency}{entry.amount} <span style={{ fontWeight: 500, color: C.textSecondary }}>({additionalIncomeFrequencyLabel(entry.frequency)})</span>
+        </span>
         <button onClick={onRemove} style={{ background: 'none', border: 'none', color: C.danger, fontSize: 11.5, fontWeight: 700, cursor: 'pointer' }}>Remove</button>
       </span>
     </div>
@@ -130,20 +152,27 @@ function AdditionalIncomeRow({ entry, currency, onRemove }) {
 function AddAdditionalIncomeForm({ currency, onAdd, onCancel }) {
   const [source, setSource] = useState('');
   const [amount, setAmount] = useState('');
+  const [frequency, setFrequency] = useState('MONTHLY');
   return (
     <div style={{ display: 'flex', gap: 10, alignItems: 'flex-end', marginTop: 10, flexWrap: 'wrap' }}>
-      <div style={{ flex: '1 1 200px' }}>
+      <div style={{ flex: '1 1 180px' }}>
         <FieldLabel>Source</FieldLabel>
         <select style={inputStyle} value={source} onChange={(e) => setSource(e.target.value)}>
           {ADDITIONAL_INCOME_SOURCES.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
         </select>
       </div>
-      <div style={{ flex: '1 1 140px' }}>
-        <FieldLabel>Monthly Amount</FieldLabel>
+      <div style={{ flex: '1 1 120px' }}>
+        <FieldLabel>Amount</FieldLabel>
         <CurrencyInput prefix={currency} value={amount} onChange={(e) => setAmount(e.target.value)} />
       </div>
+      <div style={{ flex: '1 1 140px' }}>
+        <FieldLabel>Frequency</FieldLabel>
+        <select style={inputStyle} value={frequency} onChange={(e) => setFrequency(e.target.value)}>
+          {ADDITIONAL_INCOME_FREQUENCY_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+        </select>
+      </div>
       <button
-        onClick={() => { if (source && amount) { onAdd({ source, amount }); setSource(''); setAmount(''); } }}
+        onClick={() => { if (source && amount) { onAdd({ source, amount, frequency }); setSource(''); setAmount(''); setFrequency('MONTHLY'); } }}
         style={{ padding: '9px 16px', borderRadius: 8, border: 'none', background: C.navy, color: C.white, fontFamily: F.body, fontSize: 12.5, fontWeight: 700, cursor: 'pointer' }}
       >
         Add
@@ -157,7 +186,7 @@ export default function Stage2_RentalFinancial() {
   const navigate = useNavigate();
   const {
     applicant, listingSummary, basePath, updateApplicantFields,
-    addRentalHistoryEntry, removeRentalHistoryEntry, setEmployment,
+    addRentalHistoryEntry, removeRentalHistoryEntry, setCurrentResidence, setEmployment,
     addAdditionalIncomeEntry, removeAdditionalIncomeEntry,
   } = useApplicationIntake();
   const [addingHistory, setAddingHistory] = useState(applicant.rentalHistory.length === 0);
@@ -166,6 +195,10 @@ export default function Stage2_RentalFinancial() {
   const [formError, setFormError] = useState(null);
 
   const currency = currencySymbol(listingSummary?.country);
+  const employmentDuration = employmentDurationLabel(
+    applicant.employment.employmentStartDate,
+    applicant.employment.employmentEndDate,
+  );
 
   function empField(name) {
     return {
@@ -228,7 +261,11 @@ export default function Stage2_RentalFinancial() {
         ) : (
           <>
             {applicant.rentalHistory.map((entry) => (
-              <RentalHistoryEntry key={entry.id} entry={entry} currency={currency} onRemove={() => removeRentalHistoryEntry(entry.id)} />
+              <RentalHistoryEntry
+                key={entry.id} entry={entry} currency={currency}
+                onRemove={() => removeRentalHistoryEntry(entry.id)}
+                onMarkCurrent={() => setCurrentResidence(entry.id)}
+              />
             ))}
             {addingHistory ? (
               <AddRentalHistoryForm
@@ -274,12 +311,24 @@ export default function Stage2_RentalFinancial() {
           </div>
           <div><FieldLabel>Employer / Business Name</FieldLabel><input style={inputStyle} {...empField('employerName')} /></div>
           <div><FieldLabel>Job Title</FieldLabel><input style={inputStyle} {...empField('jobTitle')} /></div>
-          <div><FieldLabel>Employment Duration</FieldLabel><input style={inputStyle} placeholder="e.g. 2 years 3 months" {...empField('employmentDuration')} /></div>
+          <div><FieldLabel>Employment Start Date</FieldLabel><input type="date" style={inputStyle} {...empField('employmentStartDate')} /></div>
+          <div>
+            <FieldLabel>Employment End Date</FieldLabel>
+            <input type="date" style={inputStyle} {...empField('employmentEndDate')} />
+            <div style={{ fontFamily: F.body, fontSize: 10.5, color: C.textTertiary, marginTop: 4 }}>Leave blank if this is your current employer.</div>
+          </div>
           <div><FieldLabel>Employer Contact</FieldLabel><input style={inputStyle} {...empField('employerContact')} /></div>
           <div>
             <FieldLabel required>Monthly Income</FieldLabel>
             <CurrencyInput prefix={currency} {...empField('incomeAmount')} />
           </div>
+          {employmentDuration && (
+            <div style={{ gridColumn: '1 / -1' }}>
+              <FieldLabel>Employment Duration</FieldLabel>
+              <div style={{ ...inputStyle, background: C.divider, color: C.textSecondary, cursor: 'not-allowed' }}>{employmentDuration}</div>
+              <div style={{ fontFamily: F.body, fontSize: 10.5, color: C.textTertiary, marginTop: 4 }}>Calculated from the start/end dates above.</div>
+            </div>
+          )}
         </div>
 
         <div style={{ marginTop: 18, paddingTop: 14, borderTop: `1px dashed ${C.cardBorder}` }}>

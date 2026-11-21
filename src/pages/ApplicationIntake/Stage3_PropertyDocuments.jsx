@@ -26,26 +26,30 @@
 // still no real building-inventory/allocation model behind that one field
 // (Claude Project review doc §3.4).
 //
-// Session 58 — Pets and Parking (not Storage — not asked for) are now
-// genuinely interactive when the listing's own real fee data says they
-// apply: the applicant picks a real count and this multiplies it against
-// the listing's real per-unit fee (pet rent/deposit, parking fee) — real
-// arithmetic on real numbers, via <CountedAmenity>. When the listing
-// doesn't say pets/parking apply, the sub-section falls back to the
-// original always-visible illustrative-only field (still Sample-tagged),
-// per the Session 56 follow-up above — this doesn't re-introduce the
-// gating that was reverted, it only gates which variant of the
-// sub-section (interactive vs. illustrative) is shown. The chosen count
-// itself has no backing model anywhere (approach doc or real backend) —
-// see ApplicationIntakeContext.jsx's setPropertyRequirements() for that
-// gap note; it's stored local/localStorage-only, same as Dependents.
+// Session 58 — Pets and Parking were briefly made "interactive counters"
+// (a NumberStepper multiplying a count against the listing's real
+// per-unit fee) with the actual pet/vehicle detail fields left as
+// illustrative Sample-tagged placeholders underneath.
+//
+// [occupant-count/employment-dates/pets-vehicles request] — replaced that
+// with the real thing: Pets and Vehicles are now each a yes/no question
+// followed by a genuinely functional repeatable list (type/breed/weight
+// per pet, type/brand per vehicle) — same repeatable-list convention
+// Dependents/Co-Applicants/Rental History/Additional Income already use
+// elsewhere in this form. The list's own length IS the count (see
+// ApplicationIntakeContext.jsx's addPet/addVehicle for why there's no
+// separately-typed count field to desync from it), so these fields are
+// no longer illustrative/Sample-tagged — they're real applicant data with
+// no backend model yet, the same documented gap as Dependents (see
+// setPropertyRequirements()/addPet()/addVehicle() in
+// ApplicationIntakeContext.jsx). Storage Allocation has been removed
+// from the application entirely per that same request.
 
 import React, { useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useApplicationIntake } from './ApplicationIntakeContext';
 import { ApplicationIntakeShell, StageFooterNav, FieldLabel, inputStyle, SectionHeading, Card } from './ApplicationIntakeShell';
 import { C, F } from './applicationIntakeTokens';
-import { SampleTag, SAMPLE_PROPERTY_LOGISTICS } from './sampleInstitutionalContent';
 import { currencySymbol } from './applicationIntakeOptions';
 
 const DOCUMENT_TYPES = [
@@ -113,89 +117,111 @@ function DocumentSlot({ docType, label, required, needsLabel, document, onUpload
   );
 }
 
-function LifestyleSubsection({ title, realFacts, illustrativePlaceholder }) {
+const PET_TYPE_OPTIONS = ['Dog', 'Cat', 'Bird', 'Fish / Aquarium', 'Small Mammal', 'Reptile', 'Other'];
+const VEHICLE_TYPE_OPTIONS = ['Car', 'SUV', 'Truck', 'Motorcycle', 'Van', 'Other'];
+
+function PetRow({ pet, onRemove }) {
   return (
-    <div style={{ border: `1px solid ${C.cardBorder}`, borderRadius: 8, padding: 12 }}>
-      <div style={{ fontFamily: F.body, fontSize: 12.5, fontWeight: 700, color: C.textPrimary, marginBottom: realFacts ? 4 : 8 }}>{title}</div>
-      {realFacts && <div style={{ fontFamily: F.body, fontSize: 11.5, color: C.textSecondary, marginBottom: 8 }}>{realFacts}</div>}
-      <div style={{ position: 'relative' }}>
-        <div style={{ position: 'absolute', top: -2, right: 0 }}><SampleTag label="Sample field" /></div>
-        <input disabled placeholder={illustrativePlaceholder} style={{ ...inputStyle, paddingRight: 110, color: C.textTertiary, cursor: 'not-allowed' }} />
+    <div style={{ border: `1px solid ${C.cardBorder}`, borderRadius: 10, padding: 12, marginTop: 10, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8 }}>
+      <div>
+        <div style={{ fontFamily: F.body, fontSize: 13.5, fontWeight: 700, color: C.textPrimary }}>{pet.petType}{pet.breed ? ` · ${pet.breed}` : ''}</div>
+        {pet.weight && <div style={{ fontFamily: F.body, fontSize: 11.5, color: C.textSecondary }}>Approx. weight: {pet.weight}</div>}
+      </div>
+      <button onClick={onRemove} style={{ background: 'none', border: 'none', color: C.danger, fontWeight: 700, fontFamily: F.body, fontSize: 11.5, cursor: 'pointer', padding: 0, flexShrink: 0 }}>Remove</button>
+    </div>
+  );
+}
+
+function AddPetForm({ onAdd, onCancel }) {
+  const [form, setForm] = useState({ petType: '', breed: '', weight: '' });
+  function set(k) { return { value: form[k], onChange: (e) => setForm({ ...form, [k]: e.target.value }) }; }
+  return (
+    <div style={{ border: `1px dashed ${C.cardBorder}`, borderRadius: 10, padding: 14, marginTop: 10 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+        <div>
+          <FieldLabel required>Pet Type</FieldLabel>
+          <select style={inputStyle} {...set('petType')}>
+            <option value="">Select…</option>
+            {PET_TYPE_OPTIONS.map((t) => <option key={t} value={t}>{t}</option>)}
+          </select>
+        </div>
+        <div>
+          <FieldLabel>Breed</FieldLabel>
+          <input style={inputStyle} {...set('breed')} />
+        </div>
+        <div>
+          <FieldLabel>Weight (approx.)</FieldLabel>
+          <input style={inputStyle} placeholder="e.g. 35 lbs" {...set('weight')} />
+        </div>
+      </div>
+      <div style={{ display: 'flex', gap: 10, marginTop: 12 }}>
+        <button
+          onClick={() => { if (!form.petType.trim()) return; onAdd(form); setForm({ petType: '', breed: '', weight: '' }); }}
+          style={{ background: C.navy, color: C.white, border: 'none', borderRadius: 8, padding: '9px 16px', fontFamily: F.body, fontSize: 12.5, fontWeight: 700, cursor: 'pointer' }}
+        >
+          Add Pet
+        </button>
+        <button onClick={onCancel} style={{ background: 'none', border: 'none', color: C.textSecondary, fontFamily: F.body, fontSize: 12.5, fontWeight: 700, cursor: 'pointer' }}>
+          Cancel
+        </button>
       </div>
     </div>
   );
 }
 
-function NumberStepper({ value, onChange, max = 9 }) {
-  const stepBtnStyle = {
-    width: 26, height: 26, borderRadius: 6, border: `1px solid ${C.cardBorder}`, background: C.inputBg,
-    color: C.textPrimary, fontFamily: F.body, fontSize: 14, fontWeight: 700, cursor: 'pointer',
-    display: 'flex', alignItems: 'center', justifyContent: 'center', lineHeight: 1,
-  };
+function VehicleRow({ vehicle, onRemove }) {
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-      <button type="button" onClick={() => onChange(Math.max(0, value - 1))} disabled={value <= 0} style={{ ...stepBtnStyle, opacity: value <= 0 ? 0.4 : 1, cursor: value <= 0 ? 'not-allowed' : 'pointer' }}>−</button>
-      <span style={{ minWidth: 18, textAlign: 'center', fontFamily: F.body, fontWeight: 800, fontSize: 14, color: C.textPrimary }}>{value}</span>
-      <button type="button" onClick={() => onChange(Math.min(max, value + 1))} disabled={value >= max} style={{ ...stepBtnStyle, opacity: value >= max ? 0.4 : 1, cursor: value >= max ? 'not-allowed' : 'pointer' }}>+</button>
+    <div style={{ border: `1px solid ${C.cardBorder}`, borderRadius: 10, padding: 12, marginTop: 10, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8 }}>
+      <div>
+        <div style={{ fontFamily: F.body, fontSize: 13.5, fontWeight: 700, color: C.textPrimary }}>{vehicle.vehicleType}{vehicle.brand ? ` · ${vehicle.brand}` : ''}</div>
+      </div>
+      <button onClick={onRemove} style={{ background: 'none', border: 'none', color: C.danger, fontWeight: 700, fontFamily: F.body, fontSize: 11.5, cursor: 'pointer', padding: 0, flexShrink: 0 }}>Remove</button>
     </div>
   );
 }
 
-// Real, interactive variant shown only when the listing's own fee data
-// says this amenity applies (see Session 58 header note above) — a count
-// the applicant picks, multiplied against the listing's real per-unit fee.
-// The illustrative detail field (breed/weight, vehicle make/model) still
-// renders underneath, unchanged and still Sample-tagged, since a count and
-// a fee total don't replace that level of detail — they're additive.
-function CountedAmenity({ title, realFacts, unitNoun, count, onCountChange, perUnitFee, perUnitFeeLabel, perUnitDeposit, currency, illustrativePlaceholder }) {
-  const monthlyTotal = perUnitFee != null && count > 0 ? perUnitFee * count : null;
-  const depositTotal = perUnitDeposit != null && count > 0 ? perUnitDeposit * count : null;
+function AddVehicleForm({ onAdd, onCancel }) {
+  const [form, setForm] = useState({ vehicleType: '', brand: '' });
+  function set(k) { return { value: form[k], onChange: (e) => setForm({ ...form, [k]: e.target.value }) }; }
   return (
-    <div style={{ border: `1px solid ${C.cardBorder}`, borderRadius: 8, padding: 12 }}>
-      <div style={{ fontFamily: F.body, fontSize: 12.5, fontWeight: 700, color: C.textPrimary, marginBottom: 4 }}>{title}</div>
-      {realFacts && <div style={{ fontFamily: F.body, fontSize: 11.5, color: C.textSecondary, marginBottom: 10 }}>{realFacts}</div>}
-
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 10 }}>
-        <div style={{ fontFamily: F.body, fontSize: 11.5, fontWeight: 700, color: C.textSecondary }}>
-          Number of {unitNoun}{count === 1 ? '' : 's'}
+    <div style={{ border: `1px dashed ${C.cardBorder}`, borderRadius: 10, padding: 14, marginTop: 10 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+        <div>
+          <FieldLabel required>Vehicle Type</FieldLabel>
+          <select style={inputStyle} {...set('vehicleType')}>
+            <option value="">Select…</option>
+            {VEHICLE_TYPE_OPTIONS.map((t) => <option key={t} value={t}>{t}</option>)}
+          </select>
         </div>
-        <NumberStepper value={count} onChange={onCountChange} />
+        <div>
+          <FieldLabel>Brand</FieldLabel>
+          <input style={inputStyle} placeholder="e.g. Toyota" {...set('brand')} />
+        </div>
       </div>
-
-      {count > 0 && (monthlyTotal != null || depositTotal != null) && (
-        <div style={{ marginTop: 10, paddingTop: 10, borderTop: `1px dashed ${C.cardBorder}`, fontFamily: F.body, fontSize: 11.5, color: C.textSecondary }}>
-          {monthlyTotal != null && (
-            <div>
-              {perUnitFeeLabel}: {currency}{perUnitFee}/mo &times; {count} = <strong style={{ color: C.textPrimary }}>{currency}{monthlyTotal}/mo</strong>
-            </div>
-          )}
-          {depositTotal != null && (
-            <div style={{ marginTop: monthlyTotal != null ? 4 : 0 }}>
-              Deposit: {currency}{perUnitDeposit} &times; {count} = <strong style={{ color: C.textPrimary }}>{currency}{depositTotal}</strong>
-            </div>
-          )}
-        </div>
-      )}
-      {count > 0 && monthlyTotal == null && depositTotal == null && (
-        <div style={{ marginTop: 8, fontFamily: F.body, fontSize: 10.5, color: C.textTertiary }}>
-          This listing doesn't specify a fee for this — confirm the amount with the listing agent.
-        </div>
-      )}
-
-      {illustrativePlaceholder && (
-        <div style={{ position: 'relative', marginTop: 10 }}>
-          <div style={{ position: 'absolute', top: -2, right: 0 }}><SampleTag label="Sample field" /></div>
-          <input disabled placeholder={illustrativePlaceholder} style={{ ...inputStyle, paddingRight: 110, color: C.textTertiary, cursor: 'not-allowed' }} />
-        </div>
-      )}
+      <div style={{ display: 'flex', gap: 10, marginTop: 12 }}>
+        <button
+          onClick={() => { if (!form.vehicleType.trim()) return; onAdd(form); setForm({ vehicleType: '', brand: '' }); }}
+          style={{ background: C.navy, color: C.white, border: 'none', borderRadius: 8, padding: '9px 16px', fontFamily: F.body, fontSize: 12.5, fontWeight: 700, cursor: 'pointer' }}
+        >
+          Add Vehicle
+        </button>
+        <button onClick={onCancel} style={{ background: 'none', border: 'none', color: C.textSecondary, fontFamily: F.body, fontSize: 12.5, fontWeight: 700, cursor: 'pointer' }}>
+          Cancel
+        </button>
+      </div>
     </div>
   );
 }
 
 export default function Stage3_PropertyDocuments() {
   const navigate = useNavigate();
-  const { applicant, application, basePath, listingSummary, addDocument, removeDocument, setPropertyRequirements } = useApplicationIntake();
+  const {
+    applicant, application, basePath, listingSummary, addDocument, removeDocument,
+    setPropertyRequirements, addPet, removePet, addVehicle, removeVehicle,
+  } = useApplicationIntake();
   const [formError, setFormError] = useState(null);
+  const [addingPet, setAddingPet] = useState(false);
+  const [addingVehicle, setAddingVehicle] = useState(false);
 
   function docFor(type) {
     return applicant.documents.find((d) => d.documentType === type);
@@ -223,14 +249,15 @@ export default function Stage3_PropertyDocuments() {
   const parkingRealFacts = listingSummary?.parkingAvailable
     ? `Parking is available at this listing.${listingSummary.parkingFeeAmount != null ? ` Parking fee: ${currency}${listingSummary.parkingFeeAmount}/mo.` : ''}`
     : null;
-  const storageRealFacts = listingSummary?.storageAvailable
-    ? `Storage is available at this listing.${listingSummary.storageFeeAmount != null ? ` Storage fee: ${currency}${listingSummary.storageFeeAmount}/mo.` : ''}`
-    : null;
 
-  // Session 58 — real counts, stored household-level (see
-  // ApplicationIntakeContext.jsx's setPropertyRequirements()).
-  const numberOfPets = application?.propertyRequirements?.numberOfPets || 0;
-  const numberOfParkingSpots = application?.propertyRequirements?.numberOfParkingSpots || 0;
+  // Pets/Vehicles: a yes/no flag plus a real repeatable list — the list's
+  // own length IS the count (see ApplicationIntakeContext.jsx's
+  // addPet()/addVehicle()), stored household-level, local/localStorage-only
+  // (no backend model yet — same documented gap as Dependents).
+  const hasPets = !!application?.propertyRequirements?.hasPets;
+  const hasVehicles = !!application?.propertyRequirements?.hasVehicles;
+  const pets = application?.propertyRequirements?.pets || [];
+  const vehicles = application?.propertyRequirements?.vehicles || [];
 
   return (
     <ApplicationIntakeShell activeStage={3}>
@@ -258,58 +285,88 @@ export default function Stage3_PropertyDocuments() {
 
       <Card>
         <div style={{ fontFamily: F.body, fontSize: 13, fontWeight: 800, color: C.textPrimary, marginBottom: 8, textTransform: 'uppercase', letterSpacing: '0.03em' }}>
-          Property-Specific Lifestyle &amp; Logistics
+          Property-Specific Requirements
         </div>
-        <div style={{ fontFamily: F.body, fontSize: 11.5, color: C.textTertiary, marginBottom: 10 }}>
-          {SAMPLE_PROPERTY_LOGISTICS.description}
-        </div>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-          {listingSummary?.petsAllowed ? (
-            <CountedAmenity
-              title="Domestic Animals & Pets"
-              realFacts={petRealFacts}
-              unitNoun="pet"
-              count={numberOfPets}
-              onCountChange={(n) => setPropertyRequirements({ numberOfPets: n })}
-              perUnitFee={listingSummary.petRent}
-              perUnitFeeLabel="Pet rent"
-              perUnitDeposit={listingSummary.petDeposit}
-              currency={currency}
-              illustrativePlaceholder="Pet type, breed & weight (illustrative — no pet-record model exists yet)"
-            />
-          ) : (
-            <LifestyleSubsection
-              title="Domestic Animals & Pets"
-              realFacts={petRealFacts}
-              illustrativePlaceholder="Pet type, breed & weight (illustrative — no pet-record model exists yet)"
-            />
-          )}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
 
-          {listingSummary?.parkingAvailable ? (
-            <CountedAmenity
-              title="Resident Vehicle & Parking"
-              realFacts={parkingRealFacts}
-              unitNoun="parking spot"
-              count={numberOfParkingSpots}
-              onCountChange={(n) => setPropertyRequirements({ numberOfParkingSpots: n })}
-              perUnitFee={listingSummary.parkingFeeAmount}
-              perUnitFeeLabel="Parking fee"
-              currency={currency}
-              illustrativePlaceholder="Vehicle make/model & plate (illustrative — no stall-assignment model exists yet)"
-            />
-          ) : (
-            <LifestyleSubsection
-              title="Resident Vehicle & Parking"
-              realFacts={parkingRealFacts}
-              illustrativePlaceholder="Vehicle make/model & plate (illustrative — no stall-assignment model exists yet)"
-            />
-          )}
+          <div style={{ border: `1px solid ${C.cardBorder}`, borderRadius: 8, padding: 12 }}>
+            <div style={{ fontFamily: F.body, fontSize: 12.5, fontWeight: 700, color: C.textPrimary, marginBottom: petRealFacts ? 4 : 8 }}>Pets</div>
+            {petRealFacts && <div style={{ fontFamily: F.body, fontSize: 11.5, color: C.textSecondary, marginBottom: 8 }}>{petRealFacts}</div>}
+            <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontFamily: F.body, fontSize: 12.5, fontWeight: 700, color: C.textPrimary, cursor: 'pointer' }}>
+              <input
+                type="checkbox"
+                checked={hasPets}
+                onChange={(e) => setPropertyRequirements({ hasPets: e.target.checked })}
+              />
+              Do you have any pets?
+            </label>
 
-          <LifestyleSubsection
-            title="Storage Allocation"
-            realFacts={storageRealFacts}
-            illustrativePlaceholder="Storage needs (illustrative — no locker-assignment model exists yet)"
-          />
+            {hasPets && (
+              <div style={{ marginTop: 10 }}>
+                {pets.length > 0 && (
+                  <div style={{ fontFamily: F.body, fontSize: 11, color: C.textTertiary, marginBottom: 4 }}>
+                    {pets.length} pet{pets.length === 1 ? '' : 's'} added
+                  </div>
+                )}
+                {pets.map((p) => (
+                  <PetRow key={p.id} pet={p} onRemove={() => removePet(p.id)} />
+                ))}
+                {addingPet ? (
+                  <AddPetForm
+                    onAdd={(data) => { addPet(data); setAddingPet(false); }}
+                    onCancel={() => setAddingPet(false)}
+                  />
+                ) : (
+                  <button
+                    onClick={() => setAddingPet(true)}
+                    style={{ width: '100%', marginTop: 10, padding: '11px 0', borderRadius: 8, border: `1px dashed ${C.cardBorder}`, background: C.inputBg, color: C.textSecondary, fontFamily: F.body, fontSize: 12.5, fontWeight: 700, cursor: 'pointer' }}
+                  >
+                    + Add a Pet
+                  </button>
+                )}
+              </div>
+            )}
+          </div>
+
+          <div style={{ border: `1px solid ${C.cardBorder}`, borderRadius: 8, padding: 12 }}>
+            <div style={{ fontFamily: F.body, fontSize: 12.5, fontWeight: 700, color: C.textPrimary, marginBottom: parkingRealFacts ? 4 : 8 }}>Vehicles</div>
+            {parkingRealFacts && <div style={{ fontFamily: F.body, fontSize: 11.5, color: C.textSecondary, marginBottom: 8 }}>{parkingRealFacts}</div>}
+            <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontFamily: F.body, fontSize: 12.5, fontWeight: 700, color: C.textPrimary, cursor: 'pointer' }}>
+              <input
+                type="checkbox"
+                checked={hasVehicles}
+                onChange={(e) => setPropertyRequirements({ hasVehicles: e.target.checked })}
+              />
+              Do you have any vehicles?
+            </label>
+
+            {hasVehicles && (
+              <div style={{ marginTop: 10 }}>
+                {vehicles.length > 0 && (
+                  <div style={{ fontFamily: F.body, fontSize: 11, color: C.textTertiary, marginBottom: 4 }}>
+                    {vehicles.length} vehicle{vehicles.length === 1 ? '' : 's'} added
+                  </div>
+                )}
+                {vehicles.map((v) => (
+                  <VehicleRow key={v.id} vehicle={v} onRemove={() => removeVehicle(v.id)} />
+                ))}
+                {addingVehicle ? (
+                  <AddVehicleForm
+                    onAdd={(data) => { addVehicle(data); setAddingVehicle(false); }}
+                    onCancel={() => setAddingVehicle(false)}
+                  />
+                ) : (
+                  <button
+                    onClick={() => setAddingVehicle(true)}
+                    style={{ width: '100%', marginTop: 10, padding: '11px 0', borderRadius: 8, border: `1px dashed ${C.cardBorder}`, background: C.inputBg, color: C.textSecondary, fontFamily: F.body, fontSize: 12.5, fontWeight: 700, cursor: 'pointer' }}
+                  >
+                    + Add a Vehicle
+                  </button>
+                )}
+              </div>
+            )}
+          </div>
+
         </div>
       </Card>
 
