@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { C2, TONES2, R2, SH2, T2, FS2, LH2, SP2, SZ2, LAYOUT2, pad, UI2 } from '../../constants/v2';
+import React, { useState, useRef, useEffect } from 'react';
+import { C2, G2, TONES2, R2, SH2, T2, FS2, LH2, SP2, SZ2, LAYOUT2, pad, UI2 } from '../../constants/v2';
 import { OptionsMenu } from './PropertyCard';
 import TextLink from './TextLink';
 
@@ -20,7 +20,9 @@ import TextLink from './TextLink';
 //
 // Props: image, fallbackImage, name, status ({ tone, label }), address, typeLabel,
 //        share (0–100 → "✓ 100% Ownership" pill), stats [{ icon, value, label }],
-//        primaryAction / secondaryAction ({ label, onClick }), menu, first (no hairline above), loading
+//        primaryAction / secondaryAction ({ label, onClick }), menu, first (no hairline above), loading,
+//        onSelect (row click / Enter / ↑↓ selects it) · selected (gradient pill on the left · soft side wash ·
+//        name in primary blue)
 // Type: name = UI2.cardTitle (Playfair 16) · address = UI2.text.meta (the standard description line) ·
 //       stat value T2.bodyBold + label T2.body (grey) · View Property = TextLink (same as "View all") ·
 //       secondary = UI2.btn.soft + btnSm (button rule: secondary on light surfaces is always soft).
@@ -52,6 +54,26 @@ const S = {
   statLbl: { ...T2.body, color: C2.textSecondary },
 
   btnAlt:  { ...UI2.btn.soft, ...UI2.btnSm },   // standard secondary on a light surface (never a white button)
+
+  // Selectable rows (onSelect) — premium selected look, no box / border / shadow:
+  //   · a short rounded GRADIENT PILL on the left edge (grows in from the middle)
+  //   · one soft edgeless blue glow from the left (G2.selectedRow)
+  //   (no ring on the photo)
+  //   · the property name turns primary blue
+  // borderTop none: with rounded corners a top border bends round them — the divider is its own straight line (S.divider)
+  selectable: { position: 'relative', borderTop: 'none', paddingLeft: SP2.lg, paddingRight: SP2.md, borderRadius: R2.lg, cursor: 'pointer', transition: 'background 0.3s ease' },
+  divider:    { position: 'absolute', top: 0, left: SP2.md, right: SP2.md, height: SZ2.hairline, background: C2.border, pointerEvents: 'none' },
+  // selected: soft edgeless glow (no box, no shadow), a blue bar along the left edge and a small ✓ badge
+  // on the photo
+  selected:   { background: G2.selectedRow },   // soft edgeless blue glow from the left — never a box / shadow
+  check:      { ...UI2.center, position: 'absolute', top: SP2.xs, left: SP2.xs, zIndex: 1, width: SZ2.icon.xs - SP2.xxs, height: SZ2.icon.xs - SP2.xxs, borderRadius: R2.round, background: C2.primary, color: C2.white, fontSize: FS2.xxs, boxShadow: `0 0 0 1.5px ${C2.white}` },   // small, light ✓ badge
+  indicator:  (on) => ({
+    position: 'absolute', left: 0, top: SP2.md, bottom: SP2.md, width: SZ2.accentBar + 1, borderRadius: R2.pill,   // runs (almost) the full row height
+    background: G2.brandBar,   // dark brand gradient (same as the main buttons), vertical
+    transform: on ? 'scaleY(1)' : 'scaleY(0)', opacity: on ? 1 : 0,
+    transition: 'transform 0.35s var(--un2-spring), opacity 0.2s ease', pointerEvents: 'none',
+  }),
+  nameOn:     { color: C2.primary, transition: 'color 0.2s ease' },
 };
 
 function Photo({ image, fallbackImage }) {
@@ -77,20 +99,53 @@ function Skeleton({ first }) {
 
 export default function PropertyRow({
   image, fallbackImage, name, status, address, typeLabel, share, stats = [],
-  primaryAction, secondaryAction, menu, first = false, loading = false,
+  primaryAction, secondaryAction, menu, first = false, loading = false, selected = false, onSelect,
 }) {
+  const rowRef = useRef(null);
+  const wasSelected = useRef(selected);
+  // Selected from elsewhere (e.g. a picker) → glide the row into view if it's off-screen
+  // (never on first render, so the page doesn't jump on load)
+  useEffect(() => {
+    if (selected && !wasSelected.current && rowRef.current) rowRef.current.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+    wasSelected.current = selected;
+  }, [selected]);
+
   if (loading) return <Skeleton first={first} />;
   const sharePct = share != null ? Math.max(0, Math.min(100, Number(share) || 0)) : null;
+  // Row click selects it — except clicks on its own buttons / links / menu (they keep their action)
+  const select = e => { if (onSelect && !e.target.closest('button, a, [role="menu"]')) onSelect(); };
+  const onKey = e => {
+    if (!onSelect || e.target !== e.currentTarget) return;
+    if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onSelect(); return; }
+    // ↑ / ↓ move the selection to the previous / next selectable row
+    if (e.key === 'ArrowDown' || e.key === 'ArrowUp') {
+      const rows = [...(e.currentTarget.parentElement?.querySelectorAll(':scope > .un2-select-row') || [])];
+      const next = rows[rows.indexOf(e.currentTarget) + (e.key === 'ArrowDown' ? 1 : -1)];
+      if (next) { e.preventDefault(); next.focus(); next.click(); }
+    }
+  };
   return (
-    <div className="un2-zoom" style={S.row(first)}>
+    <div
+      ref={rowRef}
+      className={onSelect ? "un2-zoom un2-select-row" : "un2-zoom"}
+      style={{ ...S.row(first), ...(onSelect ? S.selectable : {}), ...(selected ? S.selected : {}) }}
+      onClick={onSelect ? select : undefined}
+      onKeyDown={onSelect ? onKey : undefined}
+      tabIndex={onSelect ? 0 : undefined}
+      aria-selected={onSelect ? selected : undefined}
+      role={onSelect ? 'option' : undefined}
+    >
+      {onSelect && !first && !selected && <span style={S.divider} aria-hidden="true" />}
+      {onSelect && <span style={S.indicator(selected)} aria-hidden="true" />}
       <div style={S.photo}>
+        {selected && <span style={S.check} aria-hidden="true"><i className="ti ti-check" /></span>}
         <Photo image={image} fallbackImage={fallbackImage} />
       </div>
 
       <div style={S.body}>
           <div style={S.info}>
             <div style={S.titleRow}>
-              <span style={S.name}>{name}</span>
+              <span className="un2-row-name" style={{ ...S.name, ...(selected ? S.nameOn : {}) }}>{name}</span>
               {status && <span style={UI2.pill(status.tone)}>{status.label}</span>}
             </div>
             {(address || typeLabel) && (

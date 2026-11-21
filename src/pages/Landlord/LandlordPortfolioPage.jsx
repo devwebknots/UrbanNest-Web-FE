@@ -1,14 +1,15 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  PageShell, Grid, OpenHero, StatGroup, SectionCard, TabBar, PropertyRow, ListRow,
-  ActionTile, EmptyState, LineChart, CountUp, TextLink, PageFooter,
+  PageShell, Grid, HeroBanner, SectionCard, TabBar, PropertyRow, ListRow, FilterMenu, PageWave,
+  EmptyState, LineChart, CountUp, TextLink, PageFooter,
+  // ActionTile — used by the Quick Actions card, commented out below
 } from '../../components/v2';
 import {
   C2, TONES2, ACCENT2, GSTOPS2, accentTone,
   T2, F2, FS2, SP2, SZ2, LAYOUT2, UI2,
 } from '../../constants/v2';
-import heroImage from '../../assets/v2/landlord/portfolio-hero-sunset.jpg';   // sunset sky + building (Downloads/image 57.png) — full-width hero photo behind the top bar
+import heroImage from '../../assets/v2/landlord/portfolio-hero-banner.png';   // full banner art (navy → sky, building right) — Downloads/urbannest_banner_transparent 1.png
 import propertyPlaceholder from '../../assets/v2/landlord/property-placeholder.jpg';
 
 const API_BASE = process.env.REACT_APP_API_BASE_URL || 'http://localhost:8001/api';
@@ -16,12 +17,13 @@ const API_BASE = process.env.REACT_APP_API_BASE_URL || 'http://localhost:8001/ap
 // ─── Design System v2 — Landlord Portfolio (Property List) ───────────────────
 // Visual layer only. Data comes from GET /landlord/portfolio/ exactly as before:
 //   summary · properties · recent_units
-// Layout (design: Downloads/image 51):
-//   OpenHero (PORTFOLIO · Property List, no box, bleeds to the edges)
-//     + stats band: StatGroup size="lg"     — Total properties · Total units · Avg occupancy · Rent this month
+// Layout (design: Downloads/image 64.png):
+//   HeroBanner compact (navy, building photo right) — "Portfolio Overview" pill · Property List · subtitle
+//     + stats row: Total Properties · Total Units · Avg Occupancy · Rent This Month
 //   <Grid layout="mainSide">
-//     My Properties (TabBar underline filters · search · Add Property, PropertyRow list)
-//     │ Portfolio Insights (figure + delta + LineChart) · Recent Unit Activities · Quick Actions
+//     My Properties (title · TabBar underline filters │ search · type filter · Add Property, PropertyRow list)
+//     │ Property Insight (property picker · figure + delta + LineChart) · Recent Unit Activities
+//       (Quick Actions card commented out)
 //   PageFooter
 // No page-level spacing, sizes, fonts or colours — everything comes from constants/v2.
 
@@ -60,6 +62,14 @@ const ACT = {
   maint:   { tone: accentTone(ACCENT2.rose),     icon: 'ti-tool' },
 };
 
+// Recent Unit Activities — sample rows shown when the selected property has no real activity yet
+// ({p} = the selected property's name). Same look as real rows; `time` sits on the right.
+const SAMPLE_ACTIVITY = [
+  { ...ACT.paid,    title: '{p} — Unit 101',    meta: 'Lease marked as Paid',  time: '2h ago' },
+  { ...ACT.maint,   title: 'Maintenance request', meta: 'Unit 101 — AC service', time: '5h ago' },
+  { tone: accentTone(ACCENT2.violet), icon: 'ti-calendar-event', title: 'Lease updated', meta: '{p} — Unit 101', time: '1d ago' },
+];
+
 const fmtCurrency = n =>
   '$' + Number(n).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
 
@@ -87,7 +97,16 @@ const S = {
   input:     { flex: 1, minWidth: 0, border: 'none', outline: 'none', background: 'transparent', fontFamily: F2.body, fontSize: FS2.base, color: C2.textPrimary },
   // My Properties: open section (column so an empty state can fill + centre in the remaining height)
   open:      { display: 'flex', flexDirection: 'column', minWidth: 0 },
-  openHead:  { display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: SP2.md, marginBottom: LAYOUT2.cardHeaderGap },
+  openHead:  { marginBottom: LAYOUT2.cardHeaderGap },
+  // Tabs left · search / filter / Add Property right, on one line (wraps under on narrow widths)
+  toolbar:   { display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: SP2.md, flexWrap: 'wrap' },
+  tabsWrap:  { flex: '1 1 auto', minWidth: 0 },
+  // Property Insight — property picker (photo · name · address · chevron) opening a FilterMenu list
+  picker:    { ...UI2.row(SP2.md), width: '100%', padding: SP2.sm, border: 'none', borderRadius: UI2.tile.borderRadius, background: UI2.tile.background, boxShadow: UI2.tile.boxShadow, cursor: 'pointer', textAlign: 'left', fontFamily: F2.body, marginTop: SP2.md },
+  pickThumb: { width: SZ2.heroThumb.w, height: SZ2.heroThumb.h, borderRadius: UI2.thumb.borderRadius, objectFit: 'cover', flexShrink: 0, display: 'block' },
+  pickName:  { ...UI2.text.titleLg, ...UI2.truncate },
+  pickAddr:  { ...UI2.text.meta, ...UI2.truncate, marginTop: SP2.xxs },
+  pickChev:  (open) => ({ fontSize: FS2.xl, color: C2.textSecondary, transition: 'transform 0.2s ease', transform: open ? 'rotate(180deg)' : 'none' }),
   // Playfair's lowercase sits low in its line box (Inter on the buttons sits centred), so a box-centred
   // title reads ~2px low. The bottom margin lifts it by half its size (SP2.xs → 2px) in the flex-centred
   // row, putting the title's optical centre level with the buttons.
@@ -112,6 +131,8 @@ export default function LandlordPortfolioPage() {
   const [search,       setSearch]       = useState('');
   const [searchOpen,   setSearchOpen]   = useState(false);
   const [activeFilter, setActiveFilter] = useState('ALL');
+  const [typeFilter,   setTypeFilter]   = useState(null);   // My Properties filter icon: property type (null = all)
+  const [selectedPropId, setSelectedPropId] = useState(null); // selected property — drives the row highlight + the right-side overview (null = first)
   const listRef = useRef(null);            // My Properties list / empty state
   const filterChanged = useRef(false);     // set by a tab click → scroll the empty state into view
 
@@ -149,9 +170,13 @@ export default function LandlordPortfolioPage() {
       activeFilter === 'ACTIVE'   ? p.status === 'ACTIVE' :
       activeFilter === 'OCCUPIED' ? p.occupancy_pct >= 80 :
       activeFilter === 'ALERT'    ? p.maint_open > 0 : true;
+    const matchType = typeFilter == null || p.property_type === typeFilter;
 
-    return matchSearch && matchFilter;
+    return matchSearch && matchFilter && matchType;
   });
+  // Filter icon options = the property types this landlord actually has
+  const typeOptions = [...new Set(allProps.map(p => p.property_type).filter(Boolean))]
+    .map(t => ({ value: t, label: PROP_TYPE_LABEL[t] || t }));
 
   // Tab switched to a filter with no properties → bring the empty state into view (centred).
   // Only on a tab change (not while typing a search), and never on the first load.
@@ -171,12 +196,19 @@ export default function LandlordPortfolioPage() {
       accent: { soft: TONES2.success.soft, fg: TONES2.success.strong, bar: GSTOPS2.success } },
     { icon: 'ti-percentage', label: 'Avg Occupancy',    value: loading ? '—' : <CountUp value={Number(summary.avg_occupancy) || 0} format={v => `${Math.round(v)}%`} />, accent: ACCENT2.blue },
     { icon: 'ti-wallet',     label: 'Rent This Month',  value: loading ? '—' : <CountUp value={rentThisMonth} format={fmtCurrency} />,
-      accent: ACCENT2.violet, valueColor: C2.successStrong },
+      accent: ACCENT2.violet },   // white like the other values on the dark banner
   ];
 
-  // ── Portfolio insights ─────────────────────────────────────────────────────
+  // ── Property insight ───────────────────────────────────────────────────────
+  // Picker = the landlord's properties (same selection as the list). This month = the property's own rent when
+  // the API sends it, else the portfolio's; earlier months stay sample data (no monthly rent API yet).
+  // ONE selected property: the first one on load; a row click or the picker changes it, and the right-side
+  // overview (Property Insight + Recent Unit Activities) always shows that property.
+  const insightProp = filteredProps.find(p => p.id === selectedPropId) || allProps.find(p => p.id === selectedPropId) || filteredProps[0] || allProps[0] || null;
+  const insightRent = Number(insightProp?.rent_this_month ?? insightProp?.monthly_rent ?? rentThisMonth) || 0;
+  const insightOptions = allProps.map(p => ({ value: p.id, label: p.name || `Property #${p.id}` }));
   const months = lastSixMonths();
-  const series = [...SAMPLE_RENT.slice(0, 5), rentThisMonth || SAMPLE_RENT[5]];
+  const series = [...SAMPLE_RENT.slice(0, 5), insightRent || SAMPLE_RENT[5]];
   const current = series[series.length - 1];
   const previous = series[series.length - 2];
   const delta = previous > 0 ? ((current - previous) / previous) * 100 : null;
@@ -189,7 +221,9 @@ export default function LandlordPortfolioPage() {
     if (!u.property_name || unit.toLowerCase().startsWith(u.property_name.toLowerCase())) return unit;
     return `${u.property_name} — ${unit}`;
   };
-  const activities = recentUnits.flatMap(u => {
+  // Only the selected property's units (the overview follows the selection)
+  const selectedUnits = insightProp ? recentUnits.filter(u => String(u.property_id) === String(insightProp.id)) : recentUnits;
+  const activities = selectedUnits.flatMap(u => {
     const rent = u.rent_status === 'OVERDUE' ? { ...ACT.overdue, meta: 'Rent overdue' }
       : u.rent_status === 'PENDING' ? { ...ACT.pending, meta: 'Rent pending' }
       : { ...ACT.paid, meta: 'Rent marked as Paid' };
@@ -199,14 +233,21 @@ export default function LandlordPortfolioPage() {
     }
     return items;
   }).slice(0, 4);
+  // No real activity for the selected property → sample rows (display only, not clickable, "Sample" pill)
+  const sampleActivities = insightProp ? SAMPLE_ACTIVITY.map((a, i) => ({
+    ...a, key: `sample-${insightProp.id}-${i}`, sample: true,
+    title: a.title.replace('{p}', insightProp.name), meta: a.meta.replace('{p}', insightProp.name),
+  })) : [];
+  const shownActivities = !loading && activities.length === 0 ? sampleActivities : activities;
+  const activitiesAreSample = shownActivities.length > 0 && shownActivities[0].sample;
 
   const toUnit = u => navigate(`/landlord-portal/property/${u.property_id}/unit/${u.id}`);
-  const firstUnit = recentUnits[0];
+  // const firstUnit = recentUnits[0];   // used by the Quick Actions card (commented out below)
 
   return (
     <PageShell
       animate
-      heroBehindTopBar
+      backdrop={<PageWave />}
       activePage="properties"
       title="UrbanNest Landlord"
       searchPlaceholder="Search properties, units, tenants…"
@@ -214,14 +255,15 @@ export default function LandlordPortfolioPage() {
       avatarLabel={`Profile: ${landlordName || 'Landlord'}`}
     >
 
-      {/* ── HERO (open, no box) + SUMMARY band — must stay the first child (bleeds to the page edges) ── */}
-      <OpenHero
-        eyebrow="Portfolio"
+      {/* ── HERO: navy banner, building photo right · Portfolio Overview · Property List · 4 stats ── */}
+      <HeroBanner
+        variant="compact"
+        eyebrow="Portfolio Overview"
         title="Property List"
         subtitle="Explore and manage all your properties in one place."
         image={heroImage}
-        underTopBar
-        stats={<StatGroup size="lg" items={STATS} />}
+        imageFull
+        stats={STATS}
       />
 
       {error && (
@@ -236,18 +278,27 @@ export default function LandlordPortfolioPage() {
         <section className="un2-cq" style={S.open}>
           <div style={S.openHead}>
             <h2 style={S.openTitle}>My Properties</h2>
+          </div>
+          {/* tabs left · search · type filter · Add Property right — one line */}
+          <div style={S.toolbar}>
+            <div style={S.tabsWrap}>
+              <TabBar variant="underline" ariaLabel="Property filters" value={activeFilter} onChange={onFilterChange} tabs={FILTERS} />
+            </div>
             <div style={S.tools}>
               <button type="button" className="un2-raise" style={S.toolBtn(searchOpen || !!search)} aria-label="Search properties" aria-pressed={searchOpen}
                 onClick={() => setSearchOpen(o => !o)}>
                 <i className="ti ti-search" aria-hidden="true" />
               </button>
+              <FilterMenu
+                title="Filter by type" allLabel="All types" ariaLabel="Filter properties by type"
+                options={typeOptions} value={typeFilter} onChange={setTypeFilter}
+              />
               <button type="button" className="un2-btn" style={UI2.btn.brand} onClick={() => navigate('/landlord-portal/add-property')}>
                 <i className="ti ti-plus" style={UI2.btnIcon} aria-hidden="true" />
                 <span className="un2-hide-narrow">Add Property</span>
               </button>
             </div>
           </div>
-          <TabBar variant="underline" ariaLabel="Property filters" value={activeFilter} onChange={onFilterChange} tabs={FILTERS} />
 
           {(searchOpen || search) && (
             <label className="un2-focus-ring" style={S.search}>
@@ -264,14 +315,14 @@ export default function LandlordPortfolioPage() {
             </label>
           )}
 
-          <div ref={listRef} style={isEmpty ? S.listEmpty : S.list}>
+          <div ref={listRef} style={isEmpty ? S.listEmpty : S.list} role={isEmpty || loading ? undefined : "listbox"} aria-label="Properties — choose one to see its overview">
             {loading ? (
               [0, 1].map(i => <PropertyRow key={i} loading first={i === 0} />)
             ) : filteredProps.length === 0 ? (
               <EmptyState
                 icon="ti-building"
                 title="No properties found"
-                text={search || activeFilter !== 'ALL'
+                text={search || activeFilter !== 'ALL' || typeFilter != null
                   ? 'Try adjusting your search or filter.'
                   : 'Add your first property to get started.'}
               >
@@ -288,6 +339,8 @@ export default function LandlordPortfolioPage() {
                   <PropertyRow
                     key={prop.id}
                     first={i === 0}
+                    selected={insightProp?.id === prop.id}
+                    onSelect={() => setSelectedPropId(prop.id)}
                     image={prop.main_image_url}
                     fallbackImage={propertyPlaceholder}
                     name={prop.name}
@@ -315,11 +368,28 @@ export default function LandlordPortfolioPage() {
         </section>
 
         <div style={S.side}>
-          {/* Portfolio Insights */}
-          <SectionCard
-            icon="ti-chart-line" title="Portfolio Insights"
-            action={<span style={UI2.pill()}><i className="ti ti-calendar" aria-hidden="true" /> Last 6 Months</span>}
-          >
+          {/* Property Insight — property picker, then this month's figure + delta + 6-month chart */}
+          <SectionCard icon="ti-chart-line" title="Property Insight">
+            {insightProp && (
+              <FilterMenu
+                title="Choose a property" ariaLabel="Choose a property for the insight"
+                options={insightOptions} value={insightProp.id} onChange={v => v != null && setSelectedPropId(v)}
+                showAll={false} matchWidth triggerStyle={S.picker}
+                trigger={open => (
+                  <>
+                    <img src={insightProp.main_image_url || propertyPlaceholder} alt="" style={S.pickThumb}
+                      onError={e => { e.currentTarget.src = propertyPlaceholder; }} />
+                    <span style={{ ...UI2.minWidth0, flex: 1 }}>
+                      <span style={{ ...S.pickName, display: 'block' }}>{insightProp.name}</span>
+                      <span style={{ ...S.pickAddr, display: 'block' }}>{insightProp.address || insightProp.city || '—'}</span>
+                    </span>
+                    <i className="ti ti-chevron-down" style={S.pickChev(open)} aria-hidden="true" />
+                  </>
+                )}
+              />
+            )}
+            {/* re-keyed by the selected property → the overview glides in each time the selection changes */}
+            <div key={insightProp?.id ?? 'none'} className="un2-swap">
             <div style={S.insightTop}>
               <div>
                 <div style={T2.figure}>{loading ? '—' : <CountUp value={current} format={fmtCurrency} />}</div>
@@ -351,34 +421,38 @@ export default function LandlordPortfolioPage() {
             <div style={S.sampleNote}>
               <i className="ti ti-info-circle" aria-hidden="true" /> Earlier months are sample data until the monthly rent API is connected
             </div>
+            </div>
           </SectionCard>
 
           {/* Recent Unit Activities */}
           <SectionCard
             icon="ti-activity-heartbeat" title="Recent Unit Activities"
-            action={firstUnit && <TextLink onClick={() => navigate('/landlord-portal/portfolio')}><span className="un2-hide-narrow">View all</span></TextLink>}
-            centerBody={activities.length === 0}
+            action={insightProp && <TextLink onClick={() => navigate(`/landlord-portal/property/${insightProp.id}/units`)}><span className="un2-hide-narrow">View all units</span></TextLink>}
+            badge={activitiesAreSample && <span style={UI2.pill()} title="Sample data until this property has unit activity">Sample</span>}
+            centerBody={shownActivities.length === 0}
           >
-            {activities.length === 0 ? (
-              <EmptyState icon="ti-home-search" text={loading ? 'Loading unit activity…' : 'No unit activity yet.'} />
+            {shownActivities.length === 0 ? (
+              <EmptyState icon="ti-home-search" text={loading ? 'Loading unit activity…' : `No unit activity for ${insightProp?.name || 'this property'} yet.`} />
             ) : (
-              <div>
-                {activities.map(a => (
+              <div key={insightProp?.id ?? 'none'} className="un2-swap">
+                {shownActivities.map(a => (
                   <ListRow
                     key={a.key}
                     variant="hover"
-                    onClick={() => toUnit(a.unit)}
+                    onClick={a.sample ? undefined : () => toUnit(a.unit)}
                     leading={<div style={UI2.iconBox(SZ2.icon.md, a.tone, { round: true })}><i className={`ti ${a.icon}`} aria-hidden="true" /></div>}
                     title={a.title}
                     meta={a.meta}
-                    trailing={a.unit.lease_end && <span style={T2.caption}>Ends {a.unit.lease_end}</span>}
+                    trailing={a.sample
+                      ? <span style={T2.caption}>{a.time}</span>
+                      : a.unit.lease_end && <span style={T2.caption}>Ends {a.unit.lease_end}</span>}
                   />
                 ))}
               </div>
             )}
           </SectionCard>
 
-          {/* Quick Actions */}
+          {/* Quick Actions — hidden for now (to bring back: uncomment + re-add ActionTile to the import)
           <SectionCard icon="ti-bolt" title="Quick Actions">
             <div style={UI2.quickActions}>
               <ActionTile plain tone={TONES2.primary}             icon="ti-file-text"  title="Lease Details" onClick={() => (firstUnit ? toUnit(firstUnit) : navigate('/landlord-portal/leases'))} />
@@ -387,6 +461,7 @@ export default function LandlordPortfolioPage() {
               <ActionTile plain tone={TONES2.success}             icon="ti-chart-pie"  title="Analytics" />
             </div>
           </SectionCard>
+          */}
         </div>
       </Grid>
 

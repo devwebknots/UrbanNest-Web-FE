@@ -162,6 +162,20 @@
 .un2-bar { transition: filter var(--un2-motion-fast), transform var(--un2-motion-fast); }
 .un2-bar:hover { filter: brightness(1.05) saturate(1.1); }
 
+/* ── Selectable rows (PropertyRow onSelect): never a box — no outline / focus ring (the gradient pill
+   and blue name show the selection, also for keyboard ↑ ↓ / Enter). Hover = a faint edgeless glow
+   from the left + the name tints blue. ── */
+.un2-select-row:focus, .un2-select-row:focus-visible { outline: none; box-shadow: none; }
+.un2-select-row:not([aria-selected="true"]):hover { background: radial-gradient(55% 75% at 0% 50%, rgba(59, 130, 246, 0.07) 0%, rgba(59, 130, 246, 0) 75%); }
+.un2-select-row .un2-row-name { transition: color 0.2s ease; }
+.un2-select-row:not([aria-selected="true"]):hover .un2-row-name { color: var(--un2-primary); }
+
+/* ── Swap-in: content that changes with a selection (e.g. the Portfolio overview) glides in —
+   fades up from a slight blur. Re-key the element to replay it. ── */
+@keyframes un2-swap-in { from { opacity: 0; transform: translateY(6px); filter: blur(3px); } to { opacity: 1; transform: none; filter: none; } }
+.un2-swap { animation: un2-swap-in 0.42s var(--un2-ease) both; }
+@media (prefers-reduced-motion: reduce) { .un2-swap { animation: none; } }
+
 /* ── ActionTray: secondary header actions slide open to the left of the "Options" toggle ──
    Premium motion: the tray width springs open (grid 0fr → 1fr, slight overshoot), the actions sit
    in a plain row (no box) and each one fades, de-blurs and glides in (nearest the toggle first,

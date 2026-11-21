@@ -33,6 +33,7 @@ import { C2, G2, R2, SH2, F2, FS2, FW2, LH2, T2, SP2, SZ2, LAYOUT2, BLUR2, pad, 
 //                   whole banner unmasked; e.g. assets/v2/landlord/portfolio-hero.jpg)
 //
 // Stat: { icon, label, value, tone? (TONES2 — colours the value/icon in the panel) }
+//   compact variant: stats render as a row under the subtitle — { icon, label, value, accent? (ACCENT2 → icon colour), valueColor? }
 // The panel sits beside the text and wraps under it on narrow screens.
 
 const fill = { position: 'absolute', inset: 0, pointerEvents: 'none' };
@@ -76,9 +77,17 @@ const S = {
   // imageFull: banner artwork that already contains its gradient — covers the whole banner, no mask
   cArt:     (image, position) => ({ ...fill, backgroundImage: `url(${image})`, backgroundSize: 'cover', backgroundPosition: position, backgroundRepeat: 'no-repeat' }),
   cScrim:   { ...fill, background: G2.heroCompactScrim },
+  cStatsScrim: { ...fill, background: G2.heroStatsScrim },
   cEyebrow: { display: 'inline-block', fontFamily: F2.body, fontSize: FS2.xs, fontWeight: FW2.medium, lineHeight: LH2.heading, color: C2.onDark.text, padding: pad(SP2.xxs, SP2.md), borderRadius: R2.pill, border: `1px solid ${C2.onDark.border}`, background: C2.onDark.surface, backdropFilter: BLUR2.sm, WebkitBackdropFilter: BLUR2.sm, marginBottom: SP2.xs },
   cTitle:   { fontFamily: F2.heading, fontSize: FS2.display, fontWeight: FW2.semibold, lineHeight: LH2.tight, color: C2.white, marginBottom: SP2.xs },
   cSub:     { fontFamily: F2.body, fontSize: FS2.base, color: C2.onDark.textSoft },
+  // compact stats row (Portfolio "Property List"): icon circle · label · value, split by soft dividers
+  cStats:   { display: 'flex', alignItems: 'center', flexWrap: 'wrap', rowGap: SP2.md, marginTop: SP2.xl },
+  cStat:    { ...UI2.row(SP2.md), padding: pad(0, SP2.xl), minWidth: 0 },
+  cSep:     { width: SZ2.hairline, height: SZ2.icon.lg, background: C2.onDark.divider },
+  cStatIcon: { ...UI2.iconBox(SZ2.icon.lg, { soft: C2.onDark.surfaceHover, strong: C2.white }, { round: true }) },   // light (white) icon on a glass circle — readable on the dark banner
+  cStatLbl: { ...T2.kpiLabel, color: C2.onDark.textMuted },   // standard KPI label (12 / 500), light on the navy banner
+  cStatVal: { ...T2.kpiValue, color: C2.white, marginTop: SP2.xxs, whiteSpace: 'nowrap' },   // standard KPI figure 20 / 400
 
   eyebrow: { ...T2.eyebrow, display: 'inline-block', color: C2.onDark.text, padding: pad(SP2.xs, SP2.md), borderRadius: R2.sm, border: `1px solid ${C2.onDark.border}`, background: C2.onDark.surfaceSoft, backdropFilter: BLUR2.sm, WebkitBackdropFilter: BLUR2.sm, marginBottom: SP2.sm },
   title:   { ...T2.heroTitle, fontWeight: FW2.regular, marginBottom: SP2.xs },
@@ -128,11 +137,33 @@ export default function HeroBanner({
       <section style={S.cHero}>
         {image && <div style={imageFull ? S.cArt(image, imagePosition) : S.cPhoto(image, imagePosition)} />}
         <div style={S.cScrim} />
-        <div style={{ position: 'relative', zIndex: 1, maxWidth: SZ2.heroContentMax, minWidth: 0 }}>
-          {eyebrow && <div style={S.cEyebrow}>{eyebrow}</div>}
-          <div style={S.cTitle}>{title}{titleAccent != null && <>{title ? ' ' : ''}{titleAccent}</>}</div>
-          {subtitle && <div style={S.cSub}>{subtitle}</div>}
+        {stats.length > 0 && <div style={S.cStatsScrim} />}
+        <div style={{ position: 'relative', zIndex: 1, minWidth: 0 }}>
+          <div style={{ maxWidth: SZ2.heroContentMax }}>
+            {eyebrow && <div style={S.cEyebrow}>{eyebrow}</div>}
+            <div style={S.cTitle}>{title}{titleAccent != null && <>{title ? ' ' : ''}{titleAccent}</>}</div>
+            {subtitle && <div style={S.cSub}>{subtitle}</div>}
+          </div>
           {children}
+          {/* compact stats: round icon (accent on a glass circle) · label · value (standard KPI figure) */}
+          {stats.length > 0 && (
+            <div className="un2-hero-stats" style={S.cStats}>
+              {stats.map((s, i) => (
+                <React.Fragment key={s.label}>
+                  {i > 0 && <div style={S.cSep} aria-hidden="true" />}
+                  <div style={{ ...S.cStat, ...(i === 0 ? { paddingLeft: 0 } : {}) }}>
+                    {s.icon && (
+                      <div style={S.cStatIcon}><i className={`ti ${s.icon}`} aria-hidden="true" /></div>
+                    )}
+                    <div style={UI2.minWidth0}>
+                      <div style={S.cStatLbl}>{s.label}</div>
+                      <div style={{ ...S.cStatVal, ...(s.valueColor ? { color: s.valueColor } : {}) }}>{s.value}</div>
+                    </div>
+                  </div>
+                </React.Fragment>
+              ))}
+            </div>
+          )}
           {actions && <div style={S.actions}>{actions}</div>}
         </div>
       </section>

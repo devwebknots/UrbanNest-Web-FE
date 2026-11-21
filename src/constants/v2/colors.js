@@ -104,6 +104,7 @@ export const C2 = {
     surface:      'rgba(255, 255, 255, 0.08)',
     surfaceSoft:  'rgba(255, 255, 255, 0.05)',
     surfaceHover: 'rgba(255, 255, 255, 0.16)',
+    success:      '#4ADE80',                    // positive figures (money in) on a dark / photo background — readable bright green
   },
 };
 
@@ -212,6 +213,7 @@ export const G2 = {
   button:        'linear-gradient(135deg, #03264C 0%, #0659B2 100%)',
   // Mobile app "brand" button: gradients.button left → right (UrbanNestMobile/src/components/Button.tsx)
   brandButton:   'linear-gradient(90deg, #03264C 0%, #0659B2 100%)',
+  brandBar:      'linear-gradient(180deg, #0659B2 0%, #03264C 100%)',   // same dark brand gradient, vertical — selected-row indicator pill
   primaryButton: `linear-gradient(135deg, ${GSTOPS2.primary[0]} 0%, ${GSTOPS2.primary[1]} 100%)`,
   successButton: `linear-gradient(135deg, ${GSTOPS2.success[0]} 0%, ${GSTOPS2.success[1]} 100%)`,
   successBar:    `linear-gradient(90deg, ${GSTOPS2.success[0]} 0%, ${GSTOPS2.success[1]} 100%)`,   // progress fills, left → right
@@ -246,6 +248,9 @@ export const G2 = {
   heroCompactMask:  'linear-gradient(90deg, transparent 0%, rgba(0,0,0,0.55) 10%, #000 24%)',
   heroCompactMaskTop: 'linear-gradient(180deg, transparent 0%, #000 34%)',   // fades the photo's top edge when it is pushed down (imagePosition 'center 20px')
   heroCompactScrim: 'linear-gradient(90deg, rgba(8,30,66,0.45) 0%, rgba(8,30,66,0.15) 32%, rgba(8,30,66,0) 50%)',
+  // compact hero with stats: a soft dark shade along the bottom (where the stats row sits) so text and icons
+  // stay readable where the banner art turns into bright sky
+  heroStatsScrim:   'radial-gradient(110% 85% at 30% 100%, rgba(4,18,44,0.72) 0%, rgba(4,18,44,0.5) 45%, rgba(4,18,44,0.2) 68%, rgba(4,18,44,0) 85%)',
   // Property hero (full-bleed photo): readable left text column + soft base for the thumbnail strip
   propertyHeroScrim: 'linear-gradient(90deg, rgba(7,21,38,0.82) 0%, rgba(9,40,80,0.62) 28%, rgba(9,40,80,0.18) 52%, rgba(9,40,80,0) 70%)',
   propertyHeroBase:  'linear-gradient(180deg, rgba(7,21,38,0) 55%, rgba(7,21,38,0.45) 100%)',
@@ -309,6 +314,11 @@ export const G2 = {
   miniBar:       'linear-gradient(180deg, #DBE7FB 0%, #C7D9FA 100%)',
   miniBarActive: 'linear-gradient(180deg, #3B82F6 0%, #1D4ED8 100%)',
   thumbShade:    'linear-gradient(180deg, rgba(11,29,58,0) 45%, rgba(11,29,58,0.55) 100%)',  // photo bottom fade under overlay tags
+  // Selected list row (PropertyRow): ONE soft oval blue glow from the left, fading out on every side —
+  // no edges, no box, border or shadow.
+  selectedRow: [
+    'radial-gradient(55% 75% at 0% 50%, rgba(59,130,246,0.13) 0%, rgba(59,130,246,0.05) 45%, rgba(59,130,246,0) 75%)',   // one soft oval glow from the left — fades out on every side, so no edges / no box
+  ].join(', '),
   photoMore:     'rgba(11,29,58,0.55)',   // even navy scrim over the last gallery tile ("+N photos")
   // Light diagonal wash for a tone: G2.tone(TONES2.success) / G2.panel(TONES2.warning)
   tone:  (t) => `linear-gradient(135deg, #FFFFFF 0%, ${t.cardTint} 100%)`,
