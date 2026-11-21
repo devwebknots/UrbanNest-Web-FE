@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import {
   PageShell, Grid, SectionCard, Breadcrumb, TabBar, ListRow, EmptyState, PageFooter,
-  DataTable, MetricBar, BarChart, Gauge, TextLink, DetailHeader, StatGroup, PhotoBento, AssetRow,
+  DataTable, MetricBar, BarChart, Gauge, TextLink, ActionTray, FilterMenu, DetailHeader, StatGroup, PhotoBento, AssetRow,
 } from '../../components/v2';
 import { C2, G2, GSTOPS2, TONES2, ACCENT2, T2, FS2, FW2, SP2, SZ2, LAYOUT2, OP2, pad, UI2 } from '../../constants/v2';
 import { C, F } from './landlordTokens';
@@ -971,7 +971,6 @@ const V = {
   healthBody:    { display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'center', gap: SP2.lg },
   healthMetrics: { ...UI2.stack(SP2.md), flex: `1 1 ${SZ2.thumbXl.w}px`, minWidth: 0, paddingLeft: SP2.lg, borderLeft: `${SZ2.hairline}px solid ${C2.border}` },
   healthNote:  { ...UI2.context, marginTop: SP2.xs },
-  unitActions: { display: 'flex', flexWrap: 'wrap', gap: LAYOUT2.inlineGap },
   unitChips:   { ...UI2.row(LAYOUT2.inlineGap), flexWrap: 'wrap', marginBottom: SP2.xs },
   disabled:    { opacity: OP2.muted, cursor: 'not-allowed' },
   vendorFoot:  { ...UI2.cardFoot, justifyContent: 'center' },
@@ -980,7 +979,7 @@ const V = {
   chartWrap:   { position: 'relative', height: SZ2.chart },
   rentSummary: { gridAutoColumns: 'minmax(0, 1fr)', marginTop: SP2.lg, paddingTop: SP2.lg, borderTop: `${SZ2.hairline}px solid ${C2.borderLight}` },
   rentStat:    { padding: pad(0, SP2.lg), minWidth: 0 },
-  rentVal:     { ...T2.statValue, color: C2.navyDeep, marginTop: SP2.xs, whiteSpace: 'nowrap' },
+  rentVal:     { ...T2.kpiValue, marginTop: SP2.xs, whiteSpace: 'nowrap' },   // standard KPI figure — 20px / 400
   commTabs:    { ...UI2.rowBetween(SP2.md), flexWrap: 'wrap', rowGap: SP2.sm },
   commBody:    { marginTop: LAYOUT2.rowGap },
   thread:      { ...UI2.stack(SP2.sm), maxHeight: SZ2.threadMax, overflowY: 'auto', marginBottom: SP2.sm },
@@ -1170,6 +1169,7 @@ export default function LandlordPropertyDetailPage() {
   // ── View state (presentation only — no data changes) ─────────────────────
   const [unitFilter, setUnitFilter] = useState('all');
   const [showAllUnits, setShowAllUnits] = useState(false);
+  const [docUnit, setDocUnit] = useState(null);   // Document Vault filter: one unit of this property (null = all)
 
   // Health: Good (green) · Fair (blue) · Needs attention (red) — no yellow
   const healthTone  = healthScore >= 70 ? TONES2.success : healthScore >= 40 ? TONES2.primary : TONES2.error;
@@ -1299,9 +1299,19 @@ export default function LandlordPropertyDetailPage() {
   );
 
   // ── Unit Inventory ────────────────────────────────────────────────────────
-  // Header actions; on a narrow card (< CQ2.medium) the labels hide (un2-hide-medium) → icon buttons with tooltips.
+  // Header actions = ActionTray (same pattern as the unit page header): "Add Unit" always visible, the
+  // rest slide open from the compact "Options" toggle. On a narrow card (< CQ2.medium) labels hide
+  // (un2-hide-medium) → icon buttons with tooltips.
   const unitHeaderActions = (
-    <div style={V.unitActions}>
+    <ActionTray
+      compact
+      primary={(
+        <button type="button" className="un2-btn" style={{ ...UI2.btn.brand, ...UI2.btnSm }} title="Add Unit" aria-label="Add Unit"
+          onClick={() => { window.location.href = `/landlord-portal/property/${propId}/add-unit`; }}>
+          <i className="ti ti-plus" style={UI2.btnIcon} aria-hidden="true" /><span className="un2-hide-medium">Add Unit</span>
+        </button>
+      )}
+    >
       <button type="button" className="un2-btn" style={{ ...UI2.btn.soft, ...UI2.btnSm }} onClick={() => setShowFilter(true)}
         title="Filter" aria-label="Filter">
         <i className="ti ti-filter" style={UI2.btnIcon} aria-hidden="true" /><span className="un2-hide-medium">Filter</span>
@@ -1322,11 +1332,7 @@ export default function LandlordPropertyDetailPage() {
       >
         <i className="ti ti-layout-grid" style={UI2.btnIcon} aria-hidden="true" /><span className="un2-hide-medium">List Multi Units</span>
       </button>
-      <button type="button" className="un2-btn" style={{ ...UI2.btn.brand, ...UI2.btnSm }} title="Add Unit" aria-label="Add Unit"
-        onClick={() => { window.location.href = `/landlord-portal/property/${propId}/add-unit`; }}>
-        <i className="ti ti-plus" style={UI2.btnIcon} aria-hidden="true" /><span className="un2-hide-medium">Add Unit</span>
-      </button>
-    </div>
+    </ActionTray>
   );
 
   const unitsCard = (
@@ -1402,7 +1408,7 @@ export default function LandlordPropertyDetailPage() {
             leading={<div style={{ ...UI2.iconBox(SZ2.icon.md, tone), ...V.ticketNo }}>#{isDemoId(t.id) ? i + 1 : t.id}</div>}
             title={t.title}
             meta={`${t.priority} · ${t.time_ago}`}
-            trailing={<span style={UI2.pill(TONES2.neutral)}>{t.status === 'IN_PROGRESS' ? 'In Progress' : 'Open'}</span>}
+            trailing={(() => { const st = t.status === 'IN_PROGRESS' ? TONES2.purple : TONES2.primary; return <span style={UI2.statusPill(st)}><span style={UI2.statusDot(st)} />{t.status === 'IN_PROGRESS' ? 'In Progress' : 'Open'}</span>; })()}
           />
         );
       })}
@@ -1426,18 +1432,38 @@ export default function LandlordPropertyDetailPage() {
     </SectionCard>
   );
 
+  // Document Vault: filter icon in the header (by unit) · footer = "Full archive" on the right
+  // Tones keep each document's own colour.
+  // Filter = this property's units (same idea as the Dashboard's property filters). The sample documents
+  // are spread over the units (display only) until the documents API returns a unit per document.
+  const docUnitOptions = units.map(u => ({ value: u.id, label: u.unit_name }));
+  const shownDocs = DOC_ITEMS
+    .map((d, i) => ({ ...d, tone: DOC_TONES[i], unitId: units.length ? units[i % units.length].id : null }))
+    .filter(d => docUnit == null || d.unitId === docUnit);
   const documentsCard = (
-    <SectionCard icon="ti-folder" title="Document Vault" action={<TextLink>Full archive</TextLink>}>
-      {DOC_ITEMS.map((d, i) => (
+    <SectionCard
+      style={UI2.cardFill} icon="ti-folder" title="Document Vault"
+      action={(
+        <FilterMenu
+          title="Filter by unit" allLabel="All units" ariaLabel="Filter documents by unit"
+          options={docUnitOptions} value={docUnit} onChange={setDocUnit}
+        />
+      )}
+    >
+      {shownDocs.length === 0 && <div style={UI2.emptyInline}>No documents for this unit yet.</div>}
+      {shownDocs.map(d => (
         <ListRow
           key={d.name}
           variant="hover"
-          leading={<div style={UI2.iconBox(SZ2.icon.md, DOC_TONES[i])}><i className={`ti ${d.icon}`} aria-hidden="true" /></div>}
+          leading={<div style={UI2.iconBox(SZ2.icon.md, d.tone)}><i className={`ti ${d.icon}`} aria-hidden="true" /></div>}
           title={d.name}
           meta={d.meta}
           trailing={<i className="ti ti-chevron-right" style={UI2.chevron} aria-hidden="true" />}
         />
       ))}
+      <div style={{ ...UI2.cardFoot, justifyContent: 'flex-end' }}>
+        <TextLink>Full archive</TextLink>
+      </div>
     </SectionCard>
   );
 
@@ -1475,13 +1501,12 @@ export default function LandlordPropertyDetailPage() {
         columns={[
           // Cell styles come from the column type (UI2.table.*) — no per-cell styling here
           { key: 'date', label: 'Date',     type: 'secondary', width: 0.7 },
-          { key: 'cat',  label: 'Category', type: 'text', width: 1.1, optional: true },   // dropped first on a narrow card
+          { key: 'cat',  label: 'Category', type: 'text', width: 1.1 },   // dropped first on a narrow card
           { key: 'who',  label: 'Tenant / vendor', type: 'primary', width: 1.4 },
           { key: 'amt',  label: 'Amount',   type: 'amount', fit: true,                    // never shrinks — amounts always in full
             render: l => <span style={UI2.signColor(l.pos)}>{l.amt}</span> },
         ]}
         rows={LEDGER_ROWS}
-        minWidth={SZ2.tableMinCompact}
       />
     </SectionCard>
   );
@@ -1494,17 +1519,17 @@ export default function LandlordPropertyDetailPage() {
           // Short headers (never truncated) · cell styles from the column type (UI2.table.*)
           // Narrow card (< SZ2.tableMin): Unit and Renewal drop first — no sideways scroll
           { key: 'tenant', label: 'Tenant', type: 'primary', width: 2, render: u => u.tenant_name },
-          { key: 'unit_name', label: 'Unit', type: 'secondary', width: 0.8, optional: true },
-          { key: 'status', label: 'Status', type: 'status', width: 0.9, fit: true,
+          { key: 'unit_name', label: 'Unit', type: 'secondary', fit: true },
+          { key: 'status', label: 'Status', type: 'status', fit: true,
             render: u => {
               const tone = u.rent_status === 'PAID' ? TONES2.success : TONES2.error;
               return <span style={UI2.statusPill(tone)}><span style={UI2.statusDot(tone)} />{u.rent_status === 'PAID' ? 'Active' : 'Overdue'}</span>;
             } },
-          { key: 'lease_end', label: 'Lease end', type: 'secondary', width: 1.1, fit: true, render: u => u.lease_end || '—' },
-          { key: 'renewal', label: 'Renewal', type: 'text', width: 1, optional: true,
+          { key: 'lease_end', label: 'Lease end', type: 'secondary', fit: true, render: u => u.lease_end || '—' },
+          { key: 'renewal', label: 'Renewal', type: 'text', fit: true,
             render: u => <span style={{ color: u.maint_open > 0 ? C2.errorDark : C2.textMuted }}>{u.maint_open > 0 ? 'Active ticket' : '—'}</span> },
           // Row action: open this tenant's unit (sample rows don't navigate — goUnit ignores demo ids)
-          { key: 'action', label: '', width: 0.5, align: 'right', fit: true,
+          { key: 'action', label: '', align: 'right', fit: true,
             render: u => <TextLink arrow={false} onClick={() => goUnit(u)}>View</TextLink> },
         ]}
         rows={tenantUnits}

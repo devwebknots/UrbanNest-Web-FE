@@ -86,7 +86,7 @@ export const T2 = {
   button:         { fontFamily: F2.body, fontSize: FS2.base, fontWeight: FW2.medium, lineHeight: LH2.snug },
   sectionLink:    { fontFamily: F2.body, fontSize: FS2.sm, fontWeight: FW2.medium, color: C2.primary },
   eyebrow:        { fontFamily: F2.body, fontSize: FS2.xxs, fontWeight: FW2.semibold, letterSpacing: LS2.caps, textTransform: 'uppercase', color: C2.textMuted },
-  statValue:      { fontFamily: F2.body, fontSize: FS2.xxl, fontWeight: FW2.semibold, lineHeight: LH2.tight, letterSpacing: LS2.tight, color: C2.textPrimary },
+  statValue:      { fontFamily: F2.body, fontSize: FS2.xxl, fontWeight: FW2.regular, lineHeight: LH2.tight, letterSpacing: LS2.tight, color: C2.textPrimary },   // 20px / 400 — same standard as T2.kpiValue
   // Display figures (>= 24px) — Inter Medium: rent total (figure), KPI strip values (figureMd)
   figure:         { fontFamily: F2.body, fontSize: FS2.display, fontWeight: FW2.medium, lineHeight: LH2.none, letterSpacing: LS2.tight, color: C2.navyDeep },
   // Small inline stat value (header StatGroup, compact summaries) — calm, never bulky

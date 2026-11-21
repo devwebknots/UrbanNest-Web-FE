@@ -61,6 +61,7 @@
   --un2-motion-fast: 0.15s ease;
   --un2-motion-base: 0.18s ease;
   --un2-ease: cubic-bezier(0.22, 1, 0.36, 1);   /* MOTION2.ease */
+  --un2-spring: cubic-bezier(0.34, 1.36, 0.64, 1);   /* MOTION2.spring — soft overshoot for things that pop open */
   --un2-motion-enter: 0.6s var(--un2-ease);     /* MOTION2.enter */
   --un2-stagger: 70ms;                          /* MOTION2.stagger — delay step between entering sections */
   --un2-rise: 12px;                             /* MOTION2.rise — entrance travel */

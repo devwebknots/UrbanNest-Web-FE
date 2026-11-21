@@ -157,6 +157,7 @@ export const MOTION2 = {
   base: '0.18s ease',
   // Entrance / data motion (un2-enter-stagger, un2-grow-*, ProgressRing, CountUp) — same values as tokens.css
   ease:    'cubic-bezier(0.22, 1, 0.36, 1)',    // soft ease-out
+  spring:  'cubic-bezier(0.34, 1.36, 0.64, 1)', // soft overshoot (ActionTray opening) — --un2-spring
   enter:   '0.6s cubic-bezier(0.22, 1, 0.36, 1)',
   countMs: 900,                                 // CountUp duration
   rise:    12,                                  // px a section travels while entering (un2-rise) — --un2-rise

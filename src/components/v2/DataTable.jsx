@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React from 'react';
 import { R2, SP2, SZ2, UI2 } from '../../constants/v2';
 
 // ─── DataTable (Design System v2) ────────────────────────────────────────────
@@ -18,22 +18,24 @@ import { R2, SP2, SZ2, UI2 } from '../../constants/v2';
 //   <DataTable
 //     columns={[
 //       { key: 'date', label: 'Date', type: 'secondary', width: 0.7 },
-//       { key: 'cat',  label: 'Category', optional: true },
+//       { key: 'cat',  label: 'Category' },
 //       { key: 'who',  label: 'Tenant / vendor', type: 'primary', width: 1.4 },
 //       { key: 'amt',  label: 'Amount', type: 'amount', fit: true, render: r => <span style={UI2.signColor(r.pos)}>{r.amt}</span> },
 //     ]}
-//     rows={rows} rowKey={r => r.id} minWidth={SZ2.tableMinCompact}
+//     rows={rows} rowKey={r => r.id}
 //     empty={<EmptyState icon="ti-users" text="No active tenants." />} />
 //
 // Column: { key, label (keep it short — headers never truncate), type, width (fr, default 1),
 //           align ('left'|'right'|'center' — amount defaults to right), render?(row, i),
-//           fit?      true → column is exactly as wide as its content (status pills, dates, amounts,
-//                     actions) — never cut, never padded; spare room goes to the other columns.
-//                     Give it a width too and it also grows by that share.
-//           optional? true → dropped when the table has less room than minWidth }
-// minWidth: room the full table needs (default SZ2.tableMin; SZ2.tableMinCompact for 3–4 columns).
-//   Narrower than that → optional columns are dropped first (no sideways scroll); a table with
-//   no optional columns scrolls sideways instead.
+//           fit?      true → column is never narrower than its content (status pills, dates, amounts,
+//                     actions) — never cut; it still shares the spare width like any column.
+//                     (An unlabelled column — label: '' — is exactly its content.)
+//         }   (every column is always shown — there are no optional / hidden columns)
+// LAYOUT RULE (keeps every table spaced the same): data columns share the spare width (fit = never
+// narrower than its content); an unlabelled action column hugs the right. A LAST data column (no action
+// after it) should be align: 'right' so the table ends flush. Columns are always 24px apart.
+// Columns are never narrower than their content (headings and cells are never cut).
+//   Too little room → the table scrolls sideways; no column is ever hidden.
 
 const S = {
   wrap:   { overflowX: 'auto' },
@@ -41,9 +43,9 @@ const S = {
   // width in every row (fit columns size to their widest cell across ALL rows — never cut, never misaligned)
   table:  (cols) => ({
     display: 'grid', columnGap: SP2.xxl, alignItems: 'center',
-    // fit without a width → exactly its content (never grows, so spare room goes to the text columns and the
-    // last column ends flush with the right edge); fit WITH a width → content minimum, grows by that width
-    gridTemplateColumns: cols.map(c => (c.fit && c.width == null ? 'max-content' : `minmax(${c.fit ? 'max-content' : '0px'}, ${c.width || 1}fr)`)).join(' '),
+    // Data columns SHARE the spare width (content is the minimum for fit columns) → even gaps in every table.
+    // Only an unlabelled icon / action column (eye, View) is exactly its content, so it sits tight on the right.
+    gridTemplateColumns: cols.map(c => (c.label === '' ? 'max-content' : `minmax(max-content, ${c.width || 1}fr)`)).join(' '),   // never narrower than content
   }),
   line:   { gridColumn: '1 / -1', display: 'grid', gridTemplateColumns: 'subgrid', alignItems: 'center' },
   // header = soft rounded band (no underline); rows use the same side padding so text lines up under it
@@ -54,25 +56,15 @@ const S = {
 const cellStyle = (type) => UI2.table[type] || UI2.table.text;
 const alignOf = (c) => c.align || (c.type === 'amount' ? 'right' : 'left');
 
-export default function DataTable({ columns = [], rows = [], rowKey, empty, minWidth = SZ2.tableMin }) {
-  const ref = useRef(null);
-  const [narrow, setNarrow] = useState(false);
-  const hasOptional = columns.some(c => c.optional);
-
-  // Watch the table's own width (not the screen) — drop optional columns when it's too tight
-  useEffect(() => {
-    const el = ref.current;
-    if (!el || !hasOptional || typeof ResizeObserver === 'undefined') return undefined;
-    const ro = new ResizeObserver(([entry]) => setNarrow(entry.contentRect.width < minWidth));
-    ro.observe(el);
-    return () => ro.disconnect();
-  }, [hasOptional, minWidth]);
-
-  const cols = narrow ? columns.filter(c => !c.optional) : columns;
+// Every column is always shown (no minWidth / optional columns).
+export default function DataTable({ columns = [], rows = [], rowKey, empty }) {
+  // EVERY column is always shown (no column is ever hidden). Columns are never narrower than their
+  // content; if a card is too narrow for all of them, the table scrolls sideways (S.wrap).
+  const cols = columns;
 
   return (
-    <div ref={ref} style={S.wrap}>
-      <div role="table" style={{ ...S.table(cols), minWidth: narrow ? 0 : minWidth }}>
+    <div style={S.wrap}>
+      <div role="table" style={S.table(cols)}>
         <div style={{ ...S.line, ...S.head }} role="row">
           {cols.map(c => <span key={c.key} role="columnheader" style={{ ...UI2.table.th, textAlign: alignOf(c) }}>{c.label}</span>)}
         </div>

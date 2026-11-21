@@ -89,11 +89,6 @@ const DEFAULT_MONTHS = ['Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov'];
 const OCCUPANCY_TARGET = 96;
 const MAX_PRIME_ASSETS = 3;   // Prime Assets card lists at most 3 properties (full list: Manage all properties)
 const COLLECTION_TARGET = 95;
-// Recent Documents filter options (FilterMenu) — matches DOCS[].scope
-const DOC_SCOPES = [
-  { value: 'PROPERTY', label: 'Property' },
-  { value: 'UNIT',     label: 'Unit' },
-];
 
 // ─── Main component ───────────────────────────────────────────────────────────
 export default function LandlordDashboard() {
@@ -104,7 +99,8 @@ export default function LandlordDashboard() {
   const [myProperties, setMyProperties] = useState([]);     // landlord's own properties (Open Operations filter)
   const [opsProperty, setOpsProperty]   = useState(null);   // selected filter option value · null = all properties
   const [rentProperty, setRentProperty] = useState(null);   // Monthly Rent Collection filter · null = all properties
-  const [docScope, setDocScope]         = useState(null);   // Recent Documents filter: 'PROPERTY' | 'UNIT' · null = all
+  const [docProperty, setDocProperty]   = useState(null);   // Recent Documents filter: selected property option value · null = all properties
+  const [tenantProperty, setTenantProperty] = useState(null);   // Tenant Pulse filter: selected property option value · null = all properties
 
   // Full property list for the Open Operations filter — same endpoint as the Portfolio page.
   // On failure the filter falls back to the property names already on the dashboard.
@@ -167,6 +163,11 @@ export default function LandlordDashboard() {
   const shownPayments = rentFilter
     ? payments.filter(p => (p.property_id != null && String(p.property_id) === rentFilter.value) || p.property_name === rentFilter.label)
     : payments;
+  // Tenant Pulse filter — same property options; tenants match by property id, else by property name
+  const tenantFilter = propertyOptions.find(o => o.value === tenantProperty) || null;
+  const shownTenants = tenantFilter
+    ? tenants.filter(t => (t.property_id != null && String(t.property_id) === tenantFilter.value) || t.property_name === tenantFilter.label)
+    : tenants;
 
   const landlordName   = landlord.name || 'Landlord';
   const avatarInitials = initials(landlordName);
@@ -228,15 +229,16 @@ export default function LandlordDashboard() {
       pct: pctOf(renewals, portfolio.active_tenants) },
   ];
 
-  // Recent Documents — static for now, wire to docs API when built
-  // scope: PROPERTY (building-level filing) · UNIT (unit-level, e.g. a lease) — drives the header filter
+  // Recent Documents — static for now, wire to docs API when built.
+  // Header filter = property (same options as Open Operations / Rent Collection). The sample documents
+  // are spread over the landlord's properties (display only) until the docs API sends a property per document.
   const DOCS = [
-    { tone: TONES2.primary, icon: 'ti-file-text',    scope: 'UNIT',     name: 'Lease Agreement - #402', meta: 'Updated 2 days ago · 1.2MB' },
-    { tone: TONES2.success, icon: 'ti-report-money', scope: 'PROPERTY', name: 'Q3 Financial Report',    meta: 'Aug 15, 2023 · 4.0MB' },
-    { tone: TONES2.purple,  icon: 'ti-shield-check', scope: 'PROPERTY', name: 'Insurance Certificate',  meta: 'Expires in 4 months', metaCol: C2.purple },
-  ];
-  const docsFilter = DOC_SCOPES.find(o => o.value === docScope) || null;
-  const shownDocs  = docsFilter ? DOCS.filter(d => d.scope === docsFilter.value) : DOCS;
+    { tone: TONES2.primary, icon: 'ti-file-text',    name: 'Lease Agreement - #402', meta: 'Updated 2 days ago · 1.2MB' },
+    { tone: TONES2.success, icon: 'ti-report-money', name: 'Q3 Financial Report',    meta: 'Aug 15, 2023 · 4.0MB' },
+    { tone: TONES2.purple,  icon: 'ti-shield-check', name: 'Insurance Certificate',  meta: 'Expires in 4 months', metaCol: C2.purple },
+  ].map((d, i) => ({ ...d, property: propertyOptions.length ? propertyOptions[i % propertyOptions.length].value : null }));
+  const docsFilter = propertyOptions.find(o => o.value === docProperty) || null;
+  const shownDocs  = docsFilter ? DOCS.filter(d => d.property === docsFilter.value) : DOCS;
 
   const MESSAGES = [
     { from: 'Estate Manager',   col: C2.skyOnDark, time: '14:20', text: '"The inspection for Emerald Gardens is finalized. Sending over the report now."' },
@@ -502,13 +504,13 @@ export default function LandlordDashboard() {
           icon="ti-file-text" title="Recent Documents" subtitle="Leases, reports & filings"
           action={
             <FilterMenu
-              title="Filter by type" allLabel="All documents" ariaLabel="Filter documents by property or unit"
-              options={DOC_SCOPES} value={docScope} onChange={setDocScope}
+              title="Filter by property" allLabel="All properties" ariaLabel="Filter documents by property"
+              options={propertyOptions} value={docsFilter ? docsFilter.value : null} onChange={setDocProperty}
             />
           }
         >
           {shownDocs.length === 0 && (
-            <div style={UI2.emptyInline}>No {docsFilter ? docsFilter.label.toLowerCase() : ''} documents yet.</div>
+            <div style={UI2.emptyInline}>{docsFilter ? `No documents for ${docsFilter.label}.` : 'No documents yet.'}</div>
           )}
           {shownDocs.map((d, i) => (
             <ListRow
@@ -529,7 +531,7 @@ export default function LandlordDashboard() {
           {/* footer: count left · View All bottom-right (UI2.cardFoot sits at the card bottom via cardFill) */}
           <div style={UI2.cardFoot}>
             <span style={UI2.text.caption}>
-              {shownDocs.length} {docsFilter ? `${docsFilter.label.toLowerCase()} ` : ''}document{shownDocs.length === 1 ? '' : 's'}
+              {shownDocs.length} document{shownDocs.length === 1 ? '' : 's'}
             </span>
             <TextLink>View All</TextLink>
           </div>
@@ -552,20 +554,32 @@ export default function LandlordDashboard() {
       {/* ── TENANT PULSE + URBANNEST INTELLIGENCE ── */}
       <Grid layout="wideRight">
         <SectionCard
+          style={UI2.cardFill}
           icon="ti-users" title="Tenant Pulse" subtitle="Residents across your portfolio"
-          action={<TextLink><span className="un2-hide-narrow">View all</span></TextLink>}
+          action={
+            <FilterMenu
+              title="Filter by property" allLabel="All properties" ariaLabel="Filter tenants by property"
+              options={propertyOptions} value={tenantFilter ? tenantFilter.value : null} onChange={setTenantProperty}
+            />
+          }
         >
-          {!loading && tenants.length === 0 && <EmptyState illustration="people" text="No active tenants." />}
-          {tenants.slice(0, 3).map((t, i) => (
+          {!loading && shownTenants.length === 0 && (
+            <EmptyState illustration="people" text={tenantFilter ? `No active tenants at ${tenantFilter.label}.` : 'No active tenants.'} />
+          )}
+          {shownTenants.slice(0, 3).map((t, i) => (
             <ListRow
               key={i}
               variant="hover"
               leading={<div style={UI2.avatar(SZ2.icon.md, AVATAR2[i % AVATAR2.length])}>{initials(t.name)}</div>}
               title={t.name}
               meta={`${t.property_name} ${t.unit_ref ? `· ${t.unit_ref}` : ''}`}
-              trailing={<span style={UI2.pill(TONES2.success)}>Active</span>}
+              trailing={<span style={UI2.statusPill(TONES2.success)}><span style={UI2.statusDot(TONES2.success)} />Active</span>}
             />
           ))}
+          {/* footer: View all bottom-right */}
+          <div style={{ ...UI2.cardFoot, justifyContent: 'flex-end' }}>
+            <TextLink>View all</TextLink>
+          </div>
         </SectionCard>
 
         <SectionCard

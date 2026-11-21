@@ -1,7 +1,7 @@
 import React, { useState, useRef } from 'react';
 import {
   PageShell, Grid, SectionCard, CardHeader, Breadcrumb, ListRow, EmptyState, PageFooter,
-  DataTable, TextLink, DetailHeader, PhotoBento, PageWave, StatGroup, CardWave,
+  DataTable, TextLink, ActionTray, FilterMenu, DetailHeader, PhotoBento, PageWave, StatGroup, CardWave,
 } from '../../components/v2';
 import {
   C2, TONES2, ACCENT2, accentTone, FS2, SH2, SP2, SZ2, LAYOUT2, OP2, UI2,
@@ -112,11 +112,16 @@ const QA_ITEMS = [
   { icon: 'ti-file-upload',  title: 'Request document',       sub: 'Ask tenant to upload' },
 ];
 
+// Document Vault filter (FilterMenu in the card header) — one option per document type
+const DOC_TYPES = [
+  { value: 'LEASE', label: 'Lease' }, { value: 'INSPECTION', label: 'Inspection' },
+  { value: 'INSURANCE', label: 'Insurance' }, { value: 'OWNERSHIP', label: 'Ownership' },
+];
 const DOC_ITEMS = [
-  { icon: 'ti-file-text',       name: 'Lease agreement',              meta: 'PDF · 2.4 MB · Signed' },
-  { icon: 'ti-clipboard-check', name: 'Move-in inspection report',    meta: 'PDF · 15.8 MB · Verified' },
-  { icon: 'ti-shield-check',    name: 'Tenant insurance certificate', meta: 'PDF · 0.8 MB · Valid' },
-  { icon: 'ti-file-certificate', name: 'Ownership document',          meta: 'PDF · 3.2 MB · Verified' },
+  { icon: 'ti-file-text',       name: 'Lease agreement',              meta: 'PDF · 2.4 MB · Signed',    type: 'LEASE' },
+  { icon: 'ti-clipboard-check', name: 'Move-in inspection report',    meta: 'PDF · 15.8 MB · Verified', type: 'INSPECTION' },
+  { icon: 'ti-shield-check',    name: 'Tenant insurance certificate', meta: 'PDF · 0.8 MB · Valid',     type: 'INSURANCE' },
+  { icon: 'ti-file-certificate', name: 'Ownership document',          meta: 'PDF · 3.2 MB · Verified', type: 'OWNERSHIP' },
 ];
 
 // ─── Unit Services (SVC-1, Session 40) — wired to the real backend ────────────
@@ -945,7 +950,6 @@ const optLabel      = (opts, v) => (opts.find(o => o.value === v) || {}).label |
 
 // Page-specific layout only — shared patterns come from UI2 and the v2 components.
 const V = {
-  headActions: { ...UI2.row(LAYOUT2.inlineGap), flexWrap: 'wrap', justifyContent: 'flex-end' },
   headBtn:     { ...UI2.btn.light, boxShadow: SH2.glass },   // white button on the PageWave gradient, same mild shadow as containers
   statusPill:  (tone) => ({ ...UI2.pill(tone), flexShrink: 0 }),
   disabled:    { opacity: OP2.muted, cursor: 'not-allowed' },
@@ -987,6 +991,7 @@ export default function LandlordUnitDetailPage() {
   const [currentUser, setCurrentUser] = useState(null);
   const [tenantTab, setTenantTab] = useState('current');
   const [ownerTab, setOwnerTab] = useState('current');
+  const [docType, setDocType] = useState(null);   // Document Vault filter (null = all)
   // Session 60 — one shared piece of state for every eye-icon pop-up
   // (Owner row detail, Tenant row detail, Ancillary Services checklist);
   // null = closed, otherwise { type: 'owner'|'tenant'|'ancillary', row? }.
@@ -1297,7 +1302,14 @@ export default function LandlordUnitDetailPage() {
     : undefined;
   // Secondary header actions sit on the PageWave gradient → white light buttons (soft would blend into the blue)
   const headerActions = (
-    <div style={V.headActions}>
+    <ActionTray
+      label="Options"
+      primary={(
+        <button type="button" className="un2-btn" style={UI2.btn.brand}>
+          <i className="ti ti-download" style={UI2.btnIcon} aria-hidden="true" /> Download Report
+        </button>
+      )}
+    >
       {!loading && unit.id && (
         <button type="button" className="un2-btn" style={V.headBtn} onClick={() => setShowEditUnit(true)}>
           <i className="ti ti-pencil" style={UI2.btnIcon} aria-hidden="true" /> Edit
@@ -1318,10 +1330,7 @@ export default function LandlordUnitDetailPage() {
       <button type="button" className="un2-btn" style={V.headBtn}>
         <i className="ti ti-share" style={UI2.btnIcon} aria-hidden="true" /> Share Detail
       </button>
-      <button type="button" className="un2-btn" style={UI2.btn.brand}>
-        <i className="ti ti-download" style={UI2.btnIcon} aria-hidden="true" /> Download Report
-      </button>
-    </div>
+    </ActionTray>
   );
 
   // ── Gallery — open on the page (no card): photos take the full width ──────
@@ -1529,12 +1538,11 @@ export default function LandlordUnitDetailPage() {
           { key: 'month',  label: 'Month',  type: 'primary', width: 1.3 },
           { key: 'amount', label: 'Amount', type: 'amount', fit: true },
           { key: 'payout', label: 'Payout', type: 'amount', fit: true },
-          { key: 'status', label: 'Status', type: 'status', fit: true,
+          { key: 'status', label: 'Status', type: 'status', fit: true, align: 'right',   // last column → ends flush right
             render: r => <span style={UI2.statusPill(TONES2.success)}><span style={UI2.statusDot(TONES2.success)} />{r.status}</span> },
         ]}
         rows={LEDGER_ROWS}
         rowKey={r => r.month}
-        minWidth={SZ2.tableMinCompact}
       />
       <div style={V.endFoot}><TextLink>View full ledger</TextLink></div>
     </SectionCard>
@@ -1556,18 +1564,34 @@ export default function LandlordUnitDetailPage() {
     </SectionCard>
   );
 
+  // Document Vault: filter icon in the header (by type) · footer = "Full archive" on the right
+  // Tones keep each document's own colour.
+  const shownDocs = DOC_ITEMS.map((d, i) => ({ ...d, tone: DOC_TONES[i] })).filter(d => !docType || d.type === docType);
+  const docTypeLabel = docType ? DOC_TYPES.find(t => t.value === docType)?.label.toLowerCase() : '';
   const documentsCard = (
-    <SectionCard style={UI2.cardFill} icon="ti-folder" title="Document Vault" action={<TextLink>Full archive</TextLink>}>
-      {DOC_ITEMS.map((d, i) => (
+    <SectionCard
+      style={UI2.cardFill} icon="ti-folder" title="Document Vault"
+      action={(
+        <FilterMenu
+          title="Filter by type" allLabel="All documents" ariaLabel="Filter documents by type"
+          options={DOC_TYPES} value={docType} onChange={setDocType}
+        />
+      )}
+    >
+      {shownDocs.length === 0 && <div style={UI2.emptyInline}>No {docTypeLabel} documents yet.</div>}
+      {shownDocs.map(d => (
         <ListRow
           key={d.name}
           variant="hover"
-          leading={<div style={UI2.iconBox(SZ2.icon.md, DOC_TONES[i])}><i className={`ti ${d.icon}`} aria-hidden="true" /></div>}
+          leading={<div style={UI2.iconBox(SZ2.icon.md, d.tone)}><i className={`ti ${d.icon}`} aria-hidden="true" /></div>}
           title={d.name}
           meta={d.meta}
           trailing={<i className="ti ti-download" style={UI2.chevron} aria-hidden="true" />}
         />
       ))}
+      <div style={{ ...UI2.cardFoot, justifyContent: 'flex-end' }}>
+        <TextLink>Full archive</TextLink>
+      </div>
     </SectionCard>
   );
 
@@ -1611,15 +1635,15 @@ export default function LandlordUnitDetailPage() {
       ) : (
       <DataTable
         columns={[
-          { key: 'tenant_id', label: 'Tenant ID', type: 'status', fit: true,
-            render: t => <span style={UI2.tag(TONES2.neutral)}>{t.tenant_id || (t.id && !isDemoId(t.id) ? `TNT-${t.id}` : '—')}</span> },
+          { key: 'tenant_id', label: 'Tenant ID', type: 'secondary', fit: true,
+            render: t => t.tenant_id || (t.id && !isDemoId(t.id) ? `TNT-${t.id}` : '—') },   // plain text — no tag box in tables
           { key: 'name', label: 'Name', type: 'primary', width: 1.5, render: t => t.name || 'Unknown tenant' },
           { key: 'move_in_date', label: 'Move-in', type: 'secondary', fit: true, render: t => t.move_in_date || '—' },
           // Current tenant → renewal window (or lease end) · past tenants → when the lease ended
           tenantTab === 'current'
-            ? { key: 'renewal', label: 'Renewal Window', type: 'secondary', fit: true, optional: true,
+            ? { key: 'renewal', label: 'Renewal Window', type: 'secondary', fit: true,
                 render: t => t.renewal_window || t.lease_end_date || '—' }
-            : { key: 'lease_end', label: 'Lease End', type: 'secondary', fit: true, optional: true,
+            : { key: 'lease_end', label: 'Lease End', type: 'secondary', fit: true,
                 render: t => t.lease_end_date || '—' },
           { key: 'view', label: '', align: 'right', fit: true,
             render: t => eyeCell(`View ${t.name || 'tenant'} details`, () => setDetailModal({ type: 'tenant', row: { ...t, _past: tenantTab === 'past' } })) },
@@ -1642,10 +1666,10 @@ export default function LandlordUnitDetailPage() {
       ) : (
       <DataTable
         columns={[
-          { key: 'owner_id', label: 'Owner ID', type: 'status', fit: true, render: o => <span style={UI2.tag(TONES2.neutral)}>{o.owner_id}</span> },
+          { key: 'owner_id', label: 'Owner ID', type: 'secondary', fit: true, render: o => o.owner_id },   // plain text — no tag box in tables
           { key: 'owner_name', label: 'Owner name', type: 'primary', width: 1.5,
             render: o => o.owner_name },
-          { key: 'role', label: 'Role', type: 'text', width: 1.1, optional: true },
+          { key: 'role', label: 'Role', type: 'text', fit: true },
           { key: 'share_pct', label: 'Stake', type: 'secondary', fit: true, render: o => `${o.share_pct}%` },
           { key: 'view', label: '', align: 'right', fit: true,
             render: o => eyeCell(`View ${o.owner_name} details`, () => setDetailModal({ type: 'owner', row: o })) },

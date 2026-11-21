@@ -162,7 +162,37 @@
 .un2-bar { transition: filter var(--un2-motion-fast), transform var(--un2-motion-fast); }
 .un2-bar:hover { filter: brightness(1.05) saturate(1.1); }
 
+/* ── ActionTray: secondary header actions slide open to the left of the "Options" toggle ──
+   Premium motion: the tray width springs open (grid 0fr → 1fr, slight overshoot), the actions sit
+   in a plain row (no box) and each one fades, de-blurs and glides in (nearest the toggle first,
+   --un2-i); actions lift on hover. Toggle: sliders icon turns, chevron flips (button stays white).
+   Inner padding / negative margin keeps shadows from being clipped while the tray animates.      */
+.un2-tray {
+  display: grid; grid-template-columns: 0fr; transition: grid-template-columns 0.5s var(--un2-ease); }
+.un2-tray.is-open { grid-template-columns: 1fr; transition-timing-function: var(--un2-spring); }
+.un2-tray-inner { min-width: 0; overflow: hidden; padding: var(--un2-sp-sm) var(--un2-sp-md); margin: calc(var(--un2-sp-sm) * -1) calc(var(--un2-sp-md) * -1); }
+.un2-tray-capsule { display: flex; align-items: center; gap: var(--un2-sp-sm);   /* plain row — no box, border or shadow */
+  opacity: 0; transform: translateX(var(--un2-sp-xl)); transition: opacity 0.25s ease, transform 0.5s var(--un2-ease); }
+.un2-tray.is-open .un2-tray-capsule { opacity: 1; transform: none; transition-timing-function: ease, var(--un2-spring); }
+.un2-tray-item { flex-shrink: 0; opacity: 0; filter: blur(4px); transform: translateX(var(--un2-sp-lg)) scale(0.94);
+  transition: opacity 0.22s ease, filter 0.3s ease, transform 0.42s var(--un2-ease); }
+.un2-tray.is-open .un2-tray-item { opacity: 1; filter: none; transform: none;
+  transition-timing-function: ease, ease, var(--un2-spring); transition-delay: calc(var(--un2-i, 0) * 55ms + 80ms); }
+/* actions: gentle lift on hover, press-in on click (no extra shadow) */
+.un2-tray-item > button { transition: transform var(--un2-motion-base); }
+.un2-tray-item > button:not(:disabled):hover { transform: translateY(-1px); }
+.un2-tray-item > button:not(:disabled):active { transform: translateY(0) scale(0.98); }
+/* toggle: sliders icon turns a quarter, chevron flips to point back */
+.un2-tray-icon, .un2-tray-chevron { transition: transform 0.45s var(--un2-spring); }
+.un2-tray-toggle { transition: background var(--un2-motion-base), color var(--un2-motion-base), box-shadow var(--un2-motion-base), transform var(--un2-motion-base); }
+.un2-tray-toggle:hover { transform: translateY(-1px); }
+.un2-tray-toggle:active { transform: scale(0.98); }
+.un2-tray-toggle.is-open .un2-tray-icon { transform: rotate(90deg); }
+.un2-tray-toggle.is-open .un2-tray-chevron { transform: rotate(180deg); }
+
 @media (prefers-reduced-motion: reduce) {
+  .un2-tray, .un2-tray-capsule, .un2-tray-item, .un2-tray-item > button, .un2-tray-icon, .un2-tray-chevron, .un2-tray-toggle { transition: none !important; }
+  .un2-tray-item { filter: none; }
   .un2-enter-stagger > *, .un2-enter-stagger > [class*="un2-grid-"] > *,
   .un2-grow-x, .un2-grow-y, .un2-ring-arc, .un2-live-dot { animation: none !important; }
   .un2-zoom:hover img, .un2-zoom:hover .un2-zoom-target, .un2-lift-soft:hover { transform: none; }
