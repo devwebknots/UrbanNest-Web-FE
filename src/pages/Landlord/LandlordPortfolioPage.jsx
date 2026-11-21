@@ -239,7 +239,7 @@ export default function LandlordPortfolioPage() {
     title: a.title.replace('{p}', insightProp.name), meta: a.meta.replace('{p}', insightProp.name),
   })) : [];
   const shownActivities = !loading && activities.length === 0 ? sampleActivities : activities;
-  const activitiesAreSample = shownActivities.length > 0 && shownActivities[0].sample;
+  // const activitiesAreSample = shownActivities.length > 0 && shownActivities[0].sample;   // for the "Sample" pill (commented out)
 
   const toUnit = u => navigate(`/landlord-portal/property/${u.property_id}/unit/${u.id}`);
   // const firstUnit = recentUnits[0];   // used by the Quick Actions card (commented out below)
@@ -426,9 +426,10 @@ export default function LandlordPortfolioPage() {
 
           {/* Recent Unit Activities */}
           <SectionCard
-            icon="ti-activity-heartbeat" title="Recent Unit Activities"
+            icon="ti-activity-heartbeat" title="Unit Activities"
             action={insightProp && <TextLink onClick={() => navigate(`/landlord-portal/property/${insightProp.id}/units`)}><span className="un2-hide-narrow">View all units</span></TextLink>}
-            badge={activitiesAreSample && <span style={UI2.pill()} title="Sample data until this property has unit activity">Sample</span>}
+            // "Sample" pill hidden for now:
+            // badge={activitiesAreSample && <span style={UI2.pill()} title="Sample data until this property has unit activity">Sample</span>}
             centerBody={shownActivities.length === 0}
           >
             {shownActivities.length === 0 ? (
