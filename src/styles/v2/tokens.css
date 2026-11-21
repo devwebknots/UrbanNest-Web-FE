@@ -10,7 +10,7 @@
 
   /* Type scale */
   --un2-fs-xxs: 10px; --un2-fs-xs: 11px; --un2-fs-sm: 12px; --un2-fs-base: 13px; --un2-fs-md: 14px;
-  --un2-fs-lg: 16px; --un2-fs-xl: 18px; --un2-fs-xxl: 20px; --un2-fs-xxxl: 24px; --un2-fs-display: 28px; --un2-fs-score: 36px;
+  --un2-fs-stat: 15px; --un2-fs-lg: 16px; --un2-fs-xl: 18px; --un2-fs-xxl: 20px; --un2-fs-xxxl: 24px; --un2-fs-display: 28px; --un2-fs-score: 36px;
 
   /* Spacing (4px grid) */
   --un2-sp-xxs: 2px; --un2-sp-xs: 4px; --un2-sp-sm: 8px; --un2-sp-md: 12px; --un2-sp-lg: 16px;
@@ -40,6 +40,7 @@
   --un2-page-bg: #F3F7FE;   /* lighter variant of mobile pageTint */
   --un2-surface: #FFFFFF;
   --un2-border: #E2E8F0;
+  --un2-divider: #EDF1F6;
   --un2-skeleton: #E2E8F0;
   --un2-text-primary: #1E293B;
   --un2-text-secondary: #64748B;
@@ -51,7 +52,7 @@
   --un2-shadow-card-hover: 0 2px 6px rgba(16, 24, 40, 0.05), 0 8px 18px -6px rgba(30, 64, 124, 0.09);
   --un2-card-border: #DCE4EE;
   --un2-glass-border: rgba(255, 255, 255, 0.85);
-  --un2-glass-bg: radial-gradient(120% 90% at 0% 100%, rgba(255,255,255,1) 0%, rgba(255,255,255,0) 60%), radial-gradient(80% 70% at 30% 0%, rgba(226,235,252,0.22) 0%, rgba(226,235,252,0) 70%), radial-gradient(70% 80% at 100% 30%, rgba(230,239,254,0.35) 0%, rgba(230,239,254,0) 70%), linear-gradient(180deg, #FBFCFF 0%, #FFFFFF 100%);   /* same as G2.glass (light blue tint) */
+  --un2-glass-bg: #FFFFFF;   /* same as G2.glass (pure white) */
   --un2-shadow-glass: 0 1px 3px rgba(16, 24, 40, 0.04), 0 4px 12px -4px rgba(30, 64, 124, 0.06);
   --un2-shadow-control: 0 1px 2px rgba(16, 24, 40, 0.06), 0 2px 6px rgba(30, 64, 124, 0.08);
   --un2-shadow-control-hover: 0 2px 4px rgba(16, 24, 40, 0.08), 0 6px 14px rgba(30, 64, 124, 0.14);

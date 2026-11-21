@@ -51,7 +51,7 @@ export const UI2 = {
   truncate:   { whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' },
 
   // ── Surfaces ───────────────────────────────────────────────────────────────
-  // Light container = near-white card with a light blue tint (G2.glass), NO border, minimal soft shadow (SH2.glass)
+  // Light container = pure white card (G2.glass), NO border, minimal soft shadow (SH2.glass)
   card: {
     fontFamily: F2.body,
     background: G2.glass,
@@ -102,7 +102,7 @@ export const UI2 = {
     borderRadius: R2.lg,
     boxShadow: SH2.tile,
   },
-  listRow: { display: 'flex', alignItems: 'center', gap: LAYOUT2.rowGap, padding: pad(LAYOUT2.rowY, SP2.xs), borderTop: `1px solid ${C2.border}` },
+  listRow: { display: 'flex', alignItems: 'center', gap: LAYOUT2.rowGap, padding: pad(LAYOUT2.rowY, SP2.xs) },   // divider only BETWEEN rows: pair with className="un2-row-divided"
 
   // ── Card header ────────────────────────────────────────────────────────────
   // Card header = its own zone: title + quiet subtitle, closed by a hairline so it never reads as
@@ -355,8 +355,8 @@ export const UI2 = {
     // rows ~44px tall with faint separators + hover tint · cell padding = header padding so text lines up
     headBand:  { background: C2.background, borderRadius: R2.md, padding: pad(SP2.sm, SP2.md) },
     rowPad:    pad(LAYOUT2.rowY, SP2.md),   // row height = LAYOUT2.rowY (same as list / label-value rows)
-    rule:      C2.borderLight,    // line between rows (very faint)
-    ruleLight: C2.borderLight,
+    rule:      C2.divider,        // line between rows — same barely-visible divider as list rows
+    ruleLight: C2.divider,
     // ONE size + ONE weight for every cell (13px Regular) — names, dates, categories and amounts alike.
     // Only colour differs (grey for secondary, green / red sign colour on amounts via UI2.signColor).
     // Header is LARGER than the content (14px Medium vs 13px Regular cells) so the two are clearly distinct.
@@ -400,7 +400,7 @@ export const UI2 = {
   legendRow: { ...rowBetween(), fontSize: FS2.sm, color: C2.textSecondary, lineHeight: LH2.heading },
   // Label ……… value row in a details list (unit / lease facts): LAYOUT2.rowY padding, hairline between rows
   //   rows.map((r, i) => <div style={UI2.kvRow(i === 0)}><span>{r.lbl}</span><span style={UI2.kvVal}>{r.val}</span></div>)
-  kvRow: (first = false) => ({ ...rowBetween(), fontSize: FS2.sm, color: C2.textSecondary, lineHeight: LH2.heading, padding: pad(LAYOUT2.rowY, 0), ...(first ? {} : { borderTop: hairline }) }),
+  kvRow: (first = false) => ({ ...rowBetween(), fontSize: FS2.sm, color: C2.textSecondary, lineHeight: LH2.heading, padding: pad(LAYOUT2.rowY, 0), ...(first ? {} : { borderTop: `1px solid ${C2.divider}` }) }),
   kvVal: { ...rowBetween(SP2.sm), justifyContent: 'flex-end', fontWeight: FW2.semibold, color: C2.textPrimary, textAlign: 'right', minWidth: 0 },
   legendKey: { display: 'flex', alignItems: 'center', gap: SP2.sm },
   legendVal: { fontWeight: FW2.semibold, color: C2.textPrimary },

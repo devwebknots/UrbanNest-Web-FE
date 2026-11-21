@@ -13,14 +13,14 @@ import { UI2 } from '../../constants/v2';
 //
 // Props:
 //   leading, title (UI2.text.rowTitle), meta (UI2.text.meta), metaColor, trailing
-//   variant  'divided' (default — hairline between rows) | 'hover' (no line, row highlights on hover)
+//   variant  'divided' (default — hairline between rows) | 'hover' (same hairline between rows + row highlights on hover)
 //   onClick, style
 
 export default function ListRow({ leading, title, meta, metaColor, trailing, variant = 'divided', onClick, style }) {
   const hover = variant === 'hover';
   return (
     <div
-      className={hover ? 'un2-row-hover' : undefined}
+      className={hover ? 'un2-row-hover un2-row-divided' : 'un2-row-divided'}
       style={{ ...(hover ? UI2.listRowHover : UI2.listRow), ...(onClick ? { cursor: 'pointer' } : {}), ...style }}
       onClick={onClick}
     >

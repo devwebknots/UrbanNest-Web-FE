@@ -70,6 +70,7 @@ export const C2 = {
   glassBorder:    'rgba(255, 255, 255, 0.85)',  // frosted-glass edge (with SH2.glass hairline)
   cardBorder:     '#DCE4EE',   // card outline — one step darker than pageBg so edges read
   borderLight:    '#F1F5F9',
+  divider:        '#EDF1F6',   // row divider in lists / tables — barely visible (one standard everywhere)
   tileBlue:       '#DCE6F4',
   chipBlue:       '#DCE8FB',
   skeleton:       '#E2E8F0',
@@ -266,21 +267,11 @@ export const G2 = {
   sidebarPromoGlassMask: 'linear-gradient(180deg, transparent 0%, #000 28%, #000 100%)',
   // Mobile dark cards (FinancialCard / CheckInStatusCard / RentDueCard): gradients.button, top-left → bottom-right
   darkCard:      'linear-gradient(135deg, #03264C 0%, #0659B2 100%)',
-  // Light container surfaces — STANDARD = near-white with a very light blue tint (2026-11-18:
-  // the original glass tint at roughly half strength over a whiter base). Every card (UI2.card),
-  // inner tile (UI2.tile), pill tab bar and hero stats panel uses these. Pair with
-  // C2.glassBorder + SH2.glass (faint navy hairline + lift) so edges still show.
-  glass: [
-    'radial-gradient(120% 90% at 0% 100%, rgba(255,255,255,1) 0%, rgba(255,255,255,0) 60%)',
-    'radial-gradient(80% 70% at 30% 0%, rgba(226,235,252,0.22) 0%, rgba(226,235,252,0) 70%)',
-    'radial-gradient(70% 80% at 100% 30%, rgba(230,239,254,0.35) 0%, rgba(230,239,254,0) 70%)',
-    'linear-gradient(180deg, #FBFCFF 0%, #FFFFFF 100%)',
-  ].join(', '),
-  glassTile: [
-    'radial-gradient(100% 100% at 0% 100%, rgba(255,255,255,1) 0%, rgba(255,255,255,0) 65%)',
-    'radial-gradient(90% 80% at 100% 0%, rgba(230,239,254,0.2) 0%, rgba(230,239,254,0) 70%)',
-    'linear-gradient(180deg, #FCFDFF 0%, #FFFFFF 100%)',
-  ].join(', '),
+  // Light container surfaces — STANDARD = pure white (2026-11-21: blue tint removed).
+  // Every card (UI2.card), inner tile (UI2.tile), pill tab bar and hero stats panel uses these.
+  // Pair with SH2.glass (minimal soft shadow) so edges still show.
+  glass:     '#FFFFFF',
+  glassTile: '#FFFFFF',
   // Light profile hero (ProfileHero, Landlord dashboard): soft blue wash building up towards
   // the photo on the right. The photo's left edge is feathered with profileHeroMask (desktop);
   // on phones the photo sits above the text and fades out with profileHeroMaskTop

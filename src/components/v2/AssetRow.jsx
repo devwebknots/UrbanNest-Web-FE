@@ -36,7 +36,7 @@ const S = {
       : { gridTemplateColumns: `${SZ2.assetThumb.w}px minmax(0, 1fr) auto` }),
     alignItems: 'center',
     columnGap: SP2.lg, rowGap: SP2.md, padding: pad(LAYOUT2.mediaRowY, 0), fontFamily: F2.body,
-    borderTop: first ? 'none' : `${SZ2.hairline}px solid ${C2.borderLight}`,
+    borderTop: first ? 'none' : `${SZ2.hairline}px solid ${C2.divider}`,
   }),
   thumb: { position: 'relative', width: '100%', height: SZ2.assetThumb.h, borderRadius: R2.lg, overflow: 'hidden', background: C2.surfaceMuted, boxShadow: SH2.md },
   img:   { position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', display: 'block' },

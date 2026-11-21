@@ -1,5 +1,5 @@
 import React from 'react';
-import { R2, SP2, SZ2, UI2 } from '../../constants/v2';
+import { SP2, SZ2, UI2 } from '../../constants/v2';
 
 // ─── DataTable (Design System v2) ────────────────────────────────────────────
 // Clean table inside a card (Stripe / Linear / Airbnb-host pattern): the header is a soft rounded grey
@@ -50,7 +50,8 @@ const S = {
   line:   { gridColumn: '1 / -1', display: 'grid', gridTemplateColumns: 'subgrid', alignItems: 'center' },
   // header = soft rounded band (no underline); rows use the same side padding so text lines up under it
   head:   { ...UI2.table.headBand, marginBottom: SP2.xs },
-  row:    { padding: UI2.table.rowPad, borderBottom: `${SZ2.hairline}px solid ${UI2.table.rule}`, borderRadius: R2.md },
+  // rows split by the standard barely-visible divider (C2.divider); no line under the last row
+  row:    { padding: UI2.table.rowPad, borderBottom: `${SZ2.hairline}px solid ${UI2.table.rule}` },
 };
 
 const cellStyle = (type) => UI2.table[type] || UI2.table.text;

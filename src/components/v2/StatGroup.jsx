@@ -7,7 +7,7 @@ import { ProgressRing } from './Charts';
 // Stats sit on the page, split by short hairlines. Each has a small visual:
 //   pct given  → mini ProgressRing drawn in the stat's accent colour (Occupancy, Collection)
 //   otherwise  → its icon in a soft round accent tint (Total units, Maintenance)
-// Type: label = small sentence-case grey (regular) · value = T2.statInline (Inter 16px Regular).
+// Type: label = small sentence-case grey (regular) · value = T2.statInline (Inter 15px Regular).
 //
 //   (▦)  Total units │ ◔  Occupancy │ ◔  Collection │ (⚒)  Maintenance
 //        1 Unit      │    0%        │    0%         │      Clear
@@ -29,7 +29,7 @@ const S = {
   group: { fontFamily: F2.body },
   item:  { ...UI2.row(SP2.md), padding: pad(SP2.xs, SP2.xl), minWidth: 0 },
   label: { fontSize: FS2.xs, fontWeight: FW2.regular, lineHeight: LH2.heading, color: C2.textSecondary, whiteSpace: 'nowrap' },
-  value: { ...T2.statInline, marginTop: SP2.xxs, whiteSpace: 'nowrap' },   // standard small stat: Inter 16px Regular
+  value: { ...T2.statInline, marginTop: SP2.xxs, whiteSpace: 'nowrap' },   // standard small stat: Inter 15px Regular
   // size="lg"
   itemLg:  { ...UI2.row(SP2.md), padding: pad(SP2.xs, SP2.xxxl), minWidth: 0 },
   labelLg: { ...T2.kpiLabel, whiteSpace: 'nowrap' },   // same KPI label as KpiStrip (Inter Medium 12)

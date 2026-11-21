@@ -28,7 +28,7 @@ export const F2 = {
 //                          buttons + text links (all UI2.btn.*),
 //                          nav items, status text, KPI labels
 //    300 Light ........... not used (too thin for figures — user feedback 2026-11-19)
-//    400 Regular (16px) ... small inline stat values next to a label (T2.statInline — header StatGroup)
+//    400 Regular (15px) ... small inline stat values next to a label (T2.statInline — header StatGroup)
 //    600 SemiBold ........ pills, tags, eyebrows (caps), numbers 16-20px
 //                          (T2.statValue, UI2.text.stat), amounts, emphasised values in a sentence
 //    700 Bold ............ not used
@@ -43,13 +43,14 @@ export const FW2 = { light: 300, regular: 400, medium: 500, semibold: 600, bold:
 //   sm  12 → secondary text, labels, links
 //   base 13 → body text, buttons, nav items (default)
 //   md  14 → emphasized body, list item titles
+//   stat 15 → inline stat values (T2.statInline — StatGroup / FactCard)
 //   lg  16 → card titles (Playfair), stat values
 //   xl  18 → topbar / page-section titles
 //   xxl 20 → KPI values
 //   xxxl 24 → hero / page headline (Playfair)
 //   display 28 → big chart numbers
 //   score   36 → gauge / headline scores
-export const FS2 = { xxs: 10, xs: 11, sm: 12, base: 13, md: 14, lg: 16, xl: 18, xxl: 20, xxxl: 24, display: 28, score: 36 };
+export const FS2 = { xxs: 10, xs: 11, sm: 12, base: 13, md: 14, stat: 15, lg: 16, xl: 18, xxl: 20, xxxl: 24, display: 28, score: 36 };
 
 // Line heights paired with the scale: none for big numbers, tight for stats,
 // heading for titles, body for paragraphs.
@@ -90,7 +91,7 @@ export const T2 = {
   // Display figures (>= 24px) — Inter Medium: rent total (figure), KPI strip values (figureMd)
   figure:         { fontFamily: F2.body, fontSize: FS2.display, fontWeight: FW2.medium, lineHeight: LH2.none, letterSpacing: LS2.tight, color: C2.navyDeep },
   // Small inline stat value (header StatGroup, compact summaries) — calm, never bulky
-  statInline:     { fontFamily: F2.body, fontSize: FS2.lg, fontWeight: FW2.regular, lineHeight: LH2.tight, letterSpacing: LS2.normal, color: C2.navyDeep },
+  statInline:     { fontFamily: F2.body, fontSize: FS2.stat, fontWeight: FW2.regular, lineHeight: LH2.tight, letterSpacing: LS2.normal, color: C2.navyDeep },
   figureMd:       { fontFamily: F2.body, fontSize: FS2.xxxl, fontWeight: FW2.medium, lineHeight: LH2.none, letterSpacing: LS2.tight, color: C2.navyDeep },
   // KPI figure: big numbers in KPI strips / target blocks — Inter 20px Regular (one standard for every KPI value)
   kpiValue:       { fontFamily: F2.body, fontSize: FS2.xxl, fontWeight: FW2.regular, lineHeight: LH2.none, letterSpacing: LS2.tight, color: C2.navyDeep },
