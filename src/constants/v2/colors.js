@@ -201,6 +201,7 @@ export const ILLUS2 = {
 // bars via G2.primaryBar, rings / donut arcs via these stops (DonutChart default, ProgressRing gradient=…).
 export const GSTOPS2 = {
   primary: ['#1D4ED8', '#3B82F6'],
+  blueFade: ['#03264C', '#3D8BE0'],   // brand-button dark navy → lighter brand blue (health gauge / progress fills)
   success: [C2.successDark, C2.successBright],
   error:   [C2.errorDeep, C2.errorBright],
 };
@@ -219,6 +220,7 @@ export const G2 = {
   successButton: `linear-gradient(135deg, ${GSTOPS2.success[0]} 0%, ${GSTOPS2.success[1]} 100%)`,
   successBar:    `linear-gradient(90deg, ${GSTOPS2.success[0]} 0%, ${GSTOPS2.success[1]} 100%)`,   // progress fills, left → right
   primaryBar:    `linear-gradient(90deg, ${GSTOPS2.primary[0]} 0%, ${GSTOPS2.primary[1]} 100%)`,   // brand-blue progress fills (KpiStrip)
+  blueFadeBar:   `linear-gradient(90deg, ${GSTOPS2.blueFade[0]} 0%, ${GSTOPS2.blueFade[1]} 100%)`,   // dark → light blue progress fill
   errorButton:   `linear-gradient(135deg, ${GSTOPS2.error[0]} 0%, ${GSTOPS2.error[1]} 100%)`,       // danger buttons
   errorBar:      `linear-gradient(90deg, ${GSTOPS2.error[0]} 0%, ${GSTOPS2.error[1]} 100%)`,        // red progress fills, status dots
   // Standard FILL for a tone: red and green → their gradient, every other tone → its solid strong colour.
@@ -317,7 +319,7 @@ export const G2 = {
 };
 
 // Radii — same scale as mobile `borderRadius`
-export const R2 = { xs: 4, sm: 6, md: 8, lg: 12, xl: 16, xxl: 20, header: 28, button: 10, pill: 9999, round: '50%' };
+export const R2 = { xs: 4, sm: 6, md: 8, lg: 12, xl: 16, xxl: 20, header: 28, button: 7, pill: 9999, round: '50%' };
 
 // Shadows — web equivalents of mobile `shadows`
 export const SH2 = {

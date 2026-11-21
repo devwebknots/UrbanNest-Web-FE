@@ -1174,7 +1174,9 @@ export default function LandlordPropertyDetailPage() {
   // Health: Good (green) · Fair (blue) · Needs attention (red) — no yellow
   const healthTone  = healthScore >= 70 ? TONES2.success : healthScore >= 40 ? TONES2.primary : TONES2.error;
   const healthLabel = healthScore >= 70 ? 'Good' : healthScore >= 40 ? 'Fair' : 'Needs attention';
-  const healthStops = healthScore >= 70 ? GSTOPS2.success : healthScore >= 40 ? GSTOPS2.primary : GSTOPS2.error;   // Gauge arc gradient
+  // Gauge arc: dark → light blue gradient (GSTOPS2.blueFade) unless the score needs attention (red) — status green lives on the pill only
+  const healthStops = healthScore >= 40 ? GSTOPS2.blueFade : GSTOPS2.error;
+  const gaugeTone   = healthScore >= 40 ? TONES2.primary : TONES2.error;   // soft track behind the arc
   const isVacant = u => unitPillCfg(u.status).label === 'VACANT';
   const vacantCount = viewUnits.filter(isVacant).length;
   const shownUnits = viewUnits.filter(u => unitFilter === 'all' || (unitFilter === 'vacant' ? isVacant(u) : !isVacant(u)));
@@ -1218,13 +1220,13 @@ export default function LandlordPropertyDetailPage() {
         ? <div style={UI2.text.caption}>{loading ? '…' : 'No amenities listed.'}</div>
         : (
           <div style={V.chips}>
-            {viewAmenities.slice(0, MAX_AMENITIES).map(a => (
-              <span key={a.id || a.name} style={UI2.featureChip(TONES2.success)}>
-                <i className={`ti ${amenityStyle(a.name).icon}`} aria-hidden="true" /> {a.name}
+            {viewAmenities.slice(0, MAX_AMENITIES).map((a, i) => (
+              <span key={a.id || a.name} style={UI2.featureChip()}>
+                <i className={`ti ${amenityStyle(a.name).icon}`} style={UI2.featureChipIcon(i)} aria-hidden="true" /> {a.name}
               </span>
             ))}
             {extraAmenities.length > 0 && (
-              <span style={UI2.featureChip(TONES2.neutral)} title={extraAmenities.map(a => a.name).join(', ')}>
+              <span style={UI2.featureChip()} title={extraAmenities.map(a => a.name).join(', ')}>
                 +{extraAmenities.length} more
               </span>
             )}
@@ -1265,7 +1267,7 @@ export default function LandlordPropertyDetailPage() {
           {prop.assigned_pm ? <><i className="ti ti-user-check" aria-hidden="true" /> {prop.assigned_pm}</> : 'None assigned'}
         </div>
       </div>
-      <button type="button" className="un2-btn" style={{ ...UI2.btn.soft, width: '100%', marginTop: SP2.xs }}>
+      <button type="button" className="un2-btn" style={{ ...UI2.btn.brand, width: '100%', marginTop: SP2.xs }}>
         <i className="ti ti-book-2" style={UI2.btnIcon} aria-hidden="true" /> View Ownership Ledger
       </button>
     </div>
@@ -1283,15 +1285,15 @@ export default function LandlordPropertyDetailPage() {
       {/* Restored layout (git 648864d^): score Gauge │ metric bars. Gauge arc follows the status pill
           (Good green · Fair blue · Needs attention red — no amber). */}
       <div style={V.healthBody}>
-        <Gauge value={loading ? 0 : healthScore} caption="Overall score" tone={healthTone} gradient={healthStops} size={SZ2.donut} />
+        <Gauge value={loading ? 0 : healthScore} caption="Overall score" tone={gaugeTone} gradient={healthStops} size={SZ2.donut} />
         <div style={V.healthMetrics}>
-          {/* Progress bars = the standard green gradient (G2.successBar); values stay dark.
+          {/* Progress bars = the dark → light blue gradient (G2.blueFadeBar); values stay dark.
               Status colour (good / bad) is shown only by the pill above — never on every bar. */}
-          <MetricBar label="Occupancy" value={`${occ}%`} pct={occ} tone={occ >= 80 ? TONES2.success : TONES2.error} valueTone />
-          <MetricBar label="Rent collection" value={`${stats.collection_pct ?? 0}%`} pct={stats.collection_pct ?? 0} gradient={G2.successBar} />
+          <MetricBar label="Occupancy" value={`${occ}%`} pct={occ} {...(occ >= 80 ? { gradient: G2.blueFadeBar } : { tone: TONES2.error, valueTone: true })} />
+          <MetricBar label="Rent collection" value={`${stats.collection_pct ?? 0}%`} pct={stats.collection_pct ?? 0} gradient={G2.blueFadeBar} />
           <MetricBar label="Maintenance" value={stats.maint_open > 0 ? `${stats.maint_open} open` : 'Clear'}
-            pct={maintScore} gradient={G2.successBar} />
-          <MetricBar label="Lease renewals" value="0 due" pct={0} gradient={G2.successBar} />
+            pct={maintScore} gradient={G2.blueFadeBar} />
+          <MetricBar label="Lease renewals" value="0 due" pct={0} gradient={G2.blueFadeBar} />
         </div>
       </div>
       <div style={V.healthNote}><i className="ti ti-info-circle" aria-hidden="true" /> Updates monthly from live data</div>
@@ -1317,8 +1319,8 @@ export default function LandlordPropertyDetailPage() {
         <i className="ti ti-filter" style={UI2.btnIcon} aria-hidden="true" /><span className="un2-hide-medium">Filter</span>
       </button>
       <button type="button" className="un2-raise" style={{ ...UI2.btn.outlineTone(TONES2.primary), ...UI2.btnSm }} onClick={() => setShowBulkAdd(true)}
-        title="Add Service to All Units" aria-label="Add Service to All Units">
-        <i className="ti ti-apps" style={UI2.btnIcon} aria-hidden="true" /><span className="un2-hide-medium">Add Service to All Units</span>
+        title="Add service to all units" aria-label="Add service to all units">
+        <i className="ti ti-apps" style={UI2.btnIcon} aria-hidden="true" /><span className="un2-hide-medium">Add Service</span>
       </button>
       {/* "List Ready" gate (LST-8): opens the Unit Selection modal, where readiness
           comes live from the A6 rules engine. Disabled until a unit exists. */}

@@ -30,7 +30,7 @@
 
   /* Radii */
   --un2-r-xs: 4px; --un2-r-sm: 6px; --un2-r-md: 8px; --un2-r-lg: 12px; --un2-r-xl: 16px; --un2-r-xxl: 20px;
-  --un2-r-button: 10px; --un2-r-pill: 9999px;
+  --un2-r-button: 7px; --un2-r-pill: 9999px;
 
   /* Colors */
   --un2-primary: #2563EB;

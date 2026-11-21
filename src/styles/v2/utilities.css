@@ -204,6 +204,9 @@
 .un2-tray-toggle { transition: background var(--un2-motion-base), color var(--un2-motion-base), box-shadow var(--un2-motion-base), transform var(--un2-motion-base); }
 .un2-tray-toggle:hover { transform: translateY(-1px); }
 .un2-tray-toggle:active { transform: scale(0.98); }
+/* No dark browser focus ring on the toggle / tray buttons after a click — keyboard focus gets the soft brand glow */
+.un2-tray-toggle:focus, .un2-tray-item > button:focus { outline: none; }
+.un2-tray-toggle:focus-visible, .un2-tray-item > button:focus-visible { box-shadow: var(--un2-shadow-focus) !important; }
 .un2-tray-toggle.is-open .un2-tray-icon { transform: rotate(90deg); }
 .un2-tray-toggle.is-open .un2-tray-chevron { transform: rotate(180deg); }
 

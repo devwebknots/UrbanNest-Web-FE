@@ -940,8 +940,6 @@ const DOC_TONES     = [accentTone(ACCENT2.rose), accentTone(ACCENT2.teal), accen
 // StatGroup: accent per stat, cycling the harmonised ACCENT2 set
 const FACT_ACCENTS  = [ACCENT2.blue, ACCENT2.teal, ACCENT2.violet, ACCENT2.rose];
 const factAccent    = i => FACT_ACCENTS[i % FACT_ACCENTS.length];
-const CHIP_TONES    = FACT_ACCENTS.map(accentTone);
-const chipTone      = i => CHIP_TONES[i % CHIP_TONES.length];
 // Maintenance priority — shown as dot + coloured word (UI2.statusPill, no box)
 const PRIORITY_CFG  = p => ((p === 'URGENT' || p === 'HIGH') ? { tone: TONES2.error, label: 'Critical' }
   : p === 'MEDIUM' ? { tone: TONES2.purple, label: 'Medium' } : { tone: TONES2.neutral, label: 'Low' });
@@ -1467,8 +1465,8 @@ export default function LandlordUnitDetailPage() {
       ) : (
         <div style={V.chips}>
           {amenities.map((a, i) => (
-            <span key={a.id} style={UI2.featureChip(TONES2.neutral)}>
-              <i className={`ti ${amenityIcon(a.name)}`} style={{ color: chipTone(i).strong }} aria-hidden="true" /> {a.name}
+            <span key={a.id} style={UI2.featureChip()}>
+              <i className={`ti ${amenityIcon(a.name)}`} style={UI2.featureChipIcon(i)} aria-hidden="true" /> {a.name}
             </span>
           ))}
         </div>
@@ -1479,7 +1477,6 @@ export default function LandlordUnitDetailPage() {
   const servicesCard = (
     <SectionCard
       style={UI2.cardFill} icon="ti-stack-2" title="Unit Services"
-      badge={showingSampleServices && <span style={UI2.pill()}>Sample</span>}
       action={<TextLink arrow={false} onClick={() => setAddServiceOpen(true)}><i className="ti ti-plus" aria-hidden="true" /> Add Service</TextLink>}
     >
       {servicesLoading ? (
@@ -1487,8 +1484,8 @@ export default function LandlordUnitDetailPage() {
       ) : (
         <div style={V.chips}>
           {servicesToShow.map((s, i) => (
-            <span key={s.id} style={UI2.featureChip(chipTone(i))} title={s.name}>
-              <i className={`ti ${s.icon}`} aria-hidden="true" /> {s.name}
+            <span key={s.id} style={UI2.featureChip()} title={s.name}>
+              <i className={`ti ${s.icon}`} style={UI2.featureChipIcon(i)} aria-hidden="true" /> {s.name}
               {s.requiresBankAccount && <span style={V.bankDot} />}
             </span>
           ))}

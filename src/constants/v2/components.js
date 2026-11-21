@@ -10,9 +10,12 @@
 //   <button style={UI2.btn.success}>Save</button>
 // ─────────────────────────────────────────────────────────────────────────────
 
-import { C2, G2, R2, SH2, TONES2 } from './colors';
+import { C2, G2, R2, SH2, TONES2, ACCENT2 } from './colors';
 import { F2, FS2, FW2, LH2, LS2, T2 } from './fonts';
 import { SP2, SZ2, MOTION2, LAYOUT2, BLUR2, OP2, pad } from './layout';
+
+// Feature / service / amenity chip icons cycle through this harmonised set (no yellow)
+const CHIP_ICON_ACCENTS = [ACCENT2.blue, ACCENT2.teal, ACCENT2.violet, ACCENT2.rose];
 
 const center = { display: 'flex', alignItems: 'center', justifyContent: 'center' };
 const rowBetween = (gap = SP2.md) => ({ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap });
@@ -221,8 +224,8 @@ export const UI2 = {
     danger:  { ...btnBase, background: G2.errorButton, color: C2.white, boxShadow: SH2.error },     // destructive action (red gradient)
     dark:    { ...btnBase, background: C2.black, color: C2.white, boxShadow: SH2.darkButton },
     outline: { ...btnBase, background: C2.white, color: C2.textPrimary, border: `1px solid ${C2.cardBorder}`, boxShadow: SH2.control },
-    // Coloured outline (secondary actions with meaning): UI2.btn.outlineTone(TONES2.success)
-    outlineTone: (t = TONES2.primary) => ({ ...btnBase, background: G2.panel(t), color: t.fg, border: `1px solid ${t.strong}`, boxShadow: SH2.control }),
+    // Tinted secondary action with meaning (no border — buttons are never outlined): UI2.btn.outlineTone(TONES2.success)
+    outlineTone: (t = TONES2.primary) => ({ ...btnBase, background: t.soft, color: t.fg }),
     ghostOnDark: { ...btnBase, background: C2.onDark.surface, color: C2.white, border: `1px solid ${C2.onDark.border}`, backdropFilter: BLUR2.md, WebkitBackdropFilter: BLUR2.md },
     link: {
       display: 'inline-flex', alignItems: 'center', gap: SP2.xs, padding: 0, background: 'none', border: 'none', cursor: 'pointer',
@@ -276,7 +279,7 @@ export const UI2 = {
   // ── Filter chips (segmented choices above a list) ─────────────────────────
   //   <button style={UI2.filterChip(active)}>Vacant (1)</button>
   filterChip: (active = false) => ({
-    ...center, minHeight: SZ2.control.sm, padding: pad(0, SP2.md), borderRadius: R2.md, cursor: 'pointer',
+    ...center, minHeight: SZ2.control.sm, padding: pad(0, SP2.md), borderRadius: R2.button, cursor: 'pointer',   // same radius as every button
     border: `1px solid ${active ? 'transparent' : C2.cardBorder}`,   // selected = brand gradient (same as UI2.btn.brand)
     background: active ? G2.brandButton : C2.white,
     color: active ? C2.white : C2.textPrimary,
@@ -409,11 +412,15 @@ export const UI2 = {
   // Section heading INSIDE a divided panel column (un2-cols): plain icon + Playfair title, no box
   colHead:   { display: 'flex', alignItems: 'center', gap: SP2.sm, minWidth: 0 },
   colIcon:   { fontSize: FS2.xl, color: C2.primary, flexShrink: 0 },
-  // Soft tinted feature chip (amenities): UI2.featureChip(TONES2.success)
-  featureChip: (tone = TONES2.success) => ({
+  // Feature chip — ONE standard for features, services, amenities: neutral grey chip + dark text,
+  // only the icon is coloured: <span style={UI2.featureChip()}><i style={UI2.featureChipIcon(i)} /> WiFi</span>
+  // (the tone argument is ignored — chips are never colour-filled)
+  featureChip: () => ({
     display: 'inline-flex', alignItems: 'center', gap: SP2.sm, padding: pad(SP2.xs, SP2.md), borderRadius: R2.md,
-    background: tone.soft, color: tone.fg, fontFamily: F2.body, fontSize: FS2.sm, fontWeight: FW2.medium, lineHeight: LH2.heading, whiteSpace: 'nowrap',
+    background: TONES2.neutral.soft, color: TONES2.neutral.fg, fontFamily: F2.body, fontSize: FS2.sm, fontWeight: FW2.medium, lineHeight: LH2.heading, whiteSpace: 'nowrap',
   }),
+  // Icon colour inside a feature chip — cycles blue · teal · violet · rose by index
+  featureChipIcon: (i = 0) => ({ color: CHIP_ICON_ACCENTS[i % CHIP_ICON_ACCENTS.length].fg }),
   // Borderless tinted row at the bottom of a card (feature teaser / shortcut)
   tintRow:   { display: 'flex', alignItems: 'center', gap: SP2.md, padding: SP2.md, borderRadius: R2.lg, background: C2.primaryWash },
 };
