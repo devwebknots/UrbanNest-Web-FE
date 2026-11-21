@@ -14,7 +14,11 @@ export const SZ2 = {
   icon:    { xs: 20, sm: 28, md: 32, lg: 40 },   // square icon boxes / avatars (compact)
   control: { sm: 28, md: 34, lg: 40 },           // buttons, inputs, nav items (compact)
   hairline:1,                                   // dividers, separators, 1px rules
+  dashed:  1.5,                                 // dashed outline of an empty "Add …" upload slot (UI2.addTile)
+  pageWave: 240,                                // PageWave backdrop height — top bar + breadcrumb + detail header
+  pillFixed: 72,                               // fixed-width status pills in a list column (Critical / Medium / Low) — fits the longest label
   dot:     6,
+  menu:    { w: 240, maxH: 280 },           // FilterMenu dropdown: width · max height before it scrolls
   progress:6,
   sidebar: 224,
   topbar:  56,
@@ -36,6 +40,8 @@ export const SZ2 = {
   threadMax: 140,                               // expanded chat thread before it scrolls
   donut:   148,
   chart:   180,
+  floorPlanMain: 132,                           // main floor plan sheet on the unit page (pages 2–4 use thumb.h below it)
+  cardPattern: { w: 160, h: 96 },               // CardPattern corner art (bottom-right of every light SectionCard)
   kpiMin:  100,
   heroMin: 196,
   heroImageWidth: '64%',
@@ -53,6 +59,28 @@ export const SZ2 = {
   promoOverlap:64,                              // how far the photo's base slides under the promo copy
   promoGlassBleed:24,                           // how far the frosted copy panel fades in above the title
   emptyMin:140,
+  // Landlord dashboard (ProfileHero · KpiStrip · ProgressRing · MiniBars · AssetRow)
+  profileHeroMin: 248,                          // light profile hero height
+  profileHeroContentMax: 560,                   // its text column
+  ring:    120,                                 // ProgressRing diameter
+  ringStroke: 10,                               // ProgressRing stroke
+  miniBars: { h: 64, w: 18, fitStagger: 24 },   // MiniBars plot height · bar width · bars staggered in fit mode
+  assetThumb: { w: 88, h: 64 },                 // AssetRow photo
+  assetThumbSm: { w: 72, h: 56 },               // AssetRow photo in the compact spread step — --un2-asset-thumb-*-sm
+  accentBar: 3,                                 // coloured left rule on a list item (priority)
+  profileHeroTextEnd: 560,                      // hero photo never starts before this (padding + title + 3 stats) — --un2-phero-text-end
+  profileHeroPhotoStart: '40%',                 // hero photo start on wide screens — --un2-phero-photo-start
+  profileHeroPhotoSm: 180,                      // hero photo strip height on phones (≤ 860px) — --un2-phero-photo-sm
+  // Detail pages (property / unit): PhotoBento gallery + DetailHeader
+  bento:   { h: 320, hSm: 200, thumbSm: 88 },   // gallery height · main photo height on phones · thumb strip height on phones — --un2-bento-*
+  // Open page hero (OpenHero): text block min height · photo width on the right
+  openHeroMin: 200,
+  openHeroRatio: '5 / 1',                      // OpenHero height follows its width (photo framing like the design)
+  openHeroPhotoH: '100%',                      // OpenHero photo height = the hero's: the WHOLE photo shows (nothing cut off), building at design scale
+  openHeroPhotoRatio: '3 / 1',                 // portfolio-hero-sunset.jpg (2400 × 800) — keeps the photo unstretched
+  // Portfolio (property list): PropertyRow — compact row photo
+  propertyRowPhoto: { w: 128, h: 84 },          // PropertyRow photo (compact list row)
+  scoreFigure: 40,                             // big health / score figure (Inter Medium) — not on the type scale on purpose: one hero number
 };
 
 // Page & section rhythm — the spacing pattern every v2 screen follows.
@@ -78,6 +106,8 @@ export const LAYOUT2 = {
   cardY:         SP2.lg,    // 16 — card vertical padding
   cardHeaderGap: SP2.md,    // 12 — card header → card body
   rowGap:        SP2.sm,    // 8  — between list rows / stacked blocks in a card
+  rowY:          SP2.sm,    // 8  — vertical padding INSIDE every row: table rows, list rows, label/value rows (one standard density)
+  mediaRowY:     SP2.md,    // 12 — vertical padding of rows that carry a photo thumbnail (AssetRow, PropertyRow, PropertyListItem)
   inlineGap:     SP2.sm,    // 8  — between items on one line (icon + text, buttons)
   heroX:         SP2.xxl,   // 24
   heroY:         SP2.xl,    // 20
@@ -88,7 +118,9 @@ export const BP2 = { xl: 1100, lg: 1024, md: 860, sm: 600 };  // 3-col → 2 at 
 
 // Card-width steps (px) for container rules in utilities.css: un2-hide-xs / -narrow / -medium.
 // Content inside a card reacts to the CARD's width (un2-cq), not the screen's.
-export const CQ2 = { xs: 120, narrow: 300, medium: 720 };   // measured on the card's inner (content) width
+export const CQ2 = { xs: 120, narrow: 300, asset: 560, medium: 720, spread: 820, spreadCompact: 1100 };   // measured on the card's inner (content) width
+// (asset = AssetRow compact mode: short button labels, "Paid" hidden — utilities.css @container 560px.
+//  CSS can't read variables inside @container / @media conditions, so keep the px there in sync with these.)
 
 // ─── Section grid layouts — the ONLY column splits v2 screens use ────────────
 // Each name maps to a CSS class in src/styles/v2/utilities.css (widths from
@@ -99,6 +131,7 @@ export const CQ2 = { xs: 120, narrow: 300, medium: 720 };   // measured on the c
 //   two         1fr · 1fr                       2      2          2         1        1
 //   three       1fr · 1fr · 1fr                 3      2 (+1 full) 2 (+1)   1        1
 //   four        1fr ×4 (KPI row)                4      4          2         2        1
+//   six         1fr ×6 (compact fact row)       6      3          3         3        2
 //   wideLeft    1.45fr · 1fr   (≈ 60 / 40)      2      2          1         1        1
 //   split       1.25fr · 1fr   (≈ 55 / 45)      2      2          1         1        1
 //   wideRight   1fr · 1.45fr   (≈ 40 / 60)      2      2          1         1        1
@@ -111,6 +144,7 @@ export const GRID2 = {
   two:       'un2-grid-2',
   three:     'un2-grid-3',
   four:      'un2-grid-4',
+  six:       'un2-grid-6',
   wideLeft:  'un2-grid-wide-left',
   split:     'un2-grid-split',
   wideRight: 'un2-grid-wide-right',
@@ -121,6 +155,14 @@ export const GRID2 = {
 export const MOTION2 = {
   fast: '0.15s ease',
   base: '0.18s ease',
+  // Entrance / data motion (un2-enter-stagger, un2-grow-*, ProgressRing, CountUp) — same values as tokens.css
+  ease:    'cubic-bezier(0.22, 1, 0.36, 1)',    // soft ease-out
+  spring:  'cubic-bezier(0.34, 1.36, 0.64, 1)', // soft overshoot (ActionTray opening) — --un2-spring
+  enter:   '0.6s cubic-bezier(0.22, 1, 0.36, 1)',
+  countMs: 900,                                 // CountUp duration
+  rise:    12,                                  // px a section travels while entering (un2-rise) — --un2-rise
+  nudge:   3,                                   // px a link arrow slides on hover (un2-link-arrow) — --un2-nudge
+  stagger: 70,                                  // ms between entering sections — --un2-stagger
 };
 
 // Backdrop blurs (frosted glass). Use with backdropFilter + WebkitBackdropFilter.
@@ -131,4 +173,7 @@ export const BLUR2 = {
 };
 
 // Opacity steps
-export const OP2 = { faint: 0.25, muted: 0.45, soft: 0.7 };
+export const OP2 = { faint: 0.25, muted: 0.45, soft: 0.7, pattern: 0.55 };   // pattern = CardPattern corner art strength
+
+// Stacking order for floating layers (rendered in a portal on document.body)
+export const ZI2 = { menu: 1000 };   // FilterMenu dropdown — above cards, top bar and sidebar

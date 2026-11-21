@@ -26,6 +26,22 @@
 //   ActionTile  tinted 2×2 action tiles · MetricBar label/value + progress bar
 //   BarChart · DonutChart · Sparkline · LineChart · Gauge   charts in v2 colours
 //   PropertyCard  photo card for portfolio grids · SectionHeader  heading + filters above a card grid
+//   PropertyRow wide property row (photo · name/status · ownership ring · stats · links) for the portfolio list
+//   AssetRow    light property row (photo · tags · inline metrics · actions) for dashboards
+//   ProgressRing · MiniBars  animated ring / small month bars · CountUp  animated number
+//
+// Dashboard pieces (Landlord dashboard is the reference):
+//   ProfileHero light hero, photo feathered in on the right · KpiStrip  4 KPIs in ONE container
+//   OpenHero    open page hero (no box, bleeds to the edges) + full-width stats band — list pages (Portfolio)
+//   PageWave    soft sky wash + rolling waves behind the top bar / header — <PageShell backdrop={<PageWave />}>
+//   <PageShell animate> staggers the sections in on load
+//   Detail pages: DetailHeader (title · pill · Edit · address + aside) · StatGroup (stats in one container)
+//                 FactCard (caps label · icon · value · sub — 6 in <Grid layout="six">)
+//                 PhotoBento (big photo + 2×2 tiles + Add) · un2-cols (divided columns in one panel)
+//   TextLink    "View All →" text action with sliding arrow (never hand-build link buttons)
+//   FilterMenu  filter icon in a card header → dropdown to pick one option (e.g. a property)
+//   Card patterns in UI2: cardFill · capsLabel · labelRow · context · subhead · cardFoot · strong ·
+//   delta() · amount() · legendRow/Key/Val · accentItem() · tintRow  (see constants/v2/components.js)
 //
 // Page chrome:
 //   Breadcrumb  trail above a detail hero · TabBar (pill = page sections, underline = in-card)
@@ -44,6 +60,7 @@ export { default as StatCard, Wave } from './StatCard';
 export { default as PropertyListItem } from './PropertyListItem';
 export { default as InsightCard } from './InsightCard';
 export { default as CardWave } from './CardWave';
+export { default as CardPattern, patternFor, CARD_PATTERNS } from './CardPattern';
 export { default as ListRow } from './ListRow';
 export { default as EmptyState } from './EmptyState';
 export { default as MessageItem } from './MessageItem';
@@ -53,7 +70,21 @@ export { default as TabBar } from './TabBar';
 export { default as MetricBar } from './MetricBar';
 export { default as ActionTile } from './ActionTile';
 export { default as MediaListItem } from './MediaListItem';
-export { default as PropertyCard } from './PropertyCard';
+export { default as PropertyCard, OptionsMenu } from './PropertyCard';
+export { default as PropertyRow } from './PropertyRow';
 export { default as SectionHeader } from './SectionHeader';
 export { default as DataTable } from './DataTable';
-export { BarChart, DonutChart, Sparkline, LineChart, Gauge } from './Charts';
+export { default as ProfileHero } from './ProfileHero';
+export { default as OpenHero } from './OpenHero';
+export { default as PageWave } from './PageWave';
+export { default as KpiStrip } from './KpiStrip';
+export { default as AssetRow } from './AssetRow';
+export { default as CountUp } from './CountUp';
+export { default as TextLink } from './TextLink';
+export { default as ActionTray } from './ActionTray';
+export { default as DetailHeader } from './DetailHeader';
+export { default as StatGroup } from './StatGroup';
+export { default as FactCard } from './FactCard';
+export { default as FilterMenu } from './FilterMenu';
+export { default as PhotoBento } from './PhotoBento';
+export { BarChart, DonutChart, Sparkline, LineChart, Gauge, ProgressRing, MiniBars } from './Charts';

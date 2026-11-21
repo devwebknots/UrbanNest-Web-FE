@@ -42,23 +42,28 @@ const S = {
     position: 'absolute', top: SP2.sm + SZ2.control.sm + SP2.xs, right: SP2.sm, zIndex: 2, minWidth: SZ2.panelMin,
     ...UI2.stack(SP2.xxs), padding: SP2.xs, background: C2.white, border: `1px solid ${C2.cardBorder}`, borderRadius: R2.lg, boxShadow: SH2.lg,
   },
+  moreInline: { ...UI2.btn.icon(SZ2.control.sm), color: C2.textSecondary },
+  menuInline: {
+    position: 'absolute', top: SZ2.control.sm + SP2.xs, right: 0, zIndex: 2, minWidth: SZ2.panelMin,
+    ...UI2.stack(SP2.xxs), padding: SP2.xs, background: C2.white, border: `1px solid ${C2.cardBorder}`, borderRadius: R2.lg, boxShadow: SH2.lg,
+  },
   menuItem:{ ...UI2.row(SP2.sm), width: '100%', padding: pad(SP2.sm, SP2.md), border: 'none', background: 'none', borderRadius: R2.md, cursor: 'pointer', textAlign: 'left', ...UI2.text.title, fontWeight: FW2.medium },
 
   body:    { ...UI2.stack(SP2.lg), flex: 1, padding: pad(SP2.md, SP2.lg, SP2.lg) },
   head:    { display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: SP2.sm },
-  name:    { fontSize: FS2.lg, fontWeight: FW2.bold, color: C2.textPrimary, lineHeight: LH2.heading, ...UI2.truncate },
+  name:    { fontFamily: F2.heading, fontSize: FS2.lg, fontWeight: FW2.semibold, color: C2.textPrimary, lineHeight: LH2.heading, ...UI2.truncate },
   addr:    { ...UI2.row(SP2.xs), ...UI2.text.meta, marginTop: SP2.xxs, minWidth: 0 },
   share:   {
     ...UI2.stack(0), alignItems: 'center', flexShrink: 0, padding: pad(SP2.sm, SP2.md), borderRadius: R2.xl,
     background: TONES2.success.soft, color: TONES2.success.fg,
   },
-  shareVal:{ fontSize: FS2.md, fontWeight: FW2.bold, lineHeight: LH2.heading },
+  shareVal:{ fontSize: FS2.md, fontWeight: FW2.semibold, lineHeight: LH2.heading },
   shareLbl:{ fontSize: FS2.xs, lineHeight: LH2.heading },
 
   stats:   { display: 'flex', gap: SP2.sm },
   stat:    { ...UI2.row(SP2.sm), alignItems: 'flex-start', flex: 1, minWidth: 0 },
   statIcon:{ fontSize: FS2.xl, color: C2.navyButton, lineHeight: LH2.none },
-  statVal: { fontSize: FS2.md, fontWeight: FW2.bold, color: C2.textPrimary, lineHeight: LH2.heading, ...UI2.truncate },
+  statVal: { fontSize: FS2.md, fontWeight: FW2.semibold, color: C2.textPrimary, lineHeight: LH2.heading, ...UI2.truncate },
   statLbl: { ...UI2.text.caption, color: C2.textSecondary, ...UI2.truncate },
 
   actions: { display: 'flex', gap: SP2.md, marginTop: 'auto' },
@@ -75,7 +80,13 @@ function Photo({ image, fallbackImage }) {
     : <div style={S.ph}><i className="ti ti-building" aria-hidden="true" /></div>;
 }
 
-function Menu({ items }) {
+// "…" options menu. Default button sits on the photo (PropertyCard); `inline` = plain round icon
+// button in normal flow, menu opens under it (PropertyRow). Exported as OptionsMenu.
+export function OptionsMenu({ items, inline = false }) {
+  return <Menu items={items} inline={inline} />;
+}
+
+function Menu({ items, inline = false }) {
   const [open, setOpen] = useState(false);
   const ref = useRef(null);
   useEffect(() => {
@@ -87,12 +98,12 @@ function Menu({ items }) {
     return () => { document.removeEventListener('mousedown', close); document.removeEventListener('keydown', esc); };
   }, [open]);
   return (
-    <div ref={ref}>
-      <button type="button" className="un2-btn" style={S.more} aria-label="More options" aria-haspopup="menu" aria-expanded={open} onClick={() => setOpen(o => !o)}>
+    <div ref={ref} style={inline ? { position: 'relative' } : undefined}>
+      <button type="button" className={inline ? 'un2-row-hover' : 'un2-btn'} style={inline ? S.moreInline : S.more} aria-label="More options" aria-haspopup="menu" aria-expanded={open} onClick={() => setOpen(o => !o)}>
         <i className="ti ti-dots" aria-hidden="true" />
       </button>
       {open && (
-        <div role="menu" style={S.menu}>
+        <div role="menu" style={inline ? S.menuInline : S.menu}>
           {items.map(it => (
             <button key={it.label} type="button" role="menuitem" className="un2-row-hover" style={S.menuItem}
               onClick={() => { setOpen(false); it.onClick && it.onClick(); }}>

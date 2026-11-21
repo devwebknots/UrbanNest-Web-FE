@@ -15,7 +15,7 @@ import brandLogo from '../../assets/v2/brand/urban-nest-logo.png';
 //   'maintenance' | 'tenants' | 'documents' | 'calendar' |
 //   'reports' | 'analytics' | 'insights' | 'settings'
 //
-// badges (optional): { [navId]: number } — renders an amber count pill when > 0.
+// badges (optional): { [navId]: number } — renders a white count pill when > 0.
 
 const NAV_MAIN = [
   { id: 'dashboard',   label: 'Dashboard',   icon: 'ti-layout-grid',      route: '/landlord-portal/dashboard' },
@@ -94,11 +94,11 @@ const S = {
   },
   promoTitle: {
     position: 'relative',
-    fontFamily: F2.body, fontSize: FS2.xl, fontWeight: FW2.bold, color: C2.white,
+    fontFamily: F2.heading, fontSize: FS2.xl, fontWeight: FW2.semibold, color: C2.white,
     lineHeight: LH2.tight, letterSpacing: LS2.snug, marginBottom: SP2.sm,
   },
   promoText:  { position: 'relative', fontSize: FS2.sm, lineHeight: LH2.body, color: C2.onDark.textMuted, marginBottom: SP2.xl },
-  addBtn:     { ...UI2.btn.primary, position: 'relative', width: '100%', minHeight: SZ2.control.lg, borderRadius: R2.pill, fontSize: FS2.base, fontWeight: FW2.semibold },
+  addBtn:     { ...UI2.btn.primary, position: 'relative', width: '100%', minHeight: SZ2.control.lg, borderRadius: R2.pill },   // type comes from the shared button style
 };
 
 // Same house mark as the mobile app (UrbanNestMobile/src/assets/images/brand/urban_nest_logo.png)

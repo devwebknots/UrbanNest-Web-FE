@@ -10,9 +10,9 @@ import { C2, FS2, FW2, SP2, UI2 } from '../../constants/v2';
 
 const S = {
   bar:  { ...UI2.row(SP2.sm), fontSize: FS2.md, flexWrap: 'wrap' },
-  link: { ...UI2.btn.link, fontSize: FS2.md, fontWeight: FW2.medium },
+  link: { ...UI2.btn.link, fontSize: FS2.md },
   sep:  { fontSize: FS2.sm, color: C2.textMuted },
-  cur:  { fontWeight: FW2.bold, color: C2.navyDeep },
+  cur:  { fontWeight: FW2.semibold, color: C2.navyDeep },
 };
 
 export default function Breadcrumb({ items = [] }) {

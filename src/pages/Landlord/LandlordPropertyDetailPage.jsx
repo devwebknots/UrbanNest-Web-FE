@@ -1,12 +1,13 @@
 import React, { useState, useEffect, useRef } from 'react';
 import {
-  PageShell, Grid, PropertyHero, StatTile, SectionCard, CardWave, Breadcrumb, TabBar, ListRow, EmptyState, PageFooter,
-  MediaListItem, DataTable, MetricBar, BarChart, Gauge,
+  PageShell, Grid, SectionCard, Breadcrumb, TabBar, ListRow, EmptyState, PageFooter,
+  DataTable, MetricBar, BarChart, Gauge, TextLink, ActionTray, FilterMenu, DetailHeader, StatGroup, PhotoBento, AssetRow,
 } from '../../components/v2';
-import { C2, TONES2, GSTOPS2, AVATAR2, R2, FS2, FW2, SP2, SZ2, LAYOUT2, OP2, pad, UI2 } from '../../constants/v2';
+import { C2, G2, GSTOPS2, TONES2, ACCENT2, T2, FS2, FW2, SP2, SZ2, LAYOUT2, OP2, pad, UI2 } from '../../constants/v2';
 import { C, F } from './landlordTokens';
 import { CustomDropdown } from '../../components/ui';
 import LandlordUnitSelection from './Listing/LandlordUnitSelection';
+import { PROPERTY_DEMO, withDemo, orDemo, isDemoId } from './propertyDemoData';
 
 const API_BASE = process.env.REACT_APP_API_BASE_URL || 'http://localhost:8001/api';
 
@@ -122,7 +123,6 @@ const NOTIFICATIONS = [
 // reflects that honestly — full success, or a single error banner — rather
 // than the wireframe's per-unit flagged list, since that per-unit outcome
 // isn't actually possible with this endpoint.
-const SERVICE_FALLBACK_ICON = 'ti-adjustments';
 
 // ─── Styles ───────────────────────────────────────────────────────────────────
 const S = {
@@ -310,7 +310,7 @@ function FilterModal({ onClose }) {
 //
 // Session 40 — wired to the real bulk endpoint. Two stages remain (pick,
 // result), but the result stage no longer shows a per-unit "flagged" list —
-// see the comment above SERVICE_FALLBACK_ICON for why: the real endpoint is
+// see the "all-or-nothing" note near the top of this file for why: the real endpoint is
 // atomic, so it's either full success or one error covering the whole
 // batch. The picker still warns inline that a bank-account-requiring
 // service MIGHT fail for units without one, using a real per-unit lookup
@@ -925,53 +925,67 @@ function EditPropertyModal({ propId, prop, amenities, onClose, onSaved }) {
 //   PATCH /properties/<id>/                       (Add images upload)
 // The modals further up (Filter, Bulk Add Service, Edit Property, Unit Selection,
 // Gallery lightbox) are unchanged.
+//
+// Layout (design: Downloads/image 41.png) — one page, no tabs:
+//   Breadcrumb · DetailHeader (title · type · Edit · address │ StatGroup)
+//   PhotoBento (main photo/video · 3 tiles · Add images)
+//   one panel, divided columns (un2-cols): Vision + amenities │ Ownership Cluster │ Property Health
+//   Unit Inventory (AssetRow rows + actions)
+//   Maintenance Queue │ Quick Actions │ Document Vault
+//   Rent Collection │ Recent Ledger Entries
+//   Resident Directory │ Communications
 
-// Tones for the static placeholder lists above (same order as the arrays)
-const QA_TONES    = [TONES2.warning, TONES2.error, TONES2.primary, TONES2.success];
-const DOC_TONES   = [TONES2.primary, TONES2.success, TONES2.warning, TONES2.neutral];
+
+// Tones for the static placeholder lists above (same order as the arrays). No yellow (v2 rule).
+const QA_TONES    = [TONES2.purple, TONES2.error, TONES2.primary, TONES2.success];
+const DOC_TONES   = [TONES2.primary, TONES2.success, TONES2.purple, TONES2.neutral];
 const NOTIF_TONES = { n1: TONES2.primary, n2: TONES2.success };
 const UNIT_TAG_TONE = { PAID: TONES2.success, OVERDUE: TONES2.error, VACANT: TONES2.neutral };
-const PRIORITY_TONE = p => (p === 'URGENT' || p === 'HIGH') ? TONES2.error : p === 'MEDIUM' ? TONES2.warning : TONES2.neutral;
+const PRIORITY_TONE = p => (p === 'URGENT' || p === 'HIGH') ? TONES2.error : p === 'MEDIUM' ? TONES2.purple : TONES2.neutral;
 
 // Rent Collection — placeholder figures (same numbers as before; flagged "Sample data" in the UI)
-const RENT_MONTHS = ['JUN', 'JUL', 'AUG', 'SEP', 'OCT'];
-const RENT_SAMPLE = [390, 395, 398, 428, 410];
+const RENT_MONTHS = PROPERTY_DEMO.rent.map(r => r.month);
+const RENT_SAMPLE = PROPERTY_DEMO.rent.map(r => r.amount);
 const RENT_SUMMARY = [
-  { icon: 'ti-stack-2',      lbl: 'Funding',      val: '$4,250' },
-  { icon: 'ti-credit-card',  lbl: 'Expenses',     val: '$12,800' },
-  { icon: 'ti-file-invoice', lbl: 'Vendor Bills', val: '$2,100' },
+  { lbl: 'Funding',      val: '$4,250' },
+  { lbl: 'Expenses',     val: '$12,800' },
+  { lbl: 'Vendor Bills', val: '$2,100' },
 ];
 const LEDGER_ROWS = [...LEDGER_L, ...LEDGER_R];
 const fmtMoney = v => '$' + Number(v).toLocaleString();
 const fmtK     = v => '$' + (v / 1000) + 'K';
 
-const HERO_AMENITIES = 4;   // amenities listed in the hero before "+N more"
+const MAX_AMENITIES = 6;   // amenity chips shown before "+N more"
+const MAX_UNITS     = 4;   // unit rows shown before "Show all"
 
+// Page-specific layout only — shared patterns come from UI2 (colHead · featureChip · capsLabel ·
+// cardFill · cardFoot · context …) and the v2 components (DetailHeader · StatGroup · PhotoBento · AssetRow).
 const V = {
+  infoPanel:   { padding: pad(SP2.xxl, SP2.xxl) },
+  col:         { ...UI2.stack(SP2.md) },
+  desc:        { ...UI2.text.label, ...UI2.clamp(3) },
+  chips:       { display: 'flex', flexWrap: 'wrap', gap: SP2.sm },
+  ownerRow:    { ...UI2.row(SP2.md), minWidth: 0 },
+  healthHead:  { ...UI2.rowBetween(SP2.sm) },
+  // Gauge │ metric bars (restored layout): wraps to Gauge above the bars when the column is narrow
   healthBody:    { display: 'flex', flexWrap: 'wrap', alignItems: 'center', justifyContent: 'center', gap: SP2.lg },
   healthMetrics: { ...UI2.stack(SP2.md), flex: `1 1 ${SZ2.thumbXl.w}px`, minWidth: 0, paddingLeft: SP2.lg, borderLeft: `${SZ2.hairline}px solid ${C2.border}` },
-  unitActions:   { display: 'flex', flexWrap: 'wrap', gap: LAYOUT2.inlineGap },
-  // Overview unit row: fixed-width cards side by side, scrolls sideways (snaps per card)
-  // padding leaves room for the cards' SH2.card shadow + hover lift (overflow-x would clip it); bottom margin takes it back
-  unitScroller:  { display: 'flex', alignItems: 'stretch', gap: LAYOUT2.gridGap, flex: 1, minWidth: 0, overflowX: 'auto', scrollSnapType: 'x mandatory', scrollBehavior: 'smooth', padding: pad(SP2.sm, SP2.sm, SP2.xl), scrollPaddingLeft: SP2.sm, marginBottom: -SP2.md },
-  unitSlide:     { flex: `0 0 ${SZ2.unitCard}px`, maxWidth: '100%', scrollSnapAlign: 'start' },
-  scrollArrow:   { ...UI2.btn.iconOutline(SZ2.control.sm), borderRadius: R2.round },
-  fill:          { flex: 1 },
-  snapshotEdit:  { ...UI2.btn.outline, ...UI2.btnSm },
-  newChatBtn:    { ...UI2.btn.brand, width: 'fit-content', margin: pad(SP2.md, 'auto', 0), padding: pad(0, SP2.xl) },  // dark-blue brand button, centred
-  disabled:      { opacity: OP2.muted, cursor: 'not-allowed' },
-  chartWrap:     { position: 'relative', height: SZ2.chart },
-  rentSummary:   { display: 'flex', flexWrap: 'wrap', gap: SP2.lg, marginTop: SP2.lg, paddingTop: SP2.lg, borderTop: `${SZ2.hairline}px solid ${C2.border}` },
-  // Three stats share one line; on a narrow card their icons hide (un2-hide-narrow) so amounts stay in full
-  rentStat:      { ...UI2.row(LAYOUT2.rowGap), flex: '1 1 0', minWidth: 0 },
-  score:         { fontWeight: FW2.bold, color: C2.successStrong },
-  ticketNo:      { fontSize: FS2.xs, fontWeight: FW2.bold },
-  commBody:      { marginTop: LAYOUT2.rowGap },
-  thread:        { ...UI2.stack(SP2.sm), maxHeight: SZ2.threadMax, overflowY: 'auto', marginBottom: SP2.sm },
-  sendBtn:       { width: SZ2.control.md, padding: 0, flexShrink: 0 },
-  hidden:        { display: 'none' },
+  healthNote:  { ...UI2.context, marginTop: SP2.xs },
+  unitChips:   { ...UI2.row(LAYOUT2.inlineGap), flexWrap: 'wrap', marginBottom: SP2.xs },
+  disabled:    { opacity: OP2.muted, cursor: 'not-allowed' },
+  vendorFoot:  { ...UI2.cardFoot, justifyContent: 'center' },
+  score2:      { fontWeight: FW2.semibold, color: C2.successStrong },
+  ticketNo:    { fontSize: FS2.xs, fontWeight: FW2.semibold },
+  chartWrap:   { position: 'relative', height: SZ2.chart },
+  rentSummary: { gridAutoColumns: 'minmax(0, 1fr)', marginTop: SP2.lg, paddingTop: SP2.lg, borderTop: `${SZ2.hairline}px solid ${C2.borderLight}` },
+  rentStat:    { padding: pad(0, SP2.lg), minWidth: 0 },
+  rentVal:     { ...T2.kpiValue, marginTop: SP2.xs, whiteSpace: 'nowrap' },   // standard KPI figure — 20px / 400
+  commTabs:    { ...UI2.rowBetween(SP2.md), flexWrap: 'wrap', rowGap: SP2.sm },
+  commBody:    { marginTop: LAYOUT2.rowGap },
+  thread:      { ...UI2.stack(SP2.sm), maxHeight: SZ2.threadMax, overflowY: 'auto', marginBottom: SP2.sm },
+  sendBtn:     { width: SZ2.control.md, padding: 0, flexShrink: 0 },
+  hidden:      { display: 'none' },
 };
-
 
 // ─── Main Component ───────────────────────────────────────────────────────────
 export default function LandlordPropertyDetailPage() {
@@ -1096,11 +1110,12 @@ export default function LandlordPropertyDetailPage() {
   };
 
   const prop      = data?.property    || {};
-  const stats     = data?.stats       || {};
+  // stats / owners / tickets are display-only → sample data fills empty or zero values once loaded
+  const stats     = loading ? {} : withDemo(data?.stats, PROPERTY_DEMO.stats);
   const units     = data?.units       || [];
-  const owners    = data?.ownerships  || [];
-  const amenities = data?.amenities   || [];
-  const tickets   = data?.open_tickets|| [];
+  const owners    = loading ? [] : orDemo(data?.ownerships, PROPERTY_DEMO.ownerships);
+  const amenities = data?.amenities   || [];   // REAL list — also feeds the Edit Property modal
+  const tickets   = loading ? [] : orDemo(data?.open_tickets, PROPERTY_DEMO.open_tickets);
   const primary   = owners[0]         || {};
   const coOwners  = owners.slice(1);
 
@@ -1126,9 +1141,6 @@ export default function LandlordPropertyDetailPage() {
   const galBaseItems = [...(galHeroObj ? [galHeroObj] : []), ...galThumbObjs.filter(Boolean)];
   const galLightboxItems = [...galBaseItems, ...galleryList.filter(g => g && g.file_url && !galBaseItems.some(b => b.file_url === g.file_url))];
   const galHasRealItems = galLightboxItems.length > 0;
-  // Hero photo strip: the photos after the main one; the rest sit behind "+N"
-  // Hero slider photos: main image first, then gallery photos (videos skipped, no duplicates)
-  const heroSlides = [...new Set([prop.main_image_url || FB.main, ...galLightboxItems.filter(g => g.file_type !== 'VIDEO').map(g => g.file_url)])];
   const [galLightboxIdx, setGalLightboxIdx] = useState(null);
   const galOpenLightbox = (idx) => { if (galHasRealItems && idx != null) setGalLightboxIdx(idx); };
 
@@ -1143,122 +1155,172 @@ export default function LandlordPropertyDetailPage() {
   const occ        = stats.occupancy_pct ?? 0;
   const maintScore = stats.maint_open > 0 ? Math.max(0, 100 - stats.maint_open * 20) : 100;
   const healthScore= Math.round((occ * 0.4) + (maintScore * 0.4) + 20);
-  const healthCfg  = healthScore >= 70
-    ? { label:'Good',            bg:C.greenLight, col:C.greenDark, scoreCol:C.greenDark }
-    : healthScore >= 40
-    ? { label:'Fair',            bg:C.amberLight, col:C.amber,     scoreCol:C.amber }
-    : { label:'Needs attention', bg:C.redLight,   col:C.red,       scoreCol:C.red };
 
-  const tenantUnits = units.filter(u => u.tenant_name);
+  // View lists: real data when present, sample rows otherwise. `units` / `amenities` stay REAL for the
+  // modals and API calls (Bulk Add Service, List Multi Units, Edit Property).
+  // Units are REAL only (no sample rows) — every row's View Unit must open a real unit detail page
+  const viewUnits     = loading ? [] : units;
+  const viewAmenities = loading ? [] : orDemo(amenities, PROPERTY_DEMO.amenities);
+  const tenantUnits   = loading ? [] : orDemo(viewUnits.filter(u => u.tenant_name), PROPERTY_DEMO.units.filter(u => u.tenant_name));
 
   const toggleChat = id => setOpenChatId(prev => prev === id ? null : id);
   const toggleNotif = id => setOpenNotifId(prev => prev === id ? null : id);
 
-  // ── v2 view state (presentation only — no data changes) ──────────────────
-  const [tab, setTab] = useState('overview');
+  // ── View state (presentation only — no data changes) ─────────────────────
   const [unitFilter, setUnitFilter] = useState('all');
-  const unitRowRef = useRef(null);
-  // Unit row scroll state: does it overflow, is it at the start / end (drives the ‹ › arrows)
-  const [unitEdges, setUnitEdges] = useState({ overflow: false, start: true, end: true });
-  const updateUnitEdges = React.useCallback(() => {
-    const el = unitRowRef.current;
-    if (!el) return;
-    const max = el.scrollWidth - el.clientWidth;
-    const next = { overflow: max > SP2.xs, start: el.scrollLeft <= SP2.xs, end: el.scrollLeft >= max - SP2.xs };
-    setUnitEdges(p => (p.overflow === next.overflow && p.start === next.start && p.end === next.end ? p : next));
-  }, []);
-  useEffect(() => {
-    updateUnitEdges();
-    window.addEventListener('resize', updateUnitEdges);
-    return () => window.removeEventListener('resize', updateUnitEdges);
-  }, [updateUnitEdges, units.length, tab]);
+  const [showAllUnits, setShowAllUnits] = useState(false);
+  const [docUnit, setDocUnit] = useState(null);   // Document Vault filter: one unit of this property (null = all)
 
-  const healthTone = healthScore >= 70 ? TONES2.success : healthScore >= 40 ? TONES2.warning : TONES2.error;
+  // Health: Good (green) · Fair (blue) · Needs attention (red) — no yellow
+  const healthTone  = healthScore >= 70 ? TONES2.success : healthScore >= 40 ? TONES2.primary : TONES2.error;
+  const healthLabel = healthScore >= 70 ? 'Good' : healthScore >= 40 ? 'Fair' : 'Needs attention';
+  // Gauge arc: dark → light blue gradient (GSTOPS2.blueFade) unless the score needs attention (red) — status green lives on the pill only
+  const healthStops = healthScore >= 40 ? GSTOPS2.blueFade : GSTOPS2.error;
+  const gaugeTone   = healthScore >= 40 ? TONES2.primary : TONES2.error;   // soft track behind the arc
   const isVacant = u => unitPillCfg(u.status).label === 'VACANT';
-  const vacantCount = units.filter(isVacant).length;
-  const shownUnits = units.filter(u => unitFilter === 'all' || (unitFilter === 'vacant' ? isVacant(u) : !isVacant(u)));
-  const goUnit = u => { window.location.href = `/landlord-portal/property/${propId}/unit/${u.id}`; };
+  const vacantCount = viewUnits.filter(isVacant).length;
+  const shownUnits = viewUnits.filter(u => unitFilter === 'all' || (unitFilter === 'vacant' ? isVacant(u) : !isVacant(u)));
+  const visibleUnits = showAllUnits ? shownUnits : shownUnits.slice(0, MAX_UNITS);
+  // Unit details — real backend value first; when it's missing, a sample value from propertyDemoData
+  // (picked by the unit's position so each row differs) — every column is always filled.
+  const demoUnit = i => PROPERTY_DEMO.units[i % PROPERTY_DEMO.units.length];
+  const occupiedDemo = PROPERTY_DEMO.units.filter(d => d.tenant_name);
+  const unitRent = (u, i) => u.rent_amount ?? u.rent ?? demoUnit(i).rent_amount;
+  const unitType = (u, i) => (u.unit_type ? String(u.unit_type).replace(/_/g, ' ').toLowerCase().replace(/\b\w/g, c => c.toUpperCase())
+    : u.beds ? `${u.beds} Bed` : demoUnit(i).unit_type);
+  const unitTenant = (u, i) => u.tenant_name || occupiedDemo[i % occupiedDemo.length].tenant_name;
+  const unitLeaseEnd = (u, i) => u.lease_end || occupiedDemo[i % occupiedDemo.length].lease_end;
+  const goUnit = u => { if (!isDemoId(u.id)) window.location.href = `/landlord-portal/property/${propId}/unit/${u.id}`; };
+  const openMessenger = () => { setActiveTab('Chats'); setShowNewChat(true); };
 
-  // ── Sections (each is reused by the Overview tab and its own tab) ──────────
-  const ownershipCard = (
-    <SectionCard icon="ti-users-group" title="Ownership Cluster">
-      <div style={UI2.stack(LAYOUT2.rowGap)}>
+  // Unit names often already start with the property name ("LL01 — Unit 101") — don't repeat it
+  const unitLabel = u => (!prop.name || (u.unit_name || '').startsWith(prop.name)) ? u.unit_name : `${prop.name} — ${u.unit_name}`;
+
+  // ── Gallery (PhotoBento): main photo / video + 3 tiles + Add images ──────
+  const lightboxIdx = url => { const i = galLightboxItems.findIndex(g => g.file_url === url); return i === -1 ? null : i; };
+  const SAMPLE_TILES = [FB.t1, FB.t2, FB.t3];
+  const bentoMain = heroIsVideo
+    ? { src: heroVideoItem.file_url, video: true, onClick: () => galOpenLightbox(0) }
+    : { src: prop.main_image_url || FB.main, onClick: prop.main_image_url ? () => galOpenLightbox(lightboxIdx(prop.main_image_url)) : undefined };
+  const bentoTiles = galThumbSlots.map((url, i) => (url
+    ? { src: url, onClick: () => galOpenLightbox(lightboxIdx(url)) }
+    : { src: SAMPLE_TILES[i] }));
+
+  // ── Info panel: Vision │ Ownership │ Health (one container, divided columns) ──
+  const extraAmenities = viewAmenities.slice(MAX_AMENITIES);
+  const visionCol = (
+    <div style={V.col}>
+      <div style={UI2.colHead}>
+        <i className="ti ti-stack-2" style={UI2.colIcon} aria-hidden="true" />
+        <span style={{ ...UI2.cardTitle, ...UI2.truncate }}>{prop.name ? `The vision of ${prop.name}` : 'The vision'}</span>
+      </div>
+      <div style={V.desc}>{prop.description || (loading ? '…' : PROPERTY_DEMO.description)}</div>
+      <div style={{ ...UI2.subhead, margin: pad(SP2.sm, 0, 0) }}>Amenities</div>
+      {viewAmenities.length === 0
+        ? <div style={UI2.text.caption}>{loading ? '…' : 'No amenities listed.'}</div>
+        : (
+          <div style={V.chips}>
+            {viewAmenities.slice(0, MAX_AMENITIES).map((a, i) => (
+              <span key={a.id || a.name} style={UI2.featureChip()}>
+                <i className={`ti ${amenityStyle(a.name).icon}`} style={UI2.featureChipIcon(i)} aria-hidden="true" /> {a.name}
+              </span>
+            ))}
+            {extraAmenities.length > 0 && (
+              <span style={UI2.featureChip()} title={extraAmenities.map(a => a.name).join(', ')}>
+                +{extraAmenities.length} more
+              </span>
+            )}
+          </div>
+        )}
+    </div>
+  );
+
+  const ownershipCol = (
+    <div style={V.col}>
+      <div style={UI2.colHead}>
+        <i className="ti ti-users-group" style={UI2.colIcon} aria-hidden="true" />
+        <span style={UI2.cardTitle}>Ownership Cluster</span>
+      </div>
+      <div>
+        <div style={UI2.capsLabel}>Primary owner</div>
         {primary.owner_name ? (
-          <div style={UI2.row(SP2.md)}>
+          <div style={{ ...V.ownerRow, marginTop: SP2.sm }}>
             <div style={UI2.avatar(SZ2.icon.lg, TONES2.primary)}>{initials(primary.owner_name)}</div>
             <div style={UI2.minWidth0}>
-              <div style={UI2.text.caption}>Primary Owner</div>
-              <div style={UI2.text.titleLg}>{primary.owner_name}</div>
-              <div style={UI2.text.label}>Type: Full ({primary.share_pct}%)</div>
+              <div style={{ ...UI2.text.rowTitle, ...UI2.truncate }}>{primary.owner_name}</div>
+              <div style={UI2.text.caption}>Type: Full ({primary.share_pct}%)</div>
             </div>
           </div>
-        ) : <div style={UI2.text.meta}>—</div>}
-        <div style={UI2.divider} />
-        <div>
-          <div style={UI2.text.caption}>Co-Owners</div>
-          {coOwners.length > 0
-            ? coOwners.map((o, i) => <div key={i} style={UI2.text.body}>{o.owner_name} — {o.share_pct}%</div>)
-            : <div style={UI2.text.body}>None registered</div>}
-        </div>
-        <div style={UI2.divider} />
-        <div>
-          <div style={UI2.text.caption}>Assigned Manager</div>
-          <div style={UI2.text.body}>
-            {prop.assigned_pm
-              ? <><i className="ti ti-user-check" aria-hidden="true" /> {prop.assigned_pm}</>
-              : 'None assigned'}
-          </div>
-        </div>
-        <button type="button" className="un2-raise" style={{ ...UI2.btn.outline, width: '100%', marginTop: SP2.xs }}>
-          View Ownership Ledger <i className="ti ti-arrow-right" aria-hidden="true" />
-        </button>
+        ) : <div style={UI2.text.label}>—</div>}
       </div>
-    </SectionCard>
+      <div style={UI2.divider} />
+      <div>
+        <div style={UI2.capsLabel}>Co-owners</div>
+        {coOwners.length > 0
+          ? coOwners.map((o, i) => <div key={i} style={UI2.text.label}>{o.owner_name} — {o.share_pct}%</div>)
+          : <div style={UI2.text.label}>None registered</div>}
+      </div>
+      <div style={UI2.divider} />
+      <div>
+        <div style={UI2.capsLabel}>Assigned manager</div>
+        <div style={UI2.text.label}>
+          {prop.assigned_pm ? <><i className="ti ti-user-check" aria-hidden="true" /> {prop.assigned_pm}</> : 'None assigned'}
+        </div>
+      </div>
+      <button type="button" className="un2-btn" style={{ ...UI2.btn.brand, width: '100%', marginTop: SP2.xs }}>
+        <i className="ti ti-book-2" style={UI2.btnIcon} aria-hidden="true" /> View Ownership Ledger
+      </button>
+    </div>
   );
 
-  const healthCard = (
-    <SectionCard
-      icon="ti-heart-rate-monitor" title="Property Health" decoration={<CardWave variant="single" height="22%" />}
-      action={<span style={UI2.pill(healthTone)}>{healthCfg.label} <i className="ti ti-info-circle" aria-hidden="true" /></span>}
-    >
+  const healthCol = (
+    <div style={V.col}>
+      <div style={V.healthHead}>
+        <div style={UI2.colHead}>
+          <i className="ti ti-heart-rate-monitor" style={UI2.colIcon} aria-hidden="true" />
+          <span style={UI2.cardTitle}>Property Health</span>
+        </div>
+        <span style={UI2.pill(healthTone)}>{healthLabel}</span>
+      </div>
+      {/* Restored layout (git 648864d^): score Gauge │ metric bars. Gauge arc follows the status pill
+          (Good green · Fair blue · Needs attention red — no amber). */}
       <div style={V.healthBody}>
-        <Gauge value={healthScore} caption="Overall score" tone={TONES2.success} gradient={GSTOPS2.success} size={SZ2.donut} />
+        <Gauge value={loading ? 0 : healthScore} caption="Overall score" tone={gaugeTone} gradient={healthStops} size={SZ2.donut} />
         <div style={V.healthMetrics}>
-          <MetricBar label="Occupancy" value={`${occ}%`} pct={occ} tone={occ >= 80 ? TONES2.success : TONES2.warning} valueTone />
-          <MetricBar label="Rent collection" value={`${stats.collection_pct ?? 0}%`} pct={stats.collection_pct ?? 0} tone={TONES2.warning} valueTone />
+          {/* Progress bars = the dark → light blue gradient (G2.blueFadeBar); values stay dark.
+              Status colour (good / bad) is shown only by the pill above — never on every bar. */}
+          <MetricBar label="Occupancy" value={`${occ}%`} pct={occ} {...(occ >= 80 ? { gradient: G2.blueFadeBar } : { tone: TONES2.error, valueTone: true })} />
+          <MetricBar label="Rent collection" value={`${stats.collection_pct ?? 0}%`} pct={stats.collection_pct ?? 0} gradient={G2.blueFadeBar} />
           <MetricBar label="Maintenance" value={stats.maint_open > 0 ? `${stats.maint_open} open` : 'Clear'}
-            pct={maintScore} tone={maintScore > 50 ? TONES2.success : TONES2.error} valueTone gradient={maintScore > 50} />
-          <MetricBar label="Lease renewals" value="0 due" pct={0} tone={TONES2.warning} />
+            pct={maintScore} gradient={G2.blueFadeBar} />
+          <MetricBar label="Lease renewals" value="0 due" pct={0} gradient={G2.blueFadeBar} />
         </div>
       </div>
-    </SectionCard>
+      <div style={V.healthNote}><i className="ti ti-info-circle" aria-hidden="true" /> Updates monthly from live data</div>
+    </div>
   );
 
-  const quickActionsCard = (
-    <SectionCard icon="ti-bolt" title="Quick Actions" action={<span style={UI2.pill(TONES2.warning)}>3 pending</span>}>
-      {QA_ITEMS.map((q, i) => (
-        <ListRow
-          key={q.title}
-          leading={<div style={UI2.iconBox(SZ2.icon.md, QA_TONES[i], { round: true })}><i className={`ti ${q.icon}`} aria-hidden="true" /></div>}
-          title={q.title}
-          meta={q.sub}
-          trailing={<span style={UI2.text.caption}>{q.time}</span>}
-        />
-      ))}
-    </SectionCard>
-  );
-
-  // Header actions shared by the Overview row and the Units tab.
-  // On a narrow card (< CQ2.medium) the labels hide (un2-hide-medium) → icon-only buttons with tooltips.
+  // ── Unit Inventory ────────────────────────────────────────────────────────
+  // Header actions = ActionTray (same pattern as the unit page header): "Add Unit" always visible, the
+  // rest slide open from the compact "Options" toggle. On a narrow card (< CQ2.medium) labels hide
+  // (un2-hide-medium) → icon buttons with tooltips.
   const unitHeaderActions = (
-    <div style={V.unitActions}>
-      <button type="button" className="un2-raise" style={{ ...UI2.btn.outline, ...UI2.btnSm }} onClick={() => setShowFilter(true)}
+    <ActionTray
+      compact
+      primary={(
+        <button type="button" className="un2-btn" style={{ ...UI2.btn.brand, ...UI2.btnSm }} title="Add Unit" aria-label="Add Unit"
+          onClick={() => { window.location.href = `/landlord-portal/property/${propId}/add-unit`; }}>
+          <i className="ti ti-plus" style={UI2.btnIcon} aria-hidden="true" /><span className="un2-hide-medium">Add Unit</span>
+        </button>
+      )}
+    >
+      <button type="button" className="un2-btn" style={{ ...UI2.btn.soft, ...UI2.btnSm }} onClick={() => setShowFilter(true)}
         title="Filter" aria-label="Filter">
         <i className="ti ti-filter" style={UI2.btnIcon} aria-hidden="true" /><span className="un2-hide-medium">Filter</span>
       </button>
       <button type="button" className="un2-raise" style={{ ...UI2.btn.outlineTone(TONES2.primary), ...UI2.btnSm }} onClick={() => setShowBulkAdd(true)}
-        title="Add Service to All Units" aria-label="Add Service to All Units">
-        <i className="ti ti-apps" style={UI2.btnIcon} aria-hidden="true" /><span className="un2-hide-medium">Add Service to All Units</span>
+        title="Add service to all units" aria-label="Add service to all units">
+        <i className="ti ti-apps" style={UI2.btnIcon} aria-hidden="true" /><span className="un2-hide-medium">Add Service</span>
       </button>
       {/* "List Ready" gate (LST-8): opens the Unit Selection modal, where readiness
           comes live from the A6 rules engine. Disabled until a unit exists. */}
@@ -1272,101 +1334,148 @@ export default function LandlordPropertyDetailPage() {
       >
         <i className="ti ti-layout-grid" style={UI2.btnIcon} aria-hidden="true" /><span className="un2-hide-medium">List Multi Units</span>
       </button>
-      <button type="button" className="un2-btn" style={{ ...UI2.btn.brand, ...UI2.btnSm }} title="Add Unit" aria-label="Add Unit"
-        onClick={() => { window.location.href = `/landlord-portal/property/${propId}/add-unit`; }}>
-        <i className="ti ti-plus" style={UI2.btnIcon} aria-hidden="true" /><span className="un2-hide-medium">Add Unit</span>
-      </button>
-    </div>
+    </ActionTray>
   );
 
-  // Unit names often already start with the property name ("LL01 — Unit 101") — don't repeat it
-  const unitLabel = u => (!prop.name || (u.unit_name || '').startsWith(prop.name)) ? u.unit_name : `${prop.name} — ${u.unit_name}`;
-
-  // withActions: View Unit / Message buttons under the details (Overview row); otherwise the whole tile links to the unit
-  const unitItem = (u, withActions) => {
-    const pill = unitPillCfg(u.status);
-    return (
-      <MediaListItem
-        key={u.id}
-        image={u.main_image_url || FB.unit}
-        fallbackIcon="ti-home"
-        tag={{ tone: UNIT_TAG_TONE[pill.label] || TONES2.neutral, label: pill.label }}
-        title={unitLabel(u)}
-        subtitle={u.tenant_name ? `Tenant: ${u.tenant_name}` : 'Vacant'}
-        details={[
-          { label: 'Lease ends',  value: u.lease_end || '—' },
-          { label: 'Maintenance', value: u.maint_open > 0 ? `${u.maint_open} open` : 'Clear',
-            color: u.maint_open > 0 ? C2.errorDark : C2.successStrong },
-        ]}
-        onClick={withActions ? undefined : () => goUnit(u)}
-        stacked={withActions}
-        actions={withActions && (
-          <>
-            <button type="button" className="un2-btn" style={{ ...UI2.btn.brand, ...UI2.btnSm, ...V.fill }} onClick={() => goUnit(u)}>View Unit</button>
-            <button type="button" className="un2-raise" style={{ ...UI2.btn.outline, ...UI2.btnSm, ...V.fill }}
-              onClick={() => { setActiveTab('Chats'); setShowNewChat(true); }}>Message</button>
-          </>
-        )}
-      />
-    );
-  };
-
-  // Overview: fixed-width unit cards side by side in one row that scrolls sideways.
-  // Arrows scroll one card and grey out at either end (unitEdges, updated on scroll / resize).
-  const scrollUnits = d => unitRowRef.current?.scrollBy({ left: d * (SZ2.unitCard + LAYOUT2.gridGap) });
-  const unitsRowCard = (
+  const unitsCard = (
     <SectionCard
       as="section" icon="ti-stack-2" title="Unit Inventory"
-      badge={units.length > 0 && <span style={UI2.pill()}>{units.length}</span>}
+      badge={viewUnits.length > 0 && <span style={UI2.pill()}>{viewUnits.length}</span>}
       action={unitHeaderActions}
     >
-      {units.length === 0 && !loading && <EmptyState icon="ti-door" text="No units added yet." />}
-      {units.length > 0 && (
-        <div style={UI2.row(LAYOUT2.inlineGap)}>
-          {unitEdges.overflow && (
-            <button type="button" className="un2-raise" style={{ ...V.scrollArrow, ...(unitEdges.start ? V.disabled : {}) }}
-              disabled={unitEdges.start} onClick={() => scrollUnits(-1)} aria-label="Scroll units left">
-              <i className="ti ti-chevron-left" aria-hidden="true" />
-            </button>
-          )}
-          <div ref={unitRowRef} className="un2-scroll-hidden" style={V.unitScroller} onScroll={updateUnitEdges}>
-            {units.map(u => <div key={u.id} style={V.unitSlide}>{unitItem(u, true)}</div>)}
-          </div>
-          {unitEdges.overflow && (
-            <button type="button" className="un2-raise" style={{ ...V.scrollArrow, ...(unitEdges.end ? V.disabled : {}) }}
-              disabled={unitEdges.end} onClick={() => scrollUnits(1)} aria-label="Scroll units right">
-              <i className="ti ti-chevron-right" aria-hidden="true" />
-            </button>
-          )}
+      {viewUnits.length > 1 && (
+        <div style={V.unitChips}>
+          {[
+            { id: 'all',      label: `All (${viewUnits.length})` },
+            { id: 'vacant',   label: `Vacant (${vacantCount})` },
+            { id: 'occupied', label: `Occupied (${viewUnits.length - vacantCount})` },
+          ].map(f => (
+            <button key={f.id} type="button" style={UI2.filterChip(unitFilter === f.id)} onClick={() => setUnitFilter(f.id)}>{f.label}</button>
+          ))}
+        </div>
+      )}
+      {loading && [0, 1].map(i => <AssetRow key={i} loading first={i === 0} />)}
+      {viewUnits.length === 0 && !loading && <EmptyState icon="ti-door" text="No units added yet." />}
+      {viewUnits.length > 0 && shownUnits.length === 0 && <div style={UI2.emptyInline}>No units match this filter.</div>}
+      {visibleUnits.map((u, i) => {
+        const pill = unitPillCfg(u.status);
+        const vacant = pill.label === 'VACANT';
+        return (
+          <AssetRow
+            key={u.id}
+            first={i === 0}
+            image={u.main_image_url || FB.unit}
+            name={unitLabel(u)}
+            spread
+            address={[unitType(u, i), vacant ? 'Ready to lease' : pill.label === 'OVERDUE' ? 'Rent overdue' : 'Rent paid'].join(' · ')}
+            status={{ tone: UNIT_TAG_TONE[pill.label] || TONES2.neutral, label: pill.label }}
+            metrics={[
+              { label: 'Tenant',       value: unitTenant(u, i) },
+              { label: 'Monthly rent', value: fmtMoney(unitRent(u, i)) },
+              { label: 'Lease ends',   value: unitLeaseEnd(u, i) },
+              { label: 'Maintenance', value: u.maint_open > 0 ? `${u.maint_open} open` : 'Clear',
+                color: u.maint_open > 0 ? C2.errorDark : C2.successStrong },
+            ]}
+            actions={<>
+              <button type="button" className="un2-btn" style={{ ...UI2.btn.brand, ...UI2.btnSm }} onClick={() => goUnit(u)} title="View Unit">
+                <span className="un2-label-full">View Unit</span><span className="un2-label-short">View</span>
+              </button>
+              <button type="button" className="un2-btn" style={{ ...UI2.btn.soft, ...UI2.btnSm }} onClick={openMessenger}>Message</button>
+            </>}
+          />
+        );
+      })}
+      {shownUnits.length > MAX_UNITS && (
+        <div style={UI2.cardFoot}>
+          <span style={UI2.text.caption}>Showing {visibleUnits.length} of {shownUnits.length} units</span>
+          <TextLink onClick={() => setShowAllUnits(p => !p)}>{showAllUnits ? 'Show fewer' : 'Show all units'}</TextLink>
         </div>
       )}
     </SectionCard>
   );
 
-  const unitsCard = () => (
-    <SectionCard icon="ti-stack-2" title="Unit Inventory" action={unitHeaderActions}>
-      <div style={{ ...UI2.row(LAYOUT2.inlineGap), flexWrap: 'wrap', marginBottom: LAYOUT2.cardHeaderGap }}>
-        {[
-          { id: 'all',      label: `All Units (${units.length})` },
-          { id: 'vacant',   label: `Vacant (${vacantCount})` },
-          { id: 'occupied', label: `Occupied (${units.length - vacantCount})` },
-        ].map(f => (
-          <button key={f.id} type="button" style={UI2.filterChip(unitFilter === f.id)} onClick={() => setUnitFilter(f.id)}>{f.label}</button>
-        ))}
+  // ── Maintenance · Quick actions · Documents ──────────────────────────────
+  const maintenanceCard = (
+    <SectionCard
+      style={UI2.cardFill} icon="ti-tool" title="Maintenance Queue"
+      action={<TextLink arrow={false}><i className="ti ti-plus" aria-hidden="true" /><span className="un2-hide-narrow">Create ticket</span></TextLink>}
+    >
+      {tickets.length === 0 ? (
+        <EmptyState icon="ti-check" text="No open tickets." />
+      ) : tickets.map((t, i) => {
+        const tone = PRIORITY_TONE(t.priority);
+        return (
+          <ListRow
+            key={t.id}
+            leading={<div style={{ ...UI2.iconBox(SZ2.icon.md, tone), ...V.ticketNo }}>#{isDemoId(t.id) ? i + 1 : t.id}</div>}
+            title={t.title}
+            meta={`${t.priority} · ${t.time_ago}`}
+            trailing={(() => { const st = t.status === 'IN_PROGRESS' ? TONES2.purple : TONES2.primary; return <span style={UI2.statusPill(st)}><span style={UI2.statusDot(st)} />{t.status === 'IN_PROGRESS' ? 'In Progress' : 'Open'}</span>; })()}
+          />
+        );
+      })}
+      <div style={V.vendorFoot}>
+        Vendor score <span style={V.score2}>4.8 <i className="ti ti-star-filled" aria-hidden="true" /></span>
       </div>
-
-      {units.length === 0 && !loading && <EmptyState icon="ti-door" text="No units added yet." />}
-      {units.length > 0 && shownUnits.length === 0 && <div style={UI2.emptyInline}>No units match this filter.</div>}
-      <Grid layout="two" as="div">{shownUnits.map(u => unitItem(u, false))}</Grid>
     </SectionCard>
   );
 
+  const quickActionsCard = (
+    <SectionCard icon="ti-bolt" title="Quick Actions" action={<span style={UI2.pill(TONES2.primary)}>{QA_ITEMS.length - 1} pending</span>}>
+      {QA_ITEMS.map((q, i) => (
+        <ListRow
+          key={q.title}
+          leading={<div style={UI2.iconBox(SZ2.icon.md, QA_TONES[i], { round: true })}><i className={`ti ${q.icon}`} aria-hidden="true" /></div>}
+          title={q.title}
+          meta={q.sub}
+          trailing={<span style={UI2.text.caption}>{q.time}</span>}
+        />
+      ))}
+    </SectionCard>
+  );
+
+  // Document Vault: filter icon in the header (by unit) · footer = "Full archive" on the right
+  // Tones keep each document's own colour.
+  // Filter = this property's units (same idea as the Dashboard's property filters). The sample documents
+  // are spread over the units (display only) until the documents API returns a unit per document.
+  const docUnitOptions = units.map(u => ({ value: u.id, label: u.unit_name }));
+  const shownDocs = DOC_ITEMS
+    .map((d, i) => ({ ...d, tone: DOC_TONES[i], unitId: units.length ? units[i % units.length].id : null }))
+    .filter(d => docUnit == null || d.unitId === docUnit);
+  const documentsCard = (
+    <SectionCard
+      style={UI2.cardFill} icon="ti-folder" title="Document Vault"
+      action={(
+        <FilterMenu
+          title="Filter by unit" allLabel="All units" ariaLabel="Filter documents by unit"
+          options={docUnitOptions} value={docUnit} onChange={setDocUnit}
+        />
+      )}
+    >
+      {shownDocs.length === 0 && <div style={UI2.emptyInline}>No documents for this unit yet.</div>}
+      {shownDocs.map(d => (
+        <ListRow
+          key={d.name}
+          variant="hover"
+          leading={<div style={UI2.iconBox(SZ2.icon.md, d.tone)}><i className={`ti ${d.icon}`} aria-hidden="true" /></div>}
+          title={d.name}
+          meta={d.meta}
+          trailing={<i className="ti ti-chevron-right" style={UI2.chevron} aria-hidden="true" />}
+        />
+      ))}
+      <div style={{ ...UI2.cardFoot, justifyContent: 'flex-end' }}>
+        <TextLink>Full archive</TextLink>
+      </div>
+    </SectionCard>
+  );
+
+  // ── Financials ────────────────────────────────────────────────────────────
   const rentCard = (
     <SectionCard
-      icon="ti-coins" title="Rent Collection"
+      icon="ti-chart-bar" title="Rent Collection"
       action={
         <div style={UI2.row(LAYOUT2.inlineGap)}>
-          <span style={UI2.pill(TONES2.success)}>+5.2%</span>
+          <span style={UI2.delta(true)}><i className="ti ti-trending-up" aria-hidden="true" /> +5.2%</span>
           <span className="un2-hide-narrow" style={UI2.pill()} title="Placeholder figures until the rent API is connected">Sample data</span>
         </div>
       }
@@ -1374,15 +1483,11 @@ export default function LandlordPropertyDetailPage() {
       <div style={V.chartWrap}>
         <BarChart labels={RENT_MONTHS} values={RENT_SAMPLE} formatValue={fmtMoney} formatTick={fmtK} ariaLabel="Monthly rent collection (sample)" />
       </div>
-      {/* Narrow card: stat icons hide (un2-hide-narrow) so all three amounts stay on one line in full */}
-      <div style={V.rentSummary}>
-        {RENT_SUMMARY.map(r => (
-          <div key={r.lbl} style={V.rentStat}>
-            <div className="un2-hide-narrow" style={UI2.iconBox(SZ2.icon.sm, TONES2.primary)}><i className={`ti ${r.icon}`} aria-hidden="true" /></div>
-            <div style={UI2.minWidth0}>
-              <div style={UI2.text.caption}>{r.lbl}</div>
-              <div style={{ ...UI2.text.stat, whiteSpace: 'nowrap' }}>{r.val}</div>
-            </div>
+      <div className="un2-stat-group" style={V.rentSummary}>
+        {RENT_SUMMARY.map((r, i) => (
+          <div key={r.lbl} style={{ ...V.rentStat, ...(i === 0 ? { paddingLeft: 0 } : {}) }}>
+            <div style={UI2.capsLabel}>{r.lbl}</div>
+            <div style={V.rentVal}>{r.val}</div>
           </div>
         ))}
       </div>
@@ -1392,87 +1497,64 @@ export default function LandlordPropertyDetailPage() {
   const ledgerCard = (
     <SectionCard
       icon="ti-file-invoice" title="Recent Ledger Entries"
-      action={
-        <button type="button" style={UI2.btn.icon(SZ2.control.sm)} aria-label="Export full ledger" title="Export full ledger">
-          <i className="ti ti-chevron-right" style={UI2.chevron} aria-hidden="true" />
-        </button>
-      }
+      action={<TextLink>Full ledger</TextLink>}
     >
       <DataTable
         columns={[
-          { key: 'date', label: 'Date', width: 0.7, render: l => <span style={UI2.text.label}>{l.date}</span> },
-          { key: 'cat',  label: 'Category', width: 1.2, optional: true },   // dropped first on a narrow card
-          { key: 'who',  label: 'Tenant/Vendor', width: 1.4 },
-          { key: 'amt',  label: 'Amount', align: 'right', fit: true,         // never shrinks — amounts always in full
-            render: l => <span style={{ fontWeight: FW2.semibold, color: l.pos ? C2.successStrong : C2.errorDark }}>{l.amt}</span> },
+          // Cell styles come from the column type (UI2.table.*) — no per-cell styling here
+          { key: 'date', label: 'Date',     type: 'secondary', width: 0.7 },
+          { key: 'cat',  label: 'Category', type: 'text', width: 1.1 },   // dropped first on a narrow card
+          { key: 'who',  label: 'Tenant / vendor', type: 'primary', width: 1.4 },
+          { key: 'amt',  label: 'Amount',   type: 'amount', fit: true,                    // never shrinks — amounts always in full
+            render: l => <span style={UI2.signColor(l.pos)}>{l.amt}</span> },
         ]}
         rows={LEDGER_ROWS}
-        minWidth={SZ2.tableMinCompact}
       />
     </SectionCard>
   );
 
-  const maintenanceCard = (
-    <SectionCard icon="ti-tool" title="Maintenance Queue" centerBody={tickets.length === 0} action={
-      <button type="button" className="un2-link" style={UI2.btn.link} title="Create ticket" aria-label="Create ticket">
-        <i className="ti ti-plus" aria-hidden="true" /><span className="un2-hide-narrow">Create ticket</span>
-      </button>
-    }>
-      {tickets.length === 0 ? (
-        <EmptyState icon="ti-clipboard-check" title="All clear!" text="No pending maintenance requests.">
-          <div style={UI2.text.label}>Vendor score <span style={V.score}>4.8 <i className="ti ti-star-filled" aria-hidden="true" /></span></div>
-        </EmptyState>
-      ) : (
-        <>
-          {tickets.map(t => {
-            const tone = PRIORITY_TONE(t.priority);
-            return (
-              <ListRow
-                key={t.id}
-                leading={<div style={{ ...UI2.iconBox(SZ2.icon.md, tone), ...V.ticketNo }}>#{t.id}</div>}
-                title={t.title}
-                meta={`${t.priority} · ${t.time_ago}`}
-                trailing={<span style={UI2.pill(TONES2.neutral)}>{t.status === 'IN_PROGRESS' ? 'In Progress' : 'Open'}</span>}
-              />
-            );
-          })}
-          <div style={{ ...UI2.text.label, marginTop: SP2.sm }}>Vendor score <span style={V.score}>4.8 <i className="ti ti-star-filled" aria-hidden="true" /></span></div>
-        </>
-      )}
-    </SectionCard>
-  );
-
-  const documentsCard = (
-    <SectionCard
-      icon="ti-folder" title="Document Vault"
-      action={<button type="button" className="un2-link" style={UI2.btn.link}>Full archive <i className="ti ti-arrow-right" aria-hidden="true" /></button>}
-    >
-      {DOC_ITEMS.map((d, i) => (
-        <ListRow
-          key={d.name}
-          leading={<div style={UI2.iconBox(SZ2.icon.md, DOC_TONES[i])}><i className={`ti ${d.icon}`} aria-hidden="true" /></div>}
-          title={d.name}
-          meta={d.meta}
-          trailing={<i className="ti ti-chevron-right" style={UI2.chevron} aria-hidden="true" />}
-        />
-      ))}
+  // ── People ────────────────────────────────────────────────────────────────
+  const residentsCard = (
+    <SectionCard as="section" icon="ti-users" title="Resident Directory">
+      <DataTable
+        columns={[
+          // Short headers (never truncated) · cell styles from the column type (UI2.table.*)
+          // Narrow card (< SZ2.tableMin): Unit and Renewal drop first — no sideways scroll
+          { key: 'tenant', label: 'Tenant', type: 'primary', width: 2, render: u => u.tenant_name },
+          { key: 'unit_name', label: 'Unit', type: 'secondary', fit: true },
+          { key: 'status', label: 'Status', type: 'status', fit: true,
+            render: u => {
+              const tone = u.rent_status === 'PAID' ? TONES2.success : TONES2.error;
+              return <span style={UI2.statusPill(tone)}><span style={UI2.statusDot(tone)} />{u.rent_status === 'PAID' ? 'Active' : 'Overdue'}</span>;
+            } },
+          { key: 'lease_end', label: 'Lease end', type: 'secondary', fit: true, render: u => u.lease_end || '—' },
+          { key: 'renewal', label: 'Renewal', type: 'text', fit: true,
+            render: u => <span style={{ color: u.maint_open > 0 ? C2.errorDark : C2.textMuted }}>{u.maint_open > 0 ? 'Active ticket' : '—'}</span> },
+          // Row action: open this tenant's unit (sample rows don't navigate — goUnit ignores demo ids)
+          { key: 'action', label: '', align: 'right', fit: true,
+            render: u => <TextLink arrow={false} onClick={() => goUnit(u)}>View</TextLink> },
+        ]}
+        rows={tenantUnits}
+        rowKey={u => u.id}
+        empty={<EmptyState illustration="people" text="No active tenants." />}
+      />
     </SectionCard>
   );
 
   const commsCard = (
-    <SectionCard
-      icon="ti-messages" title="Communications"
-      action={
-        <button type="button" className="un2-link" style={UI2.btn.link} title="Open messenger" aria-label="Open messenger">
-          <span className="un2-hide-narrow">Open messenger</span> <i className="ti ti-arrow-right" aria-hidden="true" />
-        </button>
-      }
-    >
-      <TabBar
-        variant="underline" ariaLabel="Communications"
-        tabs={[{ id: 'Chats', label: 'Chats' }, { id: 'Notifications', label: 'Notifications' }]}
-        value={activeTab} onChange={setActiveTab}
-      />
+    <SectionCard icon="ti-messages" title="Communications" action={<TextLink><span className="un2-hide-narrow">Open messenger</span></TextLink>}>
+      <div style={V.commTabs}>
+        <TabBar
+          variant="underline" ariaLabel="Communications"
+          tabs={[{ id: 'Chats', label: 'Chats' }, { id: 'Notifications', label: 'Notifications' }]}
+          value={activeTab} onChange={setActiveTab}
+        />
+        {activeTab === 'Chats' && (
+          <button type="button" className="un2-btn" style={{ ...UI2.btn.brand, ...UI2.btnSm }} onClick={() => setShowNewChat(p => !p)}>
+            <i className="ti ti-plus" style={UI2.btnIcon} aria-hidden="true" /> New conversation
+          </button>
+        )}
+      </div>
 
       {/* CHATS */}
       {activeTab === 'Chats' && (
@@ -1545,67 +1627,20 @@ export default function LandlordPropertyDetailPage() {
                   )}
                   <div style={UI2.text.titleLg}>{n.title}</div>
                   <div style={UI2.text.body}>{n.full}</div>
-                  <button type="button" className="un2-link" style={UI2.btn.link}>Mark as read</button>
+                  <TextLink arrow={false}>Mark as read</TextLink>
                 </div>
               )}
             </div>
           ))}
         </div>
       )}
-
-      {activeTab === 'Chats' && (
-        <button type="button" className="un2-btn" style={V.newChatBtn} onClick={() => setShowNewChat(p => !p)}>
-          <i className="ti ti-plus" style={UI2.btnIcon} aria-hidden="true" /> New conversation
-        </button>
-      )}
     </SectionCard>
   );
-
-  const residentsCard = (
-    <SectionCard as="section" icon="ti-users" title="Resident Directory">
-      <DataTable
-        columns={[
-          { key: 'tenant', label: 'Tenant Name', width: 2,
-            render: (u, i) => (
-              <div style={UI2.row(LAYOUT2.inlineGap)}>
-                <div style={UI2.avatar(SZ2.icon.sm, AVATAR2[i % AVATAR2.length])}>{initials(u.tenant_name)}</div>
-                <span style={{ ...UI2.text.title, ...UI2.truncate }}>{u.tenant_name}</span>
-              </div>
-            ) },
-          { key: 'unit_name', label: 'Unit #' },
-          { key: 'status', label: 'Lease Status',
-            render: u => <span style={UI2.pill(u.rent_status === 'PAID' ? TONES2.success : TONES2.error)}>{u.rent_status === 'PAID' ? 'Active' : 'Overdue'}</span> },
-          { key: 'lease_end', label: 'Lease End Date', width: 1.2, render: u => u.lease_end || '—' },
-          { key: 'renewal', label: 'Renewal',
-            render: u => <span style={{ color: u.maint_open > 0 ? C2.errorDark : C2.textMuted }}>{u.maint_open > 0 ? 'Active ticket' : '—'}</span> },
-          { key: 'action', label: '', width: 0.5, align: 'right',
-            render: u => (
-              <button type="button" style={UI2.btn.icon(SZ2.control.sm)} aria-label={`Actions for ${u.tenant_name}`}>
-                <i className="ti ti-dots" aria-hidden="true" />
-              </button>
-            ) },
-        ]}
-        rows={tenantUnits}
-        rowKey={u => u.id}
-        empty={<EmptyState illustration="people" text="No active tenants." />}
-      />
-    </SectionCard>
-  );
-
-  const TABS = [
-    { id: 'overview',    label: 'Overview',    icon: 'ti-layout-grid' },
-    { id: 'units',       label: 'Units',       icon: 'ti-stack-2' },
-    { id: 'maintenance', label: 'Maintenance', icon: 'ti-tool' },
-    { id: 'tenants',     label: 'Tenants',     icon: 'ti-users' },
-    { id: 'documents',   label: 'Documents',   icon: 'ti-file-text' },
-    { id: 'financials',  label: 'Financials',  icon: 'ti-chart-bar' },
-  ];
-
-  const extraAmenities = amenities.slice(HERO_AMENITIES);
 
   return (
     <>
       <PageShell
+        animate
         activePage="properties"
         title="UrbanNest Landlord"
         avatarText={initials(primary.owner_name || 'L')}
@@ -1618,75 +1653,55 @@ export default function LandlordPropertyDetailPage() {
           { label: loading ? '…' : prop.name },
         ]} />
 
-        {/* ── HERO (photo slider) + PROPERTY SNAPSHOT ── */}
-        <Grid layout="mainSide">
-          <PropertyHero
-            slides={heroSlides}
-            title={loading
-              ? <span className="un2-skel" style={UI2.skeleton(SZ2.skeletonTitle, SZ2.control.lg, { onDark: true })} />
-              : prop.name}
-            badge={prop.property_type ? (PROP_TYPE_LABEL[prop.property_type] || prop.property_type) : null}
-            address={loading ? null : (prop.address || [prop.city, prop.country].filter(Boolean).join(', ') || null)}
-            eyebrow={prop.name ? `The vision of ${prop.name}` : null}
-            description={prop.description}
-            features={[
-              ...amenities.slice(0, HERO_AMENITIES).map(a => ({ icon: amenityStyle(a.name).icon, label: a.name })),
-              ...(extraAmenities.length > 0
-                ? [{ icon: 'ti-plus', label: `${extraAmenities.length} more`, title: extraAmenities.map(a => a.name).join(', ') }]
-                : []),
-            ]}
-            topActions={[
-              ...(galHasRealItems ? [{ icon: 'ti-photo', label: 'Open gallery', onClick: () => galOpenLightbox(0) }] : []),
-              { icon: 'ti-camera-plus', label: uploadingImage ? 'Uploading…' : 'Add photo', busy: uploadingImage,
-                onClick: () => { if (!uploadingImage) imageInputRef.current?.click(); } },
-            ]}
-          />
-          <SectionCard
-            icon="ti-building" title="Property Snapshot"
-            action={!loading && prop.id && (
-              <button type="button" className="un2-raise" style={V.snapshotEdit} onClick={() => setShowEditProperty(true)}>
-                <i className="ti ti-pencil" style={UI2.btnIcon} aria-hidden="true" /> Edit
-              </button>
-            )}
-          >
-            <Grid layout="two" as="div">
-              <StatTile icon="ti-box" label="Total Units" value={stats.total_units ?? '—'} />
-              <StatTile icon="ti-clock" label="Collection" value={`${stats.collection_pct ?? 0}%`} />
-              <StatTile icon="ti-users" label="Occupancy" value={`${occ}%`} />
-              <StatTile icon="ti-check" label="Maintenance" labelFirst
-                value={stats.maint_open > 0 ? `${stats.maint_open} Open` : 'Clear'}
-                tone={stats.maint_open > 0 ? TONES2.warning : TONES2.success} />
-            </Grid>
-          </SectionCard>
-        </Grid>
+        {/* ── HEADER: title · type · Edit · address │ stats ── */}
+        <DetailHeader
+          title={loading ? <span className="un2-skel" style={UI2.skeleton(SZ2.skeletonTitle, SZ2.control.lg)} /> : prop.name}
+          badge={prop.property_type ? (PROP_TYPE_LABEL[prop.property_type] || prop.property_type) : null}
+          action={!loading && prop.id && (
+            <button type="button" className="un2-btn" style={{ ...UI2.btn.soft, ...UI2.btnSm }} onClick={() => setShowEditProperty(true)}>
+              <i className="ti ti-pencil" style={UI2.btnIcon} aria-hidden="true" /> Edit
+            </button>
+          )}
+          meta={loading ? null : (prop.address || [prop.city, prop.country].filter(Boolean).join(', ') || null)}
+          aside={
+            <StatGroup items={[
+              { icon: 'ti-building', label: 'Total units', accent: ACCENT2.blue,
+                value: stats.total_units != null ? `${stats.total_units} ${stats.total_units === 1 ? 'Unit' : 'Units'}` : '—' },
+              { label: 'Occupancy', accent: ACCENT2.teal, value: `${occ}%`, pct: loading ? 0 : occ },
+              { label: 'Collection', accent: ACCENT2.violet, value: `${stats.collection_pct ?? 0}%`, pct: loading ? 0 : (stats.collection_pct ?? 0) },
+              { icon: stats.maint_open > 0 ? 'ti-tool' : 'ti-check', label: 'Maintenance', accent: stats.maint_open > 0 ? ACCENT2.rose : ACCENT2.teal,
+                value: stats.maint_open > 0 ? `${stats.maint_open} Open` : 'Clear',
+                valueColor: stats.maint_open > 0 ? C2.errorDark : C2.successStrong },
+            ]} />
+          }
+        />
+
+        {/* ── GALLERY ── */}
+        <PhotoBento
+          main={bentoMain}
+          tiles={bentoTiles}
+          add={{ label: uploadingImage ? 'Uploading…' : 'Add images', busy: uploadingImage, onClick: () => imageInputRef.current?.click() }}
+        />
         <input
           ref={imageInputRef} type="file" accept="image/jpeg,image/png,image/webp" style={V.hidden}
           onChange={e => { const f = e.target.files[0]; e.target.value = ''; if (f) handleAddImageFile(f); }}
         />
-
         {imageUploadError && <div style={UI2.errorBanner}><i className="ti ti-alert-circle" aria-hidden="true" /> {imageUploadError}</div>}
 
-        <TabBar tabs={TABS} value={tab} onChange={setTab} ariaLabel="Property sections" />
+        {/* ── VISION │ OWNERSHIP │ HEALTH — one panel, divided columns ── */}
+        <SectionCard as="section" style={V.infoPanel}>
+          <div className="un2-cols" style={{ '--un2-cols': 3 }}>
+            {visionCol}
+            {ownershipCol}
+            {healthCol}
+          </div>
+        </SectionCard>
 
-        {/* Overview: rows with the same main / side split as the hero row. Cards in one row
-            stretch to the same height (e.g. Maintenance Queue = Unit Inventory). */}
-        {tab === 'overview' && <>
-          <Grid layout="mainSide">
-            <Grid layout="wideRight" as="div">{ownershipCard}{healthCard}</Grid>
-            {quickActionsCard}
-          </Grid>
-          <Grid layout="mainSide">{unitsRowCard}{maintenanceCard}</Grid>
-          <Grid layout="mainSide">
-            <Grid layout="two" as="div">{rentCard}{ledgerCard}</Grid>
-            {commsCard}
-          </Grid>
-          <Grid layout="mainSide">{residentsCard}<div aria-hidden="true" /></Grid>
-        </>}
-        {tab === 'units'       && unitsCard()}
-        {tab === 'maintenance' && maintenanceCard}
-        {tab === 'tenants'     && residentsCard}
-        {tab === 'documents'   && documentsCard}
-        {tab === 'financials'  && <Grid layout="two">{rentCard}{ledgerCard}</Grid>}
+        {unitsCard}
+
+        <Grid layout="three">{maintenanceCard}{quickActionsCard}{documentsCard}</Grid>
+        <Grid layout="two">{rentCard}{ledgerCard}</Grid>
+        <Grid layout="split">{residentsCard}{commsCard}</Grid>
 
         <PageFooter />
       </PageShell>

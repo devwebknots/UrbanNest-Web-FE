@@ -13,7 +13,8 @@ import { C2, G2, TONES2, FS2, FW2, R2, SP2, SZ2, UI2 } from '../../constants/v2'
 //   <MetricBar label="Maintenance" value="Clear" pct={100} tone={TONES2.success} valueTone gradient />
 
 export default function MetricBar({ label, value, pct = 0, tone = TONES2.primary, valueTone = false, dark = false, gradient }) {
-  const fill = gradient ? (gradient === true ? G2.successBar : gradient) : (dark ? tone.wave : tone.strong);
+  // Standard fill: red / green tones always use their gradient (G2.toneFill); `gradient` can still force one
+  const fill = gradient ? (gradient === true ? G2.successBar : gradient) : (dark ? tone.wave : G2.toneFill(tone));
   const w = Math.max(0, Math.min(100, Number(pct) || 0));
   return (
     <div style={UI2.stack(SP2.xs)}>
@@ -25,7 +26,7 @@ export default function MetricBar({ label, value, pct = 0, tone = TONES2.primary
         }}>{value}</span>
       </div>
       <div style={{ height: SZ2.progress, borderRadius: R2.pill, overflow: 'hidden', background: dark ? C2.onDark.surfaceHover : C2.surfaceMuted }}>
-        <div style={{ width: `${w}%`, height: '100%', borderRadius: R2.pill, background: fill }} />
+        <div className="un2-grow-x" style={{ width: `${w}%`, height: '100%', borderRadius: R2.pill, background: fill }} />
       </div>
     </div>
   );
