@@ -40,6 +40,8 @@ export const SZ2 = {
   threadMax: 140,                               // expanded chat thread before it scrolls
   donut:   148,
   chart:   180,
+  floorPlanMain: 132,                           // main floor plan sheet on the unit page (pages 2–4 use thumb.h below it)
+  cardPattern: { w: 160, h: 96 },               // CardPattern corner art (bottom-right of every light SectionCard)
   kpiMin:  100,
   heroMin: 196,
   heroImageWidth: '64%',
@@ -104,6 +106,8 @@ export const LAYOUT2 = {
   cardY:         SP2.lg,    // 16 — card vertical padding
   cardHeaderGap: SP2.md,    // 12 — card header → card body
   rowGap:        SP2.sm,    // 8  — between list rows / stacked blocks in a card
+  rowY:          SP2.sm,    // 8  — vertical padding INSIDE every row: table rows, list rows, label/value rows (one standard density)
+  mediaRowY:     SP2.md,    // 12 — vertical padding of rows that carry a photo thumbnail (AssetRow, PropertyRow, PropertyListItem)
   inlineGap:     SP2.sm,    // 8  — between items on one line (icon + text, buttons)
   heroX:         SP2.xxl,   // 24
   heroY:         SP2.xl,    // 20
@@ -127,6 +131,7 @@ export const CQ2 = { xs: 120, narrow: 300, asset: 560, medium: 720, spread: 820,
 //   two         1fr · 1fr                       2      2          2         1        1
 //   three       1fr · 1fr · 1fr                 3      2 (+1 full) 2 (+1)   1        1
 //   four        1fr ×4 (KPI row)                4      4          2         2        1
+//   six         1fr ×6 (compact fact row)       6      3          3         3        2
 //   wideLeft    1.45fr · 1fr   (≈ 60 / 40)      2      2          1         1        1
 //   split       1.25fr · 1fr   (≈ 55 / 45)      2      2          1         1        1
 //   wideRight   1fr · 1.45fr   (≈ 40 / 60)      2      2          1         1        1
@@ -139,6 +144,7 @@ export const GRID2 = {
   two:       'un2-grid-2',
   three:     'un2-grid-3',
   four:      'un2-grid-4',
+  six:       'un2-grid-6',
   wideLeft:  'un2-grid-wide-left',
   split:     'un2-grid-split',
   wideRight: 'un2-grid-wide-right',
@@ -166,7 +172,7 @@ export const BLUR2 = {
 };
 
 // Opacity steps
-export const OP2 = { faint: 0.25, muted: 0.45, soft: 0.7 };
+export const OP2 = { faint: 0.25, muted: 0.45, soft: 0.7, pattern: 0.55 };   // pattern = CardPattern corner art strength
 
 // Stacking order for floating layers (rendered in a portal on document.body)
 export const ZI2 = { menu: 1000 };   // FilterMenu dropdown — above cards, top bar and sidebar

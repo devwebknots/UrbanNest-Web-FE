@@ -1,10 +1,10 @@
 import React, { useState, useRef } from 'react';
 import {
-  PageShell, Grid, SectionCard, Breadcrumb, ListRow, EmptyState, PageFooter,
-  DataTable, TextLink, DetailHeader, PhotoBento, CardWave, PageWave,
+  PageShell, Grid, SectionCard, CardHeader, Breadcrumb, ListRow, EmptyState, PageFooter,
+  DataTable, TextLink, DetailHeader, PhotoBento, PageWave, StatGroup, CardWave,
 } from '../../components/v2';
 import {
-  C2, TONES2, ACCENT2, AVATAR2, accentTone, T2, FS2, SH2, SP2, SZ2, LAYOUT2, OP2, pad, UI2,
+  C2, TONES2, ACCENT2, accentTone, FS2, SH2, SP2, SZ2, LAYOUT2, OP2, UI2,
 } from '../../constants/v2';
 import { C, F } from './landlordTokens';
 import { UNIT_DEMO, orDemo, isDemoId } from './propertyDemoData';
@@ -76,6 +76,13 @@ const FB_GALLERY = [
   'https://images.unsplash.com/photo-1484154218962-a197022b5858?w=800&q=80',
 ];
 
+// Sample floor plan sheets — fill empty floor plan slots (display only)
+const FB_FLOOR_PLANS = [
+  'https://images.unsplash.com/photo-1503387762-592deb58ef4e?w=800&q=80',
+  'https://images.unsplash.com/photo-1574359411659-15573a27fd0c?w=800&q=80',
+  'https://images.unsplash.com/photo-1600607686527-6fb886090705?w=800&q=80',
+];
+
 const initials = n => (n || '').split(' ').map(w => w[0]).join('').toUpperCase().slice(0, 2) || '?';
 
 // Property type labels for the header line ("LL01 – Apartment Complex") — same map as LandlordPropertyDetailPage.jsx
@@ -109,6 +116,7 @@ const DOC_ITEMS = [
   { icon: 'ti-file-text',       name: 'Lease agreement',              meta: 'PDF · 2.4 MB · Signed' },
   { icon: 'ti-clipboard-check', name: 'Move-in inspection report',    meta: 'PDF · 15.8 MB · Verified' },
   { icon: 'ti-shield-check',    name: 'Tenant insurance certificate', meta: 'PDF · 0.8 MB · Valid' },
+  { icon: 'ti-file-certificate', name: 'Ownership document',          meta: 'PDF · 3.2 MB · Verified' },
 ];
 
 // ─── Unit Services (SVC-1, Session 40) — wired to the real backend ────────────
@@ -911,10 +919,10 @@ function EditUnitModal({ propId, unitId, unit, amenities, onClose, onSaved }) {
 //   PATCH  /properties/<id>/units/<uid>/                (floor plan slot upload / remove)
 // The modals above (Add Service, Edit Unit, Detail pop-up, Gallery lightbox) are unchanged.
 //
-// Layout (design: Downloads/image 25.png) — one page, no tabs:
+// Layout — top per Downloads/image 61.png, cards below = the original unit-page design:
 //   Breadcrumb · DetailHeader (Unit N · Vacant pill · "LL01 – Apartment Complex" │ Edit · Listing · Share · Download)
-//   PhotoBento stacked (main photo ‹ › · 2 tiles · Add) │ facts panel (4 stat tiles + Unit Status card)
-//     — top portion per Screenshot 2026-11-20 172429.png
+//   Gallery — PhotoBento gallery (wide main photo · 2 × 2 photos · "+N more" on the last tile)
+//   StatGroup (open, 6 stats split by hairlines, like the property page) — Rent · Security Dep. · Configuration · Total Beds · Total Baths · Lease Agreement
 //   Unit & Lease Overview │ Floor Plan
 //   Special Features │ Unit Services
 //   Maintenance Queue │ Financial Command
@@ -923,14 +931,17 @@ function EditUnitModal({ propId, unitId, unit, amenities, onClose, onSaved }) {
 
 // Tones (ACCENT2 / TONES2 only — no yellow) for the static lists above, same order as the arrays
 const QA_TONES      = [accentTone(ACCENT2.blue), accentTone(ACCENT2.teal), accentTone(ACCENT2.rose), TONES2.neutral];
-const DOC_TONES     = [accentTone(ACCENT2.rose), accentTone(ACCENT2.teal), accentTone(ACCENT2.violet)];
-// Fact tiles: round accent icon boxes (same treatment as StatGroup / Dashboard rent rows)
-const FACT_TONES    = [ACCENT2.blue, ACCENT2.teal, ACCENT2.violet, ACCENT2.rose].map(accentTone);
-const CHIP_TONES    = [ACCENT2.blue, ACCENT2.teal, ACCENT2.violet, ACCENT2.rose].map(accentTone);
+const DOC_TONES     = [accentTone(ACCENT2.rose), accentTone(ACCENT2.teal), accentTone(ACCENT2.violet), accentTone(ACCENT2.blue)];
+// StatGroup: accent per stat, cycling the harmonised ACCENT2 set
+const FACT_ACCENTS  = [ACCENT2.blue, ACCENT2.teal, ACCENT2.violet, ACCENT2.rose];
+const factAccent    = i => FACT_ACCENTS[i % FACT_ACCENTS.length];
+const CHIP_TONES    = FACT_ACCENTS.map(accentTone);
 const chipTone      = i => CHIP_TONES[i % CHIP_TONES.length];
+// Maintenance priority — shown as dot + coloured word (UI2.statusPill, no box)
 const PRIORITY_CFG  = p => ((p === 'URGENT' || p === 'HIGH') ? { tone: TONES2.error, label: 'Critical' }
   : p === 'MEDIUM' ? { tone: TONES2.purple, label: 'Medium' } : { tone: TONES2.neutral, label: 'Low' });
 const RATING_MAX    = 5;
+const optLabel      = (opts, v) => (opts.find(o => o.value === v) || {}).label || v || '—';
 
 // Page-specific layout only — shared patterns come from UI2 and the v2 components.
 const V = {
@@ -939,22 +950,11 @@ const V = {
   statusPill:  (tone) => ({ ...UI2.pill(tone), flexShrink: 0 }),
   disabled:    { opacity: OP2.muted, cursor: 'not-allowed' },
   hidden:      { display: 'none' },
-  // Facts panel beside the gallery: 4 stat tiles on top, the Unit Status card fills the rest
-  facts:       { ...UI2.stack(LAYOUT2.gridGap), minWidth: 0 },
-  factTiles:   { display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: LAYOUT2.gridGap },
-  factTile:    { ...UI2.card, ...UI2.stack(SP2.sm), alignItems: 'center', padding: pad(SP2.lg, SP2.sm), minWidth: 0, textAlign: 'center' },
-  factVal:     { ...T2.statInline, whiteSpace: 'nowrap' },   // small stat value — Inter 500 16 (same as Dashboard rent rows / StatGroup)
-  statusCard:  { ...UI2.card, ...UI2.stack(SP2.lg), flex: 1, justifyContent: 'center' },
-  statusHead:  { ...UI2.row(SP2.md), flexWrap: 'wrap', paddingBottom: SP2.lg, borderBottom: `${SZ2.hairline}px solid ${C2.borderLight}` },
-  statusGrid:  { display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', columnGap: SP2.xl, rowGap: SP2.lg },
-  factLbl:     { ...T2.label },
-  factText:    { ...T2.statInline, marginTop: SP2.xxs, ...UI2.truncate },
-  // Unit & Lease Overview — label ……… value rows in two divided columns
-  kvRow:       (first) => ({ ...UI2.legendRow, padding: pad(SP2.md, 0), ...(first ? {} : { borderTop: `${SZ2.hairline}px solid ${C2.borderLight}` }) }),
-  kvVal:       { ...UI2.legendVal, ...UI2.row(SP2.sm), justifyContent: 'flex-end', textAlign: 'right', minWidth: 0 },
-  eyeBtn:      (on) => ({ ...UI2.btn.icon(SZ2.icon.sm), fontSize: FS2.md, color: on ? C2.primary : C2.textSubtle, background: on ? C2.primarySoft : C2.surfaceMuted, ...(on ? {} : { cursor: 'not-allowed' }) }),
+  // Unit & Lease Overview rows = UI2.kvRow / UI2.kvVal (shared row spacing LAYOUT2.rowY)
+  eyeBtn:      (on) => ({ ...UI2.btn.icon(SZ2.icon.xs), fontSize: FS2.sm, color: on ? C2.primary : C2.textSubtle, background: on ? C2.primarySoft : C2.surfaceMuted, ...(on ? {} : { cursor: 'not-allowed' }) }),
   // Floor plan: main sheet + 3 page tiles (photo tiles / dashed add tiles — same look as PhotoBento)
-  fpMain:      { ...UI2.photoTile, height: SZ2.chart },
+  fpOpen:      { display: 'flex', flexDirection: 'column', minWidth: 0, paddingTop: LAYOUT2.cardY },   // same top inset as the card beside it → headers line up
+  fpMain:      { ...UI2.photoTile, height: SZ2.floorPlanMain },   // fixed — keeps the Overview / Floor Plan row compact
   fpPages:     { display: 'grid', gridTemplateColumns: 'repeat(3, minmax(0, 1fr))', gap: LAYOUT2.gridGap, marginTop: LAYOUT2.gridGap },
   fpPage:      { ...UI2.photoTile, height: SZ2.thumb.h },
   fpImg:       (busy) => ({ ...UI2.photoMedia, cursor: busy ? 'progress' : 'pointer' }),
@@ -964,13 +964,11 @@ const V = {
   bankDot:     UI2.dot(ACCENT2.violet.fg),
   legend:      { ...UI2.context, marginTop: SP2.md },
   // Tables / footers
-  centerFoot:  { ...UI2.cardFoot, justifyContent: 'center' },
+  endFoot:     { ...UI2.cardFoot, justifyContent: 'flex-end' },   // footer link on the right end
   segment:     { ...UI2.row(SP2.xs) },
   stars:       { ...UI2.row(SP2.xxs), color: C2.primary },
   starOff:     { color: C2.textSubtle },
-  ownerName:   { ...UI2.row(SP2.xs), minWidth: 0 },
-  priorityPill:(tone) => ({ ...UI2.pill(tone), width: SZ2.pillFixed, justifyContent: 'center' }),   // same width for Critical / Medium / Low
-  primaryStar: { color: C2.primary, fontSize: FS2.sm },
+  assignBtn:   { ...UI2.btn.brand, ...UI2.btnSm },
 };
 
 const Stars = ({ value }) => (value > 0 ? (
@@ -1023,6 +1021,7 @@ export default function LandlordUnitDetailPage() {
   React.useEffect(() => { fetchUnitDetail(); }, [fetchUnitDetail]);
 
   // Session 56 — real gallery / floor-plan uploads (POST …/gallery/, multipart PATCH …/units/<uid>/).
+  // eslint-disable-next-line no-unused-vars -- read by the gallery "Add Photo / Video" button (commented out for now)
   const [uploadingGallery, setUploadingGallery] = useState(false);
   const [mediaUploadError, setMediaUploadError] = useState(null);
   const galleryInputRef = useRef(null);
@@ -1167,19 +1166,31 @@ export default function LandlordUnitDetailPage() {
         : FB_GALLERY.map(u => ({ file_url: u, file_type: 'IMAGE' })));
   const heroVideoIdx = galleryItems.findIndex(g => g.file_type === 'VIDEO');
 
-  // Main photo = the video if one exists, else the first item; the ‹ › arrows step through the
-  // gallery (heroIdx). The 2 side tiles show the items that follow it (PhotoBento stacked).
+  // Main photo = the video if one exists, else the first item ("Primary view"); the 2 × 2 tiles
+  // show the up-to-4 items that follow it (PhotoBento gallery). Any tile opens the lightbox.
   const [heroIdx, setHeroIdx] = useState(0);
   const galCount = galleryItems.length;
   const mediaHeroIdx = galCount ? ((heroIdx % galCount) + galCount) % galCount : 0;
   const mediaHeroItem = galleryItems[mediaHeroIdx];
-  const mediaThumbItems = galCount > 1
-    ? [1, 2].filter(n => n < galCount).map(n => {
-        const i = (mediaHeroIdx + n) % galCount;
-        return { ...galleryItems[i], _idx: i };
-      })
-    : [];
-  const stepHero = d => setHeroIdx(i => i + d);
+  // The side is ALWAYS a full 2 × 2 of equal tiles: up to 4 real photos after the main one; any empty
+  // cell is filled with a sample photo (FB_GALLERY — display only, not clickable). When the gallery has
+  // more than 5 items, the LAST tile carries "+N more" (N = photos / videos not visible, the covered
+  // tile included) and opens the lightbox.
+  const SIDE_TILES = 4;
+  const realSide = Array.from({ length: Math.min(Math.max(galCount - 1, 0), SIDE_TILES) }, (_, k) => {
+    const i = (mediaHeroIdx + k + 1) % galCount;
+    return { ...galleryItems[i], _idx: i };
+  });
+  // Samples skip any photo already on screen (main + real tiles), so no image appears twice
+  const shownUrls = new Set([mediaHeroItem?.file_url, ...realSide.map(t => t.file_url)]);
+  const freshSamples = FB_GALLERY.filter(u => !shownUrls.has(u));
+  const samplePool = freshSamples.length ? freshSamples : FB_GALLERY;
+  const sampleSide = Array.from({ length: SIDE_TILES - realSide.length }, (_, k) => ({
+    file_url: samplePool[k % samplePool.length], file_type: 'IMAGE', _sample: true,
+  }));
+  const mediaThumbItems = [...realSide, ...sampleSide];
+  const moreCount = galCount - SIDE_TILES;   // main + 3 uncovered tiles are visible
+  if (moreCount > 0) mediaThumbItems[SIDE_TILES - 1].more = { count: `+${moreCount} more` };
 
   // Leads with the video (if any) the first time this unit's data loads.
   React.useEffect(() => {
@@ -1193,15 +1204,15 @@ export default function LandlordUnitDetailPage() {
   const LEASE_TYPE_LABELS = { fixed: 'Fixed-Term', month: 'Month-to-Month' };
   const bedCount = unit.total_rooms ?? null;
 
-  // Session 60 — Unit & Lease Overview fields
+  // Unit & Lease Overview fields
   const unitPropLabel = `${prop.name || '—'}/${unit.unit_number || '—'}`;
+  const areaLabel = (unit.total_area || unit.carpet_area)
+    ? `${unit.total_area ?? '—'}/${unit.carpet_area ?? '—'} sq ft`
+    : '—';
   const floorLabel = (() => {
     const o = ordinalSuffix(unit.floor);
     return o ? `${o} Floor` : '—';
   })();
-  const areaLabel = (unit.total_area || unit.carpet_area)
-    ? `${unit.total_area ?? '—'}/${unit.carpet_area ?? '—'} sq ft`
-    : '—';
   const leaseWord = unit.lease_type === 'fixed' ? 'Fixed'
     : unit.lease_type === 'month' ? 'Month-to-Month'
     : (unit.lease_type || '—');
@@ -1220,19 +1231,16 @@ export default function LandlordUnitDetailPage() {
     : null;
   const headerMeta = [prop.name, propTypeLabel].filter(Boolean).join(' – ');
 
-  // Facts panel beside the gallery: 4 stat tiles + Unit Status card
-  const areaValue = unit.total_area || unit.carpet_area;
-  const factTiles = [
-    { icon: 'ti-bed',           val: bedCount != null ? plural(bedCount, 'Bed') : '—' },
-    { icon: 'ti-bath',          val: unit.total_baths != null ? plural(unit.total_baths, 'Bath') : '—' },
-    { icon: 'ti-ruler-measure', val: areaValue ? `${Number(areaValue).toLocaleString()} sq ft` : '—' },
-    { icon: 'ti-stack-2',       val: floorLabel },
-  ];
-  const statusFacts = [
-    { lbl: 'Configuration',    val: bedCount != null ? plural(bedCount, 'Bedroom') : '—' },
-    { lbl: 'Lease Agreement',  val: LEASE_TYPE_LABELS[unit.lease_type] || unit.lease_type || '—' },
-    { lbl: 'Rent / Mo',        val: unit.rent_amount ? `$${Number(unit.rent_amount).toLocaleString()}` : '—' },
-    { lbl: 'Security Deposit', val: unit.security_deposit ? `$${Number(unit.security_deposit).toLocaleString()}` : '—' },
+  // Summary row under the gallery: 6 stats in one open StatGroup (same as the property page header)
+  const money = v => (v ? `$${Number(v).toLocaleString()}` : '—');
+  const bathCount = unit.total_baths ?? null;
+  const facts = [
+    { label: 'Rent / Mo',       icon: 'ti-cash',            value: money(unit.rent_amount) },
+    { label: 'Security Dep.',   icon: 'ti-shield-check',    value: money(unit.security_deposit) },
+    { label: 'Configuration',   icon: 'ti-layout-grid',     value: bedCount != null ? plural(bedCount, 'Bedroom') : optLabel(EDIT_UNIT_TYPE_OPTIONS, unit.unit_type) },
+    { label: 'Total Beds',      icon: 'ti-bed',             value: bedCount != null ? plural(bedCount, 'Bed') : '—' },
+    { label: 'Total Baths',     icon: 'ti-bath',            value: bathCount != null ? plural(bathCount, 'Bath') : '—' },
+    { label: 'Lease Agreement', icon: 'ti-file-text',       value: LEASE_TYPE_LABELS[unit.lease_type] || unit.lease_type || '—' },
   ];
 
   // Session 40 (SVC-1) — real data, shaped for the display / modal.
@@ -1316,41 +1324,30 @@ export default function LandlordUnitDetailPage() {
     </div>
   );
 
-  // ── Facts panel (beside the gallery): 4 stat tiles + Unit Status card ────────
-  const factsPanel = (
-    <div style={V.facts}>
-      <div style={V.factTiles}>
-        {factTiles.map((f, i) => (
-          <div key={f.icon} style={V.factTile}>
-            <div style={UI2.iconBox(SZ2.icon.lg, FACT_TONES[i], { round: true })}><i className={`ti ${f.icon}`} aria-hidden="true" /></div>
-            <span style={V.factVal}>{loading ? '—' : f.val}</span>
-          </div>
-        ))}
-      </div>
-      <div style={V.statusCard}>
-        <div style={V.statusHead}>
-          <span style={UI2.cardTitle}>Unit Status</span>
-          {!loading && (
-            <span style={V.statusPill(leaseStatusTone)}><span style={UI2.statusDot(leaseStatusTone)} />{leaseStatusLabel}</span>
-          )}
-        </div>
-        <div style={V.statusGrid}>
-          {statusFacts.map(f => (
-            <div key={f.lbl} style={UI2.minWidth0}>
-              <div style={V.factLbl}>{f.lbl}</div>
-              <div style={V.factText}>{loading ? '—' : f.val}</div>
-            </div>
-          ))}
-        </div>
-      </div>
-    </div>
+  // ── Gallery — open on the page (no card): photos take the full width ──────
+  const galleryCard = (
+      <PhotoBento
+        gallery
+        label="Primary view"
+        main={{ src: mediaHeroItem?.file_url, video: mediaHeroItem?.file_type === 'VIDEO', onClick: () => openLightbox(mediaHeroIdx) }}
+        tiles={mediaThumbItems.map(t => ({ src: t.file_url, video: t.file_type === 'VIDEO', more: t.more, onClick: t._sample ? undefined : () => openLightbox(t._idx) }))}
+        badge={heroVideoIdx !== -1 && (
+          <><i className="ti ti-player-play-filled" aria-hidden="true" /> Video Tour</>
+        )}
+        // "Add Photo / Video" button on the main photo — hidden for now (uploads still work from Edit Unit).
+        // add={{
+        //   label: uploadingGallery ? 'Uploading…' : 'Add Photo / Video',
+        //   busy: uploadingGallery,
+        //   onClick: () => galleryInputRef.current?.click(),
+        // }}
+      />
   );
 
   // ── Unit & Lease Overview ─────────────────────────────────────────────────
   const kvRows = (rows) => rows.map((r, i) => (
-    <div key={r.lbl} style={V.kvRow(i === 0)}>
+    <div key={r.lbl} style={UI2.kvRow(i === 0)}>
       <span>{r.lbl}</span>
-      <span style={V.kvVal}>{r.val}</span>
+      <span style={UI2.kvVal}>{r.val}</span>
     </div>
   ));
   const overviewCard = (
@@ -1365,11 +1362,13 @@ export default function LandlordUnitDetailPage() {
             { lbl: 'Property / Unit',     val: unitPropLabel },
             { lbl: 'Floor Placement',     val: floorLabel },
             { lbl: 'Total / Carpet Area', val: areaLabel },
+            { lbl: 'Unit Type',           val: unit.unit_type ? optLabel(EDIT_UNIT_TYPE_OPTIONS, unit.unit_type) : UNIT_DEMO.overview.unit_type },
+            { lbl: 'Rooms / Baths',       val: `${bedCount ?? UNIT_DEMO.overview.rooms} / ${bathCount ?? UNIT_DEMO.overview.baths}` },
           ])}
         </div>
         <div>
           {kvRows([
-            { lbl: 'Contractual Model', val: `${leaseWord} / ${stats.lease_term || '—'}` },
+            { lbl: 'Contractual Model', val: `${leaseWord} / ${stats.lease_term || UNIT_DEMO.overview.lease_term}` },
             { lbl: 'Ancillary Services', val: (
               <>
                 <span style={{ color: ancillaryActive ? C2.successStrong : C2.textMuted }}>{ancillaryActive ? 'Active' : 'Inactive'}</span>
@@ -1382,6 +1381,8 @@ export default function LandlordUnitDetailPage() {
                 </button>
               </>
             ) },
+            { lbl: 'Lease Duration', val: stats.lease_term || UNIT_DEMO.overview.lease_term },
+            { lbl: 'Notice Period',  val: unit.notice_period ? plural(unit.notice_period, 'Day') : UNIT_DEMO.overview.notice_period },
             { lbl: 'Lease Status', val: (
               <><span style={UI2.statusDot(leaseStatusTone)} />{leaseStatusLabel}</>
             ) },
@@ -1392,12 +1393,18 @@ export default function LandlordUnitDetailPage() {
   );
 
   // ── Floor Plan: main sheet + pages 2–4 (click a sheet to replace it, × to remove) ──
-  const fpSlot = (slot, tileStyle, main = false) => {
+  // Empty slot → sample floor plan image (display only, no label); clicking it uploads the real page.
+  const fpSample = i => {
+    const pool = [unit.floor_plan_url, ...FB_FLOOR_PLANS].filter(Boolean);
+    return pool[i % pool.length];
+  };
+  const fpSlot = (slot, tileStyle, main = false, idx = 0) => {
     const url = unit[slot.key];
     const busy = uploadingFpSlot === slot.key;
     const pick = () => { if (!busy) fpMainInputRefs.current[slot.key]?.click(); };
+    const sampleUrl = url ? null : fpSample(idx);
     return (
-      <div key={slot.key} className={url ? 'un2-zoom' : undefined} style={tileStyle}>
+      <div key={slot.key} className="un2-zoom" style={tileStyle}>
         {url ? (
           <>
             <img src={url} alt={slot.label} style={V.fpImg(busy)} onClick={pick} />
@@ -1411,10 +1418,11 @@ export default function LandlordUnitDetailPage() {
             </button>
           </>
         ) : (
-          <button type="button" className="un2-raise" style={UI2.addTile(busy)} onClick={pick} aria-busy={busy || undefined}>
-            <i className={`ti ${busy ? 'ti-loader-2' : 'ti-plus'}`} style={UI2.addTileIcon} aria-hidden="true" />
-            {busy ? 'Uploading…' : `Add ${slot.label.toLowerCase() === 'floor plan' ? 'floor plan' : slot.label}`}
-          </button>
+          <>
+            <img src={sampleUrl} alt={`Sample ${slot.label}`} title={`Upload ${slot.label}`} style={V.fpImg(busy)} onClick={pick} aria-busy={busy || undefined} />
+            {/* "Sample" label hidden for now:
+            <span style={V.fpLabel}>{busy ? 'Uploading…' : (main ? 'Floor Plan · Sample' : 'Sample')}</span> */}
+          </>
         )}
         <input
           ref={el => { fpMainInputRefs.current[slot.key] = el; }}
@@ -1424,19 +1432,22 @@ export default function LandlordUnitDetailPage() {
       </div>
     );
   };
+  // Open on the page (no card): standard card header, then the main sheet (fixed SZ2.floorPlanMain height,
+  // so the row stays compact) and pages 2–4 under it; empty slots show sample sheets
   const floorPlanCard = (
-    <SectionCard
-      style={UI2.cardFill} icon="ti-layout-board-split" title="Floor Plan"
-      action={unit.floor_plan_url && (
-        <button type="button" style={UI2.btn.icon(SZ2.control.sm)} onClick={() => window.open(unit.floor_plan_url, '_blank', 'noopener')}
-          title="Open floor plan" aria-label="Open floor plan">
-          <i className="ti ti-arrows-diagonal" aria-hidden="true" />
-        </button>
-      )}
-    >
+    <div style={V.fpOpen}>
+      <CardHeader
+        icon="ti-layout-board-split" title="Floor Plan"
+        action={unit.floor_plan_url && (
+          <button type="button" style={UI2.btn.icon(SZ2.control.sm)} onClick={() => window.open(unit.floor_plan_url, '_blank', 'noopener')}
+            title="Open floor plan" aria-label="Open floor plan">
+            <i className="ti ti-arrows-diagonal" aria-hidden="true" />
+          </button>
+        )}
+      />
       {fpSlot(FP_MAIN_SLOTS[0], V.fpMain, true)}
-      <div style={V.fpPages}>{FP_MAIN_SLOTS.slice(1).map(s => fpSlot(s, V.fpPage))}</div>
-    </SectionCard>
+      <div style={V.fpPages}>{FP_MAIN_SLOTS.slice(1).map((s, i) => fpSlot(s, V.fpPage, false, i + 1))}</div>
+    </div>
   );
 
   // ── Special Features │ Unit Services ──────────────────────────────────────
@@ -1500,12 +1511,13 @@ export default function LandlordUnitDetailPage() {
             leading={<div style={UI2.iconBox(SZ2.icon.md, p.tone)}><i className="ti ti-tool" aria-hidden="true" /></div>}
             title={t.title}
             meta={t.time_ago}
-            trailing={<span style={V.priorityPill(p.tone)}>{p.label}</span>}
+            trailing={<span style={UI2.statusPill(p.tone)}><span style={UI2.statusDot(p.tone)} />{p.label}</span>}
           />
         );
       })}
     </SectionCard>
   );
+
 
   const financialCard = (
     <SectionCard
@@ -1524,7 +1536,7 @@ export default function LandlordUnitDetailPage() {
         rowKey={r => r.month}
         minWidth={SZ2.tableMinCompact}
       />
-      <div style={V.centerFoot}><TextLink>View full ledger</TextLink></div>
+      <div style={V.endFoot}><TextLink>View full ledger</TextLink></div>
     </SectionCard>
   );
 
@@ -1575,8 +1587,9 @@ export default function LandlordUnitDetailPage() {
     </button>
   );
 
-  // Tenant card: REAL tenant / past tenants first; when the API has none (once loaded), sample rows from
+  // Tenant card: REAL current / past tenants first; when the API has none (once loaded), sample rows from
   // UNIT_DEMO (propertyDemoData.js) fill the card, flagged with a "Sample" pill. Display only.
+  // Columns: Tenant ID · Name · Move-in · Renewal Window (current) / Lease End (past) · eye → details.
   const viewTenant      = tenant.name ? tenant : (loading ? null : UNIT_DEMO.tenant);
   const viewPastTenants = loading ? [] : orDemo(pastTenants, UNIT_DEMO.past_tenants);
   const tenantRows = tenantTab === 'current' ? (viewTenant ? [viewTenant] : []) : viewPastTenants;
@@ -1588,20 +1601,26 @@ export default function LandlordUnitDetailPage() {
       action={segment(tenantTab, setTenantTab, viewPastTenants.length)}
     >
       {tenantRows.length === 0 ? (
-        <EmptyState illustration="people" text={tenantTab === 'current' ? 'No tenant assigned to this unit.' : 'No past tenant records for this unit yet.'} />
+        <EmptyState icon="ti-users" text={tenantTab === 'current' ? 'No tenant assigned to this unit.' : 'No past tenant records for this unit yet.'}>
+          {tenantTab === 'current' && !loading && (
+            <button type="button" className="un2-btn" style={V.assignBtn}>
+              <i className="ti ti-user-plus" style={UI2.btnIcon} aria-hidden="true" /> Assign Tenant
+            </button>
+          )}
+        </EmptyState>
       ) : (
       <DataTable
         columns={[
-          { key: 'name', label: 'Tenant', type: 'primary', width: 1.5,
-            render: (t, i) => (
-              <div style={UI2.row(LAYOUT2.inlineGap)}>
-                <div style={UI2.avatar(SZ2.icon.sm, AVATAR2[i % AVATAR2.length])}>{initials(t.name)}</div>
-                <span style={UI2.truncate}>{t.name || 'Unknown tenant'}</span>
-              </div>
-            ) },
-          { key: 'email', label: 'Contact', type: 'secondary', width: 1.5, optional: true, render: t => t.email || '—' },
+          { key: 'tenant_id', label: 'Tenant ID', type: 'status', fit: true,
+            render: t => <span style={UI2.tag(TONES2.neutral)}>{t.tenant_id || (t.id && !isDemoId(t.id) ? `TNT-${t.id}` : '—')}</span> },
+          { key: 'name', label: 'Name', type: 'primary', width: 1.5, render: t => t.name || 'Unknown tenant' },
           { key: 'move_in_date', label: 'Move-in', type: 'secondary', fit: true, render: t => t.move_in_date || '—' },
-          { key: 'rating', label: 'Rating', type: 'status', fit: true, render: t => <Stars value={t.payment_rating} /> },
+          // Current tenant → renewal window (or lease end) · past tenants → when the lease ended
+          tenantTab === 'current'
+            ? { key: 'renewal', label: 'Renewal Window', type: 'secondary', fit: true, optional: true,
+                render: t => t.renewal_window || t.lease_end_date || '—' }
+            : { key: 'lease_end', label: 'Lease End', type: 'secondary', fit: true, optional: true,
+                render: t => t.lease_end_date || '—' },
           { key: 'view', label: '', align: 'right', fit: true,
             render: t => eyeCell(`View ${t.name || 'tenant'} details`, () => setDetailModal({ type: 'tenant', row: { ...t, _past: tenantTab === 'past' } })) },
         ]}
@@ -1625,12 +1644,7 @@ export default function LandlordUnitDetailPage() {
         columns={[
           { key: 'owner_id', label: 'Owner ID', type: 'status', fit: true, render: o => <span style={UI2.tag(TONES2.neutral)}>{o.owner_id}</span> },
           { key: 'owner_name', label: 'Owner name', type: 'primary', width: 1.5,
-            render: o => (
-              <span style={V.ownerName}>
-                <span style={UI2.truncate}>{o.owner_name}</span>
-                {o.is_primary && <i className="ti ti-star-filled" style={V.primaryStar} title="Primary owner" aria-label="Primary owner" />}
-              </span>
-            ) },
+            render: o => o.owner_name },
           { key: 'role', label: 'Role', type: 'text', width: 1.1, optional: true },
           { key: 'share_pct', label: 'Stake', type: 'secondary', fit: true, render: o => `${o.share_pct}%` },
           { key: 'view', label: '', align: 'right', fit: true,
@@ -1674,28 +1688,16 @@ export default function LandlordUnitDetailPage() {
           aside={headerActions}
         />
 
-        {/* ── GALLERY (main photo ‹ › · 2 tiles · Add) │ FACTS PANEL ── */}
-        <Grid layout="wideLeft">
-          <PhotoBento
-            stacked
-            main={{ src: mediaHeroItem?.file_url, video: mediaHeroItem?.file_type === 'VIDEO', onClick: () => openLightbox(mediaHeroIdx) }}
-            tiles={mediaThumbItems.map(t => ({ src: t.file_url, video: t.file_type === 'VIDEO', onClick: () => openLightbox(t._idx) }))}
-            onPrev={galCount > 1 ? () => stepHero(-1) : undefined}
-            onNext={galCount > 1 ? () => stepHero(1) : undefined}
-            badge={mediaHeroItem?.file_type === 'VIDEO' && <><i className="ti ti-player-play-filled" aria-hidden="true" /> Video Tour</>}
-            add={{
-              label: uploadingGallery ? 'Uploading…' : 'Add Photos / Videos',
-              busy: uploadingGallery,
-              onClick: () => galleryInputRef.current?.click(),
-            }}
-          />
-          {factsPanel}
-        </Grid>
+        {/* ── GALLERY: wide main photo · 2 × 2 photos · "Add Photo / Video" on the photo ── */}
+        {galleryCard}
         <input
           ref={galleryInputRef} type="file" accept="image/jpeg,image/png,image/webp,video/mp4,video/quicktime" style={V.hidden}
           onChange={e => { const f = e.target.files[0]; e.target.value = ''; if (f) handleAddGalleryFile(f); }}
         />
         {mediaUploadError && <div style={UI2.errorBanner}><i className="ti ti-alert-circle" aria-hidden="true" /> {mediaUploadError}</div>}
+
+        {/* ── 6 FACTS: Rent · Deposit · Configuration · Beds · Baths · Lease Agreement — same StatGroup as the property page ── */}
+        <StatGroup fill items={facts.map((f, i) => ({ ...f, value: loading ? '—' : f.value, accent: factAccent(i) }))} />
 
         <Grid layout="wideLeft">{overviewCard}{floorPlanCard}</Grid>
         <Grid layout="two">{featuresCard}{servicesCard}</Grid>
@@ -1737,14 +1739,15 @@ export default function LandlordUnitDetailPage() {
           title={detailModal.row.name || 'Tenant'}
           subtitle={detailModal.row._past ? 'Past tenant' : 'Current tenant'}
           rows={[
+            { label: 'Tenant ID', value: detailModal.row.tenant_id || '—' },
             { label: 'Occupation', value: detailModal.row.occupation || '—' },
             { label: 'Company', value: detailModal.row.company || '—' },
             { label: 'Contact', value: detailModal.row.email || '—' },
             { label: 'Move-in Date', value: detailModal.row.move_in_date || '—' },
-            detailModal.row._past
-              ? { label: 'Lease End Date', value: detailModal.row.lease_end_date || '—' }
-              : { label: 'Renewal Window', value: detailModal.row.renewal_window || '—' },
-            { label: 'Payment Rating', value: detailModal.row.payment_rating > 0 ? '★'.repeat(detailModal.row.payment_rating) + '☆'.repeat(5 - detailModal.row.payment_rating) : '—' },
+            { label: 'Lease Start Date', value: detailModal.row.lease_start_date || '—' },
+            { label: 'Lease End Date', value: detailModal.row.lease_end_date || '—' },
+            ...(detailModal.row._past ? [] : [{ label: 'Renewal Window', value: detailModal.row.renewal_window || '—' }]),
+            { label: 'Payment Rating', value: <Stars value={detailModal.row.payment_rating} /> },
           ]}
           onClose={() => setDetailModal(null)}
         />

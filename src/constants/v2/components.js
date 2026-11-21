@@ -102,7 +102,7 @@ export const UI2 = {
     borderRadius: R2.lg,
     boxShadow: SH2.tile,
   },
-  listRow: { display: 'flex', alignItems: 'center', gap: LAYOUT2.rowGap, padding: pad(LAYOUT2.rowGap, SP2.xs), borderTop: `1px solid ${C2.border}` },
+  listRow: { display: 'flex', alignItems: 'center', gap: LAYOUT2.rowGap, padding: pad(LAYOUT2.rowY, SP2.xs), borderTop: `1px solid ${C2.border}` },
 
   // ── Card header ────────────────────────────────────────────────────────────
   // Card header = its own zone: title + quiet subtitle, closed by a hairline so it never reads as
@@ -114,8 +114,8 @@ export const UI2 = {
   // ── Text ───────────────────────────────────────────────────────────────────
   text: {
     title:    { fontSize: FS2.base, fontWeight: FW2.semibold, color: C2.textPrimary, lineHeight: LH2.heading },
-    // List item title (ListRow) — lighter medium weight; pair with UI2.text.meta for its description line
-    rowTitle: { fontSize: FS2.base, fontWeight: FW2.medium, color: C2.textPrimary, lineHeight: LH2.heading },
+    // List item title (ListRow) — regular weight (400); pair with UI2.text.meta for its description line
+    rowTitle: { fontSize: FS2.base, fontWeight: FW2.regular, color: C2.textPrimary, lineHeight: LH2.heading },   // 400 — every list / item row title
     titleLg:  { fontSize: FS2.md, fontWeight: FW2.semibold, color: C2.textPrimary, lineHeight: LH2.heading },
     body:     { ...T2.body },
     // Sub text / description under an item title (list rows, tiles, unit & property cards, addresses):
@@ -264,7 +264,7 @@ export const UI2 = {
   // Left-aligned one-line empty note at the top of a card body ("No open tickets.")
   emptyInline:   { padding: pad(SP2.xs, 0, SP2.md), textAlign: 'left', color: C2.textMuted, fontSize: FS2.base },
   // Hover list row (avatar + name + meta + trailing pill). Pair with className="un2-row-hover".
-  listRowHover:  { display: 'flex', alignItems: 'center', gap: LAYOUT2.rowGap, padding: pad(SP2.md, SP2.sm), borderRadius: R2.md },
+  listRowHover:  { display: 'flex', alignItems: 'center', gap: LAYOUT2.rowGap, padding: pad(LAYOUT2.rowY, SP2.sm), borderRadius: R2.md },
   // Loading placeholder block. Pair with className="un2-skel".
   skeleton: (width, height, { onDark = false } = {}) => ({
     display: 'inline-block', width, height, ...(onDark ? { opacity: OP2.faint } : {}),
@@ -277,10 +277,10 @@ export const UI2 = {
   //   <button style={UI2.filterChip(active)}>Vacant (1)</button>
   filterChip: (active = false) => ({
     ...center, minHeight: SZ2.control.sm, padding: pad(0, SP2.md), borderRadius: R2.md, cursor: 'pointer',
-    border: `1px solid ${active ? C2.navyDeep : C2.cardBorder}`,
-    background: active ? C2.navyDeep : C2.white,
+    border: `1px solid ${active ? 'transparent' : C2.cardBorder}`,   // selected = brand gradient (same as UI2.btn.brand)
+    background: active ? G2.brandButton : C2.white,
     color: active ? C2.white : C2.textPrimary,
-    boxShadow: active ? 'none' : SH2.control,
+    boxShadow: active ? SH2.brandButton : SH2.control,
     fontFamily: F2.body, fontSize: FS2.sm, fontWeight: FW2.medium, whiteSpace: 'nowrap',
   }),
   // Glass chip on a dark / photo background (hero amenities)
@@ -340,6 +340,10 @@ export const UI2 = {
     cursor: busy ? 'progress' : 'pointer',
   }),
   addTileIcon: { fontSize: FS2.xxl, color: C2.primary },
+  // "+N photos" overlay on the last gallery tile: navy scrim + white count (PhotoBento `more`)
+  photoMore:      { ...center, flexDirection: 'column', gap: SP2.xxs, position: 'absolute', inset: 0, background: G2.photoMore, color: C2.white, fontFamily: F2.body, pointerEvents: 'none' },
+  photoMoreCount: { ...T2.figureMd, color: C2.white },
+  photoMoreText:  { fontSize: FS2.sm, fontWeight: FW2.medium, lineHeight: LH2.heading },
   // Small round "×" on a photo (remove) — light button rule: white fill on photos
   photoRemove: { ...center, position: 'absolute', top: SP2.xs, right: SP2.xs, width: SZ2.icon.xs, height: SZ2.icon.xs, padding: 0, border: 'none', borderRadius: R2.round, background: C2.white, color: C2.navyDeep, boxShadow: SH2.lightButton, fontSize: FS2.sm, cursor: 'pointer' },
   // Round light arrow on a photo (gallery ‹ ›): position left / right with UI2.photoArrow('left')
@@ -350,7 +354,7 @@ export const UI2 = {
     // Layout (Stripe / Linear / Airbnb-host pattern): header = soft rounded grey band, no underline ·
     // rows ~44px tall with faint separators + hover tint · cell padding = header padding so text lines up
     headBand:  { background: C2.background, borderRadius: R2.md, padding: pad(SP2.sm, SP2.md) },
-    rowPad:    pad(SP2.md, SP2.md),
+    rowPad:    pad(LAYOUT2.rowY, SP2.md),   // row height = LAYOUT2.rowY (same as list / label-value rows)
     rule:      C2.borderLight,    // line between rows (very faint)
     ruleLight: C2.borderLight,
     // ONE size + ONE weight for every cell (13px Regular) — names, dates, categories and amounts alike.
@@ -362,7 +366,7 @@ export const UI2 = {
     secondary: { fontSize: FS2.base, fontWeight: FW2.regular, color: C2.textSecondary, fontVariantNumeric: 'tabular-nums' },  // dates, refs
     text:      { fontSize: FS2.base, fontWeight: FW2.regular, color: C2.textPrimary },                                       // plain values — identical to primary
     amount:    { fontSize: FS2.base, fontWeight: FW2.regular, color: C2.textPrimary, fontVariantNumeric: 'tabular-nums' },   // money — same size + weight as all cells
-    status:    { overflow: 'visible' },                                                                                       // pill rendered by the column — never clipped
+    status:    { overflow: 'visible', fontSize: FS2.base, fontWeight: FW2.regular, color: C2.textPrimary },                       // pill / dot+word rendered by the column — never clipped; anything plain inside gets the standard 13px cell text
   },
 
   // ── Dashboard card patterns (Landlord Dashboard is the reference) ──────────
@@ -386,13 +390,18 @@ export const UI2 = {
   cardFoot:  { ...rowBetween(), flexWrap: 'wrap', rowGap: SP2.xs, marginTop: 'auto', paddingTop: SP2.md, borderTop: hairline, ...T2.label },
   strong:    { fontWeight: FW2.semibold, color: C2.textPrimary },                                 // emphasised value inside a sentence
   delta:     (up = true) => ({ display: 'inline-flex', alignItems: 'center', gap: SP2.xxs, fontWeight: FW2.semibold, color: up ? C2.successStrong : C2.errorDark }),
-  // Status pill with a leading dot (tables, lists): ● Active / ● Overdue — UI2.statusPill(TONES2.success)
-  statusPill: (tone = TONES2.success) => ({ display: 'inline-flex', alignItems: 'center', gap: SP2.sm, padding: pad(SP2.xxs, SP2.sm), borderRadius: R2.pill, background: tone.soft, color: tone.fg, fontFamily: F2.body, fontSize: FS2.base, fontWeight: FW2.regular, lineHeight: LH2.heading, whiteSpace: 'nowrap' }),   // same 13px Regular as table cells
+  // Status in tables / lists: coloured dot + coloured word, NO box / background — ● Active / ● Overdue.
+  //   <span style={UI2.statusPill(TONES2.success)}><span style={UI2.statusDot(TONES2.success)} />Collected</span>
+  statusPill: (tone = TONES2.success) => ({ display: 'inline-flex', alignItems: 'center', gap: SP2.sm, padding: 0, background: 'none', color: tone.fg, fontFamily: F2.body, fontSize: FS2.base, fontWeight: FW2.regular, lineHeight: LH2.heading, whiteSpace: 'nowrap' }),   // same 13px Regular as table cells
   // Colour-only sign for amounts inside tables / text (no size or weight change): UI2.signColor(isPositive)
   signColor: (positive = true) => ({ color: positive ? C2.successStrong : C2.errorDark }),
   amount:    (positive = true) => ({ fontSize: FS2.base, fontWeight: FW2.semibold, color: positive ? C2.successStrong : C2.errorDark }),
   // Legend: ● key ………… value  (charts, rings)
   legendRow: { ...rowBetween(), fontSize: FS2.sm, color: C2.textSecondary, lineHeight: LH2.heading },
+  // Label ……… value row in a details list (unit / lease facts): LAYOUT2.rowY padding, hairline between rows
+  //   rows.map((r, i) => <div style={UI2.kvRow(i === 0)}><span>{r.lbl}</span><span style={UI2.kvVal}>{r.val}</span></div>)
+  kvRow: (first = false) => ({ ...rowBetween(), fontSize: FS2.sm, color: C2.textSecondary, lineHeight: LH2.heading, padding: pad(LAYOUT2.rowY, 0), ...(first ? {} : { borderTop: hairline }) }),
+  kvVal: { ...rowBetween(SP2.sm), justifyContent: 'flex-end', fontWeight: FW2.semibold, color: C2.textPrimary, textAlign: 'right', minWidth: 0 },
   legendKey: { display: 'flex', alignItems: 'center', gap: SP2.sm },
   legendVal: { fontWeight: FW2.semibold, color: C2.textPrimary },
   // List item marked by a coloured left rule instead of a box (tickets by priority): UI2.accentItem(TONES2.error)

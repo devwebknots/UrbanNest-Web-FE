@@ -33,7 +33,7 @@ const S = {
   pill:  { ...UI2.pill(TONES2.neutral), padding: pad(SP2.xxs, SP2.sm), color: C2.textSecondary, background: C2.surfaceMuted },
   dot:   (t) => UI2.statusDot(t),   // red / green dots use their gradient
   body:  { display: 'flex', alignItems: 'baseline', gap: SP2.sm, marginTop: SP2.md, minWidth: 0 },
-  value: { ...T2.figureMd, whiteSpace: 'nowrap' },
+  value: { ...T2.kpiValue, whiteSpace: 'nowrap' },   // standard KPI figure — 20px / 400
   sub:   { ...UI2.text.caption, ...UI2.truncate, minWidth: 0 },
   icon:  (a) => ({ ...UI2.iconBox(SZ2.icon.sm, { soft: a.soft, strong: a.fg }, { round: true }) }),
   track: (a) => ({ ...UI2.progressTrack, height: SZ2.progress - SP2.xxs, marginTop: SP2.lg, background: a.soft }),

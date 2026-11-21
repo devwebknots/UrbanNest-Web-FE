@@ -55,7 +55,7 @@
      un2-grid-aside      content + fixed 168px side column (inside a card)
      un2-grid-main-side  page body + narrow side column (≈ 69 / 31) — detail pages
    ─────────────────────────────────────────────────────────────────────────── */
-.un2-grid-2, .un2-grid-3, .un2-grid-4,
+.un2-grid-2, .un2-grid-3, .un2-grid-4, .un2-grid-6,
 .un2-grid-wide-left, .un2-grid-split, .un2-grid-wide-right, .un2-grid-aside, .un2-grid-main-side {
   display: grid;
   gap: var(--un2-grid-gap);
@@ -63,6 +63,7 @@
 .un2-grid-2          { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 .un2-grid-3          { grid-template-columns: repeat(3, minmax(0, 1fr)); }
 .un2-grid-4          { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+.un2-grid-6          { grid-template-columns: repeat(6, minmax(0, 1fr)); }
 .un2-grid-wide-left  { grid-template-columns: minmax(0, var(--un2-col-wide)) minmax(0, 1fr); }
 .un2-grid-split      { grid-template-columns: minmax(0, var(--un2-col-split)) minmax(0, 1fr); }
 .un2-grid-wide-right { grid-template-columns: minmax(0, 1fr) minmax(0, var(--un2-col-wide)); }
@@ -74,6 +75,7 @@
 .un2-stack-sections > * { flex-shrink: 0; }
 
 @media (max-width: 1100px) {
+  .un2-grid-6 { grid-template-columns: repeat(3, minmax(0, 1fr)); }
   .un2-grid-3 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .un2-grid-3 > :last-child:nth-child(odd) { grid-column: 1 / -1; }
 }
@@ -88,6 +90,7 @@
 }
 @media (max-width: 600px) {
   .un2-grid-4 { grid-template-columns: minmax(0, 1fr); }
+  .un2-grid-6 { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 
 /* Hide scrollbar but keep scrolling */
@@ -247,6 +250,32 @@
   .un2-bento-stacked .un2-bento-tiles { grid-template-columns: repeat(3, minmax(0, 1fr)); grid-template-rows: none; }
 }
 
+/* PhotoBento gallery (unit detail "Gallery" card): wide photo + 2 × 2 photos, taller; the Add
+   action sits ON the main photo (no add tile). ≤ 860px: photo on top, the 4 tiles in one row. */
+.un2-bento-gallery { grid-template-columns: minmax(0, var(--un2-col-wide)) minmax(0, 1fr);   /* same split as Grid wideLeft → photo edges line up with the cards below; height = the standard --un2-bento-h (same as the property page) */ }
+/* Fewer than 4 side photos: stretch them so the 2 × 2 never shows an empty cell */
+.un2-bento-n0 { grid-template-columns: minmax(0, 1fr); }
+.un2-bento-n0 .un2-bento-tiles { display: none; }
+.un2-bento-n1 .un2-bento-tiles > * { grid-column: 1 / -1; grid-row: 1 / -1; }
+.un2-bento-n2 .un2-bento-tiles > * { grid-column: 1 / -1; }
+.un2-bento-n3 .un2-bento-tiles > :last-child { grid-column: 1 / -1; }
+@media (max-width: 860px) {
+  .un2-bento-gallery { grid-template-columns: minmax(0, 1fr); height: auto; }
+  .un2-bento-gallery .un2-bento-tiles > * { grid-column: auto; grid-row: auto; }
+  .un2-bento-n1 .un2-bento-tiles, .un2-bento-n2 .un2-bento-tiles, .un2-bento-n3 .un2-bento-tiles { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+}
+
+/* Chip grid: equal-width feature / amenity / service chips — 3 → 2 (≤ 1280px) → 1 (≤ 480px) */
+.un2-chip-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: var(--un2-sp-sm); }
+.un2-chip-grid > * { min-width: 0; }
+@media (max-width: 1280px) { .un2-chip-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 480px)  { .un2-chip-grid { grid-template-columns: minmax(0, 1fr); } }
+
+/* Thumbnail strip: equal photo / add tiles in one row (floor plan pages) — 4 → 2 (≤ 600px) */
+.un2-thumb-row { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--un2-grid-gap); }
+.un2-thumb-row > * { height: var(--un2-thumb-row-h); }
+@media (max-width: 600px) { .un2-thumb-row { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+
 /* ── Divided columns inside ONE container (no box per column) ────────────────
    <div class="un2-cols" style="--un2-cols: 3">: equal columns split by hairlines.
    ≤ 1024px: columns stack, separated by a top hairline.                      */
@@ -272,12 +301,12 @@
 
 /* ── DetailHeader + StatGroup: stats stay beside the title above phones ──────
    The group steps down in size instead of wrapping under the title.
-     ≤ 1280px  tighter padding · value one step smaller
+     ≤ 1280px  tighter padding (values keep their standard size)
      ≤ 1100px  rings / icons hide (label + value only)
      ≤  860px  header stacks: stats go under the title, full width            */
 @media (max-width: 1280px) {
   .un2-stat-group .un2-stat { padding: var(--un2-sp-xs) var(--un2-sp-lg) !important; gap: var(--un2-sp-sm) !important; }
-  .un2-stat-group:not(.un2-stat-lg) .un2-stat-value { font-size: var(--un2-fs-md) !important; }   /* small header stats only — never the lg (Portfolio) figures */
+  /* Values keep their standard size at every width (T2.statInline 16px / lg T2.figureMd) — never shrunk here */
 }
 @media (max-width: 1100px) {
   .un2-stat-group .un2-stat-icon { display: none; }
@@ -300,6 +329,15 @@
 .un2-stat-open > :first-child { padding-left: 0 !important; }
 .un2-stat-open > :last-child { padding-right: 0 !important; }
 @media (max-width: 600px) { .un2-stat-open > :nth-child(odd) { padding-left: 0 !important; } .un2-stat-open > * { padding-top: var(--un2-sp-sm) !important; padding-bottom: var(--un2-sp-sm) !important; } }
+
+/* StatGroup fill: a summary row on its own line — equal columns across the full width.
+   ≤ 1024px 3 per row · ≤ 600px 2 per row (the phone rules above) */
+.un2-stat-fill { grid-auto-columns: minmax(0, 1fr); }
+@media (min-width: 601px) and (max-width: 1024px) {
+  .un2-stat-fill { grid-auto-flow: row; grid-template-columns: repeat(3, minmax(0, 1fr)); row-gap: var(--un2-sp-md); }
+  .un2-stat-fill > :nth-child(3n+1) { border-left: none; padding-left: 0 !important; }
+  .un2-stat-fill > :nth-child(3n) { padding-right: 0 !important; }
+}
 
 /* ── AssetRow spread (CQ2.medium = 720px): wide card → metrics as divided columns across the row;
       narrower card → back to the compact row with inline metrics ── */
@@ -329,7 +367,7 @@
 
 /* ── StatGroup size="lg": page-level summary (Portfolio) — big figures, keep the size and icons down to tablets ── */
 /* Down to 1101px the inline T2.figureMd (Inter Medium 24px) applies untouched: the generic StatGroup
-   step-down (≤ 1280px → 14px) skips lg groups via :not(.un2-stat-lg), so NO override is needed here.
+   (small values no longer step down at ≤ 1280px — every StatGroup value keeps its standard size).
    Do not re-add a ≤ 1280px font-size !important rule for lg — it strikes out the standard inline size. */
 @media (max-width: 1100px) {
   .un2-stat-group.un2-stat-lg .un2-stat-icon { display: flex; }

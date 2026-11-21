@@ -26,7 +26,7 @@ const S = {
     gridTemplateColumns: `${SZ2.thumbLg.w}px minmax(0, 1fr) auto`,
     alignItems: 'stretch',
     gap: SP2.lg,
-    padding: pad(SP2.lg, 0),
+    padding: pad(LAYOUT2.mediaRowY, 0),
     borderTop: `1px solid ${C2.border}`,
   },
   thumb: {

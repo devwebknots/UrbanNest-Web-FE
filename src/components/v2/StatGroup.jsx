@@ -7,7 +7,7 @@ import { ProgressRing } from './Charts';
 // Stats sit on the page, split by short hairlines. Each has a small visual:
 //   pct given  → mini ProgressRing drawn in the stat's accent colour (Occupancy, Collection)
 //   otherwise  → its icon in a soft round accent tint (Total units, Maintenance)
-// Type: label = small sentence-case grey (regular) · value = T2.statInline (Inter 16px Medium).
+// Type: label = small sentence-case grey (regular) · value = T2.statInline (Inter 16px Regular).
 //
 //   (▦)  Total units │ ◔  Occupancy │ ◔  Collection │ (⚒)  Maintenance
 //        1 Unit      │    0%        │    0%         │      Clear
@@ -18,16 +18,18 @@ import { ProgressRing } from './Charts';
 //   ]} />
 //
 // Item: { icon, label, value (node), pct (0–100 → ring instead of icon), accent (ACCENT2, default blue), valueColor }
+// fill: stats share the full width in equal columns (a summary row on its own line, e.g. under the
+//       unit gallery) — ≤ 1024px 3 per row, ≤ 600px 2 per row (un2-stat-fill in utilities.css).
 // size="lg": page-level summary row (Portfolio) — value T2.figureMd (Inter 24px Medium), label T2.label,
 //            wider spacing; keeps its size + icons down to tablets (un2-stat-lg in utilities.css).
-// Responsive (utilities.css): ≤ 1280px smaller visual + value · ≤ 1100px visuals hide ·
+// Responsive (utilities.css): ≤ 1280px tighter padding (value size never changes) · ≤ 1100px visuals hide ·
 //                             ≤ 860px under the title, full width · ≤ 600px 2 × 2.
 
 const S = {
   group: { fontFamily: F2.body },
   item:  { ...UI2.row(SP2.md), padding: pad(SP2.xs, SP2.xl), minWidth: 0 },
   label: { fontSize: FS2.xs, fontWeight: FW2.regular, lineHeight: LH2.heading, color: C2.textSecondary, whiteSpace: 'nowrap' },
-  value: { ...T2.statInline, marginTop: SP2.xxs, whiteSpace: 'nowrap' },   // standard small stat: Inter 16px Medium
+  value: { ...T2.statInline, marginTop: SP2.xxs, whiteSpace: 'nowrap' },   // standard small stat: Inter 16px Regular
   // size="lg"
   itemLg:  { ...UI2.row(SP2.md), padding: pad(SP2.xs, SP2.xxxl), minWidth: 0 },
   labelLg: { ...T2.kpiLabel, whiteSpace: 'nowrap' },   // same KPI label as KpiStrip (Inter Medium 12)
@@ -36,10 +38,10 @@ const S = {
 
 const RING_STROKE = SP2.xs;   // 4px — thin ring at icon size
 
-export default function StatGroup({ items = [], size }) {
+export default function StatGroup({ items = [], size, fill = false }) {
   const lg = size === 'lg';
   return (
-    <div className={`un2-stat-group un2-stat-open${lg ? ' un2-stat-lg' : ''}`} style={S.group}>
+    <div className={`un2-stat-group un2-stat-open${lg ? ' un2-stat-lg' : ''}${fill ? ' un2-stat-fill' : ''}`} style={S.group}>
       {items.map(it => {
         const a = it.accent || ACCENT2.blue;
         const hasPct = it.pct != null;

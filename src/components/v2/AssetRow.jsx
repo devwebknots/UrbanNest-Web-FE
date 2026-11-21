@@ -1,5 +1,5 @@
 import React from 'react';
-import { C2, R2, SH2, TONES2, F2, FS2, FW2, LH2, SP2, SZ2, pad, UI2 } from '../../constants/v2';
+import { C2, R2, SH2, TONES2, F2, FS2, FW2, LH2, SP2, SZ2, LAYOUT2, pad, UI2 } from '../../constants/v2';
 
 // ─── AssetRow (Design System v2) ─────────────────────────────────────────────
 // Light property row for dashboards — photo · name + tags · address · inline metrics · actions.
@@ -35,7 +35,7 @@ const S = {
       ? { '--un2-asset-cols': cols }
       : { gridTemplateColumns: `${SZ2.assetThumb.w}px minmax(0, 1fr) auto` }),
     alignItems: 'center',
-    columnGap: SP2.lg, rowGap: SP2.md, padding: pad(SP2.lg, 0), fontFamily: F2.body,
+    columnGap: SP2.lg, rowGap: SP2.md, padding: pad(LAYOUT2.mediaRowY, 0), fontFamily: F2.body,
     borderTop: first ? 'none' : `${SZ2.hairline}px solid ${C2.borderLight}`,
   }),
   thumb: { position: 'relative', width: '100%', height: SZ2.assetThumb.h, borderRadius: R2.lg, overflow: 'hidden', background: C2.surfaceMuted, boxShadow: SH2.md },

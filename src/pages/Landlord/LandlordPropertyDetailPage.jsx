@@ -3,7 +3,7 @@ import {
   PageShell, Grid, SectionCard, Breadcrumb, TabBar, ListRow, EmptyState, PageFooter,
   DataTable, MetricBar, BarChart, Gauge, TextLink, DetailHeader, StatGroup, PhotoBento, AssetRow,
 } from '../../components/v2';
-import { C2, G2, GSTOPS2, TONES2, ACCENT2, AVATAR2, T2, FS2, FW2, SP2, SZ2, LAYOUT2, OP2, pad, UI2 } from '../../constants/v2';
+import { C2, G2, GSTOPS2, TONES2, ACCENT2, T2, FS2, FW2, SP2, SZ2, LAYOUT2, OP2, pad, UI2 } from '../../constants/v2';
 import { C, F } from './landlordTokens';
 import { CustomDropdown } from '../../components/ui';
 import LandlordUnitSelection from './Listing/LandlordUnitSelection';
@@ -123,7 +123,6 @@ const NOTIFICATIONS = [
 // reflects that honestly — full success, or a single error banner — rather
 // than the wireframe's per-unit flagged list, since that per-unit outcome
 // isn't actually possible with this endpoint.
-const SERVICE_FALLBACK_ICON = 'ti-adjustments';
 
 // ─── Styles ───────────────────────────────────────────────────────────────────
 const S = {
@@ -311,7 +310,7 @@ function FilterModal({ onClose }) {
 //
 // Session 40 — wired to the real bulk endpoint. Two stages remain (pick,
 // result), but the result stage no longer shows a per-unit "flagged" list —
-// see the comment above SERVICE_FALLBACK_ICON for why: the real endpoint is
+// see the "all-or-nothing" note near the top of this file for why: the real endpoint is
 // atomic, so it's either full success or one error covering the whole
 // batch. The picker still warns inline that a bank-account-requiring
 // service MIGHT fail for units without one, using a real per-unit lookup
@@ -1494,13 +1493,7 @@ export default function LandlordPropertyDetailPage() {
         columns={[
           // Short headers (never truncated) · cell styles from the column type (UI2.table.*)
           // Narrow card (< SZ2.tableMin): Unit and Renewal drop first — no sideways scroll
-          { key: 'tenant', label: 'Tenant', type: 'primary', width: 2,
-            render: (u, i) => (
-              <div style={UI2.row(LAYOUT2.inlineGap)}>
-                <div style={UI2.avatar(SZ2.icon.sm, AVATAR2[i % AVATAR2.length])}>{initials(u.tenant_name)}</div>
-                <span style={UI2.truncate}>{u.tenant_name}</span>
-              </div>
-            ) },
+          { key: 'tenant', label: 'Tenant', type: 'primary', width: 2, render: u => u.tenant_name },
           { key: 'unit_name', label: 'Unit', type: 'secondary', width: 0.8, optional: true },
           { key: 'status', label: 'Status', type: 'status', width: 0.9, fit: true,
             render: u => {

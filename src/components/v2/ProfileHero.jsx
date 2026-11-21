@@ -51,7 +51,7 @@ const S = {
   stats:   { marginTop: SP2.xxl },
   stat:    (first) => ({ ...UI2.row(SP2.md), padding: pad(0, SP2.xl), ...(first ? { paddingLeft: 0 } : {}) }),
   sLabel:  { ...T2.eyebrow, color: C2.textSecondary, letterSpacing: LS2.wide },
-  sValue:  { fontSize: FS2.xxl, fontWeight: FW2.semibold, lineHeight: LH2.tight, letterSpacing: LS2.tight, color: C2.navyDeep, marginTop: SP2.xxs },
+  sValue:  { ...T2.kpiValue, lineHeight: LH2.tight, marginTop: SP2.xxs },   // standard KPI figure — 20px / 400
   sNote:   { fontSize: FS2.xs, lineHeight: LH2.heading, color: C2.textMuted, marginTop: SP2.xxs },
 
   actions: { display: 'flex', flexWrap: 'wrap', gap: SP2.sm, marginTop: SP2.xxl },

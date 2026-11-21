@@ -1,5 +1,6 @@
 import React from 'react';
 import { C2, G2, SH2, TONES2, SZ2, LAYOUT2, UI2 } from '../../constants/v2';
+import CardPattern, { patternFor } from './CardPattern';
 
 // ─── SectionCard + CardHeader (Design System v2) ─────────────────────────────
 // White (or dark) card with the standard header: icon box · title · subtitle,
@@ -22,12 +23,18 @@ import { C2, G2, SH2, TONES2, SZ2, LAYOUT2, UI2 } from '../../constants/v2';
 //   as         element/tag, default 'div' (use 'section' for page sections)
 //   decoration background art behind the content, e.g. <CardWave />
 //              (card becomes position: relative + overflow: hidden)
+//   pattern    corner art (CardPattern) in the bottom-right of every light card — automatic (variant
+//              picked from the title); 'waves' | 'bars' | 'dots' | 'skyline' to choose; false = none.
+//              Never on dark cards or cards with a `decoration`. Drawn behind the content only.
 //   centerBody true → the body fills the card under the header and its content is centred
 //              vertically (empty states in a card stretched to its row's height)
 //   style, className  (the card is always a width container: class un2-cq — see CQ2)
 
 const S = {
   centerBody: { flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center' },
+  // Card with corner art: positioned + own stacking context, so the art (z-index -1) sits above the
+  // card background but below every piece of content. No overflow change → menus are never clipped.
+  patterned:  { position: 'relative', isolation: 'isolate' },
   action:     { flexShrink: 0 },
 };
 
@@ -58,7 +65,7 @@ export function CardHeader({ icon, tone = TONES2.primary, plainIcon = false, acc
 
 export default function SectionCard({
   icon, tone, plainIcon, accentIcon, title, badge, subtitle, action,
-  variant = 'light', as: Tag = 'div', style, className, children, decoration, centerBody = false,
+  variant = 'light', as: Tag = 'div', style, className, children, decoration, centerBody = false, pattern = true,
 }) {
   const dark = variant === 'dark';
   const base = dark ? { ...UI2.darkCard, display: 'flex', flexDirection: 'column' } : UI2.card;
@@ -72,10 +79,18 @@ export default function SectionCard({
       {centerBody ? <div style={S.centerBody}>{children}</div> : children}
     </>
   );
+  // Corner art: light cards without their own decoration (variant from `pattern`, or picked from the title)
+  const patternVariant = !dark && !decoration && pattern
+    ? (typeof pattern === 'string' ? pattern : patternFor(typeof title === 'string' ? title : ''))
+    : null;
+  const art = patternVariant && <CardPattern variant={patternVariant} />;
+  const patterned = art ? S.patterned : null;
+
   // centerBody: body fills the space under the header, content centred vertically
   if (centerBody && !decoration) {
     return (
-      <Tag className={cls} style={{ ...base, display: 'flex', flexDirection: 'column', ...style }}>
+      <Tag className={cls} style={{ ...base, display: 'flex', flexDirection: 'column', ...patterned, ...style }}>
+        {art}
         {content}
       </Tag>
     );
@@ -92,7 +107,8 @@ export default function SectionCard({
   }
 
   return (
-    <Tag className={cls} style={{ ...base, ...style }}>
+    <Tag className={cls} style={{ ...base, ...patterned, ...style }}>
+      {art}
       {content}
     </Tag>
   );

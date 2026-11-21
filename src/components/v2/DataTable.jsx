@@ -27,8 +27,9 @@ import { R2, SP2, SZ2, UI2 } from '../../constants/v2';
 //
 // Column: { key, label (keep it short — headers never truncate), type, width (fr, default 1),
 //           align ('left'|'right'|'center' — amount defaults to right), render?(row, i),
-//           fit?      true → column is never narrower than its content (status pills, dates, amounts,
-//                     actions) — nothing in it is ever cut; it still shares free space by width
+//           fit?      true → column is exactly as wide as its content (status pills, dates, amounts,
+//                     actions) — never cut, never padded; spare room goes to the other columns.
+//                     Give it a width too and it also grows by that share.
 //           optional? true → dropped when the table has less room than minWidth }
 // minWidth: room the full table needs (default SZ2.tableMin; SZ2.tableMinCompact for 3–4 columns).
 //   Narrower than that → optional columns are dropped first (no sideways scroll); a table with
@@ -39,8 +40,10 @@ const S = {
   // ONE column grid for the whole table; header + rows are subgrids of it, so a column is the same
   // width in every row (fit columns size to their widest cell across ALL rows — never cut, never misaligned)
   table:  (cols) => ({
-    display: 'grid', columnGap: SP2.lg, alignItems: 'center',
-    gridTemplateColumns: cols.map(c => `minmax(${c.fit ? 'max-content' : '0px'}, ${c.width || 1}fr)`).join(' '),
+    display: 'grid', columnGap: SP2.xxl, alignItems: 'center',
+    // fit without a width → exactly its content (never grows, so spare room goes to the text columns and the
+    // last column ends flush with the right edge); fit WITH a width → content minimum, grows by that width
+    gridTemplateColumns: cols.map(c => (c.fit && c.width == null ? 'max-content' : `minmax(${c.fit ? 'max-content' : '0px'}, ${c.width || 1}fr)`)).join(' '),
   }),
   line:   { gridColumn: '1 / -1', display: 'grid', gridTemplateColumns: 'subgrid', alignItems: 'center' },
   // header = soft rounded band (no underline); rows use the same side padding so text lines up under it

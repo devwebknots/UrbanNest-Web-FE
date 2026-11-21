@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { C2, TONES2, R2, SH2, T2, FS2, LH2, SP2, SZ2, pad, UI2 } from '../../constants/v2';
+import { C2, TONES2, R2, SH2, T2, FS2, LH2, SP2, SZ2, LAYOUT2, pad, UI2 } from '../../constants/v2';
 import { OptionsMenu } from './PropertyCard';
 import TextLink from './TextLink';
 
@@ -28,7 +28,7 @@ import TextLink from './TextLink';
 // vertical line (grid columns). The stats wrap onto two lines on narrow cards; the photo stays beside.
 
 const S = {
-  row:     (first) => ({ display: 'flex', alignItems: 'center', gap: SP2.lg, padding: pad(SP2.lg, 0), borderTop: first ? 'none' : `${SZ2.hairline}px solid ${C2.border}` }),
+  row:     (first) => ({ display: 'flex', alignItems: 'center', gap: SP2.lg, padding: pad(LAYOUT2.mediaRowY, 0), borderTop: first ? 'none' : `${SZ2.hairline}px solid ${C2.border}` }),
   photo:   { position: 'relative', flexShrink: 0, width: SZ2.propertyRowPhoto.w, height: SZ2.propertyRowPhoto.h, overflow: 'hidden', borderRadius: R2.md, background: C2.surfaceMuted, boxShadow: SH2.md },
   img:     { position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', display: 'block' },
   ph:      { ...UI2.center, position: 'absolute', inset: 0, color: C2.textMuted, fontSize: FS2.xl },

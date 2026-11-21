@@ -337,7 +337,7 @@ export default function LandlordDashboard() {
               <div style={S.occTargetLbl}>
                 <i className="ti ti-target-arrow" style={S.occTargetIcon} aria-hidden="true" /> Target
               </div>
-              <div style={T2.figureMd}>{OCCUPANCY_TARGET}%</div>
+              <div style={T2.kpiValue}>{OCCUPANCY_TARGET}%</div>
               <span style={{ ...UI2.pill(TONES2.success), marginTop: SP2.sm }}>
                 <i className="ti ti-calendar-check" aria-hidden="true" /> By year end
               </span>

@@ -309,6 +309,7 @@ export const G2 = {
   miniBar:       'linear-gradient(180deg, #DBE7FB 0%, #C7D9FA 100%)',
   miniBarActive: 'linear-gradient(180deg, #3B82F6 0%, #1D4ED8 100%)',
   thumbShade:    'linear-gradient(180deg, rgba(11,29,58,0) 45%, rgba(11,29,58,0.55) 100%)',  // photo bottom fade under overlay tags
+  photoMore:     'rgba(11,29,58,0.55)',   // even navy scrim over the last gallery tile ("+N photos")
   // Light diagonal wash for a tone: G2.tone(TONES2.success) / G2.panel(TONES2.warning)
   tone:  (t) => `linear-gradient(135deg, #FFFFFF 0%, ${t.cardTint} 100%)`,
   panel: (t) => `linear-gradient(135deg, ${t.panelFrom} 0%, ${t.panelTo} 100%)`,
