@@ -4,21 +4,20 @@
 // (Co-Applicant Invitation Workflow). Everything on this screen is real,
 // functional form state (ApplicationIntakeContext) — no sample content.
 
-import React, { useEffect, useState } from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useApplicationIntake } from './ApplicationIntakeContext';
+import { useIntakeReferences } from './useIntakeReferences';
 import { ApplicationIntakeShell, StageFooterNav, FieldLabel, inputStyle, SectionHeading, Card } from './ApplicationIntakeShell';
 import { C, F } from './applicationIntakeTokens';
 
-const RELATIONSHIP_OPTIONS = ['Spouse / Partner', 'Child', 'Parent', 'Sibling', 'Other Relative', 'Other'];
-
-function DependentRow({ dependent, onRemove }) {
+function DependentRow({ dependent, relationshipLabel, onRemove }) {
   return (
     <div style={{ border: `1px solid ${C.cardBorder}`, borderRadius: 10, padding: 12, marginTop: 10, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8 }}>
       <div>
         <div style={{ fontFamily: F.body, fontSize: 13.5, fontWeight: 700, color: C.textPrimary }}>{dependent.fullName}</div>
         <div style={{ fontFamily: F.body, fontSize: 11.5, color: C.textSecondary }}>
-          {dependent.relationship}{dependent.dateOfBirth ? ` · Born ${dependent.dateOfBirth}` : ''}
+          {dependent.relationshipLabel || relationshipLabel}{dependent.dateOfBirth ? ` · Born ${dependent.dateOfBirth}` : ''}
         </div>
       </div>
       <button onClick={onRemove} style={{ background: 'none', border: 'none', color: C.danger, fontWeight: 700, fontFamily: F.body, fontSize: 11.5, cursor: 'pointer', padding: 0, flexShrink: 0 }}>Remove</button>
@@ -26,9 +25,10 @@ function DependentRow({ dependent, onRemove }) {
   );
 }
 
-function CoApplicantRow({ coApplicant, onResend, onRevoke, onRemove }) {
+function CoApplicantRow({ coApplicant, invitationLabel, onResend, onRemove }) {
+  // Colour is presentation only; the status text comes from UN Reference.
   const statusColor = {
-    ADDED: C.textTertiary, SENT: C.info, ACCEPTED: C.success, EXPIRED: C.danger, REVOKED: C.textTertiary,
+    NOT_INVITED: C.textTertiary, SENT: C.info, ACCEPTED: C.success, EXPIRED: C.danger, REVOKED: C.textTertiary,
   }[coApplicant.invitationStatus] || C.textTertiary;
   return (
     <div style={{ border: `1px solid ${C.cardBorder}`, borderRadius: 10, padding: 12, marginTop: 10 }}>
@@ -39,7 +39,7 @@ function CoApplicantRow({ coApplicant, onResend, onRevoke, onRemove }) {
           {coApplicant.relationship && <div style={{ fontFamily: F.body, fontSize: 11, color: C.textTertiary }}>{coApplicant.relationship}</div>}
         </div>
         <span style={{ fontFamily: F.body, fontSize: 10.5, fontWeight: 800, color: statusColor, textTransform: 'uppercase', letterSpacing: '0.03em' }}>
-          {coApplicant.invitationStatus === 'ADDED' ? 'Not yet invited' : coApplicant.invitationStatus}
+          {coApplicant.invitationStatusLabel || invitationLabel}
         </span>
       </div>
       <div style={{ display: 'flex', gap: 14, marginTop: 10, fontFamily: F.body, fontSize: 11.5 }}>
@@ -57,6 +57,11 @@ export default function Stage1_ApplicantHousehold() {
     addCoApplicant, removeCoApplicant, resendInvitation,
     addDependent, removeDependent,
   } = useApplicationIntake();
+  // Session 55 — relationship options (UN Dropdown) and invitation status
+  // labels (UN Reference); nothing hardcoded.
+  const refs = useIntakeReferences(application?.countryCode);
+  const relationshipOptions = refs.dropdown('DEPENDENT_RELATIONSHIP');
+  const isPrimary = applicant.role === refs.rules.primaryApplicantType;
   const [addingCoApplicant, setAddingCoApplicant] = useState(false);
   const [coForm, setCoForm] = useState({ fullName: '', email: '', phone: '', relationship: '' });
   const [addingDependent, setAddingDependent] = useState(false);
@@ -75,7 +80,7 @@ export default function Stage1_ApplicantHousehold() {
       setFormError('Co-applicant full name and email are required.');
       return;
     }
-    addCoApplicant(coForm);
+    addCoApplicant(coForm).catch((e) => setFormError(e.message || 'Could not add this co-applicant.'));
     setCoForm({ fullName: '', email: '', phone: '', relationship: '' });
     setAddingCoApplicant(false);
     setFormError(null);
@@ -99,7 +104,9 @@ export default function Stage1_ApplicantHousehold() {
       addressStreet1: 'Street Address 1', addressCity: 'City', addressState: 'State', addressZip: 'Zip Code',
       desiredMoveInDate: 'Desired Move-In Date',
     };
-    const required = Object.keys(FIELD_LABELS);
+    // The move-in date belongs to the household and is set by the primary
+    // applicant; a co-applicant only sees it.
+    const required = Object.keys(FIELD_LABELS).filter((f) => isPrimary || f !== 'desiredMoveInDate');
     const missing = required.filter((f) => !applicant[f]);
     if (missing.length > 0) {
       setFormError(`Please complete: ${missing.map((f) => FIELD_LABELS[f]).join(', ')}.`);
@@ -113,18 +120,16 @@ export default function Stage1_ApplicantHousehold() {
   const coApplicants = application?.coApplicants || [];
   const dependents = application?.dependents || [];
 
-  // Protected/auto-calculated per request — avoids a hand-typed count
-  // drifting from the household's actual, real composition. 1 (this
-  // applicant) + every co-applicant + every dependent. Kept in sync on
-  // `applicant.occupantCount` too (not just displayed), so the stored value
-  // is never stale if this is ever read elsewhere (review, submission).
-  const occupantCount = 1 + coApplicants.length + dependents.length;
-  useEffect(() => {
-    if (applicant.occupantCount !== occupantCount) {
-      updateApplicantFields({ occupantCount });
-    }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [occupantCount]);
+  // Protected/auto-calculated per request. Session 55 — matches the
+  // backend's computed RentalApplication.occupant_count exactly: 1 primary
+  // + co-applicants who have ACCEPTED their invitation + dependents. Never
+  // stored (numbering standard §1.3), so it is display-only here.
+  // Recomputed on every render from the live lists (the server's
+  // occupantCount is only a snapshot from page load, so it went stale as
+  // soon as a dependent was added).
+  const acceptedCoApplicants = coApplicants.filter((c) => c.invitationStatus === refs.rules.acceptedInvitationStatus).length;
+  const pendingCoApplicants = coApplicants.length - acceptedCoApplicants;
+  const occupantCount = 1 + acceptedCoApplicants + dependents.length;
 
   return (
     <ApplicationIntakeShell activeStage={1}>
@@ -132,7 +137,7 @@ export default function Stage1_ApplicantHousehold() {
 
       <Card>
         <div style={{ fontFamily: F.body, fontSize: 13, fontWeight: 800, color: C.textPrimary, marginBottom: 12, textTransform: 'uppercase', letterSpacing: '0.03em' }}>
-          Primary Applicant Identity
+          {applicant.roleLabel ? `${applicant.roleLabel} Identity` : 'Your Identity'}
         </div>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
           <div>
@@ -182,8 +187,20 @@ export default function Stage1_ApplicantHousehold() {
             </div>
           </div>
           <div>
-            <FieldLabel required>Desired Move-In Date</FieldLabel>
-            <input type="date" style={inputStyle} {...field('desiredMoveInDate')} />
+            <FieldLabel required={isPrimary}>Desired Move-In Date</FieldLabel>
+            {isPrimary ? (
+              <input type="date" style={inputStyle} {...field('desiredMoveInDate')} />
+            ) : (
+              <>
+                <input
+                  type="date" disabled value={applicant.desiredMoveInDate || ''}
+                  style={{ ...inputStyle, background: C.divider, color: C.textSecondary, cursor: 'not-allowed' }}
+                />
+                <div style={{ fontFamily: F.body, fontSize: 10.5, color: C.textTertiary, marginTop: 4 }}>
+                  Set by the primary applicant for the whole household.
+                </div>
+              </>
+            )}
           </div>
           <div>
             <FieldLabel>Number of Occupants</FieldLabel>
@@ -192,13 +209,14 @@ export default function Stage1_ApplicantHousehold() {
               style={{ ...inputStyle, background: C.divider, color: C.textSecondary, cursor: 'not-allowed' }}
             />
             <div style={{ fontFamily: F.body, fontSize: 10.5, color: C.textTertiary, marginTop: 4 }}>
-              Automatically calculated — you + {coApplicants.length} co-applicant{coApplicants.length === 1 ? '' : 's'} + {dependents.length} dependent{dependents.length === 1 ? '' : 's'}.
+              Automatically calculated — you + {acceptedCoApplicants} co-applicant{acceptedCoApplicants === 1 ? '' : 's'} who accepted + {dependents.length} dependent{dependents.length === 1 ? '' : 's'}.
+              {pendingCoApplicants > 0 && ` ${pendingCoApplicants} invited co-applicant${pendingCoApplicants === 1 ? '' : 's'} will be counted once they accept.`}
             </div>
           </div>
         </div>
       </Card>
 
-      {applicant.role === 'PRIMARY' && (
+      {isPrimary && (
       <>
       <Card>
         <div style={{ fontFamily: F.body, fontSize: 13, fontWeight: 800, color: C.textPrimary, marginBottom: 4, textTransform: 'uppercase', letterSpacing: '0.03em' }}>
@@ -212,8 +230,8 @@ export default function Stage1_ApplicantHousehold() {
           <CoApplicantRow
             key={c.id}
             coApplicant={c}
+            invitationLabel={refs.statusLabel('INVITATION_STATUS', c.invitationStatus)}
             onResend={() => resendInvitation(c.id)}
-            onRevoke={() => {}}
             onRemove={() => removeCoApplicant(c.id)}
           />
         ))}
@@ -266,7 +284,7 @@ export default function Stage1_ApplicantHousehold() {
         </div>
 
         {dependents.map((d) => (
-          <DependentRow key={d.id} dependent={d} onRemove={() => removeDependent(d.id)} />
+          <DependentRow key={d.id} dependent={d} relationshipLabel={refs.optionLabel('DEPENDENT_RELATIONSHIP', d.relationship)} onRemove={() => removeDependent(d.id)} />
         ))}
 
         {addingDependent ? (
@@ -280,7 +298,7 @@ export default function Stage1_ApplicantHousehold() {
                 <FieldLabel required>Relationship</FieldLabel>
                 <select style={inputStyle} value={depForm.relationship} onChange={(e) => setDepForm({ ...depForm, relationship: e.target.value })}>
                   <option value="">Select…</option>
-                  {RELATIONSHIP_OPTIONS.map((r) => <option key={r} value={r}>{r}</option>)}
+                  {relationshipOptions.map((r) => <option key={r.code} value={r.code}>{r.label}</option>)}
                 </select>
               </div>
               <div>

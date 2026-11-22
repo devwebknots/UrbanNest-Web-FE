@@ -23,7 +23,8 @@ import { useApplicationIntake } from './ApplicationIntakeContext';
 import { ApplicationIntakeShell, StageFooterNav, SectionHeading, Card } from './ApplicationIntakeShell';
 import { C, F } from './applicationIntakeTokens';
 import { SampleCard, SAMPLE_ESIGN, SAMPLE_FEE_LEDGER } from './sampleInstitutionalContent';
-import { currencySymbol, additionalIncomeSourceLabel, additionalIncomeFrequencyLabel } from './applicationIntakeOptions';
+import { currencySymbol } from './applicationIntakeOptions';
+import { useIntakeReferences } from './useIntakeReferences';
 
 const CONSENTS = [
   { type: 'ACCURACY_ATTESTATION', label: 'Truth & Accuracy Attestation', text: 'I declare that all statements, disclosures, and uploaded documents provided in this application are true, accurate, and complete.', required: true },
@@ -44,12 +45,16 @@ function ReviewRow({ label, value }) {
 export default function Stage4_ReviewConsentSubmit() {
   const navigate = useNavigate();
   const { applicant, application, basePath, setConsent, submitApplicantSection, listingSummary } = useApplicationIntake();
+  // Session 55 — labels from the UN Dropdown table (nothing hardcoded).
+  const refs = useIntakeReferences(application?.countryCode || listingSummary?.country);
   const [typedName, setTypedName] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState(null);
+  const [errorItems, setErrorItems] = useState([]);
 
   async function handleSubmit() {
     setError(null);
+    setErrorItems([]);
     if (!typedName.trim()) {
       setError('Please type your full legal name to confirm your submission.');
       document.getElementById('ai-form-error')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -57,12 +62,29 @@ export default function Stage4_ReviewConsentSubmit() {
     }
     setSubmitting(true);
     try {
-      await submitApplicantSection();
-      navigate(`/marketplace/application/${application?.id || 'draft'}/status`, {
-        state: { application, applicant, listingSummary },
+      // Session 55 — the typed name is now sent and verified server-side
+      // (must match the applicant's legal first + last name); the response
+      // carries the updated household/applicant, so the status page shows
+      // the real application number and submission time.
+      const result = await submitApplicantSection(typedName);
+      const nextApplication = result?.household_application || application;
+      navigate(`/marketplace/application/${nextApplication?.id || 'draft'}/status`, {
+        state: {
+          application: nextApplication,
+          applicant: result?.applicant || { ...applicant, status: 'SUBMITTED' },
+          listingSummary,
+        },
       });
     } catch (e) {
-      setError(e.message || 'Could not submit your application right now. Please try again.');
+      // Only a server-confirmed submission counts: a network failure says so
+      // plainly (nothing was submitted) instead of a bare "Failed to fetch".
+      setError(e.status
+        ? (e.message || 'Could not submit your application right now. Please try again.')
+        : (e.message && !/failed to fetch|network/i.test(e.message)
+          ? e.message
+          : "We couldn't reach UrbanNest, so your application was NOT submitted. Check your connection and try again."));
+      // Every missing item the backend reported (not just the first).
+      setErrorItems((e.messages || []).filter((m) => m !== e.message));
       document.getElementById('ai-form-error')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
     } finally {
       setSubmitting(false);
@@ -96,7 +118,7 @@ export default function Stage4_ReviewConsentSubmit() {
 
       <Card>
         <div style={{ fontFamily: F.body, fontSize: 13, fontWeight: 800, color: C.textPrimary, marginBottom: 10, textTransform: 'uppercase', letterSpacing: '0.03em' }}>
-          Primary Applicant & Household Structure
+          {applicant.roleLabel || 'Applicant'} & Household Structure
         </div>
         <ReviewRow label="Full Legal Name" value={`${applicant.legalFirstName} ${applicant.legalMiddleName} ${applicant.legalLastName}`.replace(/\s+/g, ' ').trim()} />
         <ReviewRow label="Date of Birth" value={applicant.dateOfBirth} />
@@ -104,7 +126,7 @@ export default function Stage4_ReviewConsentSubmit() {
         <ReviewRow label="Phone" value={applicant.phone} />
         <ReviewRow label="Current Address" value={fullAddress} />
         <ReviewRow label="Desired Move-In Date" value={applicant.desiredMoveInDate} />
-        <ReviewRow label="Co-Applicants" value={(application?.coApplicants || []).map((c) => c.fullName).join(', ') || 'None'} />
+        <ReviewRow label="Co-Applicants" value={(application?.coApplicants || []).filter((c) => c.id !== applicant.id).map((c) => c.fullName).join(', ') || 'None'} />
         <ReviewRow label="Dependents" value={(application?.dependents || []).map((d) => d.fullName).join(', ') || 'None'} />
       </Card>
 
@@ -113,26 +135,26 @@ export default function Stage4_ReviewConsentSubmit() {
           Rental, Financial &amp; Income Verification
         </div>
         <ReviewRow label="Rental History Entries" value={applicant.rentalHistory.length} />
-        <ReviewRow label="Employment Status" value={applicant.employment.employmentStatus} />
+        <ReviewRow label="Employment Status" value={refs.optionLabel('EMPLOYMENT_STATUS', applicant.employment.status || applicant.employment.employmentStatus)} />
         <ReviewRow label="Employer" value={applicant.employment.employerName} />
         <ReviewRow label="Monthly Income" value={applicant.employment.incomeAmount ? `${currency}${applicant.employment.incomeAmount}` : null} />
         <ReviewRow
           label="Additional Income"
           value={additionalIncomeEntries.length
-            ? additionalIncomeEntries.map((e) => `${additionalIncomeSourceLabel(e.source)}: ${currency}${e.amount} (${additionalIncomeFrequencyLabel(e.frequency)})`).join('; ')
+            ? additionalIncomeEntries.map((e) => `${refs.optionLabel('ADDITIONAL_INCOME_SOURCE', e.source)}: ${currency}${e.amount} (${refs.optionLabel('ADDITIONAL_INCOME_FREQUENCY', e.frequency)})`).join('; ')
             : null}
         />
         <ReviewRow label="Documents Uploaded" value={`${applicant.documents.length} of 4`} />
         <ReviewRow
           label="Pets"
           value={hasPets && pets.length > 0
-            ? `${pets.length}${petMonthlyTotal != null ? ` (${currency}${petMonthlyTotal}/mo)` : ''} — ${pets.map((p) => p.petType).join(', ')}`
+            ? `${pets.length}${petMonthlyTotal != null ? ` (${currency}${petMonthlyTotal}/mo)` : ''} — ${pets.map((p) => p.petTypeLabel || refs.optionLabel('PET_TYPE', p.petType)).join(', ')}`
             : 'None'}
         />
         <ReviewRow
           label="Vehicles"
           value={hasVehicles && vehicles.length > 0
-            ? `${vehicles.length}${parkingMonthlyTotal != null ? ` (${currency}${parkingMonthlyTotal}/mo)` : ''} — ${vehicles.map((v) => v.vehicleType).join(', ')}`
+            ? `${vehicles.length}${parkingMonthlyTotal != null ? ` (${currency}${parkingMonthlyTotal}/mo)` : ''} — ${vehicles.map((v) => v.vehicleTypeLabel || refs.optionLabel('VEHICLE_TYPE', v.vehicleType)).join(', ')}`
             : 'None'}
         />
       </Card>
@@ -195,6 +217,11 @@ export default function Stage4_ReviewConsentSubmit() {
       {error && (
         <div id="ai-form-error" style={{ color: C.danger, background: C.dangerBg, border: `1px solid ${C.danger}`, borderRadius: 8, padding: '10px 14px', fontFamily: F.body, fontSize: 12.5, fontWeight: 700, marginBottom: 12 }}>
           {error}
+          {errorItems.length > 0 && (
+            <ul style={{ margin: '8px 0 0', paddingLeft: 18, fontWeight: 600 }}>
+              {errorItems.map((m) => <li key={m} style={{ marginTop: 3 }}>{m}</li>)}
+            </ul>
+          )}
         </div>
       )}
 

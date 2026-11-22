@@ -10,11 +10,11 @@
 // then mounts the four-stage flow under ApplicationIntakeContext.
 
 import React, { useEffect, useState } from 'react';
-import { useParams, useNavigate, Routes, Route, Navigate } from 'react-router-dom';
+import { useParams, useNavigate, useSearchParams, Routes, Route, Navigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { apiGetListingDetail, apiGetPropertyListingDetail } from '../Marketplace/Home/marketplaceHomeApi';
 import { ApplicationIntakeProvider } from './ApplicationIntakeContext';
-import { C, F } from './applicationIntakeTokens';
+import { C, F, RADIUS, SHADOW } from './applicationIntakeTokens';
 import { currencySymbol } from './applicationIntakeOptions';
 import Stage1_ApplicantHousehold from './Stage1_ApplicantHousehold';
 import Stage2_RentalFinancial from './Stage2_RentalFinancial';
@@ -86,11 +86,74 @@ function adaptListingSummary(data, kind, listingId) {
   };
 }
 
+// Session 55 — an application is for one specific unit. A Multi-Unit
+// PropertyListing's detail payload already carries the marketplace unit
+// picker (`units`, built by public_views._unit_picker — ids like
+// 'real-42'), so the renter picks one here before the flow starts; the
+// choice can also arrive as `?unit=` so a reload keeps it (see pickUnit below).
+function UnitPicker({ units, propertyName, onPick, onBack }) {
+  return (
+    <div style={{ minHeight: '100vh', background: C.pageBg, fontFamily: F.body, padding: '40px 20px' }}>
+      <div style={{ maxWidth: 640, margin: '0 auto' }}>
+        <div style={{ fontFamily: F.serif, fontSize: 22, fontWeight: 700, color: C.textPrimary, marginBottom: 4 }}>
+          Which unit are you applying for?
+        </div>
+        <div style={{ fontSize: 13, color: C.textSecondary, marginBottom: 18 }}>
+          {propertyName} has more than one available unit. Applications are made for one specific unit.
+        </div>
+        {units.length === 0 && (
+          <div style={{ fontSize: 13, color: C.textSecondary }}>No units are currently available to apply for.</div>
+        )}
+        {units.map((u) => (
+          <button
+            key={u.id}
+            onClick={() => onPick(String(u.id).replace(/^real-/, ''))}
+            style={{
+              display: 'flex', width: '100%', justifyContent: 'space-between', alignItems: 'center', textAlign: 'left',
+              background: C.cardBg, border: `1px solid ${C.cardBorder}`, borderRadius: RADIUS.md, boxShadow: SHADOW.card,
+              padding: '14px 16px', marginBottom: 10, cursor: 'pointer', fontFamily: F.body,
+            }}
+          >
+            <span>
+              <span style={{ display: 'block', fontSize: 14, fontWeight: 800, color: C.textPrimary }}>
+                {u.label}{u.unitNumber ? ` · Unit ${u.unitNumber}` : ''}
+              </span>
+              <span style={{ fontSize: 12, color: C.textSecondary }}>
+                {[u.beds != null ? `${u.beds} bd` : null, u.baths != null ? `${u.baths} ba` : null, u.sqft ? `${u.sqft} sqft` : null, u.availableOn ? `Available ${u.availableOn}` : null].filter(Boolean).join(' · ')}
+              </span>
+            </span>
+            <span style={{ fontSize: 13, fontWeight: 800, color: C.navy }}>
+              {u.price != null ? `${Number(u.price).toLocaleString()} / mo` : ''} →
+            </span>
+          </button>
+        ))}
+        <button onClick={onBack} style={{ marginTop: 8, color: C.navy, background: 'none', border: 'none', fontWeight: 700, cursor: 'pointer', fontFamily: F.body }}>
+          ← Back to listing
+        </button>
+      </div>
+    </div>
+  );
+}
+
 export default function ApplicationIntakePage({ kind }) {
   const { id } = useParams();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  // Kept in state (this page stays mounted while the nested stage routes
+  // change, and stage navigation drops the query string) and in
+  // sessionStorage (so a reload mid-flow keeps the chosen unit).
+  const unitStorageKey = `un_apply_unit:${id}`;
+  const [unitListingId, setUnitListingId] = useState(() => {
+    if (kind !== 'property-listing') return null;
+    try { return searchParams.get('unit') || sessionStorage.getItem(unitStorageKey) || null; } catch { return searchParams.get('unit') || null; }
+  });
+  function pickUnit(unitId) {
+    try { sessionStorage.setItem(unitStorageKey, unitId); } catch { /* not fatal */ }
+    setUnitListingId(unitId);
+  }
   const { user, authLoading } = useAuth();
   const [listingSummary, setListingSummary] = useState(null);
+  const [units, setUnits] = useState([]);
   const [loadError, setLoadError] = useState(null);
   const [loading, setLoading] = useState(true);
 
@@ -104,7 +167,10 @@ export default function ApplicationIntakePage({ kind }) {
     }
     const fetcher = kind === 'property-listing' ? apiGetPropertyListingDetail : apiGetListingDetail;
     fetcher(id)
-      .then((data) => setListingSummary(adaptListingSummary(data, kind, id)))
+      .then((data) => {
+        setListingSummary(adaptListingSummary(data, kind, id));
+        setUnits(Array.isArray(data?.units) ? data.units : []);
+      })
       .catch((e) => setLoadError(e.message || 'Could not load this listing.'))
       .finally(() => setLoading(false));
   }, [id, kind, user, authLoading, navigate]);
@@ -121,8 +187,37 @@ export default function ApplicationIntakePage({ kind }) {
     );
   }
 
+  if (kind === 'property-listing' && !unitListingId) {
+    return (
+      <UnitPicker
+        units={units}
+        propertyName={listingSummary?.propertyName || 'This property'}
+        onPick={pickUnit}
+        onBack={() => navigate(`/marketplace/${kind}/${id}`)}
+      />
+    );
+  }
+
+  const chosenUnit = units.find((u) => String(u.id).replace(/^real-/, '') === String(unitListingId));
+  const summaryForUnit = chosenUnit
+    ? {
+      ...listingSummary,
+      unitLabel: `${chosenUnit.label}${chosenUnit.unitNumber ? ` · Unit ${chosenUnit.unitNumber}` : ''}`,
+      monthlyRentRaw: chosenUnit.price ?? listingSummary?.monthlyRentRaw,
+      rentLabel: chosenUnit.price != null ? `${listingSummary?.currency || '$'}${Number(chosenUnit.price).toLocaleString()} / mo` : listingSummary?.rentLabel,
+      unitListingId,
+    }
+    : listingSummary;
+
   return (
-    <ApplicationIntakeProvider kind={kind} listingId={id} listingSummary={listingSummary} basePath={`/marketplace/${kind}/${id}/apply`}>
+    <ApplicationIntakeProvider
+      key={unitListingId || 'single'}
+      kind={kind}
+      listingId={id}
+      unitListingId={unitListingId}
+      listingSummary={summaryForUnit}
+      basePath={`/marketplace/${kind}/${id}/apply`}
+    >
       <Routes>
         <Route index element={<Navigate to="stage-1" replace />} />
         <Route path="stage-1" element={<Stage1_ApplicantHousehold />} />

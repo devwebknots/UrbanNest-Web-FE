@@ -13,56 +13,26 @@
 // page (ApplicationSubmittedPage) already are full routed pages, not
 // modals.
 //
-// REAL ARCHITECTURE GAP — same FE-first posture as the rest of this
-// module (see ApplicationIntakeContext.jsx's own header, and Dependents /
-// Property Requirements below it for the same pattern). There is still
-// no backend "list my applications" endpoint anywhere —
-// applicationIntakeApi.js only has get-one-application-by-id calls
-// (apiGetApplication / apiGetApplicationStatus) — because the PE-4
-// intake-slice backend itself doesn't exist yet; everything today runs
-// in local-draft mode (see ApplicationIntakeContext's `backendConnected`
-// flag). So this page's list is built by scanning THIS BROWSER's own
-// localStorage for every `un_application_draft:*` entry this Renter has
-// started or submitted on this device — the exact same local-draft data
-// Stages 1-4 already read/write, and the exact same "Saved to this
-// device" honesty the rest of Application Intake already carries. This
-// is a real list of this device's drafts, not a placeholder — but it has
-// a real, known limit a backend list endpoint would remove: an
-// application started on a different device/browser won't show up here.
-// Flagged here and in the Claude Project doc, not silently left unsaid.
-//
-// Landlord/PM-side visibility into these same applications is a separate,
-// larger gap (see the Claude Project doc) — that side genuinely can't
-// show anything real without the PE-4 backend, since a landlord seeing
-// what a Renter submitted is inherently cross-user, server-side data
-// that one browser's localStorage can never honestly fake.
+// Session 55 — backed by the real GET /marketplace/application/mine/
+// (application_intake backend), so applications started on any device
+// appear here, including ones the user was invited to as a co-applicant.
+// This browser's `un_application_draft:*` localStorage entries are only
+// the offline fallback now. The Landlord/PM side has its own read-only
+// endpoints (received/) — no UI consumes them yet.
 
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { C, F, RADIUS, SHADOW } from './applicationIntakeTokens';
+import * as api from './applicationIntakeApi';
+import { useIntakeReferences } from './useIntakeReferences';
 
 const DRAFT_KEY_PREFIX = 'un_application_draft:';
 
-const HOUSEHOLD_STATUS_COPY = {
-  DRAFT: 'Not yet submitted',
-  IN_PROGRESS: 'In progress — continue your application',
-  AWAITING_CO_APPLICANT: 'Submitted — waiting on co-applicant(s)',
-  READY_FOR_SCREENING: 'Submitted — ready for screening',
-  SCREENING_IN_PROGRESS: 'Screening underway',
-  UNDER_REVIEW: 'Under review by the landlord/property manager',
-  APPROVED: 'Approved',
-  REJECTED: 'Not approved',
-  WITHDRAWN: 'Withdrawn',
-};
-
-// Any status past "the Primary Applicant's own section has been
-// submitted" — matches submitApplicantSection()'s local-fallback branch
-// in ApplicationIntakeContext.jsx.
-const SUBMITTED_STATUSES = new Set([
-  'AWAITING_CO_APPLICANT', 'READY_FOR_SCREENING', 'SCREENING_IN_PROGRESS',
-  'UNDER_REVIEW', 'APPROVED', 'REJECTED', 'WITHDRAWN',
-]);
+// Session 55 — status labels and their explanatory text come from the UN
+// Reference tables (statusLabel / statusDescription on each application, or
+// useIntakeReferences for local drafts); which statuses count as draft /
+// closed comes from the backend's rules. Nothing hardcoded here.
 
 function readLocalApplications() {
   const rows = [];
@@ -92,12 +62,21 @@ function readLocalApplications() {
   return rows;
 }
 
-function ApplicationCard({ row, onClick }) {
-  const { application } = row;
+function ApplicationCard({ row, refs, onClick }) {
+  const { application, applicant } = row;
   const listingSummary = application?.listingSummary;
-  const status = application?.status || 'DRAFT';
-  const statusCopy = HOUSEHOLD_STATUS_COPY[status] || status.replace(/_/g, ' ');
-  const isSubmitted = SUBMITTED_STATUSES.has(status);
+  const draftStatus = refs.rules.draftStatus;
+  const status = application?.status || draftStatus;
+  const isSubmitted = !!status && status !== draftStatus;
+  const closed = (refs.rules.closedApplicationStatuses || []).includes(status);
+  // A co-applicant's own section can still be open after the household has
+  // been submitted by the primary applicant — show *their* status then.
+  const isCoApplicant = !!applicant?.role && applicant.role !== refs.rules.primaryApplicantType;
+  const mySectionOpen = isCoApplicant && !applicant?.submittedAt && isSubmitted && !closed;
+  const statusLabel = application?.statusLabel || refs.statusLabel('STATUS', status);
+  const statusCopy = mySectionOpen
+    ? `${refs.statusLabel('APPLICANT_STATUS', applicant.status)} — ${refs.statusDescription('APPLICANT_STATUS', applicant.status)}`
+    : (application?.statusDescription || refs.statusDescription('STATUS', status));
 
   return (
     <div
@@ -133,20 +112,25 @@ function ApplicationCard({ row, onClick }) {
             {listingSummary.rentLabel}
           </div>
         )}
+        {application?.applicationNumber && (
+          <div style={{ fontFamily: F.body, fontSize: 11, color: C.textTertiary, marginTop: 4, fontWeight: 700 }}>
+            {application.applicationNumber}
+          </div>
+        )}
       </div>
 
       <div style={{ textAlign: 'right', flexShrink: 0 }}>
         <div style={{
           fontFamily: F.body, fontSize: 10.5, fontWeight: 800, letterSpacing: '0.03em', textTransform: 'uppercase',
-          color: isSubmitted ? C.navy : C.warning, marginBottom: 4,
+          color: isSubmitted && !mySectionOpen ? C.navy : C.warning, marginBottom: 4,
         }}>
-          {isSubmitted ? 'Submitted' : 'Draft'}
+          {statusLabel}
         </div>
         <div style={{ fontFamily: F.body, fontSize: 12, color: C.textSecondary, maxWidth: 190 }}>
           {statusCopy}
         </div>
         <div style={{ fontFamily: F.body, fontSize: 11, color: C.navy, fontWeight: 700, marginTop: 6 }}>
-          {isSubmitted ? 'View details →' : 'Continue application →'}
+          {isSubmitted && !mySectionOpen ? 'View details →' : 'Continue application →'}
         </div>
       </div>
     </div>
@@ -158,6 +142,8 @@ export default function ApplicationsListPage() {
   const navigate = useNavigate();
   const [rows, setRows] = useState([]);
   const [loaded, setLoaded] = useState(false);
+  const [fromServer, setFromServer] = useState(false);
+  const refs = useIntakeReferences();
 
   useEffect(() => {
     if (authLoading) return;
@@ -167,16 +153,42 @@ export default function ApplicationsListPage() {
       navigate('/', { state: { postLoginRedirect: '/marketplace/account/applications' } });
       return;
     }
-    setRows(readLocalApplications());
-    setLoaded(true);
+    // Session 55 — the real "my applications" list (every device). Falls
+    // back to this browser's local drafts only when the backend can't be
+    // reached.
+    let active = true;
+    api.apiListMyApplications()
+      .then((data) => {
+        if (!active) return;
+        setFromServer(true);
+        setRows((data || []).map((r) => ({
+          key: r.household_application.id,
+          application: r.household_application,
+          applicant: r.myApplicant,
+          savedAt: Date.parse(r.household_application.updatedAt) || 0,
+        })));
+      })
+      .catch((e) => {
+        console.warn('[ApplicationsListPage] backend list unavailable — showing this device\'s drafts', e);
+        if (active) { setFromServer(false); setRows(readLocalApplications()); }
+      })
+      .finally(() => { if (active) setLoaded(true); });
+    return () => { active = false; };
   }, [user, authLoading, navigate]);
 
   function handleCardClick(row) {
     const { application, applicant } = row;
     const listingSummary = application?.listingSummary;
-    const status = application?.status || 'DRAFT';
+    const status = application?.status || refs.rules.draftStatus;
+    const isSubmitted = !!status && status !== refs.rules.draftStatus;
 
-    if (SUBMITTED_STATUSES.has(status)) {
+    if (applicant?.role && applicant.role !== refs.rules.primaryApplicantType && !applicant?.submittedAt) {
+      // Co-applicants continue through their invitation link (the apply
+      // route would start a brand-new application of their own).
+      return;
+    }
+
+    if (isSubmitted || applicant?.submittedAt) {
       // Reuse ApplicationSubmittedPage as the detail/status view — same
       // route + state shape Stage4's own handleSubmit() already uses, so
       // this is the exact same screen a Renter saw right after submitting.
@@ -214,7 +226,7 @@ export default function ApplicationsListPage() {
           Your Applications
         </div>
         <div style={{ fontFamily: F.body, fontSize: 13, color: C.textSecondary, marginBottom: 20 }}>
-          Rental applications you've started or submitted from this device.
+          {fromServer ? "Rental applications you've started, submitted or been invited to." : "Rental applications you've started or submitted from this device."}
         </div>
 
         {rows.length === 0 ? (
@@ -231,7 +243,7 @@ export default function ApplicationsListPage() {
           </div>
         ) : (
           rows.map((row) => (
-            <ApplicationCard key={row.key} row={row} onClick={() => handleCardClick(row)} />
+            <ApplicationCard key={row.key} row={row} refs={refs} onClick={() => handleCardClick(row)} />
           ))
         )}
       </div>

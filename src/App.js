@@ -1,10 +1,10 @@
-import { AuthProvider } from './context/AuthContext';
+import { AuthProvider, useAuth } from './context/AuthContext';
 import { BrowserRouter, Routes, Route, Navigate, useNavigate, useLocation } from 'react-router-dom';
 import PermissionGuard from './components/common/PermissionGuard';
 
 // Auth
 import LoginModal           from './pages/Login/LoginModal';
-import LoginPage            from './pages/Login/LoginPage';
+import LoginPage, { safeRedirect } from './pages/Login/LoginPage';
 import SignUpPage           from './pages/SignUp/SignUpPage';
 import OTPVerificationPage  from './pages/OTP/OTPVerificationPage';
 import PersonaSelectPage    from './pages/PersonaSelect/PersonaSelectPage';
@@ -249,6 +249,7 @@ function AddUnitWrapper({ persona = 'INDEPENDENT_PM' }) {
 function AppRoutes() {
   const navigate = useNavigate();
   const location = useLocation();
+  const { refreshAuth } = useAuth();
 
   return (
     <Routes>
@@ -256,18 +257,28 @@ function AppRoutes() {
       {/* ── Auth ──────────────────────────────────────────────────────────── */}
       <Route path="/"           element={<LoginModal />} />
       <Route path="/login"      element={<LoginPage />} />
+      {/* Session 55 — sign-up → verification carries the caller's
+          postLoginRedirect (e.g. a co-applicant invitation) and an optional
+          pre-filled, locked email. After verification the session is
+          refreshed (same as LoginPage does) and the user returns there;
+          without a redirect the flow is unchanged (/persona-select). */}
       <Route path="/signup"     element={
         <SignUpPage
-          onNavigateToLogin={() => navigate('/login')}
-          onNavigateToOTP={(data) => navigate('/verify-otp', { state: data })}
+          initialEmail={location.state?.prefillEmail}
+          lockEmail={!!location.state?.lockEmail}
+          onNavigateToLogin={() => navigate('/login', { state: location.state })}
+          onNavigateToOTP={(data) => navigate('/verify-otp', { state: { ...data, postLoginRedirect: location.state?.postLoginRedirect } })}
         />
       } />
       <Route path="/verify-otp" element={
         <OTPVerificationPage
           email={location.state?.email}
           phone={location.state?.phone}
-          onVerified={() => navigate('/persona-select')}
-          onBack={() => navigate('/signup')}
+          onVerified={async () => {
+            await refreshAuth();
+            navigate(safeRedirect(location.state?.postLoginRedirect) || '/persona-select');
+          }}
+          onBack={() => navigate('/signup', { state: location.state })}
         />
       } />
       <Route path="/persona-select" element={<PersonaSelectPage />} />

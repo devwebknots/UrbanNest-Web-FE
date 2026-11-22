@@ -15,16 +15,16 @@
 // see that same file's currencySymbol()); "Additional Income Sources" is
 // now a real list of {source, amount} entries instead of one loose string.
 
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useApplicationIntake } from './ApplicationIntakeContext';
+import { useIntakeReferences } from './useIntakeReferences';
+import { apiGetPrimaryResidence } from './applicationIntakeApi';
 import { ApplicationIntakeShell, StageFooterNav, FieldLabel, inputStyle, SectionHeading, Card } from './ApplicationIntakeShell';
 import { C, F, RADIUS } from './applicationIntakeTokens';
 import { SampleCard, SampleTag, SAMPLE_PAYROLL, sampleUnderwritingLedger } from './sampleInstitutionalContent';
 import {
-  currencySymbol, TENANTSHIP_OPTIONS, tenantshipNeedsLandlordFields,
-  ADDITIONAL_INCOME_SOURCES, additionalIncomeSourceLabel,
-  ADDITIONAL_INCOME_FREQUENCY_OPTIONS, additionalIncomeFrequencyLabel,
+  currencySymbol,
   employmentDurationLabel,
 } from './applicationIntakeOptions';
 
@@ -45,11 +45,20 @@ function addressLineFor(entry) {
   return [line1, line2].filter(Boolean).join(' · ') || 'Residence';
 }
 
-function tenantshipLabel(value) {
-  return TENANTSHIP_OPTIONS.find((o) => o.value === value)?.label || null;
+// Session 55 — every option list / label below comes from `refs`
+// (useIntakeReferences: UN Dropdown table + backend rules), passed down from
+// the stage component. Nothing hardcoded.
+function SelectOptions({ options }) {
+  return (
+    <>
+      <option value="">Select…</option>
+      {options.map((o) => <option key={o.code} value={o.code}>{o.label}</option>)}
+    </>
+  );
 }
 
-function RentalHistoryEntry({ entry, currency, onRemove, onMarkCurrent }) {
+function RentalHistoryEntry({ entry, currency, refs, onRemove, onMarkCurrent }) {
+  const residenceLabel = entry.tenantshipType ? refs.optionLabel('RESIDENCE_TYPE', entry.tenantshipType) : null;
   return (
     <div style={{ border: `1px solid ${entry.isCurrent ? C.navy : C.cardBorder}`, borderRadius: 10, padding: 12, marginTop: 10 }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8 }}>
@@ -64,7 +73,7 @@ function RentalHistoryEntry({ entry, currency, onRemove, onMarkCurrent }) {
         <button onClick={onRemove} style={{ background: 'none', border: 'none', color: C.danger, fontSize: 11.5, fontWeight: 700, cursor: 'pointer', flexShrink: 0 }}>Remove</button>
       </div>
       <div style={{ fontFamily: F.body, fontSize: 11.5, color: C.textSecondary, marginTop: 4 }}>
-        {tenantshipLabel(entry.tenantshipType) && `${tenantshipLabel(entry.tenantshipType)} · `}
+        {residenceLabel && `${residenceLabel} · `}
         {entry.landlordName && `Landlord: ${entry.landlordName} · `}
         {entry.startDate} – {entry.endDate || 'Present'} · {currency}{entry.monthlyRent}/mo
       </div>
@@ -78,14 +87,20 @@ function RentalHistoryEntry({ entry, currency, onRemove, onMarkCurrent }) {
   );
 }
 
-function AddRentalHistoryForm({ currency, onAdd, onCancel }) {
+function AddRentalHistoryForm({ currency, refs, initial, onAdd, onCancel }) {
   const [form, setForm] = useState({
     tenantshipType: '', landlordName: '', landlordContact: '',
     addressStreet1: '', addressStreet2: '', city: '', state: '', zip: '',
     startDate: '', endDate: '', monthlyRent: '', reasonForLeaving: '', isCurrent: false,
+    // Session 55 — `initial` pre-fills the form (e.g. copied from the primary
+    // applicant's current residence); everything stays editable.
+    ...(initial || {}),
   });
+  const [addError, setAddError] = useState(null);
   function set(k) { return { value: form[k], onChange: (e) => setForm({ ...form, [k]: e.target.value }) }; }
-  const showLandlordFields = tenantshipNeedsLandlordFields(form.tenantshipType);
+  // Residence types with no landlord (own home, living with family) come
+  // from the backend's rules, not a local list.
+  const showLandlordFields = !(refs.rules.noLandlordResidenceTypes || []).includes(form.tenantshipType);
   return (
     <div style={{ border: `1px dashed ${C.cardBorder}`, borderRadius: 10, padding: 14, marginTop: 10 }}>
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
@@ -98,7 +113,7 @@ function AddRentalHistoryForm({ currency, onAdd, onCancel }) {
         <div style={{ gridColumn: '1 / -1' }}>
           <FieldLabel>How did you hold this residence?</FieldLabel>
           <select style={inputStyle} {...set('tenantshipType')}>
-            {TENANTSHIP_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+            <SelectOptions options={refs.dropdown('RESIDENCE_TYPE')} />
           </select>
         </div>
         <div style={{ gridColumn: '1 / -1' }}><FieldLabel>Street Address 1</FieldLabel><input style={inputStyle} {...set('addressStreet1')} /></div>
@@ -122,9 +137,20 @@ function AddRentalHistoryForm({ currency, onAdd, onCancel }) {
         </div>
         <div><FieldLabel>Reason for Leaving</FieldLabel><input style={inputStyle} {...set('reasonForLeaving')} /></div>
       </div>
+      {addError && <div style={{ fontFamily: F.body, fontSize: 12, color: C.danger, marginTop: 10 }}>{addError}</div>}
       <div style={{ display: 'flex', gap: 10, marginTop: 12 }}>
         <button
-          onClick={() => onAdd(showLandlordFields ? form : { ...form, landlordName: '', landlordContact: '' })}
+          onClick={() => {
+            // Session 55 — same required fields the backend's RENTAL_HISTORY
+            // validation enforces, checked here so an entry is never kept
+            // locally but rejected remotely.
+            const missing = ['tenantshipType', 'addressStreet1', 'city', 'state', 'zip', 'startDate'].filter((k) => !String(form[k] || '').trim());
+            if (missing.length) { setAddError('Please fill in how you held the residence, its address and the start date.'); return; }
+            if (form.isCurrent && form.endDate) { setAddError('A current residence cannot have an end date.'); return; }
+            if (form.endDate && form.startDate && form.endDate < form.startDate) { setAddError('End date cannot be before the start date.'); return; }
+            setAddError(null);
+            onAdd(showLandlordFields ? form : { ...form, landlordName: '', landlordContact: '' });
+          }}
           style={{ background: C.navy, color: C.white, border: 'none', borderRadius: 8, padding: '9px 16px', fontFamily: F.body, fontSize: 12.5, fontWeight: 700, cursor: 'pointer' }}
         >
           Add Residence
@@ -135,13 +161,13 @@ function AddRentalHistoryForm({ currency, onAdd, onCancel }) {
   );
 }
 
-function AdditionalIncomeRow({ entry, currency, onRemove }) {
+function AdditionalIncomeRow({ entry, currency, refs, onRemove }) {
   return (
     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '7px 0', borderBottom: `1px dashed ${C.cardBorder}` }}>
-      <span style={{ fontFamily: F.body, fontSize: 12.5, color: C.textPrimary }}>{additionalIncomeSourceLabel(entry.source)}</span>
+      <span style={{ fontFamily: F.body, fontSize: 12.5, color: C.textPrimary }}>{refs.optionLabel('ADDITIONAL_INCOME_SOURCE', entry.source)}</span>
       <span style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
         <span style={{ fontFamily: F.body, fontSize: 12.5, fontWeight: 700, color: C.textPrimary }}>
-          {currency}{entry.amount} <span style={{ fontWeight: 500, color: C.textSecondary }}>({additionalIncomeFrequencyLabel(entry.frequency)})</span>
+          {currency}{entry.amount} <span style={{ fontWeight: 500, color: C.textSecondary }}>({refs.optionLabel('ADDITIONAL_INCOME_FREQUENCY', entry.frequency)})</span>
         </span>
         <button onClick={onRemove} style={{ background: 'none', border: 'none', color: C.danger, fontSize: 11.5, fontWeight: 700, cursor: 'pointer' }}>Remove</button>
       </span>
@@ -149,16 +175,18 @@ function AdditionalIncomeRow({ entry, currency, onRemove }) {
   );
 }
 
-function AddAdditionalIncomeForm({ currency, onAdd, onCancel }) {
+function AddAdditionalIncomeForm({ currency, refs, onAdd, onCancel }) {
+  const frequencies = refs.dropdown('ADDITIONAL_INCOME_FREQUENCY');
+  const defaultFrequency = frequencies[0]?.code || '';
   const [source, setSource] = useState('');
   const [amount, setAmount] = useState('');
-  const [frequency, setFrequency] = useState('MONTHLY');
+  const [frequency, setFrequency] = useState(defaultFrequency);
   return (
     <div style={{ display: 'flex', gap: 10, alignItems: 'flex-end', marginTop: 10, flexWrap: 'wrap' }}>
       <div style={{ flex: '1 1 180px' }}>
         <FieldLabel>Source</FieldLabel>
         <select style={inputStyle} value={source} onChange={(e) => setSource(e.target.value)}>
-          {ADDITIONAL_INCOME_SOURCES.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+          <SelectOptions options={refs.dropdown('ADDITIONAL_INCOME_SOURCE')} />
         </select>
       </div>
       <div style={{ flex: '1 1 120px' }}>
@@ -168,11 +196,11 @@ function AddAdditionalIncomeForm({ currency, onAdd, onCancel }) {
       <div style={{ flex: '1 1 140px' }}>
         <FieldLabel>Frequency</FieldLabel>
         <select style={inputStyle} value={frequency} onChange={(e) => setFrequency(e.target.value)}>
-          {ADDITIONAL_INCOME_FREQUENCY_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+          {frequencies.map((o) => <option key={o.code} value={o.code}>{o.label}</option>)}
         </select>
       </div>
       <button
-        onClick={() => { if (source && amount) { onAdd({ source, amount, frequency }); setSource(''); setAmount(''); setFrequency('MONTHLY'); } }}
+        onClick={() => { if (source && amount && (frequency || defaultFrequency)) { onAdd({ source, amount, frequency: frequency || defaultFrequency }); setSource(''); setAmount(''); setFrequency(defaultFrequency); } }}
         style={{ padding: '9px 16px', borderRadius: 8, border: 'none', background: C.navy, color: C.white, fontFamily: F.body, fontSize: 12.5, fontWeight: 700, cursor: 'pointer' }}
       >
         Add
@@ -185,12 +213,37 @@ function AddAdditionalIncomeForm({ currency, onAdd, onCancel }) {
 export default function Stage2_RentalFinancial() {
   const navigate = useNavigate();
   const {
-    applicant, listingSummary, basePath, updateApplicantFields,
+    applicant, application, listingSummary, basePath, updateApplicantFields, backendConnected,
     addRentalHistoryEntry, removeRentalHistoryEntry, setCurrentResidence, setEmployment,
     addAdditionalIncomeEntry, removeAdditionalIncomeEntry,
   } = useApplicationIntake();
+  const refs = useIntakeReferences(application?.countryCode || listingSummary?.country);
   const [addingHistory, setAddingHistory] = useState(applicant.rentalHistory.length === 0);
-  const [noHistory, setNoHistory] = useState(false);
+  // Session 55 — opt-in copy of the primary applicant's current residence
+  // (co-applicants only). Fetched read-only; clicking the button pre-fills
+  // the add form, which the co-applicant can edit before saving it to their
+  // own record (and remove afterwards like any other entry).
+  const isPrimary = applicant.role === refs.rules.primaryApplicantType;
+  const [primaryResidence, setPrimaryResidence] = useState(null);
+  const [prefill, setPrefill] = useState(null);
+  useEffect(() => {
+    if (isPrimary || !backendConnected || !application?.id || !applicant.id) return undefined;
+    let active = true;
+    apiGetPrimaryResidence(application.id, applicant.id)
+      .then((r) => { if (active) setPrimaryResidence(r?.residence || null); })
+      .catch((e) => console.warn('[ApplicationIntake] could not load the primary applicant\'s residence', e));
+    return () => { active = false; };
+  }, [isPrimary, backendConnected, application?.id, applicant.id]);
+  const hasOwnCurrent = applicant.rentalHistory.some((e) => e.isCurrent);
+  function copyPrimaryResidence() {
+    setPrefill({ ...primaryResidence, isCurrent: true, endDate: '' });
+    setAddingHistory(true);
+  }
+  // Session 55 — persisted (ApplicationApplicant.has_no_rental_history)
+  // instead of being page-local, so it survives a reload and counts at
+  // submission.
+  const noHistory = !!applicant.hasNoRentalHistory;
+  const setNoHistory = (value) => updateApplicantFields({ hasNoRentalHistory: value });
   const [addingIncome, setAddingIncome] = useState(false);
   const [formError, setFormError] = useState(null);
 
@@ -213,7 +266,7 @@ export default function Stage2_RentalFinancial() {
       document.getElementById('ai-form-error')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
       return;
     }
-    if (!applicant.employment.employmentStatus && !applicant.employment.employerName) {
+    if (!(applicant.employment.status || applicant.employment.employmentStatus) && !applicant.employment.employerName) {
       setFormError('Please complete your employment & income information.');
       document.getElementById('ai-form-error')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
       return;
@@ -262,16 +315,28 @@ export default function Stage2_RentalFinancial() {
           <>
             {applicant.rentalHistory.map((entry) => (
               <RentalHistoryEntry
+                refs={refs}
                 key={entry.id} entry={entry} currency={currency}
                 onRemove={() => removeRentalHistoryEntry(entry.id)}
                 onMarkCurrent={() => setCurrentResidence(entry.id)}
               />
             ))}
+            {!isPrimary && primaryResidence && !hasOwnCurrent && !prefill && (
+              <button
+                onClick={copyPrimaryResidence}
+                style={{ marginTop: 10, width: '100%', padding: '10px 0', borderRadius: 8, border: `1px solid ${C.navy}`, background: 'none', color: C.navy, fontFamily: F.body, fontSize: 12.5, fontWeight: 700, cursor: 'pointer' }}
+              >
+                Same as primary applicant's current residence
+              </button>
+            )}
             {addingHistory ? (
               <AddRentalHistoryForm
+                key={prefill ? 'prefill' : 'blank'}
+                refs={refs}
                 currency={currency}
-                onAdd={(form) => { addRentalHistoryEntry(form); setAddingHistory(false); }}
-                onCancel={() => setAddingHistory(false)}
+                initial={prefill}
+                onAdd={(form) => { addRentalHistoryEntry(form); setAddingHistory(false); setPrefill(null); }}
+                onCancel={() => { setAddingHistory(false); setPrefill(null); }}
               />
             ) : (
               <div style={{ display: 'flex', gap: 10, marginTop: 10 }}>
@@ -301,12 +366,8 @@ export default function Stage2_RentalFinancial() {
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
           <div>
             <FieldLabel required>Employment Status</FieldLabel>
-            <select style={inputStyle} value={applicant.employment.employmentStatus || ''} onChange={(e) => setEmployment({ employmentStatus: e.target.value })}>
-              <option value="">Select…</option>
-              <option value="EMPLOYED">Employed (W-2)</option>
-              <option value="SELF_EMPLOYED">Self-Employed / 1099</option>
-              <option value="RETIRED">Retired / Assets</option>
-              <option value="STUDENT">Student / Guarantor</option>
+            <select style={inputStyle} value={applicant.employment.status || applicant.employment.employmentStatus || ''} onChange={(e) => setEmployment({ status: e.target.value })}>
+              <SelectOptions options={refs.dropdown('EMPLOYMENT_STATUS')} />
             </select>
           </div>
           <div><FieldLabel>Employer / Business Name</FieldLabel><input style={inputStyle} {...empField('employerName')} /></div>
@@ -334,10 +395,11 @@ export default function Stage2_RentalFinancial() {
         <div style={{ marginTop: 18, paddingTop: 14, borderTop: `1px dashed ${C.cardBorder}` }}>
           <FieldLabel>Additional Income Sources (optional)</FieldLabel>
           {(applicant.employment.additionalIncome || []).map((entry) => (
-            <AdditionalIncomeRow key={entry.id} entry={entry} currency={currency} onRemove={() => removeAdditionalIncomeEntry(entry.id)} />
+            <AdditionalIncomeRow key={entry.id} entry={entry} currency={currency} refs={refs} onRemove={() => removeAdditionalIncomeEntry(entry.id)} />
           ))}
           {addingIncome ? (
             <AddAdditionalIncomeForm
+              refs={refs}
               currency={currency}
               onAdd={(entry) => { addAdditionalIncomeEntry(entry); setAddingIncome(false); }}
               onCancel={() => setAddingIncome(false)}

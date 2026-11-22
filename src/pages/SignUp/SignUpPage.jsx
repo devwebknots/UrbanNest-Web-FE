@@ -85,9 +85,13 @@ function PasswordStrength({ password }) {
   );
 }
 
-export default function SignUpPage({ onNavigateToLogin, onNavigateToOTP }) {
+// Session 55 — `initialEmail` / `lockEmail`: a co-applicant invited by
+// email registers with exactly that address (it's what the invitation is
+// bound to), so it arrives pre-filled and read-only. Optional; every other
+// caller is unchanged.
+export default function SignUpPage({ onNavigateToLogin, onNavigateToOTP, initialEmail = '', lockEmail = false }) {
   const [form, setForm] = useState({
-    firstName: '', lastName: '', email: '', phone: '',
+    firstName: '', lastName: '', email: initialEmail || '', phone: '',
     password: '', confirmPassword: '',
   });
   const [showPassword, setShowPassword]             = useState(false);
@@ -290,7 +294,7 @@ export default function SignUpPage({ onNavigateToLogin, onNavigateToOTP }) {
                   <div style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }}>
                     <SvgIcon d={MAIL} size={14} color={COLORS.textTertiary} />
                   </div>
-                  <input type="email" placeholder="john@example.com" value={form.email} onChange={set('email')} autoComplete="email"
+                  <input type="email" placeholder="john@example.com" value={form.email} onChange={set('email')} autoComplete="email" readOnly={lockEmail} title={lockEmail ? 'This is the email address your invitation was sent to.' : undefined}
                     style={{ ...inputStyle(errors.email, form.email), paddingLeft: 34 }} />
                 </div>
                 {errors.email && <p style={{ fontFamily: FONTS.body, fontSize: 11, color: COLORS.danger, margin: '3px 0 0' }}>{errors.email}</p>}

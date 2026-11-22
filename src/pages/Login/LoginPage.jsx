@@ -6,7 +6,7 @@
 // ─────────────────────────────────────────────
 
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { Button, Input, Divider, TestimonialCarousel } from '../../components/ui';
 import { C } from '../../constants/colors';
 import { F } from '../../constants/fonts';
@@ -71,11 +71,22 @@ function AppleLogo() {
   );
 }
 
+// Session 55 — callers that send a signed-out user here (Apply, Book a
+// Tour, Applications, a co-applicant invitation) pass
+// `state.postLoginRedirect`; it was never read, so every login landed on
+// /persona-select. Only same-app paths are honoured (no open redirects).
+export function safeRedirect(path) {
+  return typeof path === 'string' && path.startsWith('/') && !path.startsWith('//') ? path : null;
+}
+
 export default function LoginPage() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { refreshAuth } = useAuth();
+  const postLoginRedirect = safeRedirect(location.state?.postLoginRedirect);
 
-  const [clientId, setClientId] = useState('');
+  // `state.prefillEmail` — e.g. the address a co-applicant invitation was sent to.
+  const [clientId, setClientId] = useState(location.state?.prefillEmail || '');
   const [password, setPassword] = useState('');
   const [loading,  setLoading]  = useState(false);
   const [error,    setError]    = useState('');
@@ -144,8 +155,9 @@ export default function LoginPage() {
       // `user` is already populated by the time the next screen renders. ──
       await refreshAuth();
 
-      // ── AUTH_WEB_002: Navigate to persona select ──
-      navigate('/persona-select');
+      // ── AUTH_WEB_002: Navigate to persona select — or back to where the
+      // user was sent from (Session 55: postLoginRedirect). ──
+      navigate(postLoginRedirect || '/persona-select');
 
     } catch (err) {
       setError('Could not connect to the server. Please check your connection.');
@@ -240,6 +252,7 @@ export default function LoginPage() {
               <span style={{ fontFamily: F.body, fontSize: 13, fontWeight: 400, color: C.textSecondary }}>
                 New here?{' '}
                 <a href="/signup" className="un-reglink"
+                  onClick={(e) => { e.preventDefault(); navigate('/signup', { state: location.state }); }}
                   style={{ color: C.textPrimary, fontWeight: 600, textDecoration: 'none', borderBottom: '1px solid transparent', transition: 'border-color 0.18s' }}>
                   Create Account ↗
                 </a>

@@ -3,19 +3,15 @@
 // ─────────────────────────────────────────────────────────────────────────────
 // Rental Application Intake — real API layer.
 //
-// Phase 1 build (see Claude Project doc application-intake/
-// UrbanNest_ApplicationIntake_Figma_ApproachDoc_Review.md). This module is
-// written FE-first against the planned backend surface (approach doc §11/
-// §12 — HouseholdApplication / ApplicationApplicant / ApplicantInvitation /
-// ApplicantRentalHistory / ApplicantEmployment / ApplicantDocument /
-// ApplicantConsent / ApplicantScreening — the PE-4 intake slice). No backend
-// app exists for this yet, so every call below can fail with a network
-// error or 404 until that's built. Callers (ApplicationIntakeContext) treat
-// that failure as "fall back to local draft state", same FE-first posture
-// as MarketplaceHomePage/PMListingsOverview/PromotionEngine before their
-// backends existed — this is not silently swallowed, it's an explicit,
-// console-logged fallback so wiring the real backend later is just a
-// matter of these endpoints starting to respond.
+// Session 55 — now backed by the real Django `application_intake` app
+// (Core Backend/application_intake/, mounted at /api/marketplace/
+// application/). Models follow "UrbanNest – Application Intake Django
+// Models & Record Numbering Standard": RentalApplication /
+// ApplicationApplicant / ApplicationDependent / ApplicantDetails. Callers
+// (ApplicationIntakeContext) still fall back to local draft state when a
+// call fails (network error / backend down) — explicit, console-logged,
+// never silent. Payload changes vs. the original FE-first contract are
+// listed in application_intake/README.md in the backend repo.
 //
 // Auth convention copied from renterNotificationApi.js (apiFetch/
 // extractErrorMessage/get/patch/post shape) — "each feature owns its own
@@ -50,6 +46,9 @@ async function apiFetch(path, options = {}) {
     const err = new Error(message);
     err.status = res.status;
     err.body = body;
+    // Session 55 — the backend lists every problem (e.g. all missing items
+    // on submit) in `messages`; callers can show them all, not just the first.
+    err.messages = Array.isArray(body?.messages) ? body.messages : [];
     throw err;
   }
   return body;
@@ -86,8 +85,45 @@ function kindPath(kind) {
 // Approach doc §2, Step 1 — creates HouseholdApplication + PRIMARY
 // ApplicationApplicant, status DRAFT. `kind`/`id` identify the real
 // Listing/PropertyListing being applied to.
-export function apiStartApplication(kind, id) {
-  return post(`${BASE}/start/`, { listing_kind: kindPath(kind), listing_id: id });
+// Session 55 — a Multi-Unit PropertyListing application must name the
+// specific unit (the marketplace unit picker's child Listing id) — the
+// backend rejects 'property-listing' starts without `unit_listing_id`.
+// Idempotent: returns the renter's existing open application for that unit.
+export function apiStartApplication(kind, id, unitListingId) {
+  const body = { listing_kind: kindPath(kind), listing_id: id };
+  if (unitListingId) body.unit_listing_id = unitListingId;
+  return post(`${BASE}/start/`, body);
+}
+
+// Session 55 — every form option (UN Dropdown table) and status label /
+// description (UN Reference tables) the intake screens render, plus the
+// business rules the form mirrors. Nothing is hardcoded on the frontend —
+// see useIntakeReferences.js. `country` adds that country's own dropdown
+// rows (e.g. 'US', 'IN') on top of the global ones.
+// Response: { statuses: {STATUS|APPLICANT_STATUS|INVITATION_STATUS|…:
+// [{code,label,description}]}, dropdowns: {RESIDENCE_TYPE|…: [{code,label}]},
+// rules: {requiredDocumentTypes, labelRequiredDocumentTypes,
+// noLandlordResidenceTypes, incomeRequiredEmploymentStatuses, draftStatus,
+// closedApplicationStatuses} }
+export function apiGetIntakeReferences(country) {
+  return get(`${BASE}/references/${country ? `?country=${encodeURIComponent(country)}` : ''}`);
+}
+
+// Session 55 — real "list my applications" (Renter side): every application
+// the caller holds an applicant record on, as
+// [{ household_application, myApplicant: { id, role, status, submittedAt } }].
+export function apiListMyApplications() {
+  return get(`${BASE}/mine/`);
+}
+
+// Session 55 — Landlord/PM side, read-only. Submitted (non-DRAFT)
+// applications on listings the caller can see. No UI consumes these yet.
+export function apiListReceivedApplications(listingId) {
+  return get(`${BASE}/received/${listingId ? `?listing_id=${encodeURIComponent(listingId)}` : ''}`);
+}
+
+export function apiGetReceivedApplication(applicationId) {
+  return get(`${BASE}/received/${applicationId}/`);
 }
 
 export function apiGetApplication(applicationId) {
@@ -140,6 +176,36 @@ export function apiGetInvitationPreview(token) {
   return get(`${BASE}/invitations/${encodeURIComponent(token)}/`);
 }
 
+// ─── Dependents (household-level, primary applicant only) ──────────────────
+// relationship: SPOUSE_PARTNER | CHILD | PARENT | SIBLING | OTHER_RELATIVE |
+// OTHER (the backend also accepts the display labels Stage 1 uses).
+
+export function apiAddDependent(applicationId, { fullName, relationship, dateOfBirth }) {
+  return post(`${BASE}/${applicationId}/dependents/`, { fullName, relationship, dateOfBirth: dateOfBirth || null });
+}
+
+export function apiRemoveDependent(applicationId, dependentId) {
+  return del(`${BASE}/${applicationId}/dependents/${dependentId}/`);
+}
+
+// ─── Pets / vehicles (stored on the PRIMARY applicant) ─────────────────────
+
+export function apiAddPet(applicationId, applicantId, { petType, breed, weight }) {
+  return post(`${BASE}/${applicationId}/applicants/${applicantId}/pets/`, { petType, breed, weight });
+}
+
+export function apiRemovePet(applicationId, applicantId, petId) {
+  return del(`${BASE}/${applicationId}/applicants/${applicantId}/pets/${petId}/`);
+}
+
+export function apiAddVehicle(applicationId, applicantId, { vehicleType, brand }) {
+  return post(`${BASE}/${applicationId}/applicants/${applicantId}/vehicles/`, { vehicleType, brand });
+}
+
+export function apiRemoveVehicle(applicationId, applicantId, vehicleId) {
+  return del(`${BASE}/${applicationId}/applicants/${applicantId}/vehicles/${vehicleId}/`);
+}
+
 // ─── Rental history / employment (per-applicant) ───────────────────────────
 
 export function apiAddRentalHistory(applicationId, applicantId, data) {
@@ -152,6 +218,16 @@ export function apiUpdateRentalHistory(applicationId, applicantId, entryId, data
 
 export function apiDeleteRentalHistory(applicationId, applicantId, entryId) {
   return del(`${BASE}/${applicationId}/applicants/${applicantId}/rental-history/${entryId}/`);
+}
+
+// Session 55 — co-applicants only: the primary applicant's CURRENT
+// residence (type, address, landlord name/contact, start date — never rent
+// or reason for leaving), for the opt-in "Same as primary applicant's
+// current residence" button. Read-only; copying = pre-filling the
+// co-applicant's own add-residence form, saved via apiAddRentalHistory.
+// Response: { residence: {...} | null }
+export function apiGetPrimaryResidence(applicationId, applicantId) {
+  return get(`${BASE}/${applicationId}/applicants/${applicantId}/primary-residence/`);
 }
 
 export function apiSetEmployment(applicationId, applicantId, data) {
@@ -193,6 +269,23 @@ export function apiDeleteDocument(applicationId, applicantId, documentId) {
   return del(`${BASE}/${applicationId}/applicants/${applicantId}/documents/${documentId}/`);
 }
 
+// Session 55 — documents live in private storage (never under /media/), so
+// the only way to get the file is this authenticated download. Returns a
+// Blob; callers can URL.createObjectURL() it.
+export async function apiDownloadDocument(applicationId, applicantId, documentId) {
+  const token = localStorage.getItem('access_token');
+  const res = await fetch(
+    `${API_BASE}${BASE}/${applicationId}/applicants/${applicantId}/documents/${documentId}/download/`,
+    { headers: { Authorization: `Bearer ${token}` } },
+  );
+  if (!res.ok) {
+    const err = new Error(`Download failed (${res.status})`);
+    err.status = res.status;
+    throw err;
+  }
+  return res.blob();
+}
+
 // ─── Consent (per-applicant) ────────────────────────────────────────────────
 
 export function apiRecordConsent(applicationId, applicantId, consentType, granted) {
@@ -204,9 +297,13 @@ export function apiRecordConsent(applicationId, applicantId, consentType, grante
 
 // ─── Submission ──────────────────────────────────────────────────────────────
 
-// Approach doc §2/§4 — submits this one applicant's own section. Does NOT
-// submit the whole household; backend recalculates household status
-// (DRAFT → AWAITING_CO_APPLICANT → READY_FOR_SCREENING) per approach doc §5.
-export function apiSubmitApplicantSection(applicationId, applicantId) {
-  return post(`${BASE}/${applicationId}/applicants/${applicantId}/submit/`, {});
+// Submits this one applicant's own section. Session 55 — `typedLegalName`
+// (Stage 4's typed-name attestation) is now required and must match the
+// applicant's legal first + last name. A PRIMARY submission moves the
+// household to SUBMITTED regardless of co-applicant progress; a
+// co-applicant's submission only changes their own status.
+// Response: { applicant_status, household_status, applicationNumber,
+// submittedAt, household_application, applicant }.
+export function apiSubmitApplicantSection(applicationId, applicantId, typedLegalName) {
+  return post(`${BASE}/${applicationId}/applicants/${applicantId}/submit/`, { typedLegalName });
 }

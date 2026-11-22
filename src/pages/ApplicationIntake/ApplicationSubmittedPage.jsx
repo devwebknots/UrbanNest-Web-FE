@@ -14,32 +14,29 @@ import * as api from './applicationIntakeApi';
 import { C, F, RADIUS, SHADOW } from './applicationIntakeTokens';
 import { SampleCard } from './sampleInstitutionalContent';
 import { ListingAgentCard } from './ApplicationIntakeShell';
+import { useIntakeReferences } from './useIntakeReferences';
 
-const HOUSEHOLD_STATUS_COPY = {
-  DRAFT: 'Application created but not yet submitted.',
-  IN_PROGRESS: 'Primary Applicant is completing information.',
-  AWAITING_CO_APPLICANT: 'Your section is submitted. Waiting on one or more co-applicants.',
-  READY_FOR_SCREENING: 'All required applicants have submitted. Ready for screening.',
-  SCREENING_IN_PROGRESS: 'Screening is underway.',
-  UNDER_REVIEW: 'The landlord/property manager is reviewing your application.',
-  APPROVED: 'Your application has been approved.',
-  REJECTED: 'Your application was not approved.',
-  WITHDRAWN: 'This application has been withdrawn.',
-};
+// Session 55 — status labels and descriptions come from the UN Reference
+// tables (statusLabel / statusDescription on the application, or
+// useIntakeReferences when only the code is known). Nothing hardcoded.
 
 export default function ApplicationSubmittedPage() {
   const { applicationId } = useParams();
   const location = useLocation();
   const navigate = useNavigate();
   const [application, setApplication] = useState(location.state?.application || null);
-  const [applicant] = useState(location.state?.applicant || null);
-  const [listingSummary] = useState(location.state?.listingSummary || null);
+  const refs = useIntakeReferences(location.state?.application?.countryCode);
+  const [applicant, setApplicant] = useState(location.state?.applicant || null);
+  const [listingSummaryState] = useState(location.state?.listingSummary || null);
   const [loading, setLoading] = useState(!location.state?.application);
 
   useEffect(() => {
     if (application || applicationId === 'draft') { setLoading(false); return; }
-    api.apiGetApplicationStatus(applicationId)
-      .then((data) => setApplication(data))
+    api.apiGetApplication(applicationId)
+      .then((data) => {
+        setApplication(data.household_application);
+        if (data.applicant) setApplicant(data.applicant);
+      })
       .catch(() => { /* backend not available — fall back to whatever we have */ })
       .finally(() => setLoading(false));
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -49,7 +46,8 @@ export default function ApplicationSubmittedPage() {
     return <div style={{ padding: 60, textAlign: 'center', fontFamily: F.body, color: C.textSecondary }}>Loading your application status…</div>;
   }
 
-  const status = application?.status || 'AWAITING_CO_APPLICANT';
+  const status = application?.status;
+  const listingSummary = listingSummaryState || application?.listingSummary || null;
   const coApplicants = application?.coApplicants || [];
 
   return (
@@ -75,7 +73,7 @@ export default function ApplicationSubmittedPage() {
           <div style={{ display: 'flex', gap: 24, marginTop: 18, flexWrap: 'wrap', fontFamily: F.body, fontSize: 12 }}>
             <div>
               <div style={{ color: 'rgba(255,255,255,0.6)', fontSize: 10, textTransform: 'uppercase', fontWeight: 700 }}>Application Ref</div>
-              <div style={{ fontWeight: 800 }}>{application?.id ? `#UN-APP-${application.id}` : 'Pending backend confirmation'}</div>
+              <div style={{ fontWeight: 800 }}>{application?.applicationNumber || 'Pending backend confirmation'}</div>
             </div>
             <div>
               <div style={{ color: 'rgba(255,255,255,0.6)', fontSize: 10, textTransform: 'uppercase', fontWeight: 700 }}>Submitted</div>
@@ -88,8 +86,8 @@ export default function ApplicationSubmittedPage() {
           <div style={{ fontFamily: F.body, fontSize: 13, fontWeight: 800, color: C.textPrimary, marginBottom: 10, textTransform: 'uppercase', letterSpacing: '0.03em' }}>
             Household Application Status
           </div>
-          <div style={{ fontFamily: F.body, fontSize: 14, fontWeight: 700, color: C.navy, marginBottom: 4 }}>{status.replace(/_/g, ' ')}</div>
-          <div style={{ fontFamily: F.body, fontSize: 12.5, color: C.textSecondary }}>{HOUSEHOLD_STATUS_COPY[status] || ''}</div>
+          <div style={{ fontFamily: F.body, fontSize: 14, fontWeight: 700, color: C.navy, marginBottom: 4 }}>{application?.statusLabel || refs.statusLabel('STATUS', status)}</div>
+          <div style={{ fontFamily: F.body, fontSize: 12.5, color: C.textSecondary }}>{application?.statusDescription || refs.statusDescription('STATUS', status)}</div>
 
           {coApplicants.length > 0 && (
             <div style={{ marginTop: 14, paddingTop: 14, borderTop: `1px dashed ${C.cardBorder}` }}>
@@ -97,7 +95,9 @@ export default function ApplicationSubmittedPage() {
               {coApplicants.map((c) => (
                 <div key={c.id} style={{ display: 'flex', justifyContent: 'space-between', padding: '6px 0', fontFamily: F.body, fontSize: 12.5 }}>
                   <span style={{ color: C.textPrimary, fontWeight: 700 }}>{c.fullName}</span>
-                  <span style={{ color: C.textSecondary }}>{c.applicantStatus || c.invitationStatus || 'Invitation sent'}</span>
+                  <span style={{ color: C.textSecondary }}>{c.invitationStatus === refs.rules.acceptedInvitationStatus
+                    ? (c.applicantStatusLabel || refs.statusLabel('APPLICANT_STATUS', c.applicantStatus))
+                    : (c.invitationStatusLabel || refs.statusLabel('INVITATION_STATUS', c.invitationStatus))}</span>
                 </div>
               ))}
             </div>

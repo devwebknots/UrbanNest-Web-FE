@@ -48,16 +48,14 @@
 import React, { useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useApplicationIntake } from './ApplicationIntakeContext';
+import { useIntakeReferences } from './useIntakeReferences';
 import { ApplicationIntakeShell, StageFooterNav, FieldLabel, inputStyle, SectionHeading, Card } from './ApplicationIntakeShell';
 import { C, F } from './applicationIntakeTokens';
 import { currencySymbol } from './applicationIntakeOptions';
 
-const DOCUMENT_TYPES = [
-  { type: 'GOVERNMENT_ID', label: 'Government-Issued Identification', required: true },
-  { type: 'PROOF_OF_INCOME', label: 'Proof of Income', required: true },
-  { type: 'EMPLOYMENT_VERIFICATION', label: 'Employment Verification', required: false },
-  { type: 'OTHER', label: 'Other Requested Document', required: false, needsLabel: true },
-];
+// Session 55 — document slots, pet types and vehicle types come from the
+// UN Dropdown table; which documents are required / need a label comes
+// from the backend's rules (useIntakeReferences). Nothing hardcoded.
 
 function DocumentSlot({ docType, label, required, needsLabel, document, onUpload, onRemove }) {
   const fileRef = useRef(null);
@@ -117,22 +115,20 @@ function DocumentSlot({ docType, label, required, needsLabel, document, onUpload
   );
 }
 
-const PET_TYPE_OPTIONS = ['Dog', 'Cat', 'Bird', 'Fish / Aquarium', 'Small Mammal', 'Reptile', 'Other'];
-const VEHICLE_TYPE_OPTIONS = ['Car', 'SUV', 'Truck', 'Motorcycle', 'Van', 'Other'];
 
-function PetRow({ pet, onRemove }) {
+function PetRow({ pet, typeLabel, onRemove }) {
   return (
     <div style={{ border: `1px solid ${C.cardBorder}`, borderRadius: 10, padding: 12, marginTop: 10, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8 }}>
       <div>
-        <div style={{ fontFamily: F.body, fontSize: 13.5, fontWeight: 700, color: C.textPrimary }}>{pet.petType}{pet.breed ? ` · ${pet.breed}` : ''}</div>
+        <div style={{ fontFamily: F.body, fontSize: 13.5, fontWeight: 700, color: C.textPrimary }}>{pet.petTypeLabel || typeLabel}{pet.breed ? ` · ${pet.breed}` : ''}</div>
         {pet.weight && <div style={{ fontFamily: F.body, fontSize: 11.5, color: C.textSecondary }}>Approx. weight: {pet.weight}</div>}
       </div>
-      <button onClick={onRemove} style={{ background: 'none', border: 'none', color: C.danger, fontWeight: 700, fontFamily: F.body, fontSize: 11.5, cursor: 'pointer', padding: 0, flexShrink: 0 }}>Remove</button>
+      {onRemove && <button onClick={onRemove} style={{ background: 'none', border: 'none', color: C.danger, fontWeight: 700, fontFamily: F.body, fontSize: 11.5, cursor: 'pointer', padding: 0, flexShrink: 0 }}>Remove</button>}
     </div>
   );
 }
 
-function AddPetForm({ onAdd, onCancel }) {
+function AddPetForm({ options, onAdd, onCancel }) {
   const [form, setForm] = useState({ petType: '', breed: '', weight: '' });
   function set(k) { return { value: form[k], onChange: (e) => setForm({ ...form, [k]: e.target.value }) }; }
   return (
@@ -142,7 +138,7 @@ function AddPetForm({ onAdd, onCancel }) {
           <FieldLabel required>Pet Type</FieldLabel>
           <select style={inputStyle} {...set('petType')}>
             <option value="">Select…</option>
-            {PET_TYPE_OPTIONS.map((t) => <option key={t} value={t}>{t}</option>)}
+            {options.map((o) => <option key={o.code} value={o.code}>{o.label}</option>)}
           </select>
         </div>
         <div>
@@ -169,18 +165,18 @@ function AddPetForm({ onAdd, onCancel }) {
   );
 }
 
-function VehicleRow({ vehicle, onRemove }) {
+function VehicleRow({ vehicle, typeLabel, onRemove }) {
   return (
     <div style={{ border: `1px solid ${C.cardBorder}`, borderRadius: 10, padding: 12, marginTop: 10, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 8 }}>
       <div>
-        <div style={{ fontFamily: F.body, fontSize: 13.5, fontWeight: 700, color: C.textPrimary }}>{vehicle.vehicleType}{vehicle.brand ? ` · ${vehicle.brand}` : ''}</div>
+        <div style={{ fontFamily: F.body, fontSize: 13.5, fontWeight: 700, color: C.textPrimary }}>{vehicle.vehicleTypeLabel || typeLabel}{vehicle.brand ? ` · ${vehicle.brand}` : ''}</div>
       </div>
-      <button onClick={onRemove} style={{ background: 'none', border: 'none', color: C.danger, fontWeight: 700, fontFamily: F.body, fontSize: 11.5, cursor: 'pointer', padding: 0, flexShrink: 0 }}>Remove</button>
+      {onRemove && <button onClick={onRemove} style={{ background: 'none', border: 'none', color: C.danger, fontWeight: 700, fontFamily: F.body, fontSize: 11.5, cursor: 'pointer', padding: 0, flexShrink: 0 }}>Remove</button>}
     </div>
   );
 }
 
-function AddVehicleForm({ onAdd, onCancel }) {
+function AddVehicleForm({ options, onAdd, onCancel }) {
   const [form, setForm] = useState({ vehicleType: '', brand: '' });
   function set(k) { return { value: form[k], onChange: (e) => setForm({ ...form, [k]: e.target.value }) }; }
   return (
@@ -190,7 +186,7 @@ function AddVehicleForm({ onAdd, onCancel }) {
           <FieldLabel required>Vehicle Type</FieldLabel>
           <select style={inputStyle} {...set('vehicleType')}>
             <option value="">Select…</option>
-            {VEHICLE_TYPE_OPTIONS.map((t) => <option key={t} value={t}>{t}</option>)}
+            {options.map((o) => <option key={o.code} value={o.code}>{o.label}</option>)}
           </select>
         </div>
         <div>
@@ -213,12 +209,36 @@ function AddVehicleForm({ onAdd, onCancel }) {
   );
 }
 
+function ReadOnlyHousehold({ items, emptyText, render }) {
+  return (
+    <div>
+      <div style={{ fontFamily: F.body, fontSize: 11, color: C.textTertiary, marginBottom: 4 }}>
+        Declared by the primary applicant for the household (read-only).
+      </div>
+      {items.length > 0 ? items.map(render) : (
+        <div style={{ fontFamily: F.body, fontSize: 12, color: C.textSecondary }}>{emptyText}</div>
+      )}
+    </div>
+  );
+}
+
 export default function Stage3_PropertyDocuments() {
   const navigate = useNavigate();
   const {
     applicant, application, basePath, listingSummary, addDocument, removeDocument,
     setPropertyRequirements, addPet, removePet, addVehicle, removeVehicle,
   } = useApplicationIntake();
+  const refs = useIntakeReferences(application?.countryCode || listingSummary?.country);
+  // Session 55 — pets & vehicles belong to the household and are recorded by
+  // the primary applicant; a co-applicant sees them read-only.
+  const isPrimary = applicant.role === refs.rules.primaryApplicantType;
+  const requiredDocs = refs.rules.requiredDocumentTypes || [];
+  const labelRequiredDocs = refs.rules.labelRequiredDocumentTypes || [];
+  const documentSlots = refs.dropdown('DOCUMENT_TYPE').map((o) => ({
+    type: o.code, label: o.label,
+    required: requiredDocs.includes(o.code),
+    needsLabel: labelRequiredDocs.includes(o.code),
+  }));
   const [formError, setFormError] = useState(null);
   const [addingPet, setAddingPet] = useState(false);
   const [addingVehicle, setAddingVehicle] = useState(false);
@@ -228,7 +248,7 @@ export default function Stage3_PropertyDocuments() {
   }
 
   function validateAndContinue() {
-    const requiredMissing = DOCUMENT_TYPES.filter((d) => d.required && !docFor(d.type));
+    const requiredMissing = documentSlots.filter((d) => d.required && !docFor(d.type));
     if (requiredMissing.length > 0) {
       setFormError(`Please upload: ${requiredMissing.map((d) => d.label).join(', ')}.`);
       document.getElementById('ai-form-error')?.scrollIntoView({ behavior: 'smooth', block: 'center' });
@@ -251,9 +271,8 @@ export default function Stage3_PropertyDocuments() {
     : null;
 
   // Pets/Vehicles: a yes/no flag plus a real repeatable list — the list's
-  // own length IS the count (see ApplicationIntakeContext.jsx's
-  // addPet()/addVehicle()), stored household-level, local/localStorage-only
-  // (no backend model yet — same documented gap as Dependents).
+  // own length IS the count. Stored on the primary applicant server-side
+  // (ApplicantDetails PET / VEHICLE — see ApplicationIntakeContext.jsx).
   const hasPets = !!application?.propertyRequirements?.hasPets;
   const hasVehicles = !!application?.propertyRequirements?.hasVehicles;
   const pets = application?.propertyRequirements?.pets || [];
@@ -268,7 +287,7 @@ export default function Stage3_PropertyDocuments() {
           Verification Vault &amp; Documents
         </div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-          {DOCUMENT_TYPES.map((d) => (
+          {documentSlots.map((d) => (
             <DocumentSlot
               key={d.type}
               docType={d.type}
@@ -292,6 +311,14 @@ export default function Stage3_PropertyDocuments() {
           <div style={{ border: `1px solid ${C.cardBorder}`, borderRadius: 8, padding: 12 }}>
             <div style={{ fontFamily: F.body, fontSize: 12.5, fontWeight: 700, color: C.textPrimary, marginBottom: petRealFacts ? 4 : 8 }}>Pets</div>
             {petRealFacts && <div style={{ fontFamily: F.body, fontSize: 11.5, color: C.textSecondary, marginBottom: 8 }}>{petRealFacts}</div>}
+            {!isPrimary && (
+              <ReadOnlyHousehold
+                items={pets}
+                emptyText="The primary applicant hasn't declared any pets."
+                render={(p) => <PetRow key={p.id} pet={p} typeLabel={refs.optionLabel('PET_TYPE', p.petType)} />}
+              />
+            )}
+            {isPrimary && (
             <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontFamily: F.body, fontSize: 12.5, fontWeight: 700, color: C.textPrimary, cursor: 'pointer' }}>
               <input
                 type="checkbox"
@@ -300,8 +327,9 @@ export default function Stage3_PropertyDocuments() {
               />
               Do you have any pets?
             </label>
+            )}
 
-            {hasPets && (
+            {isPrimary && hasPets && (
               <div style={{ marginTop: 10 }}>
                 {pets.length > 0 && (
                   <div style={{ fontFamily: F.body, fontSize: 11, color: C.textTertiary, marginBottom: 4 }}>
@@ -309,10 +337,11 @@ export default function Stage3_PropertyDocuments() {
                   </div>
                 )}
                 {pets.map((p) => (
-                  <PetRow key={p.id} pet={p} onRemove={() => removePet(p.id)} />
+                  <PetRow key={p.id} pet={p} typeLabel={refs.optionLabel('PET_TYPE', p.petType)} onRemove={() => removePet(p.id)} />
                 ))}
                 {addingPet ? (
                   <AddPetForm
+                    options={refs.dropdown('PET_TYPE')}
                     onAdd={(data) => { addPet(data); setAddingPet(false); }}
                     onCancel={() => setAddingPet(false)}
                   />
@@ -331,6 +360,14 @@ export default function Stage3_PropertyDocuments() {
           <div style={{ border: `1px solid ${C.cardBorder}`, borderRadius: 8, padding: 12 }}>
             <div style={{ fontFamily: F.body, fontSize: 12.5, fontWeight: 700, color: C.textPrimary, marginBottom: parkingRealFacts ? 4 : 8 }}>Vehicles</div>
             {parkingRealFacts && <div style={{ fontFamily: F.body, fontSize: 11.5, color: C.textSecondary, marginBottom: 8 }}>{parkingRealFacts}</div>}
+            {!isPrimary && (
+              <ReadOnlyHousehold
+                items={vehicles}
+                emptyText="The primary applicant hasn't declared any vehicles."
+                render={(v) => <VehicleRow key={v.id} vehicle={v} typeLabel={refs.optionLabel('VEHICLE_TYPE', v.vehicleType)} />}
+              />
+            )}
+            {isPrimary && (
             <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontFamily: F.body, fontSize: 12.5, fontWeight: 700, color: C.textPrimary, cursor: 'pointer' }}>
               <input
                 type="checkbox"
@@ -339,8 +376,9 @@ export default function Stage3_PropertyDocuments() {
               />
               Do you have any vehicles?
             </label>
+            )}
 
-            {hasVehicles && (
+            {isPrimary && hasVehicles && (
               <div style={{ marginTop: 10 }}>
                 {vehicles.length > 0 && (
                   <div style={{ fontFamily: F.body, fontSize: 11, color: C.textTertiary, marginBottom: 4 }}>
@@ -348,10 +386,11 @@ export default function Stage3_PropertyDocuments() {
                   </div>
                 )}
                 {vehicles.map((v) => (
-                  <VehicleRow key={v.id} vehicle={v} onRemove={() => removeVehicle(v.id)} />
+                  <VehicleRow key={v.id} vehicle={v} typeLabel={refs.optionLabel('VEHICLE_TYPE', v.vehicleType)} onRemove={() => removeVehicle(v.id)} />
                 ))}
                 {addingVehicle ? (
                   <AddVehicleForm
+                    options={refs.dropdown('VEHICLE_TYPE')}
                     onAdd={(data) => { addVehicle(data); setAddingVehicle(false); }}
                     onCancel={() => setAddingVehicle(false)}
                   />

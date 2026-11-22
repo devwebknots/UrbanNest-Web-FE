@@ -213,10 +213,23 @@ function SavedIndicator() {
   );
 }
 
+// Session 55 — invitation mode never saves locally, so a failed save must
+// be visible: the renter re-enters the change once the connection is back.
+function SaveErrorBanner() {
+  const { saveError, clearSaveError } = useApplicationIntake();
+  if (!saveError) return null;
+  return (
+    <div role="alert" style={{ display: 'flex', justifyContent: 'space-between', gap: 12, alignItems: 'flex-start', color: C.danger, background: C.dangerBg, border: `1px solid ${C.danger}`, borderRadius: 8, padding: '10px 14px', fontFamily: F.body, fontSize: 12.5, fontWeight: 700, marginBottom: 14 }}>
+      <span>{saveError} Your last change was not saved — please enter it again.</span>
+      <button onClick={clearSaveError} style={{ background: 'none', border: 'none', color: C.danger, fontWeight: 800, cursor: 'pointer', flexShrink: 0 }}>Dismiss</button>
+    </div>
+  );
+}
+
 export function ApplicationIntakeShell({ activeStage, children, sidebarExtra }) {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const { listingSummary, application } = useApplicationIntake();
+  const { listingSummary, application, applicant } = useApplicationIntake();
 
   return (
     <div style={{ height: '100vh', overflowY: 'auto', background: C.pageBg, fontFamily: F.body }}>
@@ -235,7 +248,7 @@ export function ApplicationIntakeShell({ activeStage, children, sidebarExtra }) 
           <SavedIndicator />
           <div style={{ textAlign: 'right' }}>
             <div style={{ fontFamily: F.body, fontSize: 12.5, fontWeight: 700 }}>{user?.first_name ? `${user.first_name} ${user.last_name || ''}`.trim() : 'Applicant'}</div>
-            <div style={{ fontFamily: F.body, fontSize: 10, color: 'rgba(255,255,255,0.6)' }}>Primary Applicant</div>
+            <div style={{ fontFamily: F.body, fontSize: 10, color: 'rgba(255,255,255,0.6)' }}>{applicant?.roleLabel || ''}</div>
           </div>
           <button
             onClick={() => navigate(-1)}
@@ -275,7 +288,7 @@ export function ApplicationIntakeShell({ activeStage, children, sidebarExtra }) 
             )}
           </div>
           <div style={{ fontFamily: F.body, fontSize: 11.5, color: C.textTertiary, whiteSpace: 'nowrap' }}>
-            {application?.id ? `Application Ref #${application.id}` : 'Draft not yet submitted'} · Stage {activeStage} of 4
+            {application?.applicationNumber ? `Application Ref ${application.applicationNumber}` : 'Draft not yet submitted'} · Stage {activeStage} of 4
           </div>
         </div>
         <div style={{ borderBottom: `1px solid ${C.cardBorder}`, marginTop: 16 }} />
@@ -286,6 +299,7 @@ export function ApplicationIntakeShell({ activeStage, children, sidebarExtra }) 
         <VerticalStepper activeStage={activeStage} />
 
         <div style={{ flex: '2 1 480px', minWidth: 320 }}>
+          <SaveErrorBanner />
           {children}
         </div>
 
