@@ -118,3 +118,4 @@ export { default as FormField, ReadField, SelectField, FIELD2 } from './FormFiel
 export { Switch, Checkbox, RadioPill, ChoiceTile } from './FormControls';
 export { default as MapPreview } from './MapPreview';
 export { default as WizardFooter } from './WizardFooter';
+export { default as Modal } from './Modal';                 // centred dialog (title · body · footer buttons)

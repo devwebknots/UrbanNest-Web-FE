@@ -6,12 +6,12 @@
 // steps that haven't been redesigned yet. Redesigned steps (1 Property, 2 Unit) use this file so every step
 // has the identical frame:
 //
-//   <WizardPage propertyName="LL01" unitLabel="Unit 013" current={2}>
+//   <WizardPage propertyName="LL01" unitLabel="Unit 013" current={2} subtitle="…optional…">
 //     <Grid layout="wideLeft"> … cards … </Grid>
 //     <WizardFooter … />
 //   </WizardPage>
 //
-//   WizardPage  PageShell (+ ImageBackdrop waves) · Breadcrumb · DetailHeader (Create Listing · subtitle │
+//   WizardPage  PageShell (+ ImageBackdrop waves) · Breadcrumb · header (Create Listing 24px · subtitle │
 //               Listing Status pill) · Stepper
 //   AiAssist    "AI Assist" soft button — disabled with a tooltip until AI Assist is wired up
 //   WZ          page-layout styles shared by the steps (tokens only)
@@ -19,8 +19,8 @@
 
 import React from 'react';
 import { PageShell, Breadcrumb, ImageBackdrop } from '../../../components/layout';
-import { DetailHeader, Stepper, FIELD2 } from '../../../components/ui';
-import { C2, TONES2, FS2, FW2, SP2, SZ2, SH2, LAYOUT2, T2, UI2 } from '../../../constants';
+import { Stepper, FIELD2 } from '../../../components/ui';
+import { C2, TONES2, F2, FS2, FW2, LH2, LS2, SP2, SZ2, SH2, LAYOUT2, T2, UI2 } from '../../../constants';
 import { STEPS } from './listingWizardShared';
 import backdropArt from '../../../assets/landlord/wizard-backdrop.jpg';   // Downloads/image 86.png — waves behind the header
 
@@ -45,6 +45,11 @@ export const WZ = {
   chipIn:    { flex: 1, minWidth: SZ2.searchSm / 3, border: 'none', outline: 'none', background: 'transparent', fontFamily: 'inherit', fontSize: FS2.base, color: C2.textPrimary, height: SZ2.control.md },
   stateBox:  { ...UI2.empty },
   title:     { ...T2.sectionTitle, margin: 0 },
+  // Page header — title = the standard page/hero title (Playfair 24 semibold, same as the Dashboard / Portfolio /
+  // Listings banners) · subtitle = T2.label · status pill on the right of the title line
+  head:      { display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: SP2.lg, flexWrap: 'wrap' },
+  pageTitle: { fontFamily: F2.heading, fontSize: FS2.xxxl, fontWeight: FW2.semibold, lineHeight: LH2.snug, letterSpacing: LS2.tight, color: C2.navyDeep, margin: 0 },
+  pageSub:   { ...UI2.text.label, marginTop: SP2.sm },
 };
 
 // AI Assist isn't wired to anything yet → visibly disabled with a tooltip (same behaviour as the v1 AiAssistButton)
@@ -79,7 +84,9 @@ export function ChipInput({ items, draft, onDraft, onAdd, onRemove, placeholder,
 }
 
 // PageShell + wave backdrop + breadcrumb + "Create Listing" header (status pill) + stepper
-export function WizardPage({ propertyName, unitLabel, current, steps = STEPS, children }) {
+const DEFAULT_SUB = 'Define what is being offered and ensure information for prospects is correct.';
+
+export function WizardPage({ propertyName, unitLabel, current, steps = STEPS, subtitle = DEFAULT_SUB, children }) {
   return (
     <PageShell animate backdrop={<ImageBackdrop image={backdropArt} />} activePage="listings" title="UrbanNest Landlord">
       <Breadcrumb items={[
@@ -87,12 +94,13 @@ export function WizardPage({ propertyName, unitLabel, current, steps = STEPS, ch
         { label: propertyName || '…', onClick: () => window.history.back() },
         { label: unitLabel },
       ]} />
-      <DetailHeader
-        title="Create Listing"
-        meta="Define what is being offered and ensure information for prospects is correct."
-        metaIcon={null}
-        aside={<span style={WZ.statusPill}><span style={UI2.statusDot(TONES2.neutral)} />Listing Status: Draft</span>}
-      />
+      <section style={WZ.head}>
+        <div style={UI2.minWidth0}>
+          <h1 style={WZ.pageTitle}>Create Listing</h1>
+          <div style={WZ.pageSub}>{subtitle}</div>
+        </div>
+        <span style={WZ.statusPill}><span style={UI2.statusDot(TONES2.neutral)} />Listing Status: Draft</span>
+      </section>
       <Stepper steps={steps} current={current} />
       {children}
     </PageShell>

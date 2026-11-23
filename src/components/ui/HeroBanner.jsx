@@ -79,7 +79,7 @@ const S = {
   cScrim:   { ...fill, background: G2.heroCompactScrim },
   cStatsScrim: { ...fill, background: G2.heroStatsScrim },
   cEyebrow: { display: 'inline-block', fontFamily: F2.body, fontSize: FS2.xs, fontWeight: FW2.medium, lineHeight: LH2.heading, color: C2.onDark.text, padding: pad(SP2.xxs, SP2.md), borderRadius: R2.pill, border: `1px solid ${C2.onDark.border}`, background: C2.onDark.surface, backdropFilter: BLUR2.sm, WebkitBackdropFilter: BLUR2.sm, marginBottom: SP2.xs },
-  cTitle:   { fontFamily: F2.heading, fontSize: FS2.display, fontWeight: FW2.semibold, lineHeight: LH2.tight, color: C2.white, marginBottom: SP2.xs },
+  cTitle:   { fontFamily: F2.heading, fontSize: FS2.xxxl, fontWeight: FW2.semibold, lineHeight: LH2.tight, color: C2.white, marginBottom: SP2.xs },
   cSub:     { fontFamily: F2.body, fontSize: FS2.base, color: C2.onDark.textSoft },
   // compact stats row (Portfolio "Property List"): icon circle · label · value, split by soft dividers
   cStats:   { display: 'flex', alignItems: 'center', flexWrap: 'wrap', rowGap: SP2.md, marginTop: SP2.xl },

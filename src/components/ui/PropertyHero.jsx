@@ -33,7 +33,7 @@ const S = {
   content: { position: 'relative', zIndex: 1, display: 'flex', flexDirection: 'column', gap: SP2.xs, maxWidth: SZ2.heroContentMax, paddingRight: SZ2.control.lg },
 
   badge:  { ...UI2.pill(TONES2.primary, { solid: true }), alignSelf: 'flex-start', fontSize: FS2.sm, marginBottom: SP2.xs },
-  title:  { fontFamily: F2.heading, fontSize: FS2.score, fontWeight: FW2.semibold, lineHeight: LH2.tight, letterSpacing: LS2.tighter },
+  title:  { fontFamily: F2.heading, fontSize: FS2.xxxl, fontWeight: FW2.semibold, lineHeight: LH2.tight, letterSpacing: LS2.tighter },
   addr:   { ...UI2.row(SP2.xs), fontSize: FS2.sm, color: C2.onDark.textSoft },
   desc:   { ...UI2.clamp(2), fontSize: FS2.xxl, fontWeight: FW2.medium, lineHeight: LH2.heading, marginTop: SP2.sm },
   eyebrow:{ fontSize: FS2.sm, color: C2.onDark.textSoft },

@@ -342,6 +342,10 @@ export const G2 = {
   imageBackdropMask: 'linear-gradient(180deg, #000 45%, transparent 100%)',
   // … and a left → right fade: the art only lives on the RIGHT half (plain behind the title / stepper, like the design)
   imageBackdropMaskX: 'linear-gradient(90deg, transparent 0%, transparent 45%, #000 72%)',
+  // Promotion plan card (Create Listing step 3): building art on the right, fading in from the left
+  planArtMask:  'linear-gradient(90deg, transparent 0%, rgba(0,0,0,0.35) 30%, #000 60%)',
+  // Modal backdrop (v2 Modal)
+  modalScrim:   'rgba(15, 23, 42, 0.45)',
   // CornerArt rim: white highlight along a card's top edge + top-right corner, fading out to the left and down
   cornerRimMask: 'linear-gradient(205deg, #000 45%, rgba(0,0,0,0.6) 70%, transparent 95%)',
   // OpenHero sky to the LEFT of the photo (portfolio-hero-sunset.jpg): the photo's own left-edge colours,

@@ -20,7 +20,7 @@ import { C2, TONES2, F2, FS2, FW2, LH2, LS2, SP2, pad, UI2 } from '../../constan
 const S = {
   bar:   { fontFamily: F2.body },
   row:   { ...UI2.row(SP2.md), flexWrap: 'nowrap', rowGap: SP2.sm, minWidth: 0 },
-  title: { fontFamily: F2.heading, fontSize: FS2.display, fontWeight: FW2.semibold, lineHeight: LH2.snug, letterSpacing: LS2.tight, color: C2.navyDeep, margin: 0, minWidth: 0, ...UI2.truncate },
+  title: { fontFamily: F2.heading, fontSize: FS2.xxxl, fontWeight: FW2.semibold, lineHeight: LH2.snug, letterSpacing: LS2.tight, color: C2.navyDeep, margin: 0, minWidth: 0, ...UI2.truncate },
   badge: { padding: pad(SP2.xs, SP2.md), flexShrink: 0 },
   action:{ flexShrink: 0, display: 'flex' },
   meta:  { ...UI2.row(SP2.md), flexWrap: 'wrap', rowGap: SP2.xs, ...UI2.text.label, marginTop: SP2.sm },

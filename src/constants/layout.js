@@ -29,6 +29,8 @@ export const SZ2 = {
   pageWave: 240,                                // PageWave backdrop height — top bar + breadcrumb + detail header
   imageBackdrop: 360,                           // ImageBackdrop height — top bar + breadcrumb + header + stepper (Create Listing)
   cornerArt: { w: '50%', h: 140 },               // CornerArt — wave artwork in a card's top-right corner (Downloads/image 103.png panels)
+  planCard: { w: 340, basis: '66%', art: '55%', btn: '80%' },   // Promotion plan card: min width · width (≈ ⅔ of its card, like the design) · building art width · button width (of the text column)
+  modal:    { w: 520, maxH: '86vh' },           // v2 Modal card
   pillFixed: 72,                               // fixed-width status pills in a list column (Critical / Medium / Low) — fits the longest label
   dot:     6,
   menu:    { w: 240, maxH: 280 },           // FilterMenu dropdown: width · max height before it scrolls
@@ -193,4 +195,4 @@ export const BLUR2 = {
 export const OP2 = { faint: 0.25, muted: 0.45, soft: 0.7, pattern: 0.55, backdrop: 0.8, cornerArt: 0.45 };   // pattern = CardPattern corner art strength · backdrop = ImageBackdrop art strength · cornerArt = CornerArt strength (light, so card text stays clear)
 
 // Stacking order for floating layers (rendered in a portal on document.body)
-export const ZI2 = { menu: 1000, sticky: 10 };   // menu: FilterMenu dropdown — above cards, top bar and sidebar · sticky: WizardFooter bar over the scrolling content
+export const ZI2 = { menu: 1000, sticky: 10, modal: 900 };   // menu: FilterMenu dropdown — above cards, top bar and sidebar · sticky: WizardFooter bar over the scrolling content · modal: v2 Modal (menus still open above it)
