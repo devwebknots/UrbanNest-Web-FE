@@ -1,9 +1,9 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import './index.css';
-import './styles/v2/fonts.css';
-import './styles/v2/tokens.css';
-import './styles/v2/utilities.css';
+import './styles/fonts.css';
+import './styles/tokens.css';
+import './styles/utilities.css';
 import App from './App';
 import reportWebVitals from './reportWebVitals';
 

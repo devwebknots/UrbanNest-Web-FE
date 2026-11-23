@@ -1,11 +1,12 @@
 import React, { useState, useRef } from 'react';
+import { PageShell, Grid, Breadcrumb, PageFooter, PageWave } from '../../components/layout';
 import {
-  PageShell, Grid, SectionCard, CardHeader, Breadcrumb, ListRow, EmptyState, PageFooter,
-  DataTable, TextLink, ActionTray, FilterMenu, DetailHeader, PhotoBento, PageWave, StatGroup, CardWave,
-} from '../../components/v2';
+  SectionCard, CardHeader, ListRow, EmptyState,
+  DataTable, TextLink, ActionTray, FilterMenu, DetailHeader, PhotoBento, StatGroup, CardWave,
+} from '../../components/ui';
 import {
   C2, TONES2, ACCENT2, accentTone, FS2, SH2, SP2, SZ2, LAYOUT2, OP2, UI2,
-} from '../../constants/v2';
+} from '../../constants';
 import { C, F } from './landlordTokens';
 import { UNIT_DEMO, orDemo, isDemoId } from './propertyDemoData';
 

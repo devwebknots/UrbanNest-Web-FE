@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { PageShell, Grid, Breadcrumb, PageFooter } from '../../components/layout';
 import {
-  PageShell, Grid, SectionCard, Breadcrumb, TabBar, ListRow, EmptyState, PageFooter,
+  SectionCard, TabBar, ListRow, EmptyState,
   DataTable, MetricBar, BarChart, Gauge, TextLink, ActionTray, FilterMenu, DetailHeader, StatGroup, PhotoBento, AssetRow,
-} from '../../components/v2';
-import { C2, G2, GSTOPS2, TONES2, ACCENT2, T2, FS2, FW2, SP2, SZ2, LAYOUT2, OP2, pad, UI2 } from '../../constants/v2';
+} from '../../components/ui';
+import { C2, G2, GSTOPS2, TONES2, ACCENT2, T2, FS2, FW2, SP2, SZ2, LAYOUT2, OP2, pad, UI2 } from '../../constants';
 import { C, F } from './landlordTokens';
 import { CustomDropdown } from '../../components/ui';
 import LandlordUnitSelection from './Listing/LandlordUnitSelection';

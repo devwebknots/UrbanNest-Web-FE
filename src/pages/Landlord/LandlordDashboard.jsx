@@ -1,17 +1,18 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { PageShell, Grid, PageFooter } from '../../components/layout';
 import {
-  PageShell, Grid, ProfileHero, KpiStrip, SectionCard, AssetRow, InsightCard, MetricBar,
-  ListRow, EmptyState, MessageItem, PageFooter, BarChart, Sparkline, CountUp, TextLink,
+  ProfileHero, KpiStrip, SectionCard, AssetRow, InsightCard, MetricBar,
+  ListRow, EmptyState, MessageItem, BarChart, Sparkline, CountUp, TextLink,
   CardWave, DonutChart, FilterMenu,
-} from '../../components/v2';
+} from '../../components/ui';
 import {
   C2, TONES2, ACCENT2, AVATAR2, CHART2,
   T2, FS2, LH2,
   SP2, SZ2, LAYOUT2, UI2,
-} from '../../constants/v2';
-import heroImage from '../../assets/v2/landlord/dashboard-hero-light.jpg';   // bright building + soft waves (cut from the dashboard design, Downloads/image 40.png)
-import propertyPlaceholder from '../../assets/v2/landlord/property-placeholder.jpg';
+} from '../../constants';
+import heroImage from '../../assets/landlord/dashboard-hero-light.jpg';   // bright building + soft waves (cut from the dashboard design, Downloads/image 40.png)
+import propertyPlaceholder from '../../assets/landlord/property-placeholder.jpg';
 import { DASHBOARD_DEMO, withDemo, orDemo } from './dashboardDemoData';
 
 const API_BASE = process.env.REACT_APP_API_BASE_URL || 'http://localhost:8001/api';
@@ -33,7 +34,7 @@ const API_BASE = process.env.REACT_APP_API_BASE_URL || 'http://localhost:8001/ap
 // ─── Card-internal styles specific to this page (tokens only) ────────────────
 
 // Shared card patterns (UI2.cardFill · capsLabel · labelRow · context · subhead · cardFoot · strong ·
-// delta · amount · legend* · accentItem · tintRow) come from constants/v2/components.js.
+// delta · amount · legend* · accentItem · tintRow) come from constants/components.js.
 // Only layout that is specific to this page stays here.
 const S = {
   rentSide:  { ...UI2.stack(SP2.md), justifyContent: 'center', paddingLeft: SP2.lg, borderLeft: `${SZ2.hairline}px solid ${C2.border}` },

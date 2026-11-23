@@ -1,16 +1,17 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { PageShell, Grid, PageFooter } from '../../components/layout';
 import {
-  PageShell, Grid, WaveHero, SectionCard, TabBar, PropertyRow, ListRow, FilterMenu,
-  EmptyState, LineChart, CountUp, TextLink, PageFooter,
+  WaveHero, SectionCard, TabBar, PropertyRow, ListRow, FilterMenu,
+  EmptyState, LineChart, CountUp, TextLink,
   // ActionTile — used by the Quick Actions card, commented out below
-} from '../../components/v2';
+} from '../../components/ui';
 import {
   C2, TONES2, ACCENT2, accentTone,
   T2, F2, FS2, SP2, SZ2, LAYOUT2, UI2,
-} from '../../constants/v2';
-import heroImage from '../../assets/v2/landlord/portfolio-hero-banner.png';   // full banner art (navy → sky, building right) — Downloads/urbannest_banner_transparent 1.png
-import propertyPlaceholder from '../../assets/v2/landlord/property-placeholder.jpg';
+} from '../../constants';
+import heroImage from '../../assets/landlord/portfolio-hero-banner.png';   // full banner art (navy → sky, building right) — Downloads/urbannest_banner_transparent 1.png
+import propertyPlaceholder from '../../assets/landlord/property-placeholder.jpg';
 
 const API_BASE = process.env.REACT_APP_API_BASE_URL || 'http://localhost:8001/api';
 
@@ -25,7 +26,7 @@ const API_BASE = process.env.REACT_APP_API_BASE_URL || 'http://localhost:8001/ap
 //     │ Property Insight (property picker · figure + delta + LineChart) · Recent Unit Activities
 //       (Quick Actions card commented out)
 //   PageFooter
-// No page-level spacing, sizes, fonts or colours — everything comes from constants/v2.
+// No page-level spacing, sizes, fonts or colours — everything comes from constants.
 
 // ─── Property type label map ──────────────────────────────────────────────────
 const PROP_TYPE_LABEL = {
