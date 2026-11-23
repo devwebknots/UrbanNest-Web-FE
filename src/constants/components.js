@@ -256,6 +256,10 @@ export const UI2 = {
   compact:     { minHeight: SZ2.control.md, padding: pad(0, SP2.sm), fontSize: FS2.sm },   // 34 high · 8 side padding · 12 text
   compactIcon: { fontSize: FS2.md },                                                         // 14 — leading icon inside a compact control
 
+  // STANDARD SELECTED-TICK BADGE — the round ✓ in the corner of a selected photo / media tile (same 18px as the
+  // Checkbox box, light primary-blue gradient, white 11px ✓). Position it per use (absolute top-right).
+  checkBadge:  { display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: SZ2.check, height: SZ2.check, borderRadius: R2.round, background: G2.primaryButton, color: C2.white, fontSize: FS2.xs, flexShrink: 0 },
+
   // Small bordered "label value" chip, e.g. Occupancy 92%
   metricChip: {
     display: 'inline-flex', alignItems: 'center', gap: SP2.xs, padding: pad(SP2.xs, SP2.sm),

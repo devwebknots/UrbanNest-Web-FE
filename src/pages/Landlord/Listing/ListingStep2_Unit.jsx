@@ -38,7 +38,7 @@ import {
   SectionCard, CornerArt, FormField, ReadField, SelectField, FIELD2,
   Checkbox, RadioPill, ChoiceTile, WizardFooter, TextLink,
 } from '../../../components/ui';
-import { C2, G2, TONES2, FS2, SP2, SZ2, R2, UI2 } from '../../../constants';
+import { C2, TONES2, FS2, SP2, SZ2, R2, SH2, UI2 } from '../../../constants';
 import { STEPS } from './listingWizardShared';
 import { WizardPage, AiAssist, ChipInput, WZ } from './listingWizardV2';
 import {
@@ -73,10 +73,10 @@ const S = {
     ...UI2.photoTile, aspectRatio: `${SZ2.thumb.w} / ${SZ2.thumb.h}`, width: '100%', padding: 0, border: 'none', cursor: 'pointer',
     ...UI2.center, borderRadius: R2.lg,
     ...(url ? { backgroundImage: `url(${url})`, backgroundSize: 'cover', backgroundPosition: 'center' } : {}),
-    boxShadow: on ? `0 0 0 2px ${C2.primaryLight}` : UI2.photoTile.boxShadow,   // selected = light primary-blue ring
+    boxShadow: on ? SH2.controlHover : UI2.photoTile.boxShadow,   // selected = raised (our hover-lift shadow, visible on the white card) + blue ✓ badge, no ring
   }),
   photoIcon: { fontSize: FS2.xxl, color: C2.textSecondary },
-  photoCheck:{ ...UI2.center, position: 'absolute', top: SP2.xs, right: SP2.xs, width: SZ2.check + SP2.xs, height: SZ2.check + SP2.xs, borderRadius: R2.round, background: G2.primaryButton, color: C2.white, fontSize: FS2.sm },   // light primary blue + white ✓ (same as the stepper)
+  photoCheck:{ ...UI2.checkBadge, position: 'absolute', top: SP2.sm, right: SP2.sm },   // standard selected-tick badge (UI2.checkBadge)
   upload:    { ...UI2.addTile(false), aspectRatio: `${SZ2.thumb.w} / ${SZ2.thumb.h}`, height: 'auto', opacity: 0.6, cursor: 'not-allowed', borderRadius: R2.lg },
   video:     { ...UI2.photoTile, ...UI2.center, aspectRatio: `${SZ2.thumb.w} / ${SZ2.thumb.h}`, borderRadius: R2.lg, background: C2.navyDeep, color: C2.white, fontSize: FS2.xxl },
   plan:      { ...UI2.photoTile, ...UI2.center, aspectRatio: `${SZ2.thumb.w} / ${SZ2.thumb.h}`, borderRadius: R2.lg, color: C2.textSecondary, fontSize: FS2.xxl },
