@@ -37,7 +37,7 @@ import {
   SectionCard, CornerArt, FormField, SelectField, FIELD2,
   Checkbox, Switch, RadioPill, WizardFooter, TextLink, Modal,
 } from '../../../components/ui';
-import { C2, G2, TONES2, FS2, FW2, SP2, SZ2, R2, SH2, T2, UI2 } from '../../../constants';
+import { C2, G2, TONES2, ACCENT2, F2, FS2, FW2, SP2, SZ2, R2, SH2, T2, UI2 } from '../../../constants';
 import { STEPS } from './listingWizardShared';
 import { WizardPage, AiAssist, WZ } from './listingWizardV2';
 import planArt from '../../../assets/landlord/listings-hero.jpg';   // building art on the plan cards (Listings banner art)
@@ -68,27 +68,31 @@ const S = {
 
   // Plan cards — sideways row
   planRow:    { ...UI2.row(SP2.sm), alignItems: 'stretch' },
-  planScroll: { display: 'flex', gap: SP2.md, overflowX: 'auto', scrollSnapType: 'x mandatory', scrollBehavior: 'smooth', flex: 1, minWidth: 0, padding: SP2.xxs },
+  // padding gives the cards' shadows room (a scrolling row clips anything outside it); the negative margin keeps
+  // the cards lined up with the rest of the card body
+  planScroll: { display: 'flex', gap: SP2.md, overflowX: 'auto', scrollSnapType: 'x mandatory', scrollBehavior: 'smooth', flex: 1, minWidth: 0, padding: SP2.md, margin: -SP2.md },
   arrow:      (on) => ({ ...UI2.btn.icon(SZ2.control.md), alignSelf: 'center', background: C2.white, boxShadow: SH2.control, opacity: on ? 1 : 0.4, cursor: on ? 'pointer' : 'default' }),
-  plan:       (on) => ({
+  plan:       {
     position: 'relative', overflow: 'hidden', flex: `0 0 ${SZ2.planCard.basis}`, minWidth: SZ2.planCard.w, maxWidth: '100%', scrollSnapAlign: 'start',   // ≈ ⅔ of the container, never under planCard.w
     padding: SP2.xl, borderRadius: R2.xl, background: C2.white, cursor: 'pointer',
-    boxShadow: on ? `0 0 0 2px ${C2.primaryLight}, ${SH2.card}` : SH2.card,          // selected = light primary-blue ring
-  }),
+    boxShadow: SH2.tile,    // elevation ladder: panel INSIDE a card (container shadows are made for the page bg) — no ring
+  },
   planArt:    { position: 'absolute', top: 0, right: 0, bottom: 0, width: SZ2.planCard.art, pointerEvents: 'none',
                 backgroundImage: `url(${planArt})`, backgroundSize: 'cover', backgroundPosition: 'right center',
                 WebkitMaskImage: G2.planArtMask, maskImage: G2.planArtMask },
   planBody:   { position: 'relative', maxWidth: '55%' },
   planHead:   { ...UI2.row(SP2.md), justifyContent: 'space-between' },
-  planName:   { ...UI2.text.titleLg },
+  planLine:   { display: 'inline-flex', alignItems: 'center', gap: SP2.sm, minWidth: 0, whiteSpace: 'nowrap' },   // name · price badge, centred on one line
+  planName:   { ...UI2.text.titleLg, fontFamily: F2.heading, fontSize: FS2.lg },  // Playfair 16 (standard)
   planTag:    { ...UI2.pill(TONES2.purple), marginBottom: SP2.xs },
-  planPrice:  { ...T2.kpiValue, marginTop: SP2.xs },   // 20 — standard figure (T2.kpiValue)
+  // price as a HIGHLIGHT badge: light primary-blue gradient (same as the selected ticks) · white text · ⚡ bolt icon
+  planPrice:  { ...UI2.pill(TONES2.primary, { solid: true }), background: G2.accentBar(ACCENT2.teal), gap: SP2.xxs },   // TEAL accent (not blue)
   planSuffix: { ...UI2.text.label, marginLeft: SP2.xs },
-  planDesc:   { ...UI2.text.label, margin: `${SP2.sm}px 0 0` },
+  planDesc:   { ...UI2.cardSubtitle, margin: `${SP2.sm}px 0 0` },   // same style as the card subtitle ("Boost visibility…")
   feats:      { ...UI2.stack(SP2.xs), marginTop: SP2.md },
   feat:       { ...UI2.row(SP2.xs), alignItems: 'flex-start', fontSize: FS2.sm, color: C2.textBody },
   featIcon:   { color: C2.primary, fontSize: FS2.md, flexShrink: 0 },
-  planBtn:    (on) => ({ ...(on ? UI2.btn.primary : UI2.btn.soft), width: SZ2.planCard.btn, marginTop: SP2.lg }),
+  planBtn:    (on) => ({ ...(on ? UI2.btn.brand : UI2.btn.soft), width: SZ2.planCard.btn, marginTop: SP2.lg }),   // selected = dark navy brand CTA
   // Promotion cost bar
   cost:       { ...UI2.tintRow, justifyContent: 'space-between', marginTop: SP2.lg },
   costLabel:  { ...UI2.text.titleLg },
@@ -456,19 +460,20 @@ export default function ListingStep3_Promote() {
                   {plans.map(plan => {
                     const selected = plan.id === selectedPlanId && !selectedSubscriptionId;
                     return (
-                      <div key={plan.id} style={S.plan(selected)} onClick={() => choosePlan(plan.id)} role="radio" aria-checked={selected}>
+                      <div key={plan.id} style={S.plan} onClick={() => choosePlan(plan.id)} role="radio" aria-checked={selected}>
                         <div style={S.planArt} aria-hidden="true" />
                         <div style={S.planBody}>
                           {plan.tag && <span style={S.planTag}>{plan.tag}</span>}
                           <div style={S.planHead}>
-                            <span style={S.planName}>{plan.name}</span>
+                            {/* name + price on ONE line (Playfair), Details on the right */}
+                            <span style={S.planLine}>
+                              <span style={S.planName}>{plan.name}</span>
+                              <span style={S.planPrice}><i className="ti ti-bolt" aria-hidden="true" />{plan.priceLabel}</span>
+                              {plan.priceSuffix && <span style={S.planSuffix}>{plan.priceSuffix}</span>}
+                            </span>
                             <span onClick={e => e.stopPropagation()}>
                               <TextLink onClick={() => setDetailsPlanId(plan.id)}>Details</TextLink>
                             </span>
-                          </div>
-                          <div style={S.planPrice}>
-                            {plan.priceLabel}
-                            {plan.priceSuffix && <span style={S.planSuffix}>{plan.priceSuffix}</span>}
                           </div>
                           {plan.desc && <p style={S.planDesc}>{plan.desc}</p>}
                           {plan.features.length > 0 && (
