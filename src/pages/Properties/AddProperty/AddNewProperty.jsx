@@ -29,6 +29,16 @@ import { C as LC, F as LF } from '../../Landlord/landlordTokens'; // Session 39 
 
 
 const API_BASE = (process.env.REACT_APP_API_BASE_URL || 'http://localhost:8001/api').replace(/\/api\/?$/, '');
+
+// Phase 1A — organisation node selector (Org PM super admin only).
+// Persona code and node status below are the existing backend vocabularies
+// (core.PersonaType.ORGANIZATIONAL_PM, UNAccountNode.STATUS_CHOICES); they are
+// named here once rather than repeated inline. The backend re-validates the
+// node on every create (rbac/property_access.resolve_creation_node), so this
+// selector is a convenience, never the authority. PM staff never see it —
+// their node always comes from their own membership.
+const ORG_PM_PERSONA = 'ORGANIZATIONAL_PM';
+const NODE_ACTIVE_STATUS = 'ACTIVE';
 if (typeof document !== 'undefined' && !document.getElementById('tabler-icons-cdn')) {
   const l = document.createElement('link');
   l.id = 'tabler-icons-cdn'; l.rel = 'stylesheet';
@@ -1473,6 +1483,9 @@ export default function AddNewProperty({ persona = 'INDEPENDENT_PM',initialPrope
   const [showMore, setShowMore]     = useState(false);
   const [userEmail, setUserEmail]         = useState('');
   const [userId, setUserId] = useState(null);
+  const [mePersona, setMePersona] = useState(null); // Phase 1A
+  const [orgNodes, setOrgNodes]   = useState([]);   // Phase 1A — active nodes of the caller's org
+  const [nodeId, setNodeId]       = useState('');   // Phase 1A — selected organisation node
   const [showSaveModal, setShowSaveModal] = useState(false);
   const [showDeclaration, setShowDeclaration] = useState(false); // Session 39
   const [pendingDeclarationTarget, setPendingDeclarationTarget] = useState(null); // Session 39 — 'property' | 'unit'
@@ -1551,6 +1564,7 @@ export default function AddNewProperty({ persona = 'INDEPENDENT_PM',initialPrope
           setUserName(((data.first_name || '') + ' ' + (data.last_name || '')).trim() || data.email || 'User');
           setUserEmail(data.email || '');
           setUserId(data.id || null);
+          setMePersona(data.active_persona || null); // Phase 1A
           const roleMap = { INDEPENDENT_PM: 'Independent PM', ORGANIZATIONAL_PM: 'Org PMS Admin', LANDLORD: 'Landlord', RENTER: 'Renter' };
           setUserRole(roleMap[persona || data.active_persona] || 'Independent PM');
         }
@@ -1660,6 +1674,33 @@ export default function AddNewProperty({ persona = 'INDEPENDENT_PM',initialPrope
 
   useEffect(() => { setState(''); }, [country]);
 
+  // Phase 1A — Org PM super admins choose the organisation node a new
+  // property belongs to. One active root: preselected. Several roots:
+  // required. Node is create-only, so the selector is hidden once saved.
+  const isOrgAdmin = !isLandlord && (persona === ORG_PM_PERSONA || mePersona === ORG_PM_PERSONA);
+  const activeRoots = orgNodes.filter(n => n.parent == null);
+  const nodeRequired = isOrgAdmin && activeRoots.length > 1;
+  const showNodeSelector = isOrgAdmin && !propId && !initialPropertyId;
+  const nodeOptions = orgNodes.map(n => ({
+    value: String(n.id),
+    label: `${'\u00A0\u00A0'.repeat(Math.max(0, n.level || 0))}${n.node_name}${n.layer_name ? ` (${n.layer_name})` : ''}`,
+  }));
+
+  useEffect(() => {
+    if (!isOrgAdmin || initialPropertyId) return;
+    const token = localStorage.getItem('access_token');
+    if (!token) return;
+    fetch(`${API_BASE}/api/pm/rbac/nodes/`, { headers: { Authorization: 'Bearer ' + token } })
+      .then(r => (r.ok ? r.json() : []))
+      .then(data => {
+        const active = (Array.isArray(data) ? data : []).filter(n => n.status === NODE_ACTIVE_STATUS);
+        setOrgNodes(active);
+        const roots = active.filter(n => n.parent == null);
+        if (roots.length === 1) setNodeId(prev => prev || String(roots[0].id));
+      })
+      .catch(() => {});
+  }, [isOrgAdmin, initialPropertyId]);
+
   const fullAddr = [street1, city, state, COUNTRY_OPTIONS.find(c => c.value === country)?.label].filter(Boolean).join(', ');
 
   function validate() {
@@ -1672,6 +1713,8 @@ export default function AddNewProperty({ persona = 'INDEPENDENT_PM',initialPrope
     if (!state)           e.state = 'Select a state';
     if (!zip.trim())      e.zip = 'Zip code is required';
     if (buildYear && (isNaN(buildYear) || +buildYear < 1800 || +buildYear > 2099)) e.buildYear = 'Enter a valid year';
+    if (showNodeSelector && isOrgAdmin && activeRoots.length === 0) e.node = 'Set up your organisation structure before adding properties.';
+    else if (showNodeSelector && nodeRequired && !nodeId) e.node = 'Select the organisation node for this property.';
     setErrors(e);
     return Object.keys(e).length === 0;
   }
@@ -1755,12 +1798,22 @@ export default function AddNewProperty({ persona = 'INDEPENDENT_PM',initialPrope
         zip_code:       zip,
         value:          propValue || null,
         build_year:     buildYear || null,
+        // Phase 1A — only an Org PM super admin sends a node; the backend
+        // derives it for staff and rejects it for Landlord / Independent PM.
+        ...(isOrgAdmin && nodeId ? { node: Number(nodeId) } : {}),
       }),
     });
 
     if (!createRes.ok) {
       const err = await createRes.json();
       console.error('Create property failed:', err);
+      // Phase 1A — surface organisation-node errors (e.g. node required,
+      // organisation structure not set up) instead of failing silently.
+      if (err && err.node) {
+        const msg = Array.isArray(err.node) ? err.node.join(' ') : String(err.node);
+        setErrors(prev => ({ ...prev, node: msg }));
+        alert(msg);
+      }
       setSaving(false);
       return;
     }
@@ -2316,6 +2369,9 @@ export default function AddNewProperty({ persona = 'INDEPENDENT_PM',initialPrope
                         <div><FieldLabel>Property Value (Est.)</FieldLabel><TInput value={propValue} onChange={setPropValue} placeholder="0.00" prefix="$" type="number" /></div>
                         <div><FieldLabel>Build In Year</FieldLabel><TInput value={buildYear} onChange={setBuildYear} placeholder="YYYY" type="number" error={errors.buildYear} /><ErrMsg msg={errors.buildYear} /></div>
                         <div><FieldLabel required>Ownership Type</FieldLabel><CustomDropdown options={OWNERSHIP_TYPE_OPTIONS} value={ownerType} onChange={setOwnerType} placeholder="Select Ownership Type" error={!!errors.ownerType} /><ErrMsg msg={errors.ownerType} /></div>
+                        {showNodeSelector && (
+                          <div><FieldLabel required={nodeRequired}>Organisation Node</FieldLabel><CustomDropdown options={nodeOptions} value={nodeId} onChange={setNodeId} placeholder={orgNodes.length ? 'Select Node' : 'No active nodes'} disabled={!orgNodes.length} error={!!errors.node} /><ErrMsg msg={errors.node} /></div>
+                        )}
                         <div style={{ gridColumn: '1/-1' }}><FieldLabel>Description</FieldLabel><TArea value={desc} onChange={setDesc} placeholder="Detailed overview of the property's unique value propositions and structural highlights..." rows={3} /></div>
                       </div>
                     </div>
