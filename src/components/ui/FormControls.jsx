@@ -4,7 +4,8 @@ import { C2, G2, R2, SH2, TONES2, F2, FS2, FW2, LH2, SP2, SZ2, pad, UI2 } from '
 // ─── Form controls (Design System v2) ────────────────────────────────────────
 // VERSION 2 controls — the v1 equivalents are Checkbox / Toggle / RadioPillButton in
 // pages/Landlord/Listing/listingWizardShared.jsx (older wizard steps).
-// "On" is always the standard green gradient (G2.successButton) — never invent another green.
+// "On" / selected is ALWAYS the app's light primary blue (G2.primaryButton · C2.primaryLight · TONES2.primary) —
+// never green (user rule 2026-11-23: selection = light blue theme everywhere).
 //
 //   <Switch on={v} onChange={() => setV(x => !x)} label="Show exact address publicly" />
 //   <Checkbox checked={v} onChange={() => setV(x => !x)} label="Also update the Property record" hint="…" />
@@ -17,7 +18,7 @@ const S = {
   // Switch — track + knob
   track: (on) => ({
     position: 'relative', width: SZ2.switch.w, height: SZ2.switch.h, flexShrink: 0, padding: 0, border: 'none', cursor: 'pointer',
-    borderRadius: R2.pill, background: on ? G2.successButton : C2.border, transition: 'background 0.2s ease',
+    borderRadius: R2.pill, background: on ? G2.primaryButton : C2.border, transition: 'background 0.2s ease',
   }),
   knob: (on) => ({
     position: 'absolute', top: (SZ2.switch.h - SZ2.switch.knob) / 2, left: on ? SZ2.switch.w - SZ2.switch.knob - (SZ2.switch.h - SZ2.switch.knob) / 2 : (SZ2.switch.h - SZ2.switch.knob) / 2,
@@ -28,7 +29,7 @@ const S = {
   checkRow: { display: 'flex', alignItems: 'flex-start', gap: SP2.sm, padding: 0, border: 'none', background: 'none', cursor: 'pointer', textAlign: 'left', fontFamily: F2.body },
   box: (on) => ({
     ...UI2.center, width: SZ2.check, height: SZ2.check, flexShrink: 0, borderRadius: R2.xs, boxSizing: 'border-box',
-    background: on ? G2.successButton : C2.white, border: on ? 'none' : `1px solid ${C2.cardBorder}`, color: C2.white, fontSize: FS2.sm,
+    background: on ? G2.primaryButton : C2.white, border: on ? 'none' : `1px solid ${C2.cardBorder}`, color: C2.white, fontSize: FS2.sm,
   }),
   checkLabel: (strong) => ({ fontSize: FS2.base, fontWeight: strong ? FW2.medium : FW2.regular, lineHeight: LH2.heading, color: strong ? C2.textPrimary : C2.textBody }),
   checkHint:  { ...UI2.text.meta, marginTop: SP2.xxs },
@@ -41,19 +42,19 @@ const S = {
   }),
   radio: (on) => ({
     ...UI2.center, width: SZ2.check, height: SZ2.check, flexShrink: 0, borderRadius: R2.round, boxSizing: 'border-box',
-    border: `2px solid ${on ? C2.successStrong : C2.cardBorder}`, background: C2.white,
+    border: `2px solid ${on ? C2.primaryLight : C2.cardBorder}`, background: C2.white,
   }),
-  radioDot: { width: SZ2.radioDot, height: SZ2.radioDot, borderRadius: R2.round, background: G2.successButton },
+  radioDot: { width: SZ2.radioDot, height: SZ2.radioDot, borderRadius: R2.round, background: G2.primaryButton },
 
-  // ChoiceTile — soft tinted tile (no border: grouping by tint only), selected = success tint + check
+  // ChoiceTile — soft tinted tile (no border: grouping by tint only), selected = light primary-blue tint + check
   tile: (on) => ({
     ...UI2.row(SP2.sm), width: '100%', minWidth: 0, minHeight: SZ2.amenityTile, padding: pad(0, SP2.md), border: 'none', borderRadius: R2.lg,
     cursor: 'pointer', textAlign: 'left', fontFamily: F2.body,
-    background: on ? TONES2.success.soft : C2.background, transition: 'background 0.15s ease',
+    background: on ? TONES2.primary.soft : C2.background, transition: 'background 0.15s ease',
   }),
-  tileIcon:  { fontSize: FS2.lg, color: TONES2.success.fg, flexShrink: 0 },
-  tileLabel: (on) => ({ flex: 1, minWidth: 0, ...UI2.truncate, fontSize: FS2.base, fontWeight: FW2.medium, color: on ? TONES2.success.fg : C2.textPrimary }),
-  tileCheck: { fontSize: FS2.md, color: TONES2.success.fg, flexShrink: 0 },
+  tileIcon:  { fontSize: FS2.lg, color: C2.primary, flexShrink: 0 },
+  tileLabel: (on) => ({ flex: 1, minWidth: 0, ...UI2.truncate, fontSize: FS2.base, fontWeight: FW2.medium, color: on ? TONES2.primary.fg : C2.textPrimary }),
+  tileCheck: { fontSize: FS2.md, color: C2.primaryLight, flexShrink: 0 },
 
   disabled: { opacity: 0.5, cursor: 'not-allowed' },
 };
