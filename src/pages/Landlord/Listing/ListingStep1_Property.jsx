@@ -72,7 +72,10 @@ const S = {
   hint:      { ...UI2.text.meta, marginTop: SP2.xxs },
   rowBetween:{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: SP2.lg },
   strong:    { ...UI2.text.title },
+  // Playfair title + the zip code beside it in plain Inter with a pin icon (Playfair's digits are old-style / uneven)
+  hoodRow:   { ...UI2.row(SP2.sm), alignItems: 'baseline', flexWrap: 'wrap' },   // baseline: the small zip sits on the title's text line
   hood:      { ...T2.sectionTitle, margin: 0 },
+  zipTag:    { ...UI2.pill(TONES2.primary), gap: SP2.xs, padding: 0, background: 'none', fontVariantNumeric: 'tabular-nums' },   // pill text style, without the box
   areas:     { ...UI2.text.title, marginTop: SP2.sm },
   mapGap:    { marginTop: SP2.md },
   chips:     { display: 'flex', flexWrap: 'wrap', gap: SP2.sm, marginTop: SP2.md },
@@ -453,7 +456,12 @@ export default function ListingStep1_Property() {
 
               <div style={S.rule} />
 
-              <h3 style={S.hood}>Neighborhood: {property.zip_code || '—'}</h3>
+              <div style={S.hoodRow}>
+                <h3 style={S.hood}>Neighborhood</h3>
+                {property.zip_code && (
+                  <span style={S.zipTag}><i className="ti ti-map-pin" aria-hidden="true" />{property.zip_code}</span>
+                )}
+              </div>
               <div style={S.areas}>Areas of Interest</div>
               <p style={S.hint}>Illustrative preview only — a live, interactive map isn't wired up yet.</p>
               <div style={S.mapGap}><MapPreview /></div>
