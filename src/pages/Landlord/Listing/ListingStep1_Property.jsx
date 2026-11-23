@@ -61,7 +61,7 @@ const S = {
   fields:    { columnGap: SP2.lg, rowGap: SP2.lg },                        // <Grid two> of form fields
   tiles:     { gap: SP2.sm },                                              // <Grid three> of amenity tiles
   full:      { gridColumn: '1 / -1' },
-  changed:   { ...UI2.pill(TONES2.success), marginLeft: SP2.sm, textTransform: 'none', letterSpacing: 0 },
+  changed:   { ...UI2.pill(TONES2.primary), marginLeft: SP2.sm, textTransform: 'none', letterSpacing: 0 },
   labelWrap: { display: 'inline-flex', alignItems: 'center' },
   checkGap:  { marginTop: SP2.md },
   rule:      { ...UI2.divider, margin: pad2(SP2.lg) },
@@ -373,7 +373,7 @@ export default function ListingStep1_Property() {
           {/* Amenity(s) */}
           <SectionCard
             icon="ti-home"
-            tone={TONES2.success}
+            tone={TONES2.primary}
             title="Amenity(s)"
             subtitle="Sourced from the UN Reference amenity list — not free text."
             pattern={false}

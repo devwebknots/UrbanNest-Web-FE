@@ -82,7 +82,7 @@ const S = {
   planHead:   { ...UI2.row(SP2.md), justifyContent: 'space-between' },
   planName:   { ...UI2.text.titleLg },
   planTag:    { ...UI2.pill(TONES2.purple), marginBottom: SP2.xs },
-  planPrice:  { ...T2.figureMd, marginTop: SP2.xs },   // 24 — max heading size (FS2.xxxl)
+  planPrice:  { ...T2.kpiValue, marginTop: SP2.xs },   // 20 — standard figure (T2.kpiValue)
   planSuffix: { ...UI2.text.label, marginLeft: SP2.xs },
   planDesc:   { ...UI2.text.label, margin: `${SP2.sm}px 0 0` },
   feats:      { ...UI2.stack(SP2.xs), marginTop: SP2.md },
@@ -92,13 +92,13 @@ const S = {
   // Promotion cost bar
   cost:       { ...UI2.tintRow, justifyContent: 'space-between', marginTop: SP2.lg },
   costLabel:  { ...UI2.text.titleLg },
-  costValue:  { ...T2.figureMd },
+  costValue:  { ...T2.kpiValue },                       // 20 — standard figure
   costSuffix: { ...UI2.text.label, marginLeft: SP2.xs },
 
   // Lead Preferences rows
   prefRow:    { display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: SP2.lg },
   // Plan details modal
-  modalPrice: { ...T2.figureMd },                       // 24 — max heading size
+  modalPrice: { ...T2.kpiValue },                       // 20 — standard figure
   fineLabel:  { ...UI2.capsLabel, display: 'block', marginTop: SP2.lg, marginBottom: SP2.xs },
   fine:       { ...UI2.text.label, ...UI2.inset },
 };

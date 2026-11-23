@@ -499,7 +499,7 @@ export default function ListingStep2_Unit() {
           {/* Amenity(s) */}
           <SectionCard
             icon="ti-sofa"
-            tone={TONES2.success}
+            tone={TONES2.primary}
             title="Amenity(s)"
             subtitle="Sourced from the UN Reference amenity list — not free text."
             pattern={false}

@@ -11,7 +11,8 @@ import { C2, BLUR2, FS2, LAYOUT2, SP2, SZ2, ZI2, pad, T2, UI2 } from '../../cons
 //
 // Secondary actions are soft (light surface → never white buttons); the main action is the brand button.
 // Props: step, total, left (node, replaces "Step x of y"), note (error text), onBack, onSaveExit,
-//        onContinue, continueLabel, busy (true → "Saving…" + disabled), continueDisabled
+//        onContinue, continueLabel, busy (true → busyLabel + disabled), busyLabel (default "Saving…"), continueDisabled,
+//        continueIcon (default 'ti-arrow-right', null = none), info (neutral note with an ⓘ — shown when there's no error note)
 
 const S = {
   // full-bleed: cancels the page padding at the sides + bottom so the bar spans the content area
@@ -25,18 +26,21 @@ const S = {
   },
   left:  { ...T2.label, flex: '1 1 auto', minWidth: 0 },
   note:  { ...UI2.row(SP2.xs), fontSize: FS2.sm, color: C2.errorDark },
+  info:  { ...UI2.row(SP2.sm), alignItems: 'flex-start', ...T2.label, maxWidth: SZ2.searchSm * 2 },
   acts:  { ...UI2.row(SP2.sm), marginLeft: 'auto' },
   off:   { opacity: 0.6, cursor: 'not-allowed' },
 };
 
 export default function WizardFooter({
   step, total = 4, left, note, onBack, onSaveExit, onContinue, continueLabel = 'Continue', busy = false, continueDisabled = false,
+  busyLabel = 'Saving…', continueIcon = 'ti-arrow-right', info,
 }) {
   const off = busy || continueDisabled;
   return (
     <div style={S.bar}>
       <div style={S.left}>{left || (step ? `Step ${step} of ${total}` : null)}</div>
       {note && <span style={S.note} role="alert"><i className="ti ti-alert-circle" aria-hidden="true" />{note}</span>}
+      {!note && info && <span style={S.info}><i className="ti ti-info-circle" style={UI2.btnIcon} aria-hidden="true" />{info}</span>}
       <div style={S.acts}>
         {onBack && (
           <button type="button" className="un2-btn" style={UI2.btn.soft} onClick={onBack}>
@@ -46,8 +50,8 @@ export default function WizardFooter({
         {onSaveExit && <button type="button" className="un2-btn" style={UI2.btn.soft} onClick={onSaveExit} disabled={busy}>Save &amp; Exit</button>}
         {onContinue && (
           <button type="button" className="un2-btn" style={{ ...UI2.btn.brand, ...(off ? S.off : {}) }} onClick={off ? undefined : onContinue} disabled={off}>
-            {busy ? 'Saving…' : continueLabel}
-            {!busy && <i className="ti ti-arrow-right" style={UI2.btnIcon} aria-hidden="true" />}
+            {busy ? busyLabel : continueLabel}
+            {!busy && continueIcon && <i className={`ti ${continueIcon}`} style={UI2.btnIcon} aria-hidden="true" />}
           </button>
         )}
       </div>

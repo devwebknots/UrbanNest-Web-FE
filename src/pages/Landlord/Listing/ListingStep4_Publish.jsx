@@ -16,14 +16,82 @@
 // publish actually creates the ListingPromotionPurchase row, so it's
 // carried forward via router state (`selectedPlanId`) rather than re-read
 // from the listing itself.
+//
+// 2026-11-23 — REDESIGNED on Design System v2 (design: Downloads/image 105.png). Same frame as Steps 1–3
+// (listingWizardV2.jsx). ALL data loading, checks, publishing and navigation is unchanged:
+//   <Grid wideLeft>
+//     left : Listing Preview (preview card: photo · price · title · address · bed / bath / sq ft │ 6 summary
+//            items with icons) · Lead & Showing Summary (4 items) — each card has Edit → its step
+//     right: Distribution & Promotion Summary (Published To chips · plan · cost · expiry) · Compliance &
+//            Validation (light-blue ✓ = passed · red ! = needs attention + "Fix now" → its step) — no green anywhere
+//   WizardFooter (sticky: TOTAL DUE TODAY │ ⓘ payment note / publish error · Back · Save & Exit · Pay & Publish)
+//   Modal "Listing Published" after a successful publish (Done → unit page)
 // ─────────────────────────────────────────────────────────────────────────────
 
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
-import { C } from '../landlordTokens';
-import { LS, ListingPageShell, ListingFooter, SectionHead } from './listingWizardShared';
+import { Grid } from '../../../components/layout';
+import { SectionCard, CornerArt, WizardFooter, TextLink, Modal } from '../../../components/ui';
+import { C2, G2, TONES2, FS2, FW2, SP2, SZ2, R2, SH2, T2, UI2 } from '../../../constants';
+import { WizardPage, WZ } from './listingWizardV2';
 import { MIN_REQUIRED_PHOTOS } from './mockListingData';
 import { getListing, getUnit, getPromotionPlanCatalog, publishListing } from './listingApi';
+import photoPlaceholder from '../../../assets/landlord/unit-placeholder.jpg';
+
+// ── Page-specific layout (tokens only) ──────────────────────────────────────
+const S = {
+  edit:      { ...UI2.btn.link },
+  // Listing Preview — preview card │ summary items
+  preview:   { alignItems: 'start' },                  // <Grid wideRight>: preview card │ summary items
+  pCard:     { overflow: 'hidden', borderRadius: R2.xl, background: C2.white, boxShadow: SH2.card },
+  pPhoto:    { position: 'relative', aspectRatio: `${SZ2.thumb.w} / ${SZ2.thumb.h}`, background: C2.surfaceMuted, backgroundSize: 'cover', backgroundPosition: 'center' },
+  pBadge:    { ...UI2.pill(TONES2.primary, { solid: true }), position: 'absolute', top: SP2.sm, left: SP2.sm },
+  pBody:     { padding: SP2.lg },
+  pPrice:    { ...UI2.text.stat },
+  pSuffix:   { ...UI2.text.label, marginLeft: SP2.xs },
+  pTitle:    { ...UI2.text.titleLg, marginTop: SP2.xs },
+  pAddr:     { ...UI2.row(SP2.xs), alignItems: 'flex-start', ...UI2.text.label, marginTop: SP2.sm },
+  pMeta:     { ...UI2.row(SP2.lg), flexWrap: 'wrap', rowGap: SP2.xs, marginTop: SP2.md, paddingTop: SP2.md, borderTop: `${SZ2.hairline}px solid ${C2.divider}`, fontSize: FS2.base, color: C2.textPrimary },
+  pMetaItem: { ...UI2.row(SP2.xs) },
+  pMetaIcon: { color: C2.textSecondary, fontSize: FS2.md },
+  // summary item: icon · label … value
+  items:     { columnGap: SP2.xl, rowGap: 0 },
+  item:      { ...UI2.row(SP2.sm), justifyContent: 'space-between', padding: `${SP2.md}px 0`, borderBottom: `${SZ2.hairline}px solid ${C2.divider}`, minWidth: 0 },
+  itemL:     { ...UI2.row(SP2.sm), ...UI2.text.label, fontSize: FS2.base, minWidth: 0 },
+  itemIcon:  { fontSize: FS2.lg, color: C2.textSecondary, flexShrink: 0 },
+  itemV:     (muted) => ({ fontSize: FS2.base, fontWeight: muted ? FW2.regular : FW2.medium, color: muted ? C2.textMuted : C2.textPrimary, textAlign: 'right', flexShrink: 0 }),
+  // Distribution & Promotion rows
+  kv:        (first) => ({ ...UI2.kvRow(first), fontSize: FS2.base }),
+  kvVal:     { ...UI2.kvVal, fontSize: FS2.base },
+  chips:     { display: 'flex', gap: SP2.xs, flexWrap: 'wrap', justifyContent: 'flex-end' },
+  chip:      { ...UI2.pill(TONES2.primary) },
+  chipNone:  { ...UI2.pill(TONES2.neutral) },
+  // Compliance checks
+  check:     (last) => ({ display: 'flex', alignItems: 'flex-start', gap: SP2.md, padding: `${SP2.md}px 0`, ...(last ? {} : { borderBottom: `${SZ2.hairline}px solid ${C2.divider}` }) }),
+  // SOFT badge (pale tint + coloured glyph) — deliberately different from the stepper's solid ✓ circles:
+  // passed = pale blue + blue ✓ · needs attention = pale red + red !
+  checkIcon: (ok) => ({ ...UI2.iconBox(SZ2.icon.sm, ok ? TONES2.primary : TONES2.error, { round: true }), fontSize: FS2.md }),
+  checkT:    (ok) => ({ ...UI2.text.title, color: ok ? C2.textPrimary : C2.errorDark }),
+  // Footer — total due today
+  total:     { ...UI2.row(SP2.lg) },
+  totalLbl:  { ...UI2.capsLabel, display: 'block' },
+  totalVal:  { ...T2.kpiValue },                       // 20 — standard figure
+  // Published modal
+  doneIcon:  { ...UI2.iconBox(SZ2.icon.lg, TONES2.primary, { round: true, solid: true }), background: G2.primaryButton, margin: '0 auto', fontSize: FS2.xl },
+  doneBody:  { textAlign: 'center', ...UI2.stack(SP2.sm), alignItems: 'center' },
+};
+
+// Summary item — icon · label on the left, value on the right (muted when it's a "not set" placeholder)
+function Item({ icon, label, value, muted = false }) {
+  return (
+    <div style={S.item}>
+      <span style={S.itemL}><i className={`ti ${icon}`} style={S.itemIcon} aria-hidden="true" /><span style={UI2.truncate}>{label}</span></span>
+      <span style={S.itemV(muted)}>{value}</span>
+    </div>
+  );
+}
+
+const fmtMoney = (v) => `$${Number(v).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
 const WEEKDAY_ORDER = ['MON', 'TUE', 'WED', 'THU', 'FRI', 'SAT', 'SUN'];
 const DAY_LABELS = { MON: 'Mon', TUE: 'Tue', WED: 'Wed', THU: 'Thu', FRI: 'Fri', SAT: 'Sat', SUN: 'Sun' };
@@ -130,18 +198,25 @@ export default function ListingStep4_Publish() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [propId, unitId, listingId]);
 
+  const shell = (children) => (
+    <WizardPage
+      propertyName={propertyNameFromState || unit?.property?.name || 'Property'}
+      unitLabel={unit ? `Unit ${unit.unit_number}` : `Unit ${unitId}`}
+      current={4}
+      subtitle="Confirm everything looks right before this listing goes live."
+    >
+      {children}
+    </WizardPage>
+  );
+
   if (loading) {
-    return (
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh', color: C.txtSec }}>
-        Loading listing summary…
-      </div>
-    );
+    return shell(<div style={WZ.stateBox}>Loading listing summary…</div>);
   }
 
   if (loadError || !listing || !unit) {
-    return (
-      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100vh', gap: 10, color: C.txtSec }}>
-        <div>{loadError || 'This listing could not be loaded.'}</div>
+    return shell(
+      <div style={WZ.stateBox}>
+        <div style={UI2.errorBanner}><i className="ti ti-alert-circle" aria-hidden="true" /> {loadError || 'This listing could not be loaded.'}</div>
       </div>
     );
   }
@@ -271,197 +346,181 @@ export default function ListingStep4_Publish() {
   // PMListingStep4_Publish.jsx.
   const handleDone = () => navigate(`/landlord-portal/property/${propId}/unit/${unitId}`);
 
-  return (
+  // ── v2 render ────────────────────────────────────────────────────────────
+  // Preview photo: the listing's cover photo (media rows point at the unit's gallery items — same source Step 2
+  // selects from), else the first selected photo, else the placeholder.
+  const gallery = unit.gallery_images || [];
+  const photoMedia = media.filter(m => m.media_type === 'PHOTO');
+  const coverMedia = photoMedia.find(m => m.is_cover) || photoMedia[0];
+  const coverUrl = coverMedia ? (gallery.find(g => g.id === coverMedia.source_gallery_item)?.file_url || null) : null;
+
+  const totalLabel = amountDueToday === 0 ? (selectedSubscriptionId ? 'Already Paid' : 'Free') : `$${amountDueToday.toFixed(2)}`;
+
+  const editLink = (step) => (
+    <button type="button" style={S.edit} onClick={() => goToStep(step)}>
+      <i className="ti ti-pencil" style={UI2.btnIcon} aria-hidden="true" /> Edit
+    </button>
+  );
+
+  return shell(
     <>
-    <ListingPageShell
-      propertyName={propertyName}
-      unitLabel={`Unit ${unit.unit_number}`}
-      current={4}
-      pageSub="Confirm everything looks right before this listing goes live."
-      footer={
-        <ListingFooter
-          current={4}
-          onBack={handleBack}
-          onSaveExit={handleSaveExit}
-          onContinue={handlePublish}
-          continueLabel={publishing ? 'Publishing…' : 'Pay & Publish'}
-          continueDisabled={hasBlockingIssues || publishing || published}
-          leftContent={
-            <>
-              <span style={LS.footerTotalLbl}>Total Due Today</span>
-              <span style={LS.footerTotalVal}>{amountDueToday === 0 ? (selectedSubscriptionId ? 'Already Paid' : 'Free') : `$${amountDueToday.toFixed(2)}`}</span>
-            </>
-          }
-          noteContent={publishError || 'Payment failure keeps this listing in Draft — nothing publishes until payment succeeds.'}
-        />
-      }
-    >
-      <div style={LS.split}>
+      <Grid layout="wideLeft">
 
         {/* ── LEFT COLUMN ─────────────────────────────────────────── */}
-        <div style={LS.splitCol}>
+        <div style={WZ.col}>
 
           {/* Listing Preview */}
-          <div style={LS.card}>
-            <SectionHead
-              icon="ti-eye"
-              bg={C.blueLight}
-              color={C.blue}
-              title="Listing Preview"
-              note="How this will appear to prospects on the marketplace"
-              action={
-                <span style={LS.editLink} onClick={() => goToStep(2)}>
-                  <i className="ti ti-pencil" aria-hidden="true" />Edit
-                </span>
-              }
-            />
-            <div style={LS.previewWrap}>
-              <div style={LS.previewCard}>
-                <div style={LS.previewImg}>
-                  {badgeLabel && <span style={LS.previewBadge}>{badgeLabel}</span>}
-                  <i className="ti ti-photo" style={{ fontSize: 28, color: 'rgba(255,255,255,0.75)' }} aria-hidden="true" />
+          <SectionCard
+            icon="ti-eye"
+            title="Listing Preview"
+            subtitle="How this will appear to prospects on the marketplace"
+            action={editLink(2)}
+            pattern={false}
+            decoration={<CornerArt />}
+          >
+            <Grid layout="wideRight" as="div" style={{ ...S.preview, ...WZ.body }}>
+              {/* marketplace card */}
+              <div style={S.pCard}>
+                <div style={{ ...S.pPhoto, backgroundImage: `url(${coverUrl || photoPlaceholder})` }}>
+                  {badgeLabel && <span style={S.pBadge}>{badgeLabel}</span>}
                 </div>
-                <div style={LS.previewBody}>
-                  <div style={LS.previewPrice}>
-                    {priceValue ? `$${priceValue}` : '—'}
-                    {priceSuffix && <span style={LS.previewPriceSub}> {priceSuffix}</span>}
+                <div style={S.pBody}>
+                  <div>
+                    <span style={S.pPrice}>{priceValue ? fmtMoney(priceValue) : '—'}</span>
+                    {priceSuffix && <span style={S.pSuffix}>{priceSuffix}</span>}
                   </div>
-                  <div style={LS.previewTitle}>{listing.title || 'Untitled Listing'}</div>
-                  <div style={LS.previewAddr}>
-                    {addressLine1 && <div>{addressLine1}</div>}
-                    {addressLine2 && <div>{addressLine2}</div>}
-                    {!addressLine1 && !addressLine2 && '—'}
+                  <div style={S.pTitle}>{listing.title || 'Untitled Listing'}</div>
+                  <div style={S.pAddr}>
+                    <i className="ti ti-map-pin" style={S.pMetaIcon} aria-hidden="true" />
+                    <span>
+                      {addressLine1 && <span style={{ display: 'block' }}>{addressLine1}</span>}
+                      {addressLine2 && <span style={{ display: 'block' }}>{addressLine2}</span>}
+                      {!addressLine1 && !addressLine2 && '—'}
+                    </span>
                   </div>
-                  <div style={LS.previewMeta}>
-                    <span style={LS.previewMetaItem}><i className="ti ti-bed" style={{ fontSize: 12, color: C.txtMuted }} aria-hidden="true" />{unit.total_rooms ?? '—'} bed</span>
-                    <span style={LS.previewMetaItem}><i className="ti ti-bath" style={{ fontSize: 12, color: C.txtMuted }} aria-hidden="true" />{unit.total_baths ?? '—'} bath</span>
-                    <span style={LS.previewMetaItem}><i className="ti ti-ruler-2" style={{ fontSize: 12, color: C.txtMuted }} aria-hidden="true" />{unit.total_area ? `${unit.total_area} sq ft` : '—'}</span>
+                  <div style={S.pMeta}>
+                    <span style={S.pMetaItem}><i className="ti ti-bed" style={S.pMetaIcon} aria-hidden="true" />{unit.total_rooms ?? '—'} bed</span>
+                    <span style={S.pMetaItem}><i className="ti ti-bath" style={S.pMetaIcon} aria-hidden="true" />{unit.total_baths ?? '—'} bath</span>
+                    <span style={S.pMetaItem}><i className="ti ti-ruler-2" style={S.pMetaIcon} aria-hidden="true" />{unit.total_area ? `${unit.total_area} sq ft` : '—'}</span>
                   </div>
                 </div>
               </div>
-              <div style={LS.summaryCols(false)}>
-                <div style={LS.summaryRow(false)}><span style={LS.summaryLbl}>Listing Type</span><span style={LS.summaryVal(false)}>{listingType === 'RENT' ? 'For Rent' : 'For Sale'}</span></div>
-                <div style={LS.summaryRow(false)}><span style={LS.summaryLbl}>Available Date</span><span style={LS.summaryVal(!availableDateDisplay)}>{availableDateDisplay || 'Not set'}</span></div>
-                <div style={LS.summaryRow(false)}><span style={LS.summaryLbl}>Photos</span><span style={LS.summaryVal(false)}>{selectedPhotoCount} selected</span></div>
-                <div style={LS.summaryRow(false)}><span style={LS.summaryLbl}>Floor Plan</span><span style={LS.summaryVal(!unit.floor_plan_name)}>{unit.floor_plan_name || 'Not set'}</span></div>
-                <div style={LS.summaryRow(false)}><span style={LS.summaryLbl}>Video / Virtual Tour</span><span style={LS.summaryVal(!hasVideoOrTour)}>{hasVideoOrTour ? 'Added' : 'Not added'}</span></div>
-                <div style={LS.summaryRow(true)}><span style={LS.summaryLbl}>Highlights</span><span style={LS.summaryVal(!listing.highlights?.length)}>{highlightsText}</span></div>
-              </div>
-            </div>
-          </div>
+
+              {/* summary items */}
+              <Grid layout="two" as="div" style={S.items}>
+                <Item icon="ti-building" label="Listing Type" value={listingType === 'RENT' ? 'For Rent' : 'For Sale'} />
+                <Item icon="ti-calendar" label="Available Date" value={availableDateDisplay || 'Not set'} muted={!availableDateDisplay} />
+                <Item icon="ti-photo" label="Photos" value={`${selectedPhotoCount} selected`} />
+                <Item icon="ti-stack-2" label="Floor Plan" value={unit.floor_plan_name || 'Not set'} muted={!unit.floor_plan_name} />
+                <Item icon="ti-player-play" label="Video / Virtual Tour" value={hasVideoOrTour ? 'Added' : 'Not added'} muted={!hasVideoOrTour} />
+                <Item icon="ti-star" label="Highlights" value={highlightsText} muted={!listing.highlights?.length} />
+              </Grid>
+            </Grid>
+          </SectionCard>
 
           {/* Lead & Showing Summary */}
-          <div style={LS.card}>
-            <SectionHead
-              icon="ti-headset"
-              bg={C.greenLight}
-              color={C.green}
-              title="Lead & Showing Summary"
-              action={
-                <span style={LS.editLink} onClick={() => goToStep(3)}>
-                  <i className="ti ti-pencil" aria-hidden="true" />Edit
-                </span>
-              }
-            />
-            <div style={LS.summaryCols(false)}>
-              <div style={LS.summaryRow(false)}><span style={LS.summaryLbl}>Contact</span><span style={LS.summaryVal(false)}>{leadSettings.contact_name || '—'} · {leadSettings.preferred_contact_method === 'PHONE' ? 'Phone' : 'Email'}</span></div>
-              <div style={LS.summaryRow(false)}><span style={LS.summaryLbl}>Showing Method</span><span style={LS.summaryVal(false)}>{leadSettings.showing_method === 'SCHEDULED' ? 'Scheduled' : 'Self-Guided'}</span></div>
-              <div style={LS.summaryRow(false)}><span style={LS.summaryLbl}>Available Days</span><span style={LS.summaryVal(false)}>{formatAvailableDays(leadSettings.available_days)}</span></div>
-              <div style={LS.summaryRow(true)}><span style={LS.summaryLbl}>Auto-Response</span><span style={LS.summaryVal(!leadSettings.auto_response)}>{leadSettings.auto_response ? 'Enabled' : 'Disabled'}</span></div>
-            </div>
-          </div>
+          <SectionCard
+            icon="ti-headset"
+            title="Lead & Showing Summary"
+            action={editLink(3)}
+            pattern={false}
+            decoration={<CornerArt />}
+          >
+            <Grid layout="two" as="div" style={{ ...S.items, ...WZ.body }}>
+              <Item icon="ti-user" label="Contact" value={`${leadSettings.contact_name || '—'} · ${leadSettings.preferred_contact_method === 'PHONE' ? 'Phone' : 'Email'}`} />
+              <Item icon="ti-calendar-event" label="Showing Method" value={leadSettings.showing_method === 'SCHEDULED' ? 'Scheduled' : 'Self-Guided'} />
+              <Item icon="ti-calendar" label="Available Days" value={formatAvailableDays(leadSettings.available_days)} />
+              <Item icon="ti-bolt" label="Auto-Response" value={leadSettings.auto_response ? 'Enabled' : 'Disabled'} muted={!leadSettings.auto_response} />
+            </Grid>
+          </SectionCard>
         </div>
 
         {/* ── RIGHT COLUMN ────────────────────────────────────────── */}
-        <div style={LS.splitCol}>
+        <div style={WZ.col}>
 
           {/* Distribution & Promotion Summary */}
-          <div style={LS.card}>
-            <SectionHead
-              icon="ti-share"
-              bg={C.blueLight}
-              color={C.blue}
-              title="Distribution & Promotion Summary"
-              action={
-                <span style={LS.editLink} onClick={() => goToStep(3)}>
-                  <i className="ti ti-pencil" aria-hidden="true" />Edit
-                </span>
-              }
-            />
-            <div style={LS.summaryCols(true)}>
-              <div style={LS.summaryRow(false)}>
-                <span style={LS.summaryLbl}>Published To</span>
+          <SectionCard icon="ti-speakerphone" title="Distribution & Promotion Summary" action={editLink(3)} pattern={false}>
+            <div style={WZ.body}>
+              <div style={S.kv(true)}>
+                <span>Published To</span>
                 {channelSelections.length > 0 ? (
-                  <span style={{ display: 'flex', gap: 6, flexWrap: 'wrap', justifyContent: 'flex-end' }}>
+                  <span style={S.chips}>
                     {channelSelections.map(cs => (
-                      <span key={cs.id} style={LS.channelTag(true)}><i className="ti ti-check" style={{ fontSize: 10 }} aria-hidden="true" />{cs.channel_detail?.name}</span>
+                      <span key={cs.id} style={S.chip}><i className="ti ti-check" aria-hidden="true" />{cs.channel_detail?.name}</span>
                     ))}
                   </span>
                 ) : (
-                  <span style={LS.channelTag(false)}>None selected</span>
+                  <span style={S.chipNone}>None selected</span>
                 )}
               </div>
-              <div style={LS.summaryRow(false)}><span style={LS.summaryLbl}>Promotion Plan</span><span style={LS.summaryVal(false)}>{plan.name} ({plan.durationDays} days)</span></div>
-              <div style={LS.summaryRow(false)}><span style={LS.summaryLbl}>Promotion Cost</span><span style={LS.summaryVal(false)}>{plan.priceValue === 0 ? 'Free' : `$${plan.priceValue.toFixed(2)}`}</span></div>
-              <div style={LS.summaryRow(true)}><span style={LS.summaryLbl}>Listing Expires</span><span style={LS.summaryVal(false)}>{expiryDateFromToday(plan.durationDays)}</span></div>
+              <div style={S.kv(false)}><span>Promotion Plan</span><span style={S.kvVal}>{plan.name} ({plan.durationDays} days)</span></div>
+              <div style={S.kv(false)}><span>Promotion Cost</span><span style={S.kvVal}>{plan.priceValue === 0 ? 'Free' : `$${plan.priceValue.toFixed(2)}`}</span></div>
+              <div style={S.kv(false)}><span>Listing Expires</span><span style={S.kvVal}>{expiryDateFromToday(plan.durationDays)}</span></div>
             </div>
-          </div>
+          </SectionCard>
 
           {/* Compliance & Validation */}
-          <div style={LS.card}>
-            <SectionHead
-              icon="ti-alert-triangle"
-              bg={C.amberLight}
-              color={C.amber}
-              title="Compliance & Validation"
-              note="All items must be resolved before this listing can go live"
-            />
-            <div style={LS.checkList}>
-              {checks.map((c, i) => (
-                <div key={i} style={LS.checkItem(i === checks.length - 1)}>
-                  <div style={LS.checkIcon(c.status)}>
-                    <i className={`ti ${c.status === 'ok' ? 'ti-check' : 'ti-exclamation-mark'}`} aria-hidden="true" />
-                  </div>
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={LS.checkTitle(c.status)}>{c.title}</div>
-                    {c.sub && <div style={LS.checkSub}>{c.sub}</div>}
-                  </div>
-                  {c.status === 'warn' && c.fixStep && (
-                    <span style={LS.checkFix} onClick={() => goToStep(c.fixStep)}>
-                      Fix now<i className="ti ti-arrow-right" style={{ fontSize: 10 }} aria-hidden="true" />
-                    </span>
-                  )}
-                </div>
-              ))}
-            </div>
-          </div>
-        </div>
-
-      </div>
-    </ListingPageShell>
-
-    {published && (
-      <div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 999 }}>
-        <div style={{ ...LS.card, width: 400, maxWidth: '90vw', margin: 0, textAlign: 'center', boxShadow: '0 24px 60px rgba(0,0,0,0.2)' }}>
-          <div style={{ width: 44, height: 44, borderRadius: '50%', background: C.greenLight, color: C.greenDark, display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 14px', fontSize: 20 }}>
-            <i className="ti ti-check" aria-hidden="true" />
-          </div>
-          <p style={{ fontSize: 17, fontWeight: 700, color: C.txtPrimary, margin: '0 0 6px' }}>Listing Published</p>
-          <p style={{ fontSize: 13, color: C.txtSec, margin: '0 0 4px' }}>
-            {propertyName} · Unit {unit.unit_number} is now live on the marketplace.
-          </p>
-          {publishedListing?.expires_at && (
-            <p style={{ fontSize: 12, color: C.txtMuted, margin: '0 0 16px' }}>Runs through {formatDateTime(publishedListing.expires_at)}</p>
-          )}
-          <button
-            onClick={handleDone}
-            style={{ ...LS.btn, ...LS.btnPrimary, width: '100%', marginTop: 6, justifyContent: 'center' }}
+          <SectionCard
+            icon="ti-shield-check"
+            tone={hasBlockingIssues ? TONES2.error : TONES2.primary}
+            title="Compliance & Validation"
+            subtitle="All items must be resolved before this listing can go live"
+            pattern={false}
           >
-            Done
-          </button>
+            <div style={WZ.body}>
+              {checks.map((c, i) => {
+                const ok = c.status === 'ok';
+                return (
+                  <div key={i} style={S.check(i === checks.length - 1)}>
+                    <span style={S.checkIcon(ok)}><i className={`ti ${ok ? 'ti-check' : 'ti-exclamation-mark'}`} aria-hidden="true" /></span>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={S.checkT(ok)}>{c.title}</div>
+                      {c.sub && <div style={WZ.hint}>{c.sub}</div>}
+                    </div>
+                    {!ok && c.fixStep && <TextLink onClick={() => goToStep(c.fixStep)}>Fix now</TextLink>}
+                  </div>
+                );
+              })}
+            </div>
+          </SectionCard>
         </div>
-      </div>
-    )}
+      </Grid>
+
+      <WizardFooter
+        left={(
+          <span style={S.total}>
+            <span>
+              <span style={S.totalLbl}>Total Due Today</span>
+              <span style={S.totalVal}>{totalLabel}</span>
+            </span>
+          </span>
+        )}
+        note={publishError || undefined}
+        info="Payment failure keeps this listing in Draft — nothing publishes until payment succeeds."
+        onBack={handleBack}
+        onSaveExit={handleSaveExit}
+        onContinue={handlePublish}
+        continueLabel="Pay & Publish"
+        continueIcon={null}
+        busy={publishing}
+        busyLabel="Publishing…"
+        continueDisabled={hasBlockingIssues || published}
+      />
+
+      {/* Published — a small popup over the still-visible Step 4 page (Session 47 fix), Done → unit page */}
+      {published && (
+        <Modal
+          onClose={handleDone}
+          footer={<button type="button" className="un2-btn" style={{ ...UI2.btn.brand, width: '100%' }} onClick={handleDone}>Done</button>}
+        >
+          <div style={S.doneBody}>
+            <span style={S.doneIcon}><i className="ti ti-check" aria-hidden="true" /></span>
+            <h2 style={WZ.title}>Listing Published</h2>
+            <div style={UI2.text.label}>{propertyName} · Unit {unit.unit_number} is now live on the marketplace.</div>
+            {publishedListing?.expires_at && <div style={T2.caption}>Runs through {formatDateTime(publishedListing.expires_at)}</div>}
+          </div>
+        </Modal>
+      )}
     </>
   );
 }
