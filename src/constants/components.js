@@ -246,6 +246,10 @@ export const UI2 = {
   // Size modifier — spread AFTER a button style: { ...UI2.btn.outline, ...UI2.btnSm }
   btnSm: { minHeight: SZ2.control.sm, padding: pad(0, SP2.md), fontSize: FS2.sm, gap: SP2.xs },
 
+  // STANDARD SMALL BUTTON — fixed width so a column of row actions (View · List · View Unit · Resume) all match.
+  // Spread after a button colour: { ...UI2.btn.brand, ...UI2.btnSmStd }  (primary small button = brand colour)
+  btnSmStd: { minHeight: SZ2.control.sm, width: SZ2.btnSm.w, padding: pad(0, SP2.sm), fontSize: FS2.sm, gap: SP2.xs, justifyContent: 'center' },
+
   // Small bordered "label value" chip, e.g. Occupancy 92%
   metricChip: {
     display: 'inline-flex', alignItems: 'center', gap: SP2.xs, padding: pad(SP2.xs, SP2.sm),

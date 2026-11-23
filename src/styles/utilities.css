@@ -464,3 +464,4 @@
 .un2-menu-item { transition: background var(--un2-motion-fast); }
 .un2-menu-item[aria-selected="false"]:hover,
 .un2-menu-item[aria-selected="false"]:focus-visible { background: var(--un2-background) !important; outline: none; }
+

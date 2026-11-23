@@ -55,6 +55,7 @@ export { default as CustomDropdown }      from './CustomDropdown';
 //
 // Dashboard pieces (Landlord dashboard is the reference):
 //   ProfileHero light hero, photo feathered in on the right · KpiStrip  4 KPIs in ONE container
+//   ListingsHero dashboard-hero styles + height, banner art as one background image (Listings)
 //   OpenHero    open page hero (no box, bleeds to the edges) + full-width stats band — list pages (Portfolio)
 //   PageWave    soft sky wash + rolling waves behind the top bar / header — <PageShell backdrop={<PageWave />}>
 //   <PageShell animate> staggers the sections in on load
@@ -94,6 +95,7 @@ export { default as SectionHeader } from './SectionHeader';
 export { default as DataTable } from './DataTable';
 export { default as ProfileHero } from './ProfileHero';
 export { default as WaveHero } from './WaveHero';
+export { default as ListingsHero } from './ListingsHero';
 export { default as OpenHero } from './OpenHero';
 export { default as KpiStrip } from './KpiStrip';
 export { default as AssetRow } from './AssetRow';
