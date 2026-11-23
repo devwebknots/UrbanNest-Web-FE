@@ -107,7 +107,7 @@
 //   ListingsHero   same styles + height as the dashboard / portfolio heroes (pill · title · subtitle · one stat row),
 //                  banner art (Downloads/image 85.png, text removed) as the container background
 //   toolbar        TabBar underline (All · Active · Ready to List · Not Ready · Drafts, with counts) │
-//                  search field · "Filter" button (FilterMenu by property) · "Sort: Latest" button (FilterMenu)
+//                  search field (always shown) · ActionTray "Options" toggle sliding out Filter (property) + Sort: Latest
 //   open table     (no card — sits on the page like Portfolio's My Properties) ONE DataTable for every listing state — Property / unit (photo · name · type │ unit) ·
 //                  Rent · Status (status dot pill) · Published · Views · Saves · Applications · Trend · row action (small primary button)
 //                  (Active → View · Ready → List · Not ready → View Unit · Draft → Resume — same actions as before)
@@ -120,7 +120,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { PageShell } from '../../../components/layout';
 import {
-  ListingsHero, TabBar, DataTable, FilterMenu, EmptyState, CountUp,
+  ListingsHero, TabBar, ActionTray, DataTable, FilterMenu, EmptyState, CountUp,
 } from '../../../components/ui';
 import {
   C2, TONES2, ACCENT2, accentTone, F2, FS2, SP2, SZ2, LAYOUT2, UI2,
@@ -439,13 +439,13 @@ const S = {
   // Tabs left · search / filter / sort right, on one line (wraps under on narrow widths)
   toolbar:   { display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: SP2.md, flexWrap: 'wrap', marginBottom: LAYOUT2.cardHeaderGap },
   tabsWrap:  { flex: '1 1 auto', minWidth: 0 },
-  tools:     { ...UI2.row(LAYOUT2.inlineGap), flexWrap: 'wrap' },
   search:    { ...UI2.searchField, width: SZ2.searchSm, maxWidth: '100%' },
   searchIcon:{ fontSize: FS2.lg, color: C2.textSecondary },
   input:     { flex: 1, minWidth: 0, border: 'none', outline: 'none', background: 'transparent', fontFamily: F2.body, fontSize: FS2.base, color: C2.textPrimary },
   toolBtn:   { ...UI2.btn.soft },
   tableWrap: { minWidth: 0 },   // open section: no card background / shadow around the table
   rowBtn:    { ...UI2.btn.brand, ...UI2.btnSmStd },   // row action — standard small primary button (same width in every row)
+  tools:     { ...UI2.row(LAYOUT2.inlineGap) },
   menuWrap:  { flexShrink: 0 },      // FilterMenu with a custom trigger spans its parent — this keeps it button-sized   // Filter / Sort — secondary (soft) buttons on a light surface
   // Property / unit cell: photo · name + type │ "Unit" + number
   unitCell:  { ...UI2.row(SP2.md), minWidth: 0 },
@@ -657,6 +657,8 @@ export default function LandlordListingsOverview() {
           <div style={S.tabsWrap}>
             <TabBar variant="underline" ariaLabel="Listing filters" value={tab} onChange={setTab} tabs={TABS} />
           </div>
+          {/* Search box, then the "Options" toggle on its right — Filter + Sort slide out between them
+              (same ActionTray as the property / unit detail headers; compact = soft toggle on a light surface) */}
           <div style={S.tools}>
             <label className="un2-focus-ring" style={S.search}>
               <i className="ti ti-search" style={S.searchIcon} aria-hidden="true" />
@@ -669,34 +671,36 @@ export default function LandlordListingsOverview() {
                 aria-label="Search listings"
               />
             </label>
-            <div style={S.menuWrap}>
-              <FilterMenu
-                title="Filter by property" allLabel="All properties" ariaLabel="Filter listings by property"
-                options={propertyOptions} value={propFilter} onChange={setPropFilter}
-                triggerStyle={S.toolBtn}
-                trigger={
-                  <>
-                    <i className="ti ti-filter" style={UI2.btnIcon} aria-hidden="true" />
-                    <span className="un2-hide-narrow">Filter</span>
-                    {propFilter != null && <span style={UI2.statusDot(TONES2.primary)} aria-hidden="true" />}
-                  </>
-                }
-              />
-            </div>
-            <div style={S.menuWrap}>
-              <FilterMenu
-                title="Sort by" ariaLabel="Sort listings" showAll={false}
-                options={SORTS} value={sort} onChange={v => setSort(v || 'latest')}
-                triggerStyle={S.toolBtn}
-                trigger={open => (
-                  <>
-                    <i className="ti ti-arrows-sort" style={UI2.btnIcon} aria-hidden="true" />
-                    <span className="un2-hide-narrow">Sort: {sortLabel}</span>
-                    <i className="ti ti-chevron-down" style={{ ...UI2.btnIcon, transform: open ? 'rotate(180deg)' : 'none' }} aria-hidden="true" />
-                  </>
-                )}
-              />
-            </div>
+            <ActionTray compact label="Options">
+              <div style={S.menuWrap}>
+                <FilterMenu
+                  title="Filter by property" allLabel="All properties" ariaLabel="Filter listings by property"
+                  options={propertyOptions} value={propFilter} onChange={setPropFilter}
+                  triggerStyle={S.toolBtn}
+                  trigger={
+                    <>
+                      <i className="ti ti-filter" style={UI2.btnIcon} aria-hidden="true" />
+                      <span className="un2-hide-narrow">Filter</span>
+                      {propFilter != null && <span style={UI2.statusDot(TONES2.primary)} aria-hidden="true" />}
+                    </>
+                  }
+                />
+              </div>
+              <div style={S.menuWrap}>
+                <FilterMenu
+                  title="Sort by" ariaLabel="Sort listings" showAll={false}
+                  options={SORTS} value={sort} onChange={v => setSort(v || 'latest')}
+                  triggerStyle={S.toolBtn}
+                  trigger={open => (
+                    <>
+                      <i className="ti ti-arrows-sort" style={UI2.btnIcon} aria-hidden="true" />
+                      <span className="un2-hide-narrow">Sort: {sortLabel}</span>
+                      <i className="ti ti-chevron-down" style={{ ...UI2.btnIcon, transform: open ? 'rotate(180deg)' : 'none' }} aria-hidden="true" />
+                    </>
+                  )}
+                />
+              </div>
+            </ActionTray>
           </div>
         </div>
 
