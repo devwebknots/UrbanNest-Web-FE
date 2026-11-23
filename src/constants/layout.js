@@ -13,6 +13,7 @@ export const pad = (...v) => v.map(n => (typeof n === 'number' ? `${n}px` : n)).
 export const SZ2 = {
   icon:    { xs: 20, sm: 28, md: 32, lg: 40 },   // square icon boxes / avatars (compact)
   control: { sm: 28, md: 34, lg: 40 },           // buttons, inputs, nav items (compact)
+  field:   36,                                   // standard form field height (FIELD2.input · ReadField · SelectField · chip inputs)
   btnSm:   { w: 72 },                            // standard small button width — fits the longest row label "View Unit" (≈56px at 12px Medium) + 8px padding each side; (UI2.btnSmStd) — same width for every row action (View / List / View Unit / Resume)
   // Form controls + wizard (Create Listing) — Stepper · Switch · Checkbox · RadioPill · MapPreview · WizardFooter
   stepDot:  28,                                 // Stepper numbered circle
@@ -22,7 +23,6 @@ export const SZ2 = {
   radioDot: 8,                                  // RadioPill inner dot
   textarea: 88,                                 // multi-line field min height
   mapPreview: { h: 200, pin: 26 },              // MapPreview height · pin size
-  amenityTile: 44,                              // ChoiceTile (amenity) height
   footerBar: 64,                                // WizardFooter height
   hairline:1,                                   // dividers, separators, 1px rules
   dashed:  1.5,                                 // dashed outline of an empty "Add …" upload slot (UI2.addTile)

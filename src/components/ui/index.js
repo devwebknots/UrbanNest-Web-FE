@@ -110,7 +110,7 @@ export { default as FilterMenu } from './FilterMenu';
 export { default as PhotoBento } from './PhotoBento';
 export { BarChart, DonutChart, Sparkline, LineChart, Gauge, ProgressRing, MiniBars } from './Charts';
 
-// Forms + wizards (Create Listing is the reference):
+// Forms + wizards (Create Listing is the reference) — VERSION 2 FORM STANDARD documented at the top of FormField.jsx:
 //   Stepper (numbered steps) · FormField + ReadField + FIELD2 (caps label · standard field boxes) ·
 //   Switch · Checkbox · RadioPill · ChoiceTile (amenity picker) · MapPreview (static map) · WizardFooter (sticky bar)
 export { default as Stepper } from './Stepper';

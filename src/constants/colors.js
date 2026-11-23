@@ -100,6 +100,7 @@ export const C2 = {
   white:          '#FFFFFF',
   black:          '#0F172A',
   background:     '#F8FAFC',
+  fieldReadOnly:  '#FBFCFE',   // read-only form field (ReadField) — half the tint of C2.background, just off-white
   pageBg:         '#F3F7FE',   // lighter variant of mobile pageTint (#EEF3F9); same light blue mobile uses for soft surfaces
   backgroundGlass:'rgba(243, 247, 254, 0.92)',  // pageBg at 92% (top bar)
   barGlass:       'transparent',                // frosted sticky bar (WizardFooter) — NO tint: pure blurred glass (BLUR2.bar does the frosting)
@@ -114,6 +115,7 @@ export const C2 = {
   divider:        '#EDF1F6',   // row divider in lists / tables — barely visible (one standard everywhere)
   tileBlue:       '#DCE6F4',
   chipBlue:       '#DCE8FB',
+  chipBlueHover:  '#E9F6FF',   // chipBlue at the soft-button hover (.un2-btn:hover brightness 1.06) — selected amenity tile background
   heroWaveCrest:  '#D6E2F8',   // ProfileHero frame="wave" — wave colour just under the crest (sampled from the dashboard hero art)
   heroWaveBase:   '#B9CDF1',   // … deepening to this blue mid-way (then softening to chipBlue at the bottom edge)
   skeleton:       '#E2E8F0',

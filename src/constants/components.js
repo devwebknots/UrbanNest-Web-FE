@@ -250,6 +250,12 @@ export const UI2 = {
   // Spread after a button colour: { ...UI2.btn.brand, ...UI2.btnSmStd }  (primary small button = brand colour)
   btnSmStd: { minHeight: SZ2.control.sm, width: SZ2.btnSm.w, padding: pad(0, SP2.sm), fontSize: FS2.sm, gap: SP2.xs, justifyContent: 'center' },
 
+  // STANDARD COMPACT CONTROL SIZE — every compact control shares it (same box size, same text size):
+  //   compact inputs (FIELD2.inputSm) · choice / amenity tiles (ChoiceTile) · any future compact chip-row control
+  //   { ...UI2.<style>, ...UI2.compact }   — size only (height · side padding · text), never colours
+  compact:     { minHeight: SZ2.control.md, padding: pad(0, SP2.sm), fontSize: FS2.sm },   // 34 high · 8 side padding · 12 text
+  compactIcon: { fontSize: FS2.md },                                                         // 14 — leading icon inside a compact control
+
   // Small bordered "label value" chip, e.g. Occupancy 92%
   metricChip: {
     display: 'inline-flex', alignItems: 'center', gap: SP2.xs, padding: pad(SP2.xs, SP2.sm),

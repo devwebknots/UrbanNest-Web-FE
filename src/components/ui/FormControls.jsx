@@ -1,5 +1,5 @@
 import React from 'react';
-import { C2, G2, R2, SH2, TONES2, F2, FS2, FW2, LH2, SP2, SZ2, pad, UI2 } from '../../constants';
+import { C2, G2, R2, SH2, F2, FS2, FW2, LH2, SP2, SZ2, pad, UI2 } from '../../constants';
 
 // ─── Form controls (Design System v2) ────────────────────────────────────────
 // VERSION 2 controls — the v1 equivalents are Checkbox / Toggle / RadioPillButton in
@@ -46,15 +46,17 @@ const S = {
   }),
   radioDot: { width: SZ2.radioDot, height: SZ2.radioDot, borderRadius: R2.round, background: G2.primaryButton },
 
-  // ChoiceTile — soft tinted tile (no border: grouping by tint only), selected = light primary-blue tint + check
+  // ChoiceTile — soft tinted tile (no border: grouping by tint only), selected = secondary-button light blue (C2.chipBlue,
+  // same as the Options toggle / UI2.btn.soft) + blue ✓
   tile: (on) => ({
-    ...UI2.row(SP2.sm), width: '100%', minWidth: 0, minHeight: SZ2.amenityTile, padding: pad(0, SP2.md), border: 'none', borderRadius: R2.lg,
+    // size = the standard compact control (UI2.compact — same as the compact input FIELD2.inputSm)
+    ...UI2.row(SP2.sm), ...UI2.compact, width: '100%', minWidth: 0, border: 'none', borderRadius: R2.lg,
     cursor: 'pointer', textAlign: 'left', fontFamily: F2.body,
-    background: on ? TONES2.primary.soft : C2.background, transition: 'background 0.15s ease',
+    background: on ? C2.chipBlueHover : C2.background, transition: 'background 0.15s ease',   // = Options toggle when hovered
   }),
-  tileIcon:  { fontSize: FS2.lg, color: C2.primary, flexShrink: 0 },
-  tileLabel: (on) => ({ flex: 1, minWidth: 0, ...UI2.truncate, fontSize: FS2.base, fontWeight: FW2.medium, color: on ? TONES2.primary.fg : C2.textPrimary }),
-  tileCheck: { fontSize: FS2.md, color: C2.primaryLight, flexShrink: 0 },
+  tileIcon:  (on) => ({ ...UI2.compactIcon, color: on ? C2.navy : C2.primary, flexShrink: 0 }),   // selected = dark primary navy (matches the label)
+  tileLabel: (on) => ({ flex: 1, minWidth: 0, ...UI2.truncate, fontSize: UI2.compact.fontSize, fontWeight: FW2.medium, color: on ? C2.navy : C2.textPrimary }),   // selected = dark primary navy (same text as the Options toggle)
+  tileCheck: { fontSize: FS2.base, color: C2.primaryLight, flexShrink: 0 },
 
   disabled: { opacity: 0.5, cursor: 'not-allowed' },
 };
@@ -102,7 +104,7 @@ export function RadioPill({ label, on, onClick, disabled = false }) {
 export function ChoiceTile({ icon, label, selected, onClick }) {
   return (
     <button type="button" role="checkbox" aria-checked={!!selected} style={S.tile(selected)} onClick={onClick} title={label}>
-      {icon && <i className={`ti ${icon}`} style={S.tileIcon} aria-hidden="true" />}
+      {icon && <i className={`ti ${icon}`} style={S.tileIcon(selected)} aria-hidden="true" />}
       <span style={S.tileLabel(selected)}>{label}</span>
       {selected && <i className="ti ti-circle-check-filled" style={S.tileCheck} aria-hidden="true" />}
     </button>
