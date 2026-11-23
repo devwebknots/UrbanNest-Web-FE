@@ -338,6 +338,12 @@ export const G2 = {
     `linear-gradient(180deg, ${C2.primaryTint} 0%, ${C2.pageBg} 100%)`,
   ].join(', '),
   pageWaveMask: 'linear-gradient(180deg, #000 70%, transparent 100%)',
+  // ImageBackdrop (Create Listing): art fades out from half-way down so it's gone before the cards
+  imageBackdropMask: 'linear-gradient(180deg, #000 45%, transparent 100%)',
+  // … and a left → right fade: the art only lives on the RIGHT half (plain behind the title / stepper, like the design)
+  imageBackdropMaskX: 'linear-gradient(90deg, transparent 0%, transparent 45%, #000 72%)',
+  // CornerArt rim: white highlight along a card's top edge + top-right corner, fading out to the left and down
+  cornerRimMask: 'linear-gradient(205deg, #000 45%, rgba(0,0,0,0.6) 70%, transparent 95%)',
   // OpenHero sky to the LEFT of the photo (portfolio-hero-sunset.jpg): the photo's own left-edge colours,
   // top → bottom over the full photo height — continues its sunset sky seamlessly
   openHeroSky: 'linear-gradient(180deg, #9CA7E8 0%, #C3BAF3 20%, #EBD2F7 40%, #FDE2E5 60%, #FDCD9B 80%, #E9C6B6 100%)',

@@ -14,9 +14,21 @@ export const SZ2 = {
   icon:    { xs: 20, sm: 28, md: 32, lg: 40 },   // square icon boxes / avatars (compact)
   control: { sm: 28, md: 34, lg: 40 },           // buttons, inputs, nav items (compact)
   btnSm:   { w: 72 },                            // standard small button width — fits the longest row label "View Unit" (≈56px at 12px Medium) + 8px padding each side; (UI2.btnSmStd) — same width for every row action (View / List / View Unit / Resume)
+  // Form controls + wizard (Create Listing) — Stepper · Switch · Checkbox · RadioPill · MapPreview · WizardFooter
+  stepDot:  28,                                 // Stepper numbered circle
+  stepLine: { w: 64, h: 2 },                    // Stepper connector between steps
+  switch:   { w: 40, h: 22, knob: 18 },         // Switch (on/off) track + knob
+  check:    18,                                 // Checkbox box / RadioPill radio circle
+  radioDot: 8,                                  // RadioPill inner dot
+  textarea: 88,                                 // multi-line field min height
+  mapPreview: { h: 200, pin: 26 },              // MapPreview height · pin size
+  amenityTile: 44,                              // ChoiceTile (amenity) height
+  footerBar: 64,                                // WizardFooter height
   hairline:1,                                   // dividers, separators, 1px rules
   dashed:  1.5,                                 // dashed outline of an empty "Add …" upload slot (UI2.addTile)
   pageWave: 240,                                // PageWave backdrop height — top bar + breadcrumb + detail header
+  imageBackdrop: 360,                           // ImageBackdrop height — top bar + breadcrumb + header + stepper (Create Listing)
+  cornerArt: { w: '50%', h: 140 },               // CornerArt — wave artwork in a card's top-right corner (Downloads/image 103.png panels)
   pillFixed: 72,                               // fixed-width status pills in a list column (Critical / Medium / Low) — fits the longest label
   dot:     6,
   menu:    { w: 240, maxH: 280 },           // FilterMenu dropdown: width · max height before it scrolls
@@ -178,7 +190,7 @@ export const BLUR2 = {
 };
 
 // Opacity steps
-export const OP2 = { faint: 0.25, muted: 0.45, soft: 0.7, pattern: 0.55 };   // pattern = CardPattern corner art strength
+export const OP2 = { faint: 0.25, muted: 0.45, soft: 0.7, pattern: 0.55, backdrop: 0.8, cornerArt: 0.45 };   // pattern = CardPattern corner art strength · backdrop = ImageBackdrop art strength · cornerArt = CornerArt strength (light, so card text stays clear)
 
 // Stacking order for floating layers (rendered in a portal on document.body)
-export const ZI2 = { menu: 1000 };   // FilterMenu dropdown — above cards, top bar and sidebar
+export const ZI2 = { menu: 1000, sticky: 10 };   // menu: FilterMenu dropdown — above cards, top bar and sidebar · sticky: WizardFooter bar over the scrolling content

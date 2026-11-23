@@ -21,22 +21,90 @@
 // transportation data exists yet — those POI lists come from
 // ListingNeighborhoodInfo, which starts empty for a new listing rather than
 // the old mock's canned examples.
+//
+// 2026-11-23 — REDESIGNED on Design System v2 (design: Downloads/image 78.png). Layout from the design,
+// every style from v2 tokens / shared v2 components; ALL data loading, saving and navigation is unchanged:
+//   PageShell (+ ImageBackdrop — Downloads/image 86.png waves) · Breadcrumb · DetailHeader (Create Listing · subtitle │ Listing Status pill)
+//   Stepper (Property · Unit · Promote · Publish)
+//   <Grid wideLeft>
+//     left : (both cards carry the wave art in their top-right corner — CornerArt, like the design)
+//            Property Information (ReadFields from the Property record · description + AI Assist + "also update")
+//            Amenity(s) (ChoiceTile grid · "also update the property record")
+//     right: Listing Type (RadioPill Rent / Sell) · Location & Marketing (Switch · neighbourhood · MapPreview ·
+//            area chips) · Schools, Restaurants & Transportation (POI groups · landmarks · website URL)
+//   WizardFooter (sticky: Step 1 of 4 · error note · Save & Exit · Continue)
+// Steps 2–4 still use the old listingWizardShared styles (not touched).
 // ─────────────────────────────────────────────────────────────────────────────
 
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
-import { C } from '../landlordTokens';
+import { PageShell, Grid, Breadcrumb, ImageBackdrop } from '../../../components/layout';
 import {
-  LS, ListingPageShell, ListingFooter, SectionHead,
-  AiAssistButton, Checkbox, Toggle, RadioPillButton,
-} from './listingWizardShared';
+  SectionCard, CornerArt, DetailHeader, Stepper, FormField, ReadField, FIELD2,
+  Switch, Checkbox, RadioPill, ChoiceTile, MapPreview, WizardFooter, TextLink,
+} from '../../../components/ui';
+import { C2, TONES2, FS2, FW2, SP2, SZ2, SH2, LAYOUT2, T2, UI2 } from '../../../constants';
+import { STEPS } from './listingWizardShared';
 import { MAP_PILLS } from './mockListingData';
+import backdropArt from '../../../assets/landlord/wizard-backdrop.jpg';   // Downloads/image 86.png — waves behind the header
 import {
   getProperty, patchProperty, getUnit, getAmenityCatalog,
   getListing, patchListing, createListing,
   getListingAmenities, saveListingAmenities,
   getListingNeighborhood, patchListingNeighborhood,
 } from './listingApi';
+
+// ── Page-specific layout (tokens only) ──────────────────────────────────────
+const S = {
+  col:       UI2.stack(LAYOUT2.gridGap),                                   // stacked cards in one column
+  body:      { paddingTop: SP2.md },                                       // card body under the header line
+  fields:    { columnGap: SP2.lg, rowGap: SP2.lg },                        // <Grid two> of form fields
+  tiles:     { gap: SP2.sm },                                              // <Grid three> of amenity tiles
+  full:      { gridColumn: '1 / -1' },
+  // "Listing Status: Draft" — white pill on the wave art (grey dot · dark medium text · soft shadow), right of the title line
+  statusPill:{ ...UI2.pill(TONES2.neutral), minHeight: SZ2.control.md, padding: `0 ${SP2.lg}px`, gap: SP2.sm, background: C2.white, color: C2.textPrimary, fontSize: FS2.base, fontWeight: FW2.semibold, boxShadow: SH2.control, flexShrink: 0 },
+  aiBtn:     { ...UI2.btn.soft, ...UI2.btnSm },
+  aiOff:     { opacity: 0.5, cursor: 'not-allowed' },
+  changed:   { ...UI2.pill(TONES2.success), marginLeft: SP2.sm, textTransform: 'none', letterSpacing: 0 },
+  labelWrap: { display: 'inline-flex', alignItems: 'center' },
+  checkGap:  { marginTop: SP2.md },
+  rule:      { ...UI2.divider, margin: pad2(SP2.lg) },
+  hint:      { ...UI2.text.meta, marginTop: SP2.xxs },
+  rowBetween:{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: SP2.lg },
+  strong:    { ...UI2.text.title },
+  hood:      { ...T2.sectionTitle, margin: 0 },
+  areas:     { ...UI2.text.title, marginTop: SP2.sm },
+  mapGap:    { marginTop: SP2.md },
+  chips:     { display: 'flex', flexWrap: 'wrap', gap: SP2.sm, marginTop: SP2.md },
+  radios:    { ...UI2.row(SP2.md), flexWrap: 'wrap', paddingTop: SP2.md },
+  // POI groups (Schools / Restaurants / Transportation)
+  poi:       { marginTop: SP2.lg },
+  poiHead:   { ...UI2.row(SP2.sm), ...UI2.capsLabel },
+  poiIcon:   { fontSize: FS2.lg, color: C2.textSecondary },
+  poiItem:   { ...UI2.row(SP2.sm), justifyContent: 'space-between', padding: `${SP2.xs}px 0` },
+  poiName:   { ...UI2.text.rowTitle, minWidth: 0, ...UI2.truncate },
+  poiDist:   { ...UI2.text.label, flexShrink: 0 },
+  poiX:      { ...UI2.btn.icon(SZ2.control.sm), fontSize: FS2.md, color: C2.textSecondary },
+  poiAdd:    { ...UI2.row(SP2.sm), marginTop: SP2.sm },
+  poiIn:     (grow) => ({ ...FIELD2.inputSm, flex: grow, minWidth: 0 }),
+  // Nearby landmarks — chips + input inside one field box
+  chipBox:   { ...FIELD2.input, height: 'auto', minHeight: FIELD2.input.height, display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: SP2.xs, padding: `${SP2.xs}px ${SP2.md}px` },
+  chip:      { ...UI2.featureChip() },
+  chipX:     { padding: 0, border: 'none', background: 'none', cursor: 'pointer', color: C2.textSecondary, fontSize: FS2.sm, display: 'inline-flex' },
+  chipIn:    { flex: 1, minWidth: SZ2.searchSm / 3, border: 'none', outline: 'none', background: 'transparent', fontFamily: 'inherit', fontSize: FS2.base, color: C2.textPrimary, height: SZ2.control.md },
+  stateBox:  { ...UI2.empty },
+};
+
+function pad2(v) { return `${v}px 0`; }
+
+// AI Assist isn't wired to anything yet → visibly disabled with a tooltip (same behaviour as before)
+function AiAssist() {
+  return (
+    <button type="button" style={{ ...S.aiBtn, ...S.aiOff }} disabled title="AI Assist isn't available yet — coming soon">
+      <i className="ti ti-sparkles" style={UI2.btnIcon} aria-hidden="true" /> AI Assist
+    </button>
+  );
+}
 
 export default function ListingStep1_Property() {
   const { id: propId, uid: unitId } = useParams();
@@ -237,255 +305,222 @@ export default function ListingStep1_Property() {
     }
   };
 
+  const crumbs = [
+    { label: 'Properties', href: '/landlord-portal/portfolio' },
+    { label: property?.property_name || '…', onClick: () => window.history.back() },
+    { label: unitLabel },
+  ];
+
+  const shell = (children) => (
+    <PageShell animate backdrop={<ImageBackdrop image={backdropArt} />} activePage="listings" title="UrbanNest Landlord">
+      <Breadcrumb items={crumbs} />
+      <DetailHeader
+        title="Create Listing"
+        meta="Define what is being offered and ensure information for prospects is correct."
+        metaIcon={null}
+        aside={<span style={S.statusPill}><span style={UI2.statusDot(TONES2.neutral)} />Listing Status: Draft</span>}
+      />
+      <Stepper steps={STEPS} current={1} />
+      {children}
+    </PageShell>
+  );
+
   if (loading) {
-    return (
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh', fontFamily: 'inherit', color: C.txtSec }}>
-        Loading property…
-      </div>
-    );
+    return shell(<div style={S.stateBox}>Loading property…</div>);
   }
 
   if (loadError || !property) {
-    return (
-      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100vh', gap: 10, color: C.txtSec }}>
-        <div>{loadError || 'This property could not be loaded.'}</div>
-        <span style={{ color: C.blue, cursor: 'pointer', fontWeight: 600 }} onClick={() => window.location.reload()}>Retry</span>
+    return shell(
+      <div style={S.stateBox}>
+        <div style={UI2.errorBanner}><i className="ti ti-alert-circle" aria-hidden="true" /> {loadError || 'This property could not be loaded.'}</div>
+        <button type="button" className="un2-btn" style={{ ...UI2.btn.soft, marginTop: SP2.md }} onClick={() => window.location.reload()}>Retry</button>
       </div>
     );
   }
 
-  return (
-    <ListingPageShell
-      propertyName={property.property_name}
-      unitLabel={unitLabel}
-      current={1}
-      footer={
-        <ListingFooter
-          current={1}
-          onSaveExit={handleSaveExit}
-          onContinue={handleContinue}
-          continueLabel={saving ? 'Saving…' : 'Continue →'}
-          continueDisabled={saving}
-          noteContent={saveError || undefined}
-        />
-      }
-    >
-        <div style={LS.split}>
+  const descChanged = description !== (property.description || '');
 
-          {/* ── LEFT COLUMN ─────────────────────────────────────────── */}
-          <div style={LS.splitCol}>
+  return shell(
+    <>
+      <Grid layout="wideLeft">
 
-            {/* Property Information */}
-            <div style={LS.card}>
-              <SectionHead
-                icon="ti-building"
-                bg={C.blueLight}
-                color={C.blue}
-                title="Property Information"
-                note="Pulled from the Property record — edits here apply to this listing only"
-              />
-              <div style={LS.grid2}>
-                <div style={LS.field}>
-                  <span style={LS.lbl}>Property Name</span>
-                  <div style={LS.inpStatic}>{property.property_name}</div>
-                </div>
-                <div style={LS.field}>
-                  <span style={LS.lbl}>Property Type</span>
-                  <div style={LS.inpStatic}>{property.property_type || '—'}</div>
-                </div>
-                <div style={{ ...LS.field, ...LS.fieldFull }}>
-                  <span style={LS.lbl}>Address Line 1</span>
-                  <div style={LS.inpStatic}>{property.street_address || '—'}</div>
-                </div>
-                <div style={{ ...LS.field, ...LS.fieldFull }}>
-                  <span style={LS.lbl}>Address Line 2</span>
-                  <div style={{ ...LS.inpStatic, ...(property.street2 ? {} : LS.inpStaticPh) }}>{property.street2 || 'Optional'}</div>
-                </div>
-                <div style={LS.field}>
-                  <span style={LS.lbl}>City</span>
-                  <div style={LS.inpStatic}>{property.city || '—'}</div>
-                </div>
-                <div style={LS.field}>
-                  <span style={LS.lbl}>State</span>
-                  <div style={LS.inpStatic}>{property.state || '—'}</div>
-                </div>
-                <div style={LS.field}>
-                  <span style={LS.lbl}>Zip / Postal Code</span>
-                  <div style={LS.inpStatic}>{property.zip_code || '—'}</div>
-                </div>
-                <div style={LS.field}>
-                  <span style={LS.lbl}>Country</span>
-                  <div style={LS.inpStatic}>{property.country || '—'}</div>
-                </div>
-                <div style={LS.field}>
-                  <span style={LS.lbl}>Neighborhood</span>
-                  <div style={LS.inpStatic}>{property.landmark || '—'}</div>
-                </div>
-                <div style={LS.field}>
-                  <span style={LS.lbl}>Year Built</span>
-                  <div style={LS.inpStatic}>{property.build_year || '—'}</div>
-                </div>
+        {/* ── LEFT COLUMN ─────────────────────────────────────────── */}
+        <div style={S.col}>
 
-                <div style={{ ...LS.field, ...LS.fieldFull }}>
-                  <div style={LS.lblRow}>
-                    <span style={LS.lbl}>
-                      Property Description
-                      {description !== (property.description || '') && (
-                        <span style={LS.badgeOverride}>
-                          <i className="ti ti-check" style={{ fontSize: 10 }} aria-hidden="true" />Changed for this listing
-                        </span>
-                      )}
-                    </span>
-                    <AiAssistButton />
-                  </div>
-                  <textarea
-                    style={LS.txtarea}
-                    value={description}
-                    onChange={e => setDescription(e.target.value)}
-                  />
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 2 }}>
-                    <Checkbox checked={updatePropertyDescription} onChange={() => setUpdatePropertyDescription(v => !v)} />
-                    <span style={LS.cktext}>Also update the Property record</span>
-                  </div>
-                </div>
-              </div>
-            </div>
+          {/* Property Information */}
+          <SectionCard
+            icon="ti-building"
+            title="Property Information"
+            subtitle="Pulled from the Property record — edits here apply to this listing only."
+            pattern={false}
+            decoration={<CornerArt />}
+          >
+            <Grid layout="two" as="div" style={{ ...S.fields, ...S.body }}>
+              <FormField label="Property Name"><ReadField value={property.property_name} /></FormField>
+              <FormField label="Property Type"><ReadField value={property.property_type} icon="ti-chevron-down" /></FormField>
+              <FormField label="Address Line 1" full><ReadField value={property.street_address} /></FormField>
+              <FormField label="Address Line 2" full><ReadField value={property.street2} placeholder="Optional" /></FormField>
+              <FormField label="City"><ReadField value={property.city} icon="ti-chevron-down" /></FormField>
+              <FormField label="State"><ReadField value={property.state} icon="ti-chevron-down" /></FormField>
+              <FormField label="Zip / Postal Code"><ReadField value={property.zip_code} /></FormField>
+              <FormField label="Country"><ReadField value={property.country} icon="ti-chevron-down" /></FormField>
+              <FormField label="Neighborhood"><ReadField value={property.landmark} /></FormField>
+              <FormField label="Year Built"><ReadField value={property.build_year} icon="ti-calendar" /></FormField>
 
-            {/* Amenity(s) */}
-            <div style={LS.card}>
-              <SectionHead
-                icon="ti-home-heart"
-                bg="#e8f5f0"
-                color={C.teal}
-                title="Amenity(s)"
-                note="Sourced from the UN Reference amenity list — not free text"
-              />
-              <div style={LS.amenityGrid}>
-                {amenities.map(a => (
-                  <div key={a.id} style={LS.amenityTile(a.selected)} onClick={() => toggleAmenity(a.id)}>
-                    <div style={LS.amenityIcon}><i className={`ti ${a.icon}`} aria-hidden="true" /></div>
-                    <span style={LS.amenityLabel}>{a.name}</span>
-                  </div>
-                ))}
-                {amenities.length === 0 && (
-                  <div style={{ fontSize: 12, color: C.txtMuted, gridColumn: '1 / -1' }}>No property amenities configured yet.</div>
+              <FormField
+                full
+                label={(
+                  <span style={S.labelWrap}>
+                    Property Description
+                    {descChanged && (
+                      <span style={S.changed}><i className="ti ti-check" aria-hidden="true" />Changed for this listing</span>
+                    )}
+                  </span>
                 )}
-              </div>
-              <div style={LS.syncRow}>
-                <Checkbox checked={syncAmenitiesToProperty} onChange={() => setSyncAmenitiesToProperty(v => !v)} />
-                <div>
-                  <span style={{ ...LS.cktext, fontWeight: 550, color: C.txtPrimary }}>Also update the property record</span>
-                  <p style={{ ...LS.hint, marginTop: 2 }}>Syncs these amenity selections back to the property's saved amenity list — otherwise this only affects the listing</p>
-                </div>
-              </div>
-            </div>
-          </div>
+                action={<AiAssist />}
+              >
+                <textarea
+                  className="un2-focus-ring"
+                  style={FIELD2.textarea}
+                  value={description}
+                  onChange={e => setDescription(e.target.value)}
+                  aria-label="Property description"
+                />
+                <Checkbox
+                  checked={updatePropertyDescription}
+                  onChange={() => setUpdatePropertyDescription(v => !v)}
+                  label="Also update the Property record"
+                />
+              </FormField>
+            </Grid>
+          </SectionCard>
 
-          {/* ── RIGHT COLUMN ────────────────────────────────────────── */}
-          <div style={LS.splitCol}>
-
-            {/* Listing Type */}
-            <div style={LS.card}>
-              <SectionHead
-                icon="ti-tag"
-                bg={C.blueLight}
-                color={C.blue}
-                title="Listing Type"
-                note="What do you want to do with this unit?"
-              />
-              <div style={LS.radiopill}>
-                <RadioPillButton label="Rent" on={listingType === 'RENT'} onClick={() => setListingType('RENT')} />
-                <RadioPillButton label="Sell" on={listingType === 'SALE'} onClick={() => setListingType('SALE')} />
-              </div>
-              {listingId && (
-                <p style={{ ...LS.hint, marginTop: 10 }}>Listing type is locked once this listing is created — start a new listing to change it.</p>
+          {/* Amenity(s) */}
+          <SectionCard
+            icon="ti-home"
+            tone={TONES2.success}
+            title="Amenity(s)"
+            subtitle="Sourced from the UN Reference amenity list — not free text."
+            pattern={false}
+            decoration={<CornerArt />}
+          >
+            <div style={S.body}>
+              {amenities.length === 0 ? (
+                <div style={UI2.emptyInline}>No property amenities configured yet.</div>
+              ) : (
+                <Grid layout="three" as="div" style={S.tiles}>
+                  {amenities.map(a => (
+                    <ChoiceTile key={a.id} icon={a.icon} label={a.name} selected={a.selected} onClick={() => toggleAmenity(a.id)} />
+                  ))}
+                </Grid>
               )}
+              <div style={S.rule} />
+              <Checkbox
+                strong
+                checked={syncAmenitiesToProperty}
+                onChange={() => setSyncAmenitiesToProperty(v => !v)}
+                label="Also update the property record"
+                hint="Syncs these amenity selections back to the property's saved amenity list — otherwise this only affects the listing."
+              />
             </div>
+          </SectionCard>
+        </div>
 
-            {/* Location & Marketing */}
-            <div style={LS.card}>
-              <SectionHead icon="ti-map-pin" bg={C.blueLight} color={C.blue} title="Location & Marketing" />
+        {/* ── RIGHT COLUMN ────────────────────────────────────────── */}
+        <div style={S.col}>
 
-              <div style={{ ...LS.rowBetween, marginBottom: 16 }}>
+          {/* Listing Type */}
+          <SectionCard icon="ti-tag" title="Listing Type" subtitle="What do you want to do with this unit?" pattern={false}>
+            <div style={S.radios} role="radiogroup" aria-label="Listing type">
+              <RadioPill label="Rent" on={listingType === 'RENT'} onClick={() => setListingType('RENT')} />
+              <RadioPill label="Sell" on={listingType === 'SALE'} onClick={() => setListingType('SALE')} />
+            </div>
+            {listingId && (
+              <p style={{ ...S.hint, marginTop: SP2.md }}>Listing type is locked once this listing is created — start a new listing to change it.</p>
+            )}
+          </SectionCard>
+
+          {/* Location & Marketing */}
+          <SectionCard icon="ti-map-pin" title="Location & Marketing" pattern={false}>
+            <div style={S.body}>
+              <div style={S.rowBetween}>
                 <div>
-                  <div style={{ ...LS.cktext, fontWeight: 550, color: C.txtPrimary }}>Show exact address publicly</div>
-                  <p style={{ ...LS.hint, marginTop: 2 }}>Otherwise only the neighborhood is shown to prospects</p>
+                  <div style={S.strong}>Show exact address publicly</div>
+                  <p style={S.hint}>Otherwise only the neighborhood is shown to prospects</p>
                 </div>
-                <Toggle on={showExactAddress} onChange={() => setShowExactAddress(v => !v)} />
+                <Switch on={showExactAddress} onChange={() => setShowExactAddress(v => !v)} label="Show exact address publicly" />
               </div>
 
-              <div style={LS.hr} />
+              <div style={S.rule} />
 
-              <div style={LS.mapHeading}>Neighborhood: {property.zip_code || '—'}</div>
-              <p style={LS.mapSubhead}>Areas of interest</p>
-              <p style={LS.mapDesc}>Illustrative preview only — a live, interactive map isn't wired up yet.</p>
-              <div style={LS.mapBox}>
-                <div style={LS.mapPin('16%', '16%', false)}><PinIcon /></div>
-                <div style={LS.mapPin('66%', '30%', false)}><PinIcon /></div>
-                <div style={LS.mapPin('30%', '58%', false)}><PinIcon /></div>
-                <div style={LS.mapPin('47%', '44%', true)}><PinIcon /></div>
-                <div style={LS.mapGoogle}>Google</div>
-                <div style={LS.mapStreetview}>Street View</div>
-              </div>
-              <div style={LS.mappills}>
+              <h3 style={S.hood}>Neighborhood: {property.zip_code || '—'}</h3>
+              <div style={S.areas}>Areas of Interest</div>
+              <p style={S.hint}>Illustrative preview only — a live, interactive map isn't wired up yet.</p>
+              <div style={S.mapGap}><MapPreview /></div>
+              <div style={S.chips}>
                 {MAP_PILLS.map(p => (
-                  <div key={p} style={LS.mappill(activePill === p)} onClick={() => setActivePill(p)}>{p}</div>
+                  <button key={p} type="button" style={UI2.filterChip(activePill === p)} onClick={() => setActivePill(p)} aria-pressed={activePill === p}>{p}</button>
                 ))}
               </div>
+            </div>
+          </SectionCard>
 
-              <div style={LS.hr} />
+          {/* Schools, Restaurants & Transportation · landmarks · website */}
+          <SectionCard
+            title="Schools, Restaurants & Transportation"
+            subtitle="AI Assist will auto-populate this from the property address once available — add entries manually for now."
+            action={<AiAssist />}
+            pattern={false}
+          >
+            <PoiGroup icon="ti-school" label="Schools" items={neighborhoodInfo.schools} onAdd={item => addPoi('schools', item)} onRemove={idx => removePoi('schools', idx)} />
+            <PoiGroup icon="ti-tools-kitchen-2" label="Restaurants" items={neighborhoodInfo.restaurants} onAdd={item => addPoi('restaurants', item)} onRemove={idx => removePoi('restaurants', idx)} />
+            <PoiGroup icon="ti-bus" label="Transportation" items={neighborhoodInfo.transportation} onAdd={item => addPoi('transportation', item)} onRemove={idx => removePoi('transportation', idx)} />
 
-              <div style={LS.lblRow}>
-                <span style={{ ...LS.mapSubhead, marginBottom: 0 }}>Schools, Restaurants &amp; Transportation</span>
-                <AiAssistButton />
-              </div>
-              <p style={{ ...LS.hint, marginBottom: 12 }}>AI Assist will auto-populate this from the property address once available — add entries manually for now</p>
+            <div style={S.rule} />
 
-              <PoiGroup icon="ti-school" label="Schools" items={neighborhoodInfo.schools} onAdd={item => addPoi('schools', item)} onRemove={idx => removePoi('schools', idx)} />
-              <PoiGroup icon="ti-tools-kitchen-2" label="Restaurants" items={neighborhoodInfo.restaurants} onAdd={item => addPoi('restaurants', item)} onRemove={idx => removePoi('restaurants', idx)} />
-              <PoiGroup icon="ti-bus" label="Transportation" items={neighborhoodInfo.transportation} onAdd={item => addPoi('transportation', item)} onRemove={idx => removePoi('transportation', idx)} />
-
-              <div style={LS.hr} />
-
-              <div style={{ ...LS.field, ...LS.fieldFull, marginBottom: 16 }}>
-                <span style={LS.lbl}>Nearby Landmarks</span>
-                <div style={LS.chiprow}>
+            <div style={UI2.stack(SP2.lg)}>
+              <FormField label="Nearby Landmarks">
+                <div className="un2-focus-ring" style={S.chipBox}>
                   {landmarks.map((l, i) => (
-                    <div key={i} style={LS.chip}>
+                    <span key={i} style={S.chip}>
                       {l}
-                      <i className="ti ti-x" style={{ fontSize: 10, cursor: 'pointer' }} onClick={() => removeLandmark(i)} aria-hidden="true" />
-                    </div>
+                      <button type="button" style={S.chipX} onClick={() => removeLandmark(i)} aria-label={`Remove ${l}`}><i className="ti ti-x" aria-hidden="true" /></button>
+                    </span>
                   ))}
                   <input
-                    style={{ ...LS.chipPh, border: 'none', outline: 'none', background: 'transparent', flex: 1, minWidth: 90, fontSize: 12.5, fontFamily: 'inherit' }}
+                    style={S.chipIn}
                     placeholder="Add landmark…"
                     value={landmarkDraft}
                     onChange={e => setLandmarkDraft(e.target.value)}
                     onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addLandmark(); } }}
+                    aria-label="Add landmark"
                   />
                 </div>
-              </div>
-              <div style={{ ...LS.field, ...LS.fieldFull }}>
-                <span style={LS.lbl}>Property Website URL</span>
+              </FormField>
+              <FormField label="Property Website URL">
                 <input
-                  style={LS.inp}
+                  className="un2-focus-ring"
+                  style={FIELD2.input}
                   placeholder="https://"
                   value={websiteUrl}
                   onChange={e => setWebsiteUrl(e.target.value)}
+                  aria-label="Property website URL"
                 />
-              </div>
+              </FormField>
             </div>
-          </div>
+          </SectionCard>
         </div>
-    </ListingPageShell>
-  );
-}
+      </Grid>
 
-function PinIcon() {
-  return (
-    <svg viewBox="0 0 24 30" fill="currentColor" style={{ width: '100%', height: '100%' }}>
-      <path d="M12 0C5.4 0 0 5.4 0 12c0 9 12 18 12 18s12-9 12-18C24 5.4 18.6 0 12 0zm0 16.5a4.5 4.5 0 110-9 4.5 4.5 0 010 9z" />
-    </svg>
+      <WizardFooter
+        step={1}
+        total={STEPS.length}
+        note={saveError || undefined}
+        onSaveExit={handleSaveExit}
+        onContinue={handleContinue}
+        busy={saving}
+      />
+    </>
   );
 }
 
@@ -505,48 +540,23 @@ function PoiGroup({ icon, label, items, onAdd, onRemove }) {
   const onDraftKeyDown = (e) => { if (e.key === 'Enter') { e.preventDefault(); submit(); } };
 
   return (
-    <div style={LS.poiGroup}>
-      <span style={LS.poiGroupLbl}><i className={`ti ${icon}`} aria-hidden="true" />{label}</span>
-      {(!items || items.length === 0) && (
-        <p style={{ fontSize: 11.5, color: '#9aa1ab', margin: '0 0 8px' }}>None added yet</p>
-      )}
+    <div style={S.poi}>
+      <div style={S.poiHead}><i className={`ti ${icon}`} style={S.poiIcon} aria-hidden="true" />{label}</div>
+      {(!items || items.length === 0) && <p style={S.hint}>None added yet</p>}
       {(items || []).map((it, i) => (
-        <div key={i} style={LS.poiItem}>
-          <span style={LS.poiName}>{it.name}<span style={LS.poiNameSub}>{it.sub}</span></span>
-          <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-            <span style={LS.poiDist}>{it.distance}</span>
-            <i
-              className="ti ti-x"
-              style={{ fontSize: 11, cursor: 'pointer', color: '#9aa1ab' }}
-              onClick={() => onRemove(i)}
-              aria-hidden="true"
-            />
+        <div key={i} style={S.poiItem}>
+          <span style={S.poiName}>{it.name}{it.sub && <span style={UI2.text.meta}> · {it.sub}</span>}</span>
+          <span style={UI2.row(SP2.xs)}>
+            {it.distance && <span style={S.poiDist}>{it.distance}</span>}
+            <button type="button" style={S.poiX} onClick={() => onRemove(i)} aria-label={`Remove ${it.name}`}><i className="ti ti-x" aria-hidden="true" /></button>
           </span>
         </div>
       ))}
-      <div style={{ display: 'flex', gap: 6, marginTop: 6, marginBottom: 10 }}>
-        <input
-          style={{ ...LS.inp, flex: 2, fontSize: 11.5, padding: '6px 8px' }}
-          placeholder="Name"
-          value={nameDraft}
-          onChange={e => setNameDraft(e.target.value)}
-          onKeyDown={onDraftKeyDown}
-        />
-        <input
-          style={{ ...LS.inp, flex: 2, fontSize: 11.5, padding: '6px 8px' }}
-          placeholder="Type (optional)"
-          value={subDraft}
-          onChange={e => setSubDraft(e.target.value)}
-          onKeyDown={onDraftKeyDown}
-        />
-        <input
-          style={{ ...LS.inp, flex: 1, fontSize: 11.5, padding: '6px 8px' }}
-          placeholder="Distance"
-          value={distDraft}
-          onChange={e => setDistDraft(e.target.value)}
-          onKeyDown={onDraftKeyDown}
-        />
-        <span style={{ ...LS.addLink, whiteSpace: 'nowrap' }} onClick={submit}>+ Add</span>
+      <div style={S.poiAdd}>
+        <input className="un2-focus-ring" style={S.poiIn(2)} placeholder="Name" value={nameDraft} onChange={e => setNameDraft(e.target.value)} onKeyDown={onDraftKeyDown} aria-label={`${label} name`} />
+        <input className="un2-focus-ring" style={S.poiIn(2)} placeholder="Type (optional)" value={subDraft} onChange={e => setSubDraft(e.target.value)} onKeyDown={onDraftKeyDown} aria-label={`${label} type`} />
+        <input className="un2-focus-ring" style={S.poiIn(1.4)} placeholder="Distance" value={distDraft} onChange={e => setDistDraft(e.target.value)} onKeyDown={onDraftKeyDown} aria-label={`${label} distance`} />
+        <TextLink arrow={false} onClick={submit}>+ Add</TextLink>
       </div>
     </div>
   );

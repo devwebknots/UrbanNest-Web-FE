@@ -13,3 +13,4 @@ export { default as Grid } from './Grid';
 export { default as PageFooter } from './PageFooter';
 export { default as Breadcrumb } from './Breadcrumb';
 export { default as PageWave } from './PageWave';
+export { default as ImageBackdrop } from './ImageBackdrop';
