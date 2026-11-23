@@ -38,15 +38,15 @@
 
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
-import { PageShell, Grid, Breadcrumb, ImageBackdrop } from '../../../components/layout';
+import { Grid } from '../../../components/layout';
 import {
-  SectionCard, CornerArt, DetailHeader, Stepper, FormField, ReadField, FIELD2,
+  SectionCard, CornerArt, FormField, ReadField, FIELD2,
   Switch, Checkbox, RadioPill, ChoiceTile, MapPreview, WizardFooter, TextLink,
 } from '../../../components/ui';
-import { C2, TONES2, FS2, FW2, SP2, SZ2, SH2, LAYOUT2, T2, UI2 } from '../../../constants';
+import { C2, TONES2, FS2, SP2, SZ2, LAYOUT2, T2, UI2 } from '../../../constants';
 import { STEPS } from './listingWizardShared';
+import { WizardPage, AiAssist } from './listingWizardV2';   // shared v2 frame (backdrop · breadcrumb · header · stepper)
 import { MAP_PILLS } from './mockListingData';
-import backdropArt from '../../../assets/landlord/wizard-backdrop.jpg';   // Downloads/image 86.png — waves behind the header
 import {
   getProperty, patchProperty, getUnit, getAmenityCatalog,
   getListing, patchListing, createListing,
@@ -61,10 +61,6 @@ const S = {
   fields:    { columnGap: SP2.lg, rowGap: SP2.lg },                        // <Grid two> of form fields
   tiles:     { gap: SP2.sm },                                              // <Grid three> of amenity tiles
   full:      { gridColumn: '1 / -1' },
-  // "Listing Status: Draft" — white pill on the wave art (grey dot · dark medium text · soft shadow), right of the title line
-  statusPill:{ ...UI2.pill(TONES2.neutral), minHeight: SZ2.control.md, padding: `0 ${SP2.lg}px`, gap: SP2.sm, background: C2.white, color: C2.textPrimary, fontSize: FS2.base, fontWeight: FW2.semibold, boxShadow: SH2.control, flexShrink: 0 },
-  aiBtn:     { ...UI2.btn.soft, ...UI2.btnSm },
-  aiOff:     { opacity: 0.5, cursor: 'not-allowed' },
   changed:   { ...UI2.pill(TONES2.success), marginLeft: SP2.sm, textTransform: 'none', letterSpacing: 0 },
   labelWrap: { display: 'inline-flex', alignItems: 'center' },
   checkGap:  { marginTop: SP2.md },
@@ -100,14 +96,6 @@ const S = {
 
 function pad2(v) { return `${v}px 0`; }
 
-// AI Assist isn't wired to anything yet → visibly disabled with a tooltip (same behaviour as before)
-function AiAssist() {
-  return (
-    <button type="button" style={{ ...S.aiBtn, ...S.aiOff }} disabled title="AI Assist isn't available yet — coming soon">
-      <i className="ti ti-sparkles" style={UI2.btnIcon} aria-hidden="true" /> AI Assist
-    </button>
-  );
-}
 
 export default function ListingStep1_Property() {
   const { id: propId, uid: unitId } = useParams();
@@ -308,24 +296,8 @@ export default function ListingStep1_Property() {
     }
   };
 
-  const crumbs = [
-    { label: 'Properties', href: '/landlord-portal/portfolio' },
-    { label: property?.property_name || '…', onClick: () => window.history.back() },
-    { label: unitLabel },
-  ];
-
   const shell = (children) => (
-    <PageShell animate backdrop={<ImageBackdrop image={backdropArt} />} activePage="listings" title="UrbanNest Landlord">
-      <Breadcrumb items={crumbs} />
-      <DetailHeader
-        title="Create Listing"
-        meta="Define what is being offered and ensure information for prospects is correct."
-        metaIcon={null}
-        aside={<span style={S.statusPill}><span style={UI2.statusDot(TONES2.neutral)} />Listing Status: Draft</span>}
-      />
-      <Stepper steps={STEPS} current={1} />
-      {children}
-    </PageShell>
+    <WizardPage propertyName={property?.property_name} unitLabel={unitLabel} current={1}>{children}</WizardPage>
   );
 
   if (loading) {

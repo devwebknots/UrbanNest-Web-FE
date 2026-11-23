@@ -16,7 +16,9 @@ import { C2, BLUR2, FS2, LAYOUT2, SP2, SZ2, ZI2, pad, T2, UI2 } from '../../cons
 const S = {
   // full-bleed: cancels the page padding at the sides + bottom so the bar spans the content area
   bar:   {
-    position: 'sticky', bottom: 0, zIndex: ZI2.sticky,
+    // sticky offsets are measured inside the scroll area's padding → pull it down by the page's bottom padding
+    // so the bar sits flush on the screen edge (nothing scrolls visibly underneath it)
+    position: 'sticky', bottom: -LAYOUT2.pageBottom, zIndex: ZI2.sticky,
     margin: pad(0, -LAYOUT2.pageX, -LAYOUT2.pageBottom), minHeight: SZ2.footerBar, padding: pad(SP2.md, LAYOUT2.pageX),
     ...UI2.row(SP2.md), flexWrap: 'wrap', rowGap: SP2.sm,
     background: C2.backgroundGlass, backdropFilter: BLUR2.md, WebkitBackdropFilter: BLUR2.md,

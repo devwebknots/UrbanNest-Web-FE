@@ -114,7 +114,7 @@ export { BarChart, DonutChart, Sparkline, LineChart, Gauge, ProgressRing, MiniBa
 //   Stepper (numbered steps) · FormField + ReadField + FIELD2 (caps label · standard field boxes) ·
 //   Switch · Checkbox · RadioPill · ChoiceTile (amenity picker) · MapPreview (static map) · WizardFooter (sticky bar)
 export { default as Stepper } from './Stepper';
-export { default as FormField, ReadField, FIELD2 } from './FormField';
+export { default as FormField, ReadField, SelectField, FIELD2 } from './FormField';
 export { Switch, Checkbox, RadioPill, ChoiceTile } from './FormControls';
 export { default as MapPreview } from './MapPreview';
 export { default as WizardFooter } from './WizardFooter';

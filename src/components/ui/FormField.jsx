@@ -1,4 +1,5 @@
 import React from 'react';
+import FilterMenu from './FilterMenu';
 import { C2, R2, FS2, LH2, SP2, SZ2, pad, UI2 } from '../../constants';
 
 // ─── FormField (Design System v2) ────────────────────────────────────────────
@@ -12,6 +13,9 @@ import { C2, R2, FS2, LH2, SP2, SZ2, pad, UI2 } from '../../constants';
 //
 // ReadField — a value pulled from another record, shown in the standard field box but not editable
 // (value · placeholder when empty · optional trailing icon).
+// SelectField — VERSION 2 dropdown in the standard field box (v1 equivalent: CustomDropdown). Opens our
+// FilterMenu list under the field, as wide as the field:
+//   <SelectField label="Lease term" value={v} onChange={setV} options={[{ value: '12', label: '12 months' }]} />
 // FormField props: label, action, full (span both columns of a FIELD2.grid), children, style
 
 export const FIELD2 = {
@@ -31,6 +35,7 @@ const S = {
   value:   { minWidth: 0, ...UI2.truncate, color: C2.textPrimary },
   ph:      { color: C2.textMuted },
   icon:    { fontSize: FS2.lg, color: C2.textSecondary, flexShrink: 0 },
+  select:  { ...FIELD2.input, ...UI2.row(SP2.sm), justifyContent: 'space-between', cursor: 'pointer', textAlign: 'left' },
 };
 
 export default function FormField({ label, action, full = false, children, style }) {
@@ -54,5 +59,22 @@ export function ReadField({ value, placeholder = '—', icon }) {
       <span style={{ ...S.value, ...(empty ? S.ph : {}) }}>{empty ? placeholder : value}</span>
       {icon && <i className={`ti ${icon}`} style={S.icon} aria-hidden="true" />}
     </div>
+  );
+}
+
+export function SelectField({ value, options = [], onChange, placeholder = 'Select…', label }) {
+  const cur = options.find(o => o.value === value);
+  return (
+    <FilterMenu
+      title={label || placeholder} ariaLabel={label || placeholder} showAll={false} matchWidth
+      options={options} value={value === '' || value === undefined ? null : value} onChange={onChange}
+      triggerStyle={S.select}
+      trigger={open => (
+        <>
+          <span style={{ ...S.value, ...(cur ? {} : S.ph) }}>{cur ? cur.label : placeholder}</span>
+          <i className="ti ti-chevron-down" style={{ ...S.icon, transform: open ? 'rotate(180deg)' : 'none' }} aria-hidden="true" />
+        </>
+      )}
+    />
   );
 }
