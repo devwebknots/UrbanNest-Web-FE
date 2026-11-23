@@ -105,9 +105,10 @@
 // design; every style is a v2 token / shared v2 component:
 //   PageShell (NavF + TopBar)
 //   ListingsHero   same styles + height as the dashboard / portfolio heroes (pill · title · subtitle · one stat row),
-//                  banner art (Downloads/image 85.png, text removed) as the container background
+//                  banner art (Downloads/image 85.png, text removed) as the container background ·
+//                  Create Listing button under the stats (like the dashboard hero's buttons)
 //   toolbar        TabBar underline (All · Active · Ready to List · Not Ready · Drafts, with counts) │
-//                  search field (always shown) · ActionTray "Options" toggle sliding out Filter (property) + Sort: Latest
+//                  search field (always shown) · ActionTray "Options" toggle sliding out Filter (property) · Sort: Latest
 //   open table     (no card — sits on the page like Portfolio's My Properties) ONE DataTable for every listing state — Property / unit (photo · name · type │ unit) ·
 //                  Rent · Status (status dot pill) · Published · Views · Saves · Applications · Trend · row action (small primary button)
 //                  (Active → View · Ready → List · Not ready → View Unit · Draft → Resume — same actions as before)
@@ -445,7 +446,7 @@ const S = {
   toolBtn:   { ...UI2.btn.soft },
   tableWrap: { minWidth: 0 },   // open section: no card background / shadow around the table
   rowBtn:    { ...UI2.btn.brand, ...UI2.btnSmStd },   // row action — standard small primary button (same width in every row)
-  tools:     { ...UI2.row(LAYOUT2.inlineGap) },
+  tools:     { ...UI2.row(LAYOUT2.inlineGap), marginLeft: 'auto', justifyContent: 'flex-end', flexWrap: 'wrap' },   // stays on the right, also when it wraps under the tabs
   menuWrap:  { flexShrink: 0 },      // FilterMenu with a custom trigger spans its parent — this keeps it button-sized   // Filter / Sort — secondary (soft) buttons on a light surface
   // Property / unit cell: photo · name + type │ "Unit" + number
   unitCell:  { ...UI2.row(SP2.md), minWidth: 0 },
@@ -643,6 +644,13 @@ export default function LandlordListingsOverview() {
         subtitle="What's live, what's ready, and what needs attention."
         image={heroImage}
         stats={HERO_STATS}
+        actions={(
+          // Create Listing — the page's CTA before the redesign, same route (pick a property → unit);
+          // placed like the dashboard hero's buttons (row under the stats, standard brand button)
+          <button type="button" className="un2-btn" style={UI2.btn.brand} onClick={() => { window.location.href = '/landlord-portal/portfolio'; }}>
+            <i className="ti ti-plus" style={UI2.btnIcon} aria-hidden="true" /> Create Listing
+          </button>
+        )}
       />
 
       {error && (
@@ -659,8 +667,9 @@ export default function LandlordListingsOverview() {
           </div>
           {/* Search box, then the "Options" toggle on its right — Filter + Sort slide out between them
               (same ActionTray as the property / unit detail headers; compact = soft toggle on a light surface) */}
-          <div style={S.tools}>
-            <label className="un2-focus-ring" style={S.search}>
+          {/* un2-tray-tools / un2-tray-search (utilities.css): the search field slides away while Options is open */}
+          <div className="un2-tray-tools" style={S.tools}>
+            <label className="un2-focus-ring un2-tray-search" style={S.search}>
               <i className="ti ti-search" style={S.searchIcon} aria-hidden="true" />
               <input
                 style={S.input}

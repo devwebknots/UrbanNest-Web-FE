@@ -11,7 +11,8 @@ import { C2, R2, SH2, TONES2, F2, FS2, FW2, LH2, LS2, T2, SP2, SZ2, pad, UI2 } f
 //   <ListingsHero eyebrow="Listings Overview" title="Listings" subtitle="…" image={art}
 //                 stats={[{ icon: 'ti-speakerphone', tone: TONES2.success, label: 'Active', value: 1 }]} />
 //
-// Props: eyebrow, title, subtitle, image, imagePosition, stats [{ icon, tone, label, value (node), note, noteTone }]
+// Props: eyebrow, title, subtitle, image, imagePosition, stats [{ icon, tone, label, value (node), note, noteTone }],
+//        actions (buttons in a row under the stats — same place + spacing as the dashboard hero's buttons)
 // Reuses the dashboard hero's layout classes (un2-phero padding, un2-phero-stats row) read-only — nothing shared
 // is changed by this component.
 
@@ -35,10 +36,12 @@ const S = {
   sLabel:  { ...T2.eyebrow, color: C2.textSecondary, letterSpacing: LS2.wide },
   sValue:  { ...T2.kpiValue, lineHeight: LH2.tight, marginTop: SP2.xxs },
   sNote:   { fontSize: FS2.xs, lineHeight: LH2.heading, color: C2.textMuted, marginTop: SP2.xxs },
+
+  actions: { display: 'flex', flexWrap: 'wrap', gap: SP2.sm, marginTop: SP2.xxl },   // = ProfileHero: button row under the stats
 };
 
 export default function ListingsHero({
-  eyebrow, title, subtitle, image, imagePosition = 'right bottom', stats = [],
+  eyebrow, title, subtitle, image, imagePosition = 'right bottom', stats = [], actions,
 }) {
   return (
     <section className="un2-phero" style={S.hero(image, imagePosition)}>
@@ -64,6 +67,8 @@ export default function ListingsHero({
             })}
           </div>
         )}
+
+        {actions && <div style={S.actions}>{actions}</div>}
       </div>
     </section>
   );

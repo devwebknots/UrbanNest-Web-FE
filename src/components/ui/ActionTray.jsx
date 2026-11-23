@@ -22,14 +22,16 @@ import { SH2, FS2, SP2, LAYOUT2, UI2 } from '../../constants';
 // Closed buttons are inert (not focusable / not read out). prefers-reduced-motion → no animation.
 // Styles: utilities.css .un2-tray*. Props: children (secondary buttons), primary (node, always shown),
 // label (toggle text when closed, default "Options"), closeLabel (when open, default "Options"),
-// compact (true → small soft toggle for card headers; its text hides on narrow cards).
+// compact (true → soft toggle for light surfaces / card headers; its text hides on narrow cards).
+// The toggle is ALWAYS the standard button height, the same as the action buttons it reveals.
 
 const S = {
   wrap:     { ...UI2.row(LAYOUT2.inlineGap), justifyContent: 'flex-end' },
   // Labelled toggle: sliders icon · "Options" · small chevron — same white button open or closed
   // (the turning icon + flipping chevron show the state).
   toggle:   { ...UI2.btn.light, flexShrink: 0, boxShadow: SH2.glass },              // on the page (detail headers, PageWave)
-  toggleSm: { ...UI2.btn.soft, ...UI2.btnSm, flexShrink: 0 },                      // compact: inside a card (light surface → soft)
+  // STANDARD: the toggle is always the same height as the buttons it reveals (standard button height SZ2.control.md)
+  toggleSm: { ...UI2.btn.soft, flexShrink: 0 },                                    // compact: light surface → soft colour, standard height
   chevron:  { fontSize: FS2.sm, marginLeft: -SP2.xxs },
 };
 

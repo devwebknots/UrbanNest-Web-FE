@@ -465,3 +465,18 @@
 .un2-menu-item[aria-selected="false"]:hover,
 .un2-menu-item[aria-selected="false"]:focus-visible { background: var(--un2-background) !important; outline: none; }
 
+
+/* Toolbar search that gives way to an ActionTray (landlord Listings): while the tray in the same toolbar
+   is open, the search field shrinks to nothing and fades out, so the opened actions take its place and
+   the toolbar never wraps down a line; it slides back when the tray closes. Same timing as .un2-tray.
+   Usage: <div class="un2-tray-tools"> <label class="un2-tray-search">…</label> <ActionTray …/> </div>     */
+.un2-tray-search {
+  overflow: hidden; white-space: nowrap;
+  transition: width 0.5s var(--un2-ease), padding 0.5s var(--un2-ease), margin 0.5s var(--un2-ease),
+              opacity 0.3s ease, border-width 0.5s var(--un2-ease);
+}
+.un2-tray-tools:has(.un2-tray.is-open) .un2-tray-search {
+  width: 0 !important; padding-left: 0 !important; padding-right: 0 !important; border-width: 0 !important;
+  margin-right: calc(var(--un2-inline-gap) * -1); opacity: 0; pointer-events: none;
+}
+@media (prefers-reduced-motion: reduce) { .un2-tray-search { transition: none; } }
