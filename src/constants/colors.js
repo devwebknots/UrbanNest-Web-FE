@@ -102,6 +102,8 @@ export const C2 = {
   background:     '#F8FAFC',
   pageBg:         '#F3F7FE',   // lighter variant of mobile pageTint (#EEF3F9); same light blue mobile uses for soft surfaces
   backgroundGlass:'rgba(243, 247, 254, 0.92)',  // pageBg at 92% (top bar)
+  barGlass:       'transparent',                // frosted sticky bar (WizardFooter) — NO tint: pure blurred glass (BLUR2.bar does the frosting)
+  barGlassEdge:   'rgba(255, 255, 255, 0.7)',   // faint light top edge of that glass bar
   pageTint:       '#EEF3F9',
   surface:        '#FFFFFF',
   surfaceMuted:   '#F1F5F9',
@@ -391,6 +393,7 @@ export const SH2 = {
   card:       '0 1px 3px rgba(16, 24, 40, 0.04), 0 4px 12px -4px rgba(30, 64, 124, 0.06)',   // minimal (user decision 2026-11-20)
   // Light container: no border / hairline ring — separated only by a minimal soft shadow (user decision 2026-11-20)
   glass:      '0 1px 3px rgba(16, 24, 40, 0.04), 0 4px 12px -4px rgba(30, 64, 124, 0.06)',
+  barUp:      '0 -6px 20px -8px rgba(30, 64, 124, 0.16)',   // sticky bottom bar: soft shadow cast UPWARDS so its top edge shows over the content
   glassTile:  '0 0 0 1px rgba(30, 64, 124, 0.06), inset 0 1px 0 rgba(255, 255, 255, 0.9), 0 4px 10px -2px rgba(30, 64, 124, 0.08)',
   cardHover:  '0 2px 6px rgba(16, 24, 40, 0.05), 0 8px 18px -6px rgba(30, 64, 124, 0.09)',
   primary:    '0 6px 16px rgba(37, 99, 235, 0.35)',

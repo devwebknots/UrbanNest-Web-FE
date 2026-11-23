@@ -189,6 +189,7 @@ export const BLUR2 = {
   sm:    'blur(4px)',               // small chips on photos (hero eyebrow)
   md:    'blur(6px)',               // ghost buttons on dark
   glass: 'blur(16px) saturate(140%)', // frosted cards / panels
+  bar:   'blur(20px) saturate(180%)', // frosted sticky bar (WizardFooter) — content behind is clearly frosted
 };
 
 // Opacity steps

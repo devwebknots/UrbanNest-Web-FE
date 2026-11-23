@@ -1,5 +1,5 @@
 import React from 'react';
-import { C2, BLUR2, FS2, LAYOUT2, SP2, SZ2, ZI2, pad, T2, UI2 } from '../../constants';
+import { C2, SH2, BLUR2, FS2, LAYOUT2, SP2, SZ2, ZI2, pad, T2, UI2 } from '../../constants';
 
 // ─── WizardFooter (Design System v2) ─────────────────────────────────────────
 // VERSION 2 — the v1 equivalent is ListingFooter in pages/Landlord/Listing/listingWizardShared.jsx.
@@ -22,7 +22,9 @@ const S = {
     position: 'sticky', bottom: -LAYOUT2.pageBottom, zIndex: ZI2.sticky,
     margin: pad(0, -LAYOUT2.pageX, -LAYOUT2.pageBottom), minHeight: SZ2.footerBar, padding: pad(SP2.md, LAYOUT2.pageX),
     ...UI2.row(SP2.md), flexWrap: 'wrap', rowGap: SP2.sm,
-    background: C2.backgroundGlass, backdropFilter: BLUR2.md, WebkitBackdropFilter: BLUR2.md,
+    // GLASS: see-through page tint + strong frosted blur — content scrolling behind the buttons shows through, blurred
+    background: C2.barGlass, backdropFilter: BLUR2.bar, WebkitBackdropFilter: BLUR2.bar,
+    borderTop: `${SZ2.hairline}px solid ${C2.barGlassEdge}`, boxShadow: SH2.barUp,
   },
   left:  { ...T2.label, flex: '1 1 auto', minWidth: 0 },
   note:  { ...UI2.row(SP2.xs), fontSize: FS2.sm, color: C2.errorDark },
