@@ -73,6 +73,8 @@ export const C2 = {
   divider:        '#EDF1F6',   // row divider in lists / tables — barely visible (one standard everywhere)
   tileBlue:       '#DCE6F4',
   chipBlue:       '#DCE8FB',
+  heroWaveCrest:  '#D6E2F8',   // ProfileHero frame="wave" — wave colour just under the crest (sampled from the dashboard hero art)
+  heroWaveBase:   '#B9CDF1',   // … deepening to this blue mid-way (then softening to chipBlue at the bottom edge)
   skeleton:       '#E2E8F0',
   photoBadge:     'rgba(11, 29, 58, 0.62)',      // dark translucent label on a photo (PropertyCard type tag)
 
@@ -303,6 +305,15 @@ export const G2 = {
   // Soft glow behind the hero text column (same tint as the hero surface) — keeps the stats readable
   // where the text runs over the photo on narrower screens; invisible where it sits on plain surface.
   profileHeroGlow: 'linear-gradient(90deg, rgba(249,251,255,0.8) 0%, rgba(249,251,255,0.7) 55%, rgba(249,251,255,0.35) 78%, rgba(249,251,255,0) 100%)',
+  // WaveHero: sky gradient behind the photo, starting AFTER the text column — clear where it begins (the text
+  // side stays white), deepening to the washed photo sky's tone so the gap before the photo isn't plain white
+  waveHeroSky: 'linear-gradient(90deg, rgba(196,218,248,0) 0%, rgba(196,218,248,0.5) 40%, rgba(184,210,246,0.85) 100%)',
+  // ProfileHero frame="wave": pastel wash over a plain photo so a deep-blue sky reads like the dashboard
+  // art's pale lavender sky (white haze top-left, lavender tint fading down; the building stays crisp lower down)
+  profileHeroWash: [
+    'radial-gradient(70% 90% at 0% 0%, rgba(255,255,255,0.75) 0%, rgba(255,255,255,0) 70%)',
+    'linear-gradient(180deg, rgba(236,232,255,0.55) 0%, rgba(236,232,255,0.3) 45%, rgba(255,255,255,0) 80%)',
+  ].join(', '),
   // MiniBars (rent trend): past months = soft blue, current month = primary gradient
   miniBar:       'linear-gradient(180deg, #DBE7FB 0%, #C7D9FA 100%)',
   miniBarActive: 'linear-gradient(180deg, #3B82F6 0%, #1D4ED8 100%)',

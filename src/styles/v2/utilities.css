@@ -248,6 +248,35 @@
   .un2-phero-stats > * { padding-left: 0 !important; padding-right: 0 !important; }
 }
 
+/* ── WaveHero (portfolio — light hero, plain photo given the dashboard art's look) ──
+   Its OWN classes (never shares the ProfileHero ones, so the dashboard hero is never affected).
+   Desktop: photo on the right behind the text, long soft left feather; stats 2 × 2.
+   ≤ 860px: photo becomes a strip above the text. ≤ 600px: tighter padding.
+   ─────────────────────────────────────────────────────────────────────────── */
+.un2-whero { padding: var(--un2-sp-xxl) var(--un2-sp-xxxl); }
+.un2-whero-photo {
+  position: absolute; top: 0; right: 0; bottom: 0; left: max(var(--un2-whero-photo-start), var(--un2-whero-text-end));
+  -webkit-mask-image: var(--un2-whero-mask); mask-image: var(--un2-whero-mask);
+}
+/* Sky gradient across the hero, behind the photo (photo itself unchanged) */
+.un2-whero-sky { position: absolute; top: 0; right: 0; bottom: 0; left: var(--un2-whero-sky-start); pointer-events: none; }
+.un2-whero-stats { display: grid; grid-template-columns: repeat(2, max-content); row-gap: var(--un2-sp-lg); }
+.un2-whero-stats > :nth-child(even) { border-left: 1px solid var(--un2-border); }
+.un2-whero-stats > :nth-child(odd) { padding-left: 0 !important; }
+@media (max-width: 860px) {
+  .un2-whero-sky { display: none; }
+  .un2-whero-photo {
+    position: relative; left: auto; width: auto; height: var(--un2-whero-photo-sm); margin: calc(var(--un2-sp-xxl) * -1) calc(var(--un2-sp-xxxl) * -1) var(--un2-sp-xs);
+    -webkit-mask-image: var(--un2-whero-mask-top); mask-image: var(--un2-whero-mask-top);
+  }
+}
+@media (max-width: 600px) {
+  .un2-whero { padding: var(--un2-sp-xl) var(--un2-sp-lg); }
+  .un2-whero-photo { margin: calc(var(--un2-sp-xl) * -1) calc(var(--un2-sp-lg) * -1) var(--un2-sp-xs); }
+  .un2-whero-stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .un2-whero-stats > * { border-left: none !important; padding-left: 0 !important; padding-right: 0 !important; }
+}
+
 /* ── KpiStrip (four metrics in ONE container, hairline dividers) ────────────
    4 columns → 2 × 2 (≤ 1024px) → 1 column (≤ 600px). Dividers follow the layout.
    ─────────────────────────────────────────────────────────────────────────── */

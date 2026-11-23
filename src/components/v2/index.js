@@ -75,6 +75,7 @@ export { default as PropertyRow } from './PropertyRow';
 export { default as SectionHeader } from './SectionHeader';
 export { default as DataTable } from './DataTable';
 export { default as ProfileHero } from './ProfileHero';
+export { default as WaveHero } from './WaveHero';
 export { default as OpenHero } from './OpenHero';
 export { default as PageWave } from './PageWave';
 export { default as KpiStrip } from './KpiStrip';

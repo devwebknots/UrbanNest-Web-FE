@@ -1,12 +1,12 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import {
-  PageShell, Grid, HeroBanner, SectionCard, TabBar, PropertyRow, ListRow, FilterMenu, PageWave,
+  PageShell, Grid, WaveHero, SectionCard, TabBar, PropertyRow, ListRow, FilterMenu,
   EmptyState, LineChart, CountUp, TextLink, PageFooter,
   // ActionTile — used by the Quick Actions card, commented out below
 } from '../../components/v2';
 import {
-  C2, TONES2, ACCENT2, GSTOPS2, accentTone,
+  C2, TONES2, ACCENT2, accentTone,
   T2, F2, FS2, SP2, SZ2, LAYOUT2, UI2,
 } from '../../constants/v2';
 import heroImage from '../../assets/v2/landlord/portfolio-hero-banner.png';   // full banner art (navy → sky, building right) — Downloads/urbannest_banner_transparent 1.png
@@ -18,8 +18,8 @@ const API_BASE = process.env.REACT_APP_API_BASE_URL || 'http://localhost:8001/ap
 // Visual layer only. Data comes from GET /landlord/portfolio/ exactly as before:
 //   summary · properties · recent_units
 // Layout (design: Downloads/image 64.png):
-//   HeroBanner compact (navy, building photo right) — "Portfolio Overview" pill · Property List · subtitle
-//     + stats row: Total Properties · Total Units · Avg Occupancy · Rent This Month
+//   WaveHero (light, looks like the dashboard hero, building photo right; its own component) — "Portfolio Overview" pill ·
+//     Property List · subtitle + stats 2 × 2: Total Properties · Total Units · Avg Occupancy · Rent This Month
 //   <Grid layout="mainSide">
 //     My Properties (title · TabBar underline filters │ search · type filter · Add Property, PropertyRow list)
 //     │ Property Insight (property picker · figure + delta + LineChart) · Recent Unit Activities
@@ -191,12 +191,11 @@ export default function LandlordPortfolioPage() {
   // ── Summary stats ───────────────────────────────────────────────────────────
   const rentThisMonth = Number(summary.rent_this_month ?? 0);
   const STATS = [
-    { icon: 'ti-building',   label: 'Total Properties', value: num(summary.total_properties ?? 0), accent: ACCENT2.blue },
-    { icon: 'ti-stack-2',    label: 'Total Units',      value: num(summary.total_units ?? 0),
-      accent: { soft: TONES2.success.soft, fg: TONES2.success.strong, bar: GSTOPS2.success } },
-    { icon: 'ti-percentage', label: 'Avg Occupancy',    value: loading ? '—' : <CountUp value={Number(summary.avg_occupancy) || 0} format={v => `${Math.round(v)}%`} />, accent: ACCENT2.blue },
+    { icon: 'ti-building',   label: 'Properties', value: num(summary.total_properties ?? 0), tone: TONES2.primary },
+    { icon: 'ti-stack-2',    label: 'Units',      value: num(summary.total_units ?? 0), tone: TONES2.success },
+    { icon: 'ti-percentage', label: 'Avg Occupancy',    value: loading ? '—' : <CountUp value={Number(summary.avg_occupancy) || 0} format={v => `${Math.round(v)}%`} />, tone: TONES2.primary },
     { icon: 'ti-wallet',     label: 'Rent This Month',  value: loading ? '—' : <CountUp value={rentThisMonth} format={fmtCurrency} />,
-      accent: ACCENT2.violet },   // white like the other values on the dark banner
+      tone: accentTone(ACCENT2.violet) },
   ];
 
   // ── Property insight ───────────────────────────────────────────────────────
@@ -247,7 +246,6 @@ export default function LandlordPortfolioPage() {
   return (
     <PageShell
       animate
-      backdrop={<PageWave />}
       activePage="properties"
       title="UrbanNest Landlord"
       searchPlaceholder="Search properties, units, tenants…"
@@ -255,14 +253,14 @@ export default function LandlordPortfolioPage() {
       avatarLabel={`Profile: ${landlordName || 'Landlord'}`}
     >
 
-      {/* ── HERO: navy banner, building photo right · Portfolio Overview · Property List · 4 stats ── */}
-      <HeroBanner
-        variant="compact"
+      {/* ── HERO: WaveHero — light hero like the dashboard, building photo right · Portfolio Overview · Property List · 4 stats ── */}
+      <WaveHero
         eyebrow="Portfolio Overview"
         title="Property List"
         subtitle="Explore and manage all your properties in one place."
         image={heroImage}
-        imageFull
+        imagePosition="right 30%"      // building sits at the art's right end — keep it in view, the navy left part falls outside the photo area
+        imageSize="auto 125%"          // zoomed in so the building fills the photo area like the dashboard building
         stats={STATS}
       />
 

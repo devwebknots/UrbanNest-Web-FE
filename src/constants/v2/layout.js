@@ -61,6 +61,10 @@ export const SZ2 = {
   emptyMin:140,
   // Landlord dashboard (ProfileHero · KpiStrip · ProgressRing · MiniBars · AssetRow)
   profileHeroMin: 248,                          // light profile hero height
+  // WaveHero (portfolio) — its own sizes, independent of ProfileHero
+  waveHeroMin: 271,                             // same height as the dashboard hero (its content: padding 48 + pill row 22.5
+                                                // + title 48.8 + subtitle 19.5 + stats 73.9 + buttons 58 ≈ 271)
+  waveHeroContentMax: 560,                      // text column — same width as the dashboard hero's (stats 2 × 2)
   profileHeroContentMax: 560,                   // its text column
   ring:    120,                                 // ProgressRing diameter
   ringStroke: 10,                               // ProgressRing stroke

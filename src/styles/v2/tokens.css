@@ -90,4 +90,12 @@
   --un2-shadow-glass-hover: 0 2px 6px rgba(16, 24, 40, 0.05), 0 8px 18px -6px rgba(30, 64, 124, 0.09);
   --un2-profile-hero-mask: linear-gradient(90deg, transparent 0%, rgba(0,0,0,0.55) 8%, #000 20%);
   --un2-profile-hero-mask-top: linear-gradient(0deg, transparent 0%, rgba(0,0,0,0.6) 30%, #000 60%);
+  /* WaveHero (portfolio — its own tokens, independent of ProfileHero): long soft left feather so a
+     saturated photo sky melts into the light surface; top fade for the phone photo strip */
+  --un2-whero-photo-start: 40%;
+  --un2-whero-sky-start: 34%;    /* sky gradient begins after the text column (text side stays white), clear there */
+  --un2-whero-text-end: 560px;   /* photo starts where the dashboard hero's does (same width) */
+  --un2-whero-photo-sm: 180px;
+  --un2-whero-mask: linear-gradient(90deg, transparent 0%, rgba(0,0,0,0.45) 14%, #000 34%);
+  --un2-whero-mask-top: linear-gradient(0deg, transparent 0%, rgba(0,0,0,0.6) 30%, #000 60%);
 }
