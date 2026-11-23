@@ -45,7 +45,7 @@ import {
 } from '../../../components/ui';
 import { C2, TONES2, FS2, SP2, SZ2, LAYOUT2, T2, UI2 } from '../../../constants';
 import { STEPS } from './listingWizardShared';
-import { WizardPage, AiAssist } from './listingWizardV2';   // shared v2 frame (backdrop · breadcrumb · header · stepper)
+import { WizardPage, AiAssist, WZ } from './listingWizardV2';   // shared v2 frame (backdrop · breadcrumb · header · stepper)
 import { MAP_PILLS } from './mockListingData';
 import {
   getProperty, patchProperty, getUnit, getAmenityCatalog,
@@ -378,6 +378,7 @@ export default function ListingStep1_Property() {
             subtitle="Sourced from the UN Reference amenity list — not free text."
             pattern={false}
             decoration={<CornerArt />}
+            style={WZ.fill}
           >
             <div style={S.body}>
               {amenities.length === 0 ? (
@@ -451,6 +452,7 @@ export default function ListingStep1_Property() {
             subtitle="AI Assist will auto-populate this from the property address once available — add entries manually for now."
             action={<AiAssist />}
             pattern={false}
+            style={WZ.fill}
           >
             <PoiGroup icon="ti-school" label="Schools" items={neighborhoodInfo.schools} onAdd={item => addPoi('schools', item)} onRemove={idx => removePoi('schools', idx)} />
             <PoiGroup icon="ti-tools-kitchen-2" label="Restaurants" items={neighborhoodInfo.restaurants} onAdd={item => addPoi('restaurants', item)} onRemove={idx => removePoi('restaurants', idx)} />

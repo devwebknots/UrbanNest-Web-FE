@@ -26,6 +26,8 @@ import backdropArt from '../../../assets/landlord/wizard-backdrop.jpg';   // Dow
 
 export const WZ = {
   col:       UI2.stack(LAYOUT2.gridGap),                                   // stacked cards in one column
+  // last card of a column stretches to the column's height → both columns end on the same line
+  fill:      { flex: 1 },
   body:      { paddingTop: SP2.md },                                       // card body under the header line
   fields:    { columnGap: SP2.lg, rowGap: SP2.lg },                        // <Grid two> of form fields
   tiles:     { gap: SP2.sm },                                              // <Grid three> of amenity tiles

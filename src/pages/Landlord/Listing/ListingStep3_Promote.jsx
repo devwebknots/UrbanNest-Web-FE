@@ -572,7 +572,7 @@ export default function ListingStep3_Promote() {
           </SectionCard>
 
           {/* Lead Preferences */}
-          <SectionCard icon="ti-adjustments-horizontal" title="Lead Preferences" pattern={false}>
+          <SectionCard icon="ti-adjustments-horizontal" title="Lead Preferences" pattern={false} style={WZ.fill}>
             <div style={WZ.body}>
               <div style={S.prefRow}>
                 <div>

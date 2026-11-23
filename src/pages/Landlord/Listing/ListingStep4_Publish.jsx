@@ -32,7 +32,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { Grid } from '../../../components/layout';
 import { SectionCard, CornerArt, WizardFooter, TextLink, Modal } from '../../../components/ui';
-import { C2, G2, TONES2, FS2, FW2, SP2, SZ2, R2, SH2, T2, UI2 } from '../../../constants';
+import { C2, G2, TONES2, F2, FS2, FW2, SP2, SZ2, R2, SH2, T2, UI2 } from '../../../constants';
 import { WizardPage, WZ } from './listingWizardV2';
 import { MIN_REQUIRED_PHOTOS } from './mockListingData';
 import { getListing, getUnit, getPromotionPlanCatalog, publishListing } from './listingApi';
@@ -51,9 +51,11 @@ const S = {
   pSuffix:   { ...UI2.text.label, marginLeft: SP2.xs },
   pTitle:    { ...UI2.text.titleLg, marginTop: SP2.xs },
   pAddr:     { ...UI2.row(SP2.xs), alignItems: 'flex-start', ...UI2.text.label, marginTop: SP2.sm },
-  pMeta:     { ...UI2.row(SP2.lg), flexWrap: 'wrap', rowGap: SP2.xs, marginTop: SP2.md, paddingTop: SP2.md, borderTop: `${SZ2.hairline}px solid ${C2.divider}`, fontSize: FS2.base, color: C2.textPrimary },
-  pMetaItem: { ...UI2.row(SP2.xs) },
-  pMetaIcon: { color: C2.textSecondary, fontSize: FS2.md },
+  // bed · bath · sq ft ALWAYS on one row (also on phones), nothing clipped: text + gaps scale with the CARD's width
+  // (container query units — the card is a un2-cq container): 13px when there's room, down to 10px on a narrow card
+  pMeta:     { ...UI2.row(`clamp(${SP2.xs}px, 3cqi, ${SP2.md}px)`), flexWrap: 'nowrap', minWidth: 0, marginTop: SP2.md, paddingTop: SP2.md, borderTop: `${SZ2.hairline}px solid ${C2.divider}`, fontSize: `clamp(${FS2.xxs}px, 4.6cqi, ${FS2.base}px)`, color: C2.textPrimary },
+  pMetaItem: { ...UI2.row(SP2.xs), flexShrink: 0, whiteSpace: 'nowrap' },
+  pMetaIcon: { color: C2.textSecondary, fontSize: '1.1em', flexShrink: 0 },   // scales with the row text
   // summary item: icon · label … value
   items:     { columnGap: SP2.xl, rowGap: 0 },
   item:      { ...UI2.row(SP2.sm), justifyContent: 'space-between', padding: `${SP2.md}px 0`, borderBottom: `${SZ2.hairline}px solid ${C2.divider}`, minWidth: 0 },
@@ -75,7 +77,7 @@ const S = {
   // Footer — total due today
   total:     { ...UI2.row(SP2.lg) },
   totalLbl:  { ...UI2.capsLabel, display: 'block' },
-  totalVal:  { ...T2.kpiValue },                       // 20 — standard figure
+  totalVal:  { ...T2.kpiValue, fontFamily: F2.heading, fontWeight: FW2.semibold },   // 20 · Playfair · 600 — same as the Step 3 promotion cost
   // Published modal
   doneIcon:  { ...UI2.iconBox(SZ2.icon.lg, TONES2.primary, { round: true, solid: true }), background: G2.primaryButton, margin: '0 auto', fontSize: FS2.xl },
   doneBody:  { textAlign: 'center', ...UI2.stack(SP2.sm), alignItems: 'center' },
@@ -380,7 +382,7 @@ export default function ListingStep4_Publish() {
           >
             <Grid layout="wideRight" as="div" style={{ ...S.preview, ...WZ.body }}>
               {/* marketplace card */}
-              <div style={S.pCard}>
+              <div className="un2-cq" style={S.pCard}>
                 <div style={{ ...S.pPhoto, backgroundImage: `url(${coverUrl || photoPlaceholder})` }}>
                   {badgeLabel && <span style={S.pBadge}>{badgeLabel}</span>}
                 </div>
@@ -401,7 +403,7 @@ export default function ListingStep4_Publish() {
                   <div style={S.pMeta}>
                     <span style={S.pMetaItem}><i className="ti ti-bed" style={S.pMetaIcon} aria-hidden="true" />{unit.total_rooms ?? '—'} bed</span>
                     <span style={S.pMetaItem}><i className="ti ti-bath" style={S.pMetaIcon} aria-hidden="true" />{unit.total_baths ?? '—'} bath</span>
-                    <span style={S.pMetaItem}><i className="ti ti-ruler-2" style={S.pMetaIcon} aria-hidden="true" />{unit.total_area ? `${unit.total_area} sq ft` : '—'}</span>
+                    <span style={S.pMetaItem}><i className="ti ti-ruler-2" style={S.pMetaIcon} aria-hidden="true" />{unit.total_area ? `${Number(unit.total_area)} sq ft` : '—'}</span>
                   </div>
                 </div>
               </div>
@@ -424,6 +426,7 @@ export default function ListingStep4_Publish() {
             title="Lead & Showing Summary"
             action={editLink(3)}
             pattern={false}
+            style={WZ.fill}
             decoration={<CornerArt />}
           >
             <Grid layout="two" as="div" style={{ ...S.items, ...WZ.body }}>
@@ -466,6 +469,7 @@ export default function ListingStep4_Publish() {
             title="Compliance & Validation"
             subtitle="All items must be resolved before this listing can go live"
             pattern={false}
+            style={WZ.fill}
           >
             <div style={WZ.body}>
               {checks.map((c, i) => {
