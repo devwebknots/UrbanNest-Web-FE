@@ -121,6 +121,7 @@ export const UI2 = {
     // List item title (ListRow) — regular weight (400); pair with UI2.text.meta for its description line
     rowTitle: { fontSize: FS2.base, fontWeight: FW2.regular, color: C2.textPrimary, lineHeight: LH2.heading },   // 400 — every list / item row title
     titleLg:  { fontSize: FS2.md, fontWeight: FW2.semibold, color: C2.textPrimary, lineHeight: LH2.heading },
+    titleXl:  { fontFamily: F2.body, fontSize: FS2.lg, fontWeight: FW2.semibold, color: C2.textPrimary, lineHeight: LH2.heading },   // Inter 16 semibold — prominent item title (e.g. distribution channel name)
     body:     { ...T2.body },
     // Sub text / description under an item title (list rows, tiles, unit & property cards, addresses):
     // Playfair, 11px, muted grey — the ONE style for every description line. Use it, don't restyle per page.

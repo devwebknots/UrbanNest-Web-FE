@@ -36,7 +36,7 @@ const S = {
 
   // RadioPill — white pill with a radio circle
   pill: (on) => ({
-    ...UI2.row(SP2.sm), minHeight: SZ2.control.lg, padding: pad(0, SP2.xl, 0, SP2.md), border: 'none', borderRadius: R2.pill, cursor: 'pointer',
+    ...UI2.row(SP2.sm), minHeight: SZ2.control.lg, padding: pad(0, SP2.xl, 0, SP2.md), border: 'none', borderRadius: R2.button, cursor: 'pointer',   // standard button radius (R2.button)
     background: C2.white, boxShadow: SH2.control, fontFamily: F2.body, fontSize: FS2.base, fontWeight: on ? FW2.medium : FW2.regular,
     color: C2.textPrimary, whiteSpace: 'nowrap',
   }),

@@ -55,7 +55,7 @@ const S = {
   // Distribution channel row — soft tinted tile (no border), muted when not available yet
   channel:    (on) => ({ ...UI2.tintRow, alignItems: 'flex-start', ...(on ? {} : { background: C2.background, opacity: 0.7 }) }),
   chIcon:     UI2.iconBox(SZ2.icon.lg, TONES2.primary),
-  chName:     { ...UI2.text.titleLg, ...UI2.row(SP2.sm), flexWrap: 'wrap' },
+  chName:     { ...T2.sectionTitle, ...UI2.row(SP2.sm), flexWrap: 'wrap' },   // Playfair 16 semibold — same style as the card titles (T2.sectionTitle)
   chDesc:     { ...UI2.text.label, margin: `${SP2.xxs}px 0 0` },
   soon:       { ...UI2.pill(TONES2.neutral) },
   checkPad:   { paddingTop: SP2.xxs },
@@ -95,8 +95,8 @@ const S = {
   planBtn:    (on) => ({ ...(on ? UI2.btn.brand : UI2.btn.soft), width: SZ2.planCard.btn, marginTop: SP2.lg }),   // selected = dark navy brand CTA
   // Promotion cost bar
   cost:       { ...UI2.tintRow, justifyContent: 'space-between', marginTop: SP2.lg },
-  costLabel:  { ...UI2.text.titleLg },
-  costValue:  { ...T2.kpiValue },                       // 20 — standard figure
+  costLabel:  { ...T2.sectionTitle },   // Playfair 16 semibold — same style as the card titles
+  costValue:  { ...T2.kpiValue, fontFamily: F2.heading, fontWeight: FW2.semibold },   // 20 · Playfair · 600
   costSuffix: { ...UI2.text.label, marginLeft: SP2.xs },
 
   // Lead Preferences rows
@@ -505,7 +505,7 @@ export default function ListingStep3_Promote() {
               </div>
 
               <div style={S.cost}>
-                <span style={S.costLabel}>Promotion cost for this listing</span>
+                <span style={S.costLabel}>Promotion Cost</span>
                 <span>
                   <span style={S.costValue}>
                     {selectedSubscription
