@@ -1861,7 +1861,12 @@ export default function LandlordSettingsPage() {
     const res = await fetch(`${API_BASE}/landlord/subscription/`, {
       method: 'POST',
       headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ country, plan_id: planId }),
+      // Phase 3 Stage 3.1: the backend no longer defaults the billing cycle.
+      // This page offers and charges the monthly price only (see
+      // planToCartItem: "/ mo", amountDueToday = monthly_price), so it sends
+      // that cycle explicitly. A cycle selector fed from UN Dropdowns
+      // BILLING_CYCLE replaces this in Stage 3.5.
+      body: JSON.stringify({ country, plan_id: planId, billing_cycle: 'MONTHLY' }),
     });
     if (!res.ok) {
       const body = await res.json().catch(() => ({}));

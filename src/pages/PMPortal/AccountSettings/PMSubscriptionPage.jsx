@@ -894,7 +894,10 @@ export default function PMSubscriptionPage() {
   };
 
   const subscribeToPlan = async (planId) => {
-    const res = await fetch(`${API_BASE}/pm/subscription/`, { method: 'POST', headers: authHeaders(), body: JSON.stringify({ plan_id: planId }) });
+    // Phase 3 Stage 3.1: the backend no longer defaults the billing cycle. This
+    // page offers and charges the monthly price only (planToCartItem), so it
+    // sends that cycle explicitly; a UN Dropdowns-fed selector replaces this in 3.5.
+    const res = await fetch(`${API_BASE}/pm/subscription/`, { method: 'POST', headers: authHeaders(), body: JSON.stringify({ plan_id: planId, billing_cycle: 'MONTHLY' }) });
     if (!res.ok) { const body = await res.json().catch(() => ({})); throw new Error(body.detail || `Could not subscribe to this plan (${res.status}).`); }
   };
   const buyServices = async (serviceIds) => {
