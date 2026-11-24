@@ -807,9 +807,9 @@ export default function PersonaSelectPage() {
           {!loading && (
             <>
               <div style={S.addHead}>
-                <span className="un2-ps-item" style={{ ...S.eyebrow, '--k': 1 }}>
+                {/* <span className="un2-ps-item" style={{ ...S.eyebrow, '--k': 1 }}>
                   <i className="ti ti-users-plus" aria-hidden="true" /> Add a role
-                </span>
+                </span> */}
                 <h2 className="un2-ps-item" style={{ ...S.h1, '--k': 2 }}>Unlock a new role</h2>
                 <p className="un2-ps-item" style={{ ...S.lead, '--k': 3 }}>Pick what else you do — we'll walk you through setting it up.</p>
               </div>
