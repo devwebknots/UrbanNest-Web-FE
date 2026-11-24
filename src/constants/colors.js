@@ -377,6 +377,11 @@ export const G2 = {
     'radial-gradient(55% 75% at 0% 50%, rgba(59,130,246,0.13) 0%, rgba(59,130,246,0.05) 45%, rgba(59,130,246,0) 75%)',   // one soft oval glow from the left — fades out on every side, so no edges / no box
   ].join(', '),
   photoMore:     'rgba(11,29,58,0.55)',   // even navy scrim over the last gallery tile ("+N photos")
+  // Sign-in page photo (LoginPage): shade only at the top (behind the headline) and a touch at the bottom
+  // (behind the testimonial) — the house in the middle stays clean
+  authHeroScrim: 'linear-gradient(180deg, rgba(7,21,38,0.55) 0%, rgba(7,21,38,0.22) 30%, rgba(7,21,38,0) 50%, rgba(7,21,38,0.3) 100%)',
+  // … and its testimonial panel: clear navy glass (light blur, so the text stays crisp)
+  authGlass:     'linear-gradient(180deg, rgba(11,29,58,0.32) 0%, rgba(11,29,58,0.5) 100%)',
   // Light diagonal wash for a tone: G2.tone(TONES2.success) / G2.panel(TONES2.warning)
   tone:  (t) => `linear-gradient(135deg, #FFFFFF 0%, ${t.cardTint} 100%)`,
   panel: (t) => `linear-gradient(135deg, ${t.panelFrom} 0%, ${t.panelTo} 100%)`,

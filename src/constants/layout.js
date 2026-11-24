@@ -100,6 +100,10 @@ export const SZ2 = {
   // Portfolio (property list): PropertyRow — compact row photo
   propertyRowPhoto: { w: 128, h: 84 },          // PropertyRow photo (compact list row)
   scoreFigure: 40,                             // big health / score figure (Inter Medium) — not on the type scale on purpose: one hero number
+  // Sign-in page (LoginPage): card max width · form column max width · photo panel min height (room for headline + testimonial)
+  authCard: 1120,
+  authForm: 400,
+  authHeroMin: 480,
 };
 
 // Page & section rhythm — the spacing pattern every v2 screen follows.

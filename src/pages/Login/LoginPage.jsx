@@ -1,15 +1,24 @@
 // ─────────────────────────────────────────────
 // UrbanNest — Login Page
-// Route: / (inside LoginModal)
+// Route: / (via LoginModal) and /login — same v2 page
 // Auth model: Option B — universal login, no persona dropdown
 // On success: saves JWT tokens → navigates to /persona-select
 // ─────────────────────────────────────────────
 
-import { useState } from 'react';
+// Design System v2 (2026-11-24, layout from Downloads/image 14.png): page = our own pageBg + ImageBackdrop waves
+// (not the design's blue) · one white card (UI2.card) split photo │ form (<Grid layout="split">) · photo side =
+// brand + hero title (T2.heroTitle) + frosted testimonial carousel · form side = standard v2 form (FormField +
+// IconField 36px, brand CTA, soft social buttons — never white buttons on white, TextLink).
+// The sign-in logic (handleSubmit, tokens, refreshAuth, redirects) is unchanged.
+
+import { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Button, Input, Divider, TestimonialCarousel } from '../../components/ui';
-import { C } from '../../constants/colors';
-import { F } from '../../constants/fonts';
+import { Grid, ImageBackdrop } from '../../components/layout';
+import { FormField, IconField, TextLink, CornerArt } from '../../components/ui';
+import { C2, G2, F2, FS2, LH2, LS2, SP2, SZ2, R2, BLUR2, OP2, LAYOUT2, T2, UI2, pad } from '../../constants';
+import brandLogo from '../../assets/brand/urban-nest-logo.png';
+import backdropArt from '../../assets/landlord/wizard-backdrop.jpg';   // same soft waves as the Create Listing backdrop
+import heroArt from '../../assets/landlord/login-hero.jpg';           // dusk villa + pool (Downloads/image 120.png, resized to 2400px)
 // Session 51, Phase 3 fix — AuthContext.refreshAuth() exists specifically
 // "to call after login" (see its own doc comment), but nothing here ever
 // called it. AuthProvider only bootstraps `user`/`permissions` once, on the
@@ -22,35 +31,87 @@ import { useAuth } from '../../context/AuthContext';
 
 const API_BASE = process.env.REACT_APP_API_BASE_URL || 'http://localhost:8001/api';
 
-const ESTATE_IMAGE = 'https://images.unsplash.com/photo-1613977257363-707ba9348227?w=900&q=80&fit=crop';
 
 const TESTIMONIALS = [
   {
-    quote: '-The intersection of heritage and innovation. URBANNEST provides the clarity and security essential for navigating complex global markets with confidence.-',
-    name: 'JULIAN VANE',
+    quote: 'The intersection of heritage and innovation. UrbanNest provides the clarity and security essential for navigating complex global markets with confidence.',
+    name: 'Julian Vane',
     title: 'Global Portfolio Strategy, London',
   },
   {
-    quote: '-Unparalleled access to prime real estate opportunities across three continents. URBANNEST redefines what private wealth management looks like.-',
-    name: 'SOPHIA HARTWELL',
+    quote: 'Unparalleled access to prime real estate opportunities across three continents. UrbanNest redefines what private wealth management looks like.',
+    name: 'Sophia Hartwell',
     title: 'Private Equity Director, Zürich',
   },
   {
-    quote: '-From acquisition to legacy planning, URBANNEST has been the cornerstone of our family office strategy for over a decade.-',
-    name: 'MARCUS DELACROIX',
+    quote: 'From acquisition to legacy planning, UrbanNest has been the cornerstone of our family office strategy for over a decade.',
+    name: 'Marcus Delacroix',
     title: 'Family Office Principal, Singapore',
   },
 ];
+const TESTIMONIAL_MS = 5000;   // carousel auto-advance
+const FOOT_LINKS = ['Privacy', 'Security', 'Terms'];
+const initials = (name) => name.split(' ').map(w => w[0]).join('').slice(0, 2);
 
-function LockIcon() {
-  return (
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
-      stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-      <rect x="3" y="11" width="18" height="11" rx="2"/>
-      <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
-    </svg>
-  );
-}
+const S = {
+  // page — our own background (pageBg + soft waves top-right), card centred
+  page:      { position: 'relative', zIndex: 0, minHeight: '100vh', boxSizing: 'border-box', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: LAYOUT2.pageX, background: C2.pageBg, fontFamily: F2.body, color: C2.textPrimary },
+  // the same wave art again, turned 180° → waves in the BOTTOM-LEFT corner too (top-right comes from ImageBackdrop).
+  // Same size, masks and strength as ImageBackdrop — the masks turn with it, so only the bottom-left shows.
+  // (wrapped: the page's entrance animation moves its direct children with transform — the wrapper takes that,
+  // so the 180° turn on the art itself is never overridden)
+  waveWrap:  { position: 'absolute', inset: 0, zIndex: -1, overflow: 'hidden', pointerEvents: 'none' },
+  waveLeft:  {
+    position: 'absolute', left: 0, right: 0, bottom: 0, height: SZ2.imageBackdrop,
+    opacity: OP2.backdrop, transform: 'rotate(180deg)',
+    backgroundImage: `url(${backdropArt})`, backgroundSize: '100% auto', backgroundPosition: 'right top', backgroundRepeat: 'no-repeat',
+    WebkitMaskImage: `${G2.imageBackdropMask}, ${G2.imageBackdropMaskX}`, maskImage: `${G2.imageBackdropMask}, ${G2.imageBackdropMaskX}`,
+    WebkitMaskComposite: 'source-in', maskComposite: 'intersect',
+  },
+  card:      { ...UI2.card, padding: 0, gap: 0, width: '100%', maxWidth: SZ2.authCard, overflow: 'hidden' },
+
+  // photo side
+  hero:      { position: 'relative', display: 'flex', flexDirection: 'column', minHeight: SZ2.authHeroMin, padding: SP2.huge, background: C2.navyHero, color: C2.white, overflow: 'hidden' },
+  heroPhoto: { ...UI2.photoMedia, objectPosition: '68% center' },   // keeps the house + pool in view
+  heroScrim: { position: 'absolute', inset: 0, background: G2.authHeroScrim, pointerEvents: 'none' },
+  heroBody:  { position: 'relative' },
+  brand:     { ...UI2.row(SP2.sm) },
+  logoMark:  { height: SZ2.icon.md, width: 'auto', aspectRatio: SZ2.brandLogoRatio, display: 'block' },
+  logoName:  { ...T2.brandTitle, lineHeight: LH2.tight, letterSpacing: LS2.snug },
+  title:     { ...T2.heroTitle, margin: pad(SP2.huge, 0, SP2.sm) },
+  accent:    { color: C2.skyOnDark },
+  sub:       { margin: 0, fontSize: FS2.base, lineHeight: LH2.body, color: C2.onDark.textSoft },
+  // testimonial panel — pinned to the BOTTOM of the photo (same inset as the text), clear navy glass
+  quote:     { ...UI2.stack(SP2.md), position: 'absolute', left: SP2.huge, right: SP2.huge, bottom: SP2.huge, margin: 0, padding: SP2.xl, borderRadius: R2.xl, background: G2.authGlass, border: `${SZ2.hairline}px solid ${C2.onDark.borderSoft}`, backdropFilter: BLUR2.md, WebkitBackdropFilter: BLUR2.md },
+  quoteMark: { fontSize: FS2.xxl, lineHeight: LH2.none, color: C2.white },
+  quoteText: { ...T2.quote, margin: 0, color: C2.white },
+  author:    { ...UI2.row(SP2.md), justifyContent: 'space-between' },
+  person:    { ...UI2.row(SP2.md), minWidth: 0 },
+  avatar:    { ...UI2.avatar(SZ2.icon.lg, { soft: C2.onDark.surfaceHover, fg: C2.white }) },
+  name:      { ...UI2.text.title, color: C2.white },
+  role:      { ...T2.caption, color: C2.onDark.textMuted, ...UI2.truncate },
+  arrows:    { ...UI2.row(SP2.sm), flexShrink: 0 },
+  arrow:     { ...UI2.btn.icon(SZ2.control.md), color: C2.white, fontSize: FS2.lg, border: `${SZ2.hairline}px solid ${C2.onDark.border}` },
+
+  // form side
+  formSide:  { position: 'relative', display: 'flex', flexDirection: 'column', justifyContent: 'center', padding: SP2.huge, background: C2.white, overflow: 'hidden' },
+  formCol:   { position: 'relative', ...UI2.stack(SP2.xl), width: '100%', maxWidth: SZ2.authForm, margin: '0 auto' },
+  h1:        { ...T2.pageHeroTitle, margin: 0 },
+  lead:      { ...T2.pageHeroSub, margin: pad(SP2.xs, 0, 0) },
+  form:      { ...UI2.stack(SP2.lg) },
+  submit:    { ...UI2.btn.brand, width: '100%', minHeight: SZ2.field, justifyContent: 'center' },
+  orRow:     { ...UI2.row(SP2.md) },
+  orLine:    { ...UI2.divider, flex: 1 },
+  orText:    { ...UI2.capsLabel, whiteSpace: 'nowrap' },
+  socials:   { gap: SP2.md },
+  busy:      { opacity: OP2.soft, cursor: 'wait' },
+  social:    { ...UI2.btn.soft, width: '100%', minHeight: SZ2.field, justifyContent: 'center' },
+  signup:    { ...UI2.row(SP2.xs), justifyContent: 'center', ...T2.label },
+  foot:      { ...UI2.stack(SP2.sm), alignItems: 'center', textAlign: 'center' },
+  copy:      { ...T2.eyebrow },
+  footLinks: { ...UI2.row(SP2.lg), justifyContent: 'center' },
+  footLink:  { ...UI2.btn.textLink, color: C2.textSecondary },
+};
 
 function GoogleLogo() {
   return (
@@ -65,7 +126,7 @@ function GoogleLogo() {
 
 function AppleLogo() {
   return (
-    <svg width="15" height="17" viewBox="0 0 814 1000" fill={C.textPrimary}>
+    <svg width="15" height="17" viewBox="0 0 814 1000" fill={C2.navy}>
       <path d="M788.1 340.9c-5.8 4.5-108.2 62.2-108.2 190.5 0 148.4 130.3 200.9 134.2 202.2-.6 3.2-20.7 71.9-68.7 141.9-42.8 61.6-87.5 123.1-155.5 123.1s-85.5-39.5-164-39.5c-76 0-103.7 40.8-165.9 40.8s-105.2-62.3-150.6-123.6C46.5 726 1.1 583.9 1.1 440.8c0-109.1 39.1-212.2 103.7-283.6 56-62.2 140.7-101.7 232.8-101.7 85.5 0 152.6 42.3 204.8 42.3 49.4 0 126.9-45.3 227.2-45.3 34.2 0 150.4 3.2 224.1 110.9zM490.1 73.6c28.9-38.8 48.9-91.1 48.9-143.4 0-5.8-.6-11.7-1.3-17.6-47.5 2.6-104.6 32.5-138.2 74-26.9 32.5-50 84.7-50 136.9 0 6.5.6 12.9 1.3 15.5 3.2.6 8.4 1.3 13.6 1.3 42.9 0 96.9-28.3 125.7-66.7z"/>
     </svg>
   );
@@ -90,6 +151,19 @@ export default function LoginPage() {
   const [password, setPassword] = useState('');
   const [loading,  setLoading]  = useState(false);
   const [error,    setError]    = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  // testimonial carousel — current slide + the one fading out (crossfade, un2-xfade)
+  const [carousel, setCarousel] = useState({ cur: 0, prev: null });
+  const [paused, setPaused] = useState(false);   // hover / focus on the panel holds the current quote
+  const step = (d) => setCarousel(({ cur }) => ({ cur: (cur + d + TESTIMONIALS.length) % TESTIMONIALS.length, prev: cur }));
+
+  // auto-advance; the timer restarts after every change (incl. a manual prev / next) and stops while paused
+  useEffect(() => {
+    if (paused) return undefined;
+    const t = setTimeout(() => step(1), TESTIMONIAL_MS);
+    return () => clearTimeout(t);
+  }, [carousel.cur, paused]);
+  const slideCls = (i) => (i === carousel.cur ? 'is-active' : i === carousel.prev ? 'is-leaving' : undefined);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -166,115 +240,109 @@ export default function LoginPage() {
   };
 
   return (
-    <>
-      <style>{`
-        @keyframes un-spin   { to { transform: rotate(360deg); } }
-        @keyframes un-fadein { from { opacity:0; transform:translateY(5px); } to { opacity:1; transform:none; } }
-        @keyframes un-pagein { from { opacity:0; } to { opacity:1; } }
-        .un-login-root { animation: un-pagein 0.45s ease; }
-        .un-btn-primary:hover:not(:disabled) { background: ${C.primaryHover} !important; }
-        .un-btn-primary:active:not(:disabled){ transform: scale(0.99); }
-        .un-btn-social:hover  { border-color: #94A3B8 !important; background: #F8FAFC !important; }
-        .un-reglink:hover     { border-color: ${C.textPrimary} !important; }
-        .un-footlink:hover    { color: ${C.primary} !important; }
-      `}</style>
+    <div className="un2-enter-stagger" style={S.page}>
+      <ImageBackdrop image={backdropArt} />
+      <div style={S.waveWrap} aria-hidden="true"><div style={S.waveLeft} /></div>
 
-      <div className="un-login-root" style={{
-        display: 'flex', minHeight: '100%',
-        fontFamily: F.body, background: '#fff',
-      }}>
-
-        {/* ── LEFT — hero image + testimonial ── */}
-        <div style={{ position: 'relative', width: '52%', minHeight: '100%', overflow: 'hidden', flexShrink: 0 }}>
-          <img src={ESTATE_IMAGE} alt="Luxury estate"
-            style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center' }} />
-          <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to bottom, rgba(0,20,50,0.42) 0%, rgba(0,20,50,0.12) 40%, rgba(0,20,50,0.62) 100%)' }} />
-          <div style={{ position: 'absolute', top: 52, left: 52, fontFamily: F.body, fontWeight: 700, fontSize: 15, letterSpacing: '0.38em', color: '#fff', textTransform: 'uppercase' }}>
-            URBANNEST
+      <Grid layout="split" as="div" style={S.card}>
+        {/* ── Photo side — brand · headline · testimonial carousel ── */}
+        <div style={S.hero} className="un2-hide-md">
+          <img src={heroArt} alt="" style={S.heroPhoto} />
+          <div style={S.heroScrim} aria-hidden="true" />
+          <div style={S.heroBody}>
+            <div style={S.brand}>
+              <img src={brandLogo} alt="" style={S.logoMark} />
+              <span style={S.logoName}>UrbanNest</span>
+            </div>
+            <h2 style={S.title}>The Smart Way to<br />Manage &amp; <span style={S.accent}>Find Homes</span></h2>
+            <p style={S.sub}>Rent, buy, manage and explore properties —<br />all in one trusted platform.</p>
           </div>
-          <TestimonialCarousel testimonials={TESTIMONIALS} />
+
+          <figure style={S.quote} onMouseEnter={() => setPaused(true)} onMouseLeave={() => setPaused(false)}
+            onFocus={() => setPaused(true)} onBlur={() => setPaused(false)}>
+              <i className="ti ti-quote" style={S.quoteMark} aria-hidden="true" />
+              {/* every quote sits in the same cell (un2-xfade) → the panel keeps one height and the quotes crossfade */}
+              <div className="un2-xfade" aria-live="polite">
+                {TESTIMONIALS.map((t, i) => (
+                  <blockquote key={t.name} className={slideCls(i)} style={S.quoteText} aria-hidden={i !== carousel.cur}>“{t.quote}”</blockquote>
+                ))}
+              </div>
+              <figcaption style={S.author}>
+                <span className="un2-xfade" style={UI2.minWidth0}>
+                  {TESTIMONIALS.map((t, i) => (
+                    <span key={t.name} className={slideCls(i)} style={S.person} aria-hidden={i !== carousel.cur}>
+                      <span style={S.avatar} aria-hidden="true">{initials(t.name)}</span>
+                      <span style={UI2.minWidth0}>
+                        <span style={{ ...S.name, display: 'block' }}>{t.name}</span>
+                        <span style={{ ...S.role, display: 'block' }}>{t.title}</span>
+                      </span>
+                    </span>
+                  ))}
+                </span>
+                <span style={S.arrows}>
+                  <button type="button" className="un2-btn" style={S.arrow} onClick={() => step(-1)} aria-label="Previous testimonial"><i className="ti ti-chevron-left" aria-hidden="true" /></button>
+                  <button type="button" className="un2-btn" style={S.arrow} onClick={() => step(1)} aria-label="Next testimonial"><i className="ti ti-chevron-right" aria-hidden="true" /></button>
+                </span>
+              </figcaption>
+            </figure>
         </div>
 
-        {/* ── RIGHT — form panel ── */}
-        <div style={{
-          flex: 1, display: 'flex', flexDirection: 'column',
-          justifyContent: 'space-between',
-          padding: '56px 76px 36px 68px', background: '#fff',
-        }}>
-          {/* Session 51 fix — this panel is `flex: 1` (grows to fill the
-              window) while this block is capped at a fixed max-width, so
-              on a wide/maximized window it used to sit flush left with a
-              growing gap of empty space to its right (reported live,
-              comparing a narrower vs. a maximized browser window). `margin:
-              '0 auto'` centers it within the panel at any window width
-              instead, so the form reads the same regardless of how wide
-              the browser is. */}
-          <div style={{ maxWidth: 440, margin: '0 auto' }}>
-            <h1 style={{ fontFamily: F.headline, fontWeight: 700, fontSize: 40, color: C.primary, lineHeight: 1.2, marginBottom: 10 }}>
-              Secure Access
-            </h1>
-            <p style={{ fontFamily: F.body, fontWeight: 400, fontSize: 13, color: C.textSecondary, marginBottom: 34, lineHeight: 1.5 }}>
-              Enter your credentials to access your UrbanNest account.
-            </p>
+        {/* ── Form side ── */}
+        <div style={S.formSide}>
+          <CornerArt />
+          <div style={S.formCol}>
+            <div>
+              <h1 style={S.h1}>Secure Access</h1>
+              <p style={S.lead}>Enter your credentials to access your UrbanNest account.</p>
+            </div>
 
             {error && (
-              <div style={{
-                background: '#FEF2F2', border: '1px solid #FECACA', borderRadius: 8,
-                padding: '10px 14px', marginBottom: 18, display: 'flex', alignItems: 'center',
-                gap: 8, fontFamily: F.body, fontSize: 12, color: '#DC2626', animation: 'un-fadein 0.2s ease',
-              }}>
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#DC2626" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
-                </svg>
-                {error}
+              <div style={UI2.errorBanner} role="alert">
+                <i className="ti ti-alert-circle" aria-hidden="true" /> {error}
               </div>
             )}
 
-            <form onSubmit={handleSubmit}>
-              <Input label="Email or Phone" type="text" placeholder="Enter your email or phone number"
-                value={clientId} onChange={e => { setClientId(e.target.value); setError(''); }} autoComplete="username" />
-              <Input label="Password" type="password" placeholder="• • • • • • • •"
-                value={password} onChange={e => { setPassword(e.target.value); setError(''); }} autoComplete="current-password"
-                rightAction={{ label: 'Forgot password?', onClick: () => {} }} style={{ marginBottom: 22 }} />
-              <Button type="submit" variant="primary" loading={loading} disabled={loading}>
-                <LockIcon /> Secure Sign In
-              </Button>
+            <form onSubmit={handleSubmit} style={S.form}>
+              <FormField label="Email or Phone">
+                <IconField icon="ti-mail" type="text" placeholder="Enter your email or phone number" autoComplete="username"
+                  value={clientId} onChange={e => { setClientId(e.target.value); setError(''); }} aria-label="Email or phone" />
+              </FormField>
+              <FormField label="Password" action={<TextLink arrow={false} onClick={() => {}}>Forgot password?</TextLink>}>
+                <IconField icon="ti-lock" type={showPassword ? 'text' : 'password'} placeholder="Enter your password" autoComplete="current-password"
+                  value={password} onChange={e => { setPassword(e.target.value); setError(''); }} aria-label="Password"
+                  trailing={{ icon: showPassword ? 'ti-eye-off' : 'ti-eye', label: showPassword ? 'Hide password' : 'Show password', onClick: () => setShowPassword(v => !v) }} />
+              </FormField>
+              <button type="submit" className="un2-btn" style={{ ...S.submit, ...(loading ? S.busy : {}) }} disabled={loading}>
+                <i className={`ti ${loading ? 'ti-loader-2 un2-spin' : 'ti-lock'}`} style={UI2.btnIcon} aria-hidden="true" />
+                {loading ? 'Signing in…' : 'Secure Sign In'}
+              </button>
             </form>
 
-            <Divider label="OR CONTINUE WITH" />
-
-            <div style={{ display: 'flex', gap: 14, marginBottom: 26 }}>
-              <Button variant="social" fullWidth={false} style={{ flex: 1 }}><GoogleLogo /> Google</Button>
-              <Button variant="social" fullWidth={false} style={{ flex: 1 }}><AppleLogo /> Apple</Button>
+            <div style={S.orRow}>
+              <span style={S.orLine} />
+              <span style={S.orText}>Or continue with</span>
+              <span style={S.orLine} />
             </div>
 
-            <div style={{ textAlign: 'center' }}>
-              <span style={{ fontFamily: F.body, fontSize: 13, fontWeight: 400, color: C.textSecondary }}>
-                New here?{' '}
-                <a href="/signup" className="un-reglink"
-                  onClick={(e) => { e.preventDefault(); navigate('/signup', { state: location.state }); }}
-                  style={{ color: C.textPrimary, fontWeight: 600, textDecoration: 'none', borderBottom: '1px solid transparent', transition: 'border-color 0.18s' }}>
-                  Create Account ↗
-                </a>
-              </span>
-            </div>
-          </div>
+            <Grid layout="two" as="div" style={S.socials}>
+              <button type="button" className="un2-btn" style={S.social}><GoogleLogo /> Google</button>
+              <button type="button" className="un2-btn" style={S.social}><AppleLogo /> Apple</button>
+            </Grid>
 
-          <div style={{ textAlign: 'center', marginTop: 32 }}>
-            <p style={{ fontFamily: F.body, fontSize: 11, color: C.textTertiary, letterSpacing: '0.05em', marginBottom: 10 }}>
-              © 2024 URBANNEST EDITORIAL SYSTEMS. ALL RIGHTS RESERVED.
-            </p>
-            <div style={{ display: 'flex', gap: 16, justifyContent: 'center' }}>
-              {['Privacy', 'Security', 'Terms'].map(l => (
-                <a key={l} href="#" className="un-footlink"
-                  style={{ fontFamily: F.body, fontSize: 11, fontWeight: 500, color: C.textSecondary, textDecoration: 'none', transition: 'color 0.18s' }}>
-                  {l}
-                </a>
-              ))}
+            <div style={S.signup}>
+              New here?
+              <TextLink onClick={() => navigate('/signup', { state: location.state })}>Create Account</TextLink>
+            </div>
+
+            <div style={S.foot}>
+              <span style={S.copy}>© 2024 UrbanNest Editorial Systems. All rights reserved.</span>
+              <div style={S.footLinks}>
+                {FOOT_LINKS.map(l => <button key={l} type="button" style={S.footLink}>{l}</button>)}
+              </div>
             </div>
           </div>
         </div>
-      </div>
-    </>
+      </Grid>
+    </div>
   );
 }

@@ -180,6 +180,30 @@
 .un2-swap { animation: un2-swap-in 0.42s var(--un2-ease) both; }
 @media (prefers-reduced-motion: reduce) { .un2-swap { animation: none; } }
 
+/* ── Crossfade stack: slides that replace each other in place (e.g. the sign-in testimonials).
+   Every child sits in the SAME grid cell, so the box is always as tall as the tallest slide — it never jumps.
+   Mark the current child .is-active and the one going out .is-leaving:
+     the leaving slide drifts up + softly blurs out, the new one rises in a beat later (both overlap = crossfade).
+     <div class="un2-xfade"><div class="is-active">…</div><div class="is-leaving">…</div><div>…</div></div> ── */
+.un2-xfade { display: grid; }
+.un2-xfade > * {
+  grid-area: 1 / 1; min-width: 0;
+  opacity: 0; transform: translateY(var(--un2-rise)); filter: blur(4px); visibility: hidden;
+  transition: opacity var(--un2-xfade) var(--un2-ease), transform var(--un2-xfade) var(--un2-ease),
+              filter var(--un2-xfade) var(--un2-ease), visibility 0s linear var(--un2-xfade);
+  will-change: opacity, transform;
+}
+.un2-xfade > .is-leaving { transform: translateY(calc(var(--un2-rise) * -1)); }
+.un2-xfade > .is-active {
+  opacity: 1; transform: none; filter: none; visibility: visible;
+  transition-delay: var(--un2-xfade-delay), var(--un2-xfade-delay), var(--un2-xfade-delay), 0s;
+}
+@media (prefers-reduced-motion: reduce) { .un2-xfade > * { transition: none; transform: none; filter: none; } }
+
+/* ── Spin: a loading icon inside a busy button (e.g. Secure Sign In) ── */
+@keyframes un2-spin { to { transform: rotate(360deg); } }
+.un2-spin { display: inline-block; animation: un2-spin 0.8s linear infinite; }
+
 /* ── ActionTray: secondary header actions slide open to the left of the "Options" toggle ──
    Premium motion: the tray width springs open (grid 0fr → 1fr, slight overshoot), the actions sit
    in a plain row (no box) and each one fades, de-blurs and glides in (nearest the toggle first,

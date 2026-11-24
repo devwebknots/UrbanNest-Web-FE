@@ -17,6 +17,7 @@ import { C2, R2, FS2, LH2, SP2, SZ2, UI2 } from '../../constants';
 //   TEXTAREA    FIELD2.textarea — same box, min height SZ2.textarea (88), vertical resize.
 //   CHIP INPUT  ChipInput (listingWizardV2) — the input is the standard FIELD2.input (36px, same as every field);
 //               added chips wrap in a row under it (FIELD2.chipList / chip / chipX). Never restyle it per page.
+//   ICON FIELD  IconField — the standard FIELD2.input + leading icon (+ optional trailing button, e.g. show password).
 //   COMPACT     FIELD2.inputSm / ChoiceTile — UI2.compact: 34px (SZ2.control.md) · 8px side padding · 12px text.
 //   SELECTION   Checkbox · RadioPill · Switch (FormControls.jsx) — on = light primary blue (G2.primaryButton /
 //               C2.primaryLight), never green. ChoiceTile (amenity) selected = C2.chipBlueHover + navy icon / text.
@@ -50,6 +51,15 @@ export const FIELD2 = {
   chipList:  { display: 'flex', flexWrap: 'wrap', gap: SP2.xs },
   chip:      { ...UI2.featureChip() },
   chipX:     { padding: 0, border: 'none', background: 'none', cursor: 'pointer', color: C2.textSecondary, fontSize: FS2.sm, display: 'inline-flex' },
+  // icon field (IconField) — the input IS the standard FIELD2.input (36px); a field-height square slot on the left
+  // holds the icon, an optional one on the right holds a button (e.g. show / hide password)
+  iconWrap:  { position: 'relative', minWidth: 0 },
+  withIcon:  { paddingLeft: SZ2.field },
+  withTrail: { paddingRight: SZ2.field },
+  iconSlot:  (side = 'left') => ({
+    position: 'absolute', top: 0, [side]: 0, width: SZ2.field, height: SZ2.field, display: 'flex', alignItems: 'center', justifyContent: 'center',
+    padding: 0, border: 'none', background: 'none', color: C2.textSecondary, fontSize: FS2.lg,
+  }),
 };
 
 const S = {
@@ -84,6 +94,24 @@ export function ReadField({ value, placeholder = '—', icon }) {
     <div style={S.read} aria-readonly="true">
       <span style={{ ...S.value, ...(empty ? S.ph : {}) }}>{empty ? placeholder : value}</span>
       {icon && <i className={`ti ${icon}`} style={S.icon} aria-hidden="true" />}
+    </div>
+  );
+}
+
+// IconField — standard field (FIELD2.input, 36px) with a leading icon and an optional trailing button:
+//   <IconField icon="ti-mail" value={v} onChange={…} placeholder="Email" />
+//   <IconField icon="ti-lock" type="password" trailing={{ icon: 'ti-eye', label: 'Show password', onClick }} … />
+// Every other prop goes straight to the <input>.
+export function IconField({ icon, trailing, style, ...inputProps }) {
+  return (
+    <div style={FIELD2.iconWrap}>
+      <input className="un2-focus-ring" style={{ ...FIELD2.input, ...(icon ? FIELD2.withIcon : {}), ...(trailing ? FIELD2.withTrail : {}), ...style }} {...inputProps} />
+      {icon && <i className={`ti ${icon}`} style={{ ...FIELD2.iconSlot('left'), pointerEvents: 'none' }} aria-hidden="true" />}
+      {trailing && (
+        <button type="button" style={{ ...FIELD2.iconSlot('right'), cursor: 'pointer' }} onClick={trailing.onClick} aria-label={trailing.label} title={trailing.label}>
+          <i className={`ti ${trailing.icon}`} aria-hidden="true" />
+        </button>
+      )}
     </div>
   );
 }
