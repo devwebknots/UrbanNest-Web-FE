@@ -395,6 +395,8 @@ export const G2 = {
   authHeroScrim: 'linear-gradient(180deg, rgba(7,21,38,0.55) 0%, rgba(7,21,38,0.22) 30%, rgba(7,21,38,0) 50%, rgba(7,21,38,0.3) 100%)',
   // … and its testimonial panel: clear navy glass (light blur, so the text stays crisp)
   authGlass:     'linear-gradient(180deg, rgba(11,29,58,0.32) 0%, rgba(11,29,58,0.5) 100%)',
+  // Persona Select photo cards: light shade at the top (status chip), clear middle, deep navy at the bottom (title + details)
+  personaScrim:  'linear-gradient(180deg, rgba(7,21,38,0.38) 0%, rgba(7,21,38,0) 26%, rgba(7,21,38,0.12) 48%, rgba(7,21,38,0.9) 100%)',
   // Light diagonal wash for a tone: G2.tone(TONES2.success) / G2.panel(TONES2.warning)
   tone:  (t) => `linear-gradient(135deg, #FFFFFF 0%, ${t.cardTint} 100%)`,
   panel: (t) => `linear-gradient(135deg, ${t.panelFrom} 0%, ${t.panelTo} 100%)`,
@@ -431,6 +433,8 @@ export const SH2 = {
   brandButton:  '0 6px 14px rgba(3, 38, 76, 0.28)',
   lightButton:  '0 4px 12px rgba(3, 38, 76, 0.22)',
   focus:      '0 0 0 3px rgba(37, 99, 235, 0.12)',
+  personaSelected: '0 0 0 2px #3B82F6, 0 0 0 5px rgba(59, 130, 246, 0.16), 0 12px 28px -10px rgba(3, 38, 76, 0.32)',   // selected photo card: light-blue ring + halo + deep lift
+  personaHover:    '0 10px 24px -10px rgba(3, 38, 76, 0.3)',
   avatarRing: '0 0 0 3px #FFFFFF, 0 0 0 4px #E2E8F0',
   dotSuccess: '0 0 0 3px rgba(16, 185, 129, 0.18)',
   miniBarActive: '0 4px 10px -2px rgba(37, 99, 235, 0.45)',

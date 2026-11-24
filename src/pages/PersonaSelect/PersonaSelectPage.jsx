@@ -1,145 +1,225 @@
-import React, { useState, useEffect } from 'react';
+// ─────────────────────────────────────────────
+// UrbanNest — Persona Select (route: /persona-select)
+// Design System v2 (2026-11-24) — an open page (no card frame): our pageBg + the auth wave art, a top bar
+// (brand · who's signed in · Sign out), a centred header and a deck of big PHOTO CARDS, one per role.
+//
+// Flow: select → preview → continue (nothing navigates on the first click):
+//   · Click a card → it lifts with a light-blue ring + ✓, a light sweep crosses it, its details slide open
+//     (what it is · what's inside) and the other photos calm down. The floating dock at the bottom springs up
+//     with the role and a main button whose label follows it ("Continue to Landlord Portal", "Reactivate profile" …).
+//   · Double-click a card, or Enter on the selected one, continues straight away.
+//   · "Add a role" card (fanned photo stack) → the roles you can still set up are dealt in below as the same
+//     photo cards (3D tilt → place, staggered) and the page glides down to them; pick one → "Set up …".
+//   · Inactive profiles and a rejected PMS application still ask first (v2 Modal).
+// The data loading (/auth/me, /admin/org-pms), switch-persona call and every navigation target are unchanged.
+// ─────────────────────────────────────────────
+
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
-
-if (!document.getElementById('tabler-icons-cdn')) {
-  const link = document.createElement('link');
-  link.id   = 'tabler-icons-cdn';
-  link.rel  = 'stylesheet';
-  link.href = 'https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css';
-  document.head.appendChild(link);
-}
+import { ImageBackdrop, AUTH, introAt } from '../../components/layout';
+import { Modal } from '../../components/ui';
+import { C2, G2, SH2, TONES2, F2, FS2, FW2, LH2, LS2, R2, SP2, SZ2, ZI2, BLUR2, OP2, LAYOUT2, T2, UI2, pad } from '../../constants';
+import brandLogo from '../../assets/brand/urban-nest-logo.png';
+import backdropArt from '../../assets/landlord/wizard-backdrop.jpg';
+// role photos — renter / landlord / PMS company from the user's set (Downloads/Tenant.png, Landlord.png, PMS.png,
+// resized to 1400px); the others reuse the app's own hero art
+import imgRenter from '../../assets/personas/renter.jpg';
+import imgLandlord from '../../assets/personas/landlord.jpg';
+import imgPmsCompany from '../../assets/personas/pms-company.jpg';
+import imgTenant from '../../assets/landlord/signup-hero.jpg';
+import imgIndependentPm from '../../assets/landlord/dashboard-hero.jpg';
+import imgAgent from '../../assets/landlord/login-hero.jpg';
+import imgAdmin from '../../assets/landlord/portfolio-hero-sunset.jpg';
+import imgStaff from '../../assets/landlord/services/lease-management.jpg';
 
 const API_BASE = (process.env.REACT_APP_API_BASE_URL || 'http://localhost:8001/api').replace(/\/api\/?$/, '');
 
-const C = {
-  primary:'#002D5B', primaryHover:'#003d7a', pageBg:'#F0F2F5',
-  border:'#E2E8F0', borderMedium:'#CBD5E1',
-  textPrimary:'#0F172A', textSecondary:'#64748B', textTertiary:'#94A3B8',
-  white:'#FFFFFF', neutral:'#F1F5F9',
-};
-const F = { headline:"'Noto Serif', serif", body:"'Nunito Sans', sans-serif" };
-
-const ESTATE_IMAGE = 'https://images.unsplash.com/photo-1613977257363-707ba9348227?w=900&q=80&fit=crop';
-const TESTIMONIALS = [
-  { quote: '"Experience the pinnacle of urban living with curated spaces designed for the modern tenant. URBANNEST provides the clarity and security essential for navigating complex global markets with confidence."', name: 'JULIAN VANE', title: 'GLOBAL PORTFOLIO STRATEGY, LONDON' },
-  { quote: '"Unparalleled access to prime real estate opportunities across three continents. URBANNEST redefines what private wealth management looks like."', name: 'SOPHIA HARTWELL', title: 'PRIVATE EQUITY DIRECTOR, ZÜRICH' },
-  { quote: '"From acquisition to legacy planning, URBANNEST has been the cornerstone of our family office strategy for over a decade."', name: 'MARCUS DELACROIX', title: 'FAMILY OFFICE PRINCIPAL, SINGAPORE' },
-];
-
-// ─── Org PMS status badge config ──────────────────────────────────────────────
-const ORG_PMS_BADGE = {
-  DRAFT:     { label:'Draft',    bg:'#FEF3C7', color:'#92400E', border:'#FCD34D' },
-  PENDING:   { label:'Pending',  bg:'#EFF6FF', color:'#1D4ED8', border:'#BFDBFE' },
-  APPROVED:  { label:'Active',   bg:'#F0FDF4', color:'#166534', border:'#BBF7D0' },
-  SUSPENDED: { label:'Suspended',bg:'#FEF2F2', color:'#991B1B', border:'#FECACA' },
-};
-
 // ─── Persona catalogue ─────────────────────────────────────────────────────────
+// key · route (set-up flow for a role you don't hold yet) · portal (where it opens) — unchanged.
+// img / pos = card photo + its framing · portalName / blurb / features = what the card tells you.
 const ALL_PERSONAS = [
-  { key:'RENTER',            label:'Renter',            sub:'Main Account',       icon:'ti-home',                color:C.primary,  route:'/marketplace',            portal:'/marketplace' },
-  { key:'TENANT',            label:'Tenant',            sub:'Active Tenancy',     icon:'ti-users',               color:'#1D4ED8',  route:'/coming-soon',            portal:'/coming-soon' },
-  { key:'LANDLORD',          label:'Landlord',          sub:'Property Owner',     icon:'ti-building',            color:'#064E3B',  route:'/landlord-registration/step-1', portal:'/landlord-portal/dashboard' },
-  { key:'INDEPENDENT_PM',    label:'Property Manager',  sub:'Independent PM',     icon:'ti-briefcase',           color:'#B45309',  route:'/pm-registration',        portal:'/pm-portal/dashboard/welcome' },
-  { key:'ORGANIZATIONAL_PM', label:'PMS Company',       sub:'Organisational PM',  icon:'ti-building-skyscraper', color:'#BE123C',  route:'/org-onboarding/step-1',  portal:'/org-onboarding/step-1' },
-  { key:'REAL_ESTATE_AGENT', label:'Real Estate Agent', sub:'Agent Portal',       icon:'ti-id-badge',            color:'#7C3AED',  route:'/coming-soon',            portal:'/coming-soon' },
-  { key:'UN_ADMIN',          label:'UN Admin',          sub:'Lead Administrator', icon:'ti-shield-lock',         color:C.primary,  route:'/admin-portal/dashboard', portal:'/admin-portal/dashboard' },
-  { key:'PM_STAFF',          label:'PM Staff',          sub:'Team Member',        icon:'ti-users',               color:'#0F766E', route:'/pm-portal/dashboard/welcome', portal:'/pm-portal/dashboard/my-dashboard' },
+  { key:'RENTER',            label:'Renter',            sub:'Main account',       icon:'ti-home',                img:imgRenter,        pos:'56% center', route:'/marketplace',                  portal:'/marketplace',
+    portalName:'Marketplace',         blurb:'Browse verified homes, book tours and track your applications.',
+    features:[['ti-search', 'Listings'], ['ti-calendar-event', 'Tours'], ['ti-file-text', 'Applications']] },
+  { key:'TENANT',            label:'Tenant',            sub:'Active tenancy',     icon:'ti-key',                 img:imgTenant,        pos:'55% center', route:'/coming-soon',                  portal:'/coming-soon',
+    portalName:'Tenant Portal',       blurb:'Your lease, rent payments and maintenance requests in one place.',
+    features:[['ti-receipt', 'Rent'], ['ti-tool', 'Maintenance'], ['ti-file-certificate', 'Lease']], soon:true },
+  { key:'LANDLORD',          label:'Landlord',          sub:'Property owner',     icon:'ti-building',            img:imgLandlord,      pos:'56% center', route:'/landlord-registration/step-1', portal:'/landlord-portal/dashboard',
+    portalName:'Landlord Portal',     blurb:'Run your portfolio — listings, units, rent collection and residents.',
+    features:[['ti-buildings', 'Portfolio'], ['ti-cash', 'Rent'], ['ti-users', 'Residents']] },
+  { key:'INDEPENDENT_PM',    label:'Property Manager',  sub:'Independent PM',     icon:'ti-briefcase',           img:imgIndependentPm, pos:'60% center', route:'/pm-registration',              portal:'/pm-portal/dashboard/welcome',
+    portalName:'PM Portal',           blurb:'Manage properties for your clients, from leasing to maintenance.',
+    features:[['ti-building-community', 'Clients'], ['ti-clipboard-check', 'Work orders'], ['ti-chart-line', 'Reports']] },
+  { key:'ORGANIZATIONAL_PM', label:'PMS Company',       sub:'Organisational PM',  icon:'ti-building-skyscraper', img:imgPmsCompany,    pos:'64% center', route:'/org-onboarding/step-1',        portal:'/org-onboarding/step-1',
+    portalName:'Organisation Portal', blurb:'Your property-management company — teams, portfolios and billing.',
+    features:[['ti-users-group', 'Team'], ['ti-buildings', 'Portfolios'], ['ti-credit-card', 'Billing']] },
+  { key:'REAL_ESTATE_AGENT', label:'Real Estate Agent', sub:'Agent portal',       icon:'ti-id-badge',            img:imgAgent,         pos:'62% center', route:'/coming-soon',                  portal:'/coming-soon',
+    portalName:'Agent Portal',        blurb:'List on behalf of owners and follow your leads to signed leases.',
+    features:[['ti-home-plus', 'Listings'], ['ti-address-book', 'Leads'], ['ti-signature', 'Deals']], soon:true },
+  { key:'UN_ADMIN',          label:'UN Admin',          sub:'Lead administrator', icon:'ti-shield-lock',         img:imgAdmin,         pos:'50% center', route:'/admin-portal/dashboard',       portal:'/admin-portal/dashboard',
+    portalName:'Admin Portal',        blurb:'Platform administration — approvals, screening and configuration.',
+    features:[['ti-checklist', 'Approvals'], ['ti-shield-check', 'Screening'], ['ti-settings', 'Settings']] },
+  { key:'PM_STAFF',          label:'PM Staff',          sub:'Team member',        icon:'ti-user-cog',            img:imgStaff,         pos:'78% center', route:'/pm-portal/dashboard/welcome',  portal:'/pm-portal/dashboard/my-dashboard',
+    portalName:'PM Workspace',        blurb:'Your assigned properties, tasks and team updates.',
+    features:[['ti-list-check', 'Tasks'], ['ti-building', 'Properties'], ['ti-messages', 'Team']] },
 ];
 
-function TestimonialCarousel() {
-  const [idx, setIdx] = useState(0);
-  const t = TESTIMONIALS[idx];
-  return (
-    <div style={{ position:'absolute', bottom:48, left:36, right:36, background:'rgba(255,255,255,0.12)', backdropFilter:'blur(12px)', WebkitBackdropFilter:'blur(12px)', borderRadius:16, border:'1px solid rgba(255,255,255,0.18)', padding:'28px 32px 22px' }}>
-      <p style={{ fontFamily:F.headline, fontSize:14, fontWeight:400, color:'#fff', lineHeight:1.7, margin:'0 0 20px', fontStyle:'italic' }}>{t.quote}</p>
-      <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between' }}>
-        <div>
-          <p style={{ fontFamily:F.body, fontSize:11, fontWeight:700, color:'#fff', margin:'0 0 2px', letterSpacing:'0.06em' }}>{t.name}</p>
-          <p style={{ fontFamily:F.body, fontSize:10, color:'rgba(255,255,255,0.6)', margin:0, letterSpacing:'0.04em' }}>{t.title}</p>
-        </div>
-        <div style={{ display:'flex', gap:8 }}>
-          {[() => setIdx(i => (i-1+TESTIMONIALS.length)%TESTIMONIALS.length), () => setIdx(i => (i+1)%TESTIMONIALS.length)].map((fn,i) => (
-            <button key={i} onClick={fn} style={{ width:32, height:32, borderRadius:'50%', background:'rgba(255,255,255,0.15)', border:'1px solid rgba(255,255,255,0.25)', color:'#fff', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', fontFamily:F.body, fontSize:14 }}>
-              {i===0?'‹':'›'}
-            </button>
-          ))}
-        </div>
-      </div>
-    </div>
-  );
-}
+// Org PMS application status → chip · main-button label
+const ORG_PMS_STATE = {
+  DRAFT:     { label:'Draft',     tone:TONES2.neutral, cta:'Resume application' },
+  PENDING:   { label:'In review', tone:TONES2.purple,  cta:'View application status' },
+  APPROVED:  { label:'Active',    tone:TONES2.primary, cta:'Continue to Organisation Portal' },
+  SUSPENDED: { label:'Suspended', tone:TONES2.error,   cta:'View account status' },
+};
+
+// page-open timing (s) — header lines, then the cards are dealt in
+const INTRO = { bar: 0.05, eyebrow: 0.15, title: 0.25, lead: 0.35, deck: 0.45 };
+const CLOSE_MS = 340;   // "Add a role" deck plays its exit before it unmounts
+const CARD = SZ2.personaCard;
+const DECK_GAP = SP2.lg;
+const CARD_LG = SZ2.personaCardLg;   // "Your workspaces" — a size up
+const maxCols = (sz) => (sz === CARD_LG ? 4 : 5);   // what fits the page width at each size
+// balanced rows: never a lone card on the last row — 6 → 3 + 3, 7 → 4 + 3, 8 → 4 + 4, ≤ 5 → one row.
+// The deck gets exactly that many columns' width (centred), so the rows wrap evenly and line up.
+const deckCols = (n, sz) => Math.ceil(n / Math.ceil(n / maxCols(sz)));
+const deckWidth = (n, sz = CARD) => { const c = deckCols(Math.max(n, 1), sz); return c * sz.w + (c - 1) * DECK_GAP; };
+
+const S = {
+  // ── page ──
+  page:     { position: 'relative', zIndex: 0, minHeight: '100vh', boxSizing: 'border-box', background: C2.pageBg, fontFamily: F2.body, color: C2.textPrimary, overflowX: 'hidden',
+              paddingBottom: SZ2.footerBar + SP2.huge * 2 },   // room under the last row for the floating dock
+  // the wave art again, turned 180° → waves bottom-left too (same as the sign-in frame)
+  waveWrap: { position: 'absolute', inset: 0, zIndex: -1, overflow: 'hidden', pointerEvents: 'none' },
+  waveLeft: {
+    position: 'absolute', left: 0, right: 0, bottom: 0, height: SZ2.imageBackdrop, opacity: OP2.backdrop, transform: 'rotate(180deg)',
+    backgroundImage: `url(${backdropArt})`, backgroundSize: '100% auto', backgroundPosition: 'right top', backgroundRepeat: 'no-repeat',
+    WebkitMaskImage: `${G2.imageBackdropMask}, ${G2.imageBackdropMaskX}`, maskImage: `${G2.imageBackdropMask}, ${G2.imageBackdropMaskX}`,
+    WebkitMaskComposite: 'source-in', maskComposite: 'intersect',
+  },
+  inner:    { width: '100%', maxWidth: SZ2.authCard, margin: '0 auto', padding: pad(0, LAYOUT2.pageX), boxSizing: 'border-box' },
+
+  // ── top bar ──
+  bar:      { ...UI2.rowBetween(SP2.lg), padding: pad(SP2.xl, 0) },
+  brand:    { ...UI2.row(SP2.sm) },
+  logo:     { height: SZ2.icon.md, width: 'auto', aspectRatio: SZ2.brandLogoRatio, display: 'block' },
+  brandName:{ ...T2.brandTitle, color: C2.navyDeep, lineHeight: LH2.tight, letterSpacing: LS2.snug },
+  who:      { ...UI2.row(SP2.md), minWidth: 0 },
+  avatar:   { ...UI2.avatar(SZ2.icon.md, TONES2.primary) },
+  whoText:  { ...UI2.stack(0), minWidth: 0, textAlign: 'right' },
+  whoName:  { ...UI2.text.title, ...UI2.truncate },
+  whoMail:  { ...T2.caption, ...UI2.truncate },
+  signOut:  { ...UI2.btn.soft, ...UI2.btnSm },
+
+  // ── header ──
+  head:     { ...UI2.stack(SP2.sm), alignItems: 'center', textAlign: 'center', padding: pad(SP2.md, 0, SP2.xxl) },
+  eyebrow:  { ...UI2.pill(TONES2.primary) },
+  h1:       { ...T2.pageHeroTitle, margin: 0 },
+  lead:     { ...T2.pageHeroSub, margin: 0 },
+
+  // ── decks ──
+  deck:     (n, sz = CARD) => ({ display: 'flex', flexWrap: 'wrap', justifyContent: 'center', gap: DECK_GAP, width: '100%', maxWidth: deckWidth(n, sz), margin: '0 auto' }),
+  addHead:  (n) => ({ ...UI2.row(SP2.md), maxWidth: deckWidth(n), margin: pad(SP2.xxxl, 'auto', SP2.lg) }),   // lines span exactly the deck below
+  addRule:  { ...UI2.divider, flex: 1 },
+  addTitle: { ...T2.sectionTitle, whiteSpace: 'nowrap' },
+  addMeta:  { ...T2.label, whiteSpace: 'nowrap' },
+
+  // ── photo card ──
+  card:     (on, sz) => ({
+    display: 'block', width: sz.w, height: sz.h, padding: 0, border: 'none', borderRadius: R2.xxl, overflow: 'hidden', cursor: 'pointer',
+    textAlign: 'left', fontFamily: F2.body, color: C2.white, background: C2.navyHero,
+    boxShadow: on ? SH2.personaSelected : SH2.card, '--un2-persona-hover': SH2.personaHover,
+  }),
+  photo:    (pos) => ({ ...UI2.photoMedia, objectPosition: pos }),
+  scrim:    { position: 'absolute', inset: 0, background: G2.personaScrim, pointerEvents: 'none' },
+  top:      { ...UI2.rowBetween(SP2.sm), position: 'absolute', top: SP2.md, left: SP2.md, right: SP2.md, zIndex: 2 },
+  chip:     { ...UI2.chipOnDark, minHeight: 0, padding: pad(SP2.xxs, SP2.sm), fontSize: FS2.xxs, fontWeight: FW2.semibold, gap: SP2.xs },
+  chipDot:  (tone) => ({ ...UI2.statusDot(tone), boxShadow: `0 0 0 2px ${C2.onDark.surfaceHover}` }),
+  // selection mark: empty frosted ring → light-blue ✓ (UI2.checkBadge look, a size up for the photo)
+  mark:     (on) => ({
+    ...UI2.center, width: SZ2.icon.xs, height: SZ2.icon.xs, flexShrink: 0, boxSizing: 'border-box', borderRadius: R2.round,
+    border: on ? 'none' : `2px solid ${C2.onDark.border}`, background: on ? G2.primaryButton : C2.onDark.surface,
+    backdropFilter: BLUR2.sm, WebkitBackdropFilter: BLUR2.sm, color: C2.white, fontSize: FS2.xs, transition: 'background 0.2s ease',
+  }),
+  markIcon: { display: 'inline-block' },   // transform (pop) needs a box
+  body:     { ...UI2.stack(SP2.xxs), position: 'absolute', left: SP2.md, right: SP2.md, bottom: SP2.md, zIndex: 2 },
+  icon:     { ...UI2.iconBox(SZ2.icon.sm, { soft: C2.onDark.surfaceHover, strong: C2.white }), backdropFilter: BLUR2.sm, WebkitBackdropFilter: BLUR2.sm, marginBottom: SP2.xs },
+  name:     { ...T2.sectionTitle, color: C2.white, ...UI2.truncate },
+  sub:      { ...T2.caption, color: C2.onDark.textMuted, ...UI2.truncate },
+
+  // ── "Add a role" card: white, fanned photo stack ──
+  add:      (open, sz) => ({
+    ...UI2.stack(SP2.sm), alignItems: 'center', justifyContent: 'center', width: sz.w, height: sz.h, padding: SP2.lg, boxSizing: 'border-box',
+    border: 'none', borderRadius: R2.xxl, cursor: 'pointer', fontFamily: F2.body, textAlign: 'center',
+    background: open ? C2.primaryWash : C2.white, boxShadow: SH2.card, '--un2-persona-hover': SH2.personaHover,
+  }),
+  fan:      (sz) => ({ position: 'relative', width: sz.fan * 2.5, height: sz.fan * 1.4, marginBottom: SP2.sm }),
+  fanItem:  (i, n, sz) => ({
+    position: 'absolute', left: '50%', top: 0, width: sz.fan, height: sz.fan * 1.3, marginLeft: -sz.fan / 2, borderRadius: R2.lg,
+    overflow: 'hidden', boxShadow: SH2.lg, zIndex: i === Math.floor(n / 2) ? 2 : 1,
+    '--r': `${(i - (n - 1) / 2) * 10}deg`, '--x': `${(i - (n - 1) / 2) * (sz.fan * 0.55)}px`,
+  }),
+  fanImg:   (pos) => ({ ...UI2.photoMedia, objectPosition: pos }),
+  plus:     { ...UI2.iconBox(SZ2.icon.md, TONES2.primary, { round: true, solid: true }), boxShadow: SH2.primary },
+  addName:  { ...T2.sectionTitle, marginTop: SP2.xxs },
+  addSub:   { ...UI2.text.meta },
+
+  // skeleton card while the profile loads
+  skel:     { display: 'block', width: CARD_LG.w, height: CARD_LG.h, borderRadius: R2.xxl },
+
+  // ── floating dock ──
+  dock:     {
+    position: 'fixed', left: '50%', bottom: SP2.xxl, zIndex: ZI2.sticky, width: `calc(100% - ${LAYOUT2.pageX * 2}px)`, maxWidth: CARD.dock, boxSizing: 'border-box',
+    ...UI2.row(SP2.md), padding: pad(SP2.sm, SP2.sm, SP2.sm, SP2.md), borderRadius: R2.xxl,
+    background: C2.backgroundGlass, backdropFilter: BLUR2.bar, WebkitBackdropFilter: BLUR2.bar, boxShadow: SH2.lg,
+  },
+  dockThumb:{ position: 'relative', width: CARD.barThumb, height: CARD.barThumb, flexShrink: 0, borderRadius: R2.md, overflow: 'hidden', boxShadow: SH2.md },
+  dockText: { ...UI2.stack(SP2.xxs), flex: 1, minWidth: 0 },
+  dockName: { ...UI2.text.titleLg, ...UI2.truncate },
+  dockMeta: { ...UI2.row(SP2.xs), ...T2.caption, ...UI2.truncate },
+  cta:      { ...UI2.btn.brand, padding: pad(0, SP2.lg), flexShrink: 0 },
+
+  // modals
+  mIcon:    (tone) => ({ ...UI2.iconBox(SZ2.icon.lg, tone), marginBottom: SP2.md }),
+  mText:    { ...T2.body, margin: 0 },
+  mNote:    { ...UI2.tonePanel(TONES2.error), ...T2.label, color: C2.errorDark, padding: pad(SP2.md, SP2.lg), marginTop: SP2.md },
+};
 
 function decodeJWT(token) {
   try { return JSON.parse(atob(token.split('.')[1].replace(/-/g,'+').replace(/_/g,'/'))); }
   catch { return null; }
 }
 
-// ─── Persona card — supports orgPmsBadge for ORGANIZATIONAL_PM ────────────────
-// All other personas use existing isActive/isInactive system — UNTOUCHED.
-function PersonaCard({ persona, isActive, isInactive, orgPmsBadge, onClick }) {
-  const [hovered, setHovered] = useState(false);
-  const { label, sub, icon, color } = persona;
+const initialsOf = (user, email) => {
+  const n = [user?.first_name, user?.last_name].filter(Boolean).map(s => s[0]).join('');
+  return (n || email.slice(0, 1) || 'U').toUpperCase();
+};
 
-  // For ORGANIZATIONAL_PM: use orgPmsBadge styling if provided
-  const hasOrgBadge = !!orgPmsBadge;
-  const bg     = hasOrgBadge ? orgPmsBadge.bg
-               : isActive || hovered ? '#F0F4F8'
-               : isInactive ? '#FFF7ED'
-               : C.white;
-  const border = hasOrgBadge ? `2px solid ${orgPmsBadge.border}`
-               : isActive ? `2px solid ${C.primary}`
-               : isInactive ? `2px solid #F59E0B`
-               : hovered ? `2px solid ${C.borderMedium}`
-               : `1.5px solid ${C.border}`;
-
+// ─── One photo card ───────────────────────────────────────────────────────────
+function PersonaCard({ p, info, on, index, base, out, disabled, onSelect, onOpen, size = CARD }) {
   return (
-    <div onClick={() => onClick(persona)}
-      onMouseEnter={() => setHovered(true)} onMouseLeave={() => setHovered(false)}
-      role="button" tabIndex={0} onKeyDown={e => (e.key==='Enter'||e.key===' ')&&onClick(persona)}
-      style={{ position:'relative', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:'8px', padding:'21px 10px 16px', borderRadius:'11px', border, background:bg, cursor:'pointer', transition:'all 0.18s ease', transform:hovered&&!isActive&&!isInactive&&!hasOrgBadge?'translateY(-1px)':'none', boxShadow:isActive?'0 4px 16px rgba(0,45,91,0.12)':isInactive?'0 4px 16px rgba(245,158,11,0.10)':hovered?'0 4px 12px rgba(0,0,0,0.06)':'0 1px 3px rgba(0,0,0,0.04)', textAlign:'center', minHeight:'120px' }}>
-
-      {/* ── Org PMS status badge (DRAFT/PENDING/ACTIVE/SUSPENDED) ── */}
-      {hasOrgBadge && (
-        <div style={{ position:'absolute', top:'-11px', left:'50%', transform:'translateX(-50%)', background:orgPmsBadge.color, color:C.white, fontFamily:F.body, fontSize:'9px', fontWeight:700, letterSpacing:'0.1em', padding:'3px 10px', borderRadius:'99px', textTransform:'uppercase', whiteSpace:'nowrap' }}>
-          {orgPmsBadge.label}
-        </div>
-      )}
-
-      {/* ── Standard Active badge (other personas) ── */}
-      {isActive && !hasOrgBadge && (
-        <div style={{ position:'absolute', top:'-11px', left:'50%', transform:'translateX(-50%)', background:C.primary, color:C.white, fontFamily:F.body, fontSize:'9px', fontWeight:700, letterSpacing:'0.1em', padding:'3px 10px', borderRadius:'99px', textTransform:'uppercase', whiteSpace:'nowrap' }}>Active</div>
-      )}
-
-      {/* ── Standard Inactive badge (other personas) ── */}
-      {isInactive && !hasOrgBadge && (
-        <div style={{ position:'absolute', top:'-11px', left:'50%', transform:'translateX(-50%)', background:'#F59E0B', color:C.white, fontFamily:F.body, fontSize:'9px', fontWeight:700, letterSpacing:'0.1em', padding:'3px 10px', borderRadius:'99px', textTransform:'uppercase', whiteSpace:'nowrap' }}>Inactive</div>
-      )}
-
-      <div style={{ width:'42px', height:'42px', borderRadius:'50%', background:hasOrgBadge?`${orgPmsBadge.color}22`:isActive?C.primary:isInactive?'#FEF3C7':hovered?`${color}18`:C.neutral, display:'flex', alignItems:'center', justifyContent:'center', transition:'background 0.18s ease', flexShrink:0 }}>
-        <i className={`ti ${icon}`} style={{ fontSize:'16px', color:hasOrgBadge?orgPmsBadge.color:isActive?C.white:isInactive?'#F59E0B':color }} aria-hidden="true" />
-      </div>
-      <div>
-        <p style={{ margin:'0 0 2px', fontFamily:F.headline, fontSize:'11px', fontWeight:700, color:C.textPrimary, lineHeight:1.2 }}>{label}</p>
-        <p style={{ margin:0, fontFamily:F.body, fontSize:'8px', fontWeight:700, color:C.textTertiary, textTransform:'uppercase', letterSpacing:'0.07em' }}>{sub}</p>
-      </div>
-    </div>
-  );
-}
-
-function AddPersonaCard({ onClick }) {
-  const [hovered, setHovered] = useState(false);
-  return (
-    <div onClick={onClick} onMouseEnter={() => setHovered(true)} onMouseLeave={() => setHovered(false)}
-      role="button" tabIndex={0} onKeyDown={e => (e.key==='Enter'||e.key===' ')&&onClick()}
-      style={{ display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:'8px', padding:'21px 10px 16px', borderRadius:'11px', border:`1.5px dashed ${hovered?C.primary:C.borderMedium}`, background:hovered?'#F8FAFC':'transparent', cursor:'pointer', transition:'all 0.18s ease', textAlign:'center', minHeight:'120px' }}>
-      <div style={{ width:'42px', height:'42px', borderRadius:'50%', border:`1.5px dashed ${hovered?C.primary:C.borderMedium}`, display:'flex', alignItems:'center', justifyContent:'center', transition:'all 0.18s ease', flexShrink:0 }}>
-        <i className="ti ti-plus" style={{ fontSize:'15px', color:hovered?C.primary:C.textTertiary }} aria-hidden="true" />
-      </div>
-      <div>
-        <p style={{ margin:'0 0 2px', fontFamily:F.headline, fontSize:'11px', fontWeight:700, color:hovered?C.primary:C.textSecondary, lineHeight:1.2, transition:'color 0.18s ease' }}>Add Persona</p>
-        <p style={{ margin:0, fontFamily:F.body, fontSize:'8px', fontWeight:700, color:C.textTertiary, textTransform:'uppercase', letterSpacing:'0.07em' }}>Unlock a new role</p>
-      </div>
+    <div className={`un2-deal${out ? ' is-out' : ''}`} style={{ '--un2-i': index, '--un2-deal-base': `${base}s` }}>
+      <button
+        type="button" role="radio" aria-checked={on} aria-label={`${p.label} — ${info.status}`} disabled={disabled}
+        className={`un2-persona${on ? ' is-selected' : ''}`} style={S.card(on, size)}
+        onClick={onSelect} onDoubleClick={onOpen}
+        onKeyDown={e => { if (e.key === 'Enter' && on) { e.preventDefault(); onOpen(); } }}
+      >
+        <img src={p.img} alt="" className="un2-persona-photo" style={S.photo(p.pos)} />
+        <span style={S.scrim} aria-hidden="true" />
+        <span style={S.top}>
+          <span style={S.chip}>
+            {info.isNew ? <i className="ti ti-sparkles" aria-hidden="true" /> : <span style={S.chipDot(info.tone)} />}
+            {info.status}
+          </span>
+          <span style={S.mark(on)} aria-hidden="true">{on && <i className="ti ti-check un2-pop" style={S.markIcon} />}</span>
+        </span>
+        <span style={S.body}>
+          <span style={S.icon}><i className={`ti ${p.icon}`} aria-hidden="true" /></span>
+          <span style={S.name}>{p.label}</span>
+          <span style={S.sub}>{p.sub}</span>
+        </span>
+      </button>
     </div>
   );
 }
@@ -170,7 +250,7 @@ export default function PersonaSelectPage() {
   const [activeKeys,           setActiveKeys]           = useState([]);
   const [inactiveKeys,         setInactiveKeys]         = useState([]);
   const [loading,              setLoading]              = useState(true);
-  const [showAll,              setShowAll]              = useState(false);
+  const [showAll,              setShowAll]              = useState(false);   // "Add a role" deck open
   const [error,                setError]                = useState('');
 
   // ── Org PMS specific state ─────────────────────────────────────────────────
@@ -181,6 +261,14 @@ export default function PersonaSelectPage() {
   const [showReactivateModal,  setShowReactivateModal]  = useState(false);
   const [pendingReactivateKey, setPendingReactivateKey] = useState(null);
   const [showRejectionModal,   setShowRejectionModal]   = useState(false);
+
+  // ── Selection (select → preview → continue) ───────────────────────────────
+  const [selected, setSelected] = useState(null);   // { group: 'mine' | 'add', key }
+  const [closing,  setClosing]  = useState(false);  // "Add a role" deck playing its exit
+  const [busy,     setBusy]     = useState(false);
+  const mounted = useRef(true);
+  const addRef = useRef(null);
+  useEffect(() => () => { mounted.current = false; }, []);
 
   useEffect(() => {
     const load = async () => {
@@ -317,12 +405,8 @@ export default function PersonaSelectPage() {
       navigate(persona.route);
     }
   };
-  
-  const handleAddPersonaClick = () => {
-    setShowAll(true);
-  };
 
-  // ── When user selects ORGANIZATIONAL_PM from "Add Persona" list ───────────
+  // ── When user picks a persona from the "Add a role" deck ──────────────────
   const handleUnregisteredPersonaClick = (persona) => {
     if (persona.key === 'ORGANIZATIONAL_PM') {
       if (orgPmsStatus === 'REJECTED') {
@@ -364,165 +448,251 @@ export default function PersonaSelectPage() {
   };
 
   const displayEmail = user?.email || user?.username || '';
+  const firstName    = user?.first_name || '';
+  const fullName     = [user?.first_name, user?.last_name].filter(Boolean).join(' ');
 
-  // ── Card lists ─────────────────────────────────────────────────────────────
-  // Registered personas (active/inactive from UserPersona) — shown by default
+  // ── Lists ──────────────────────────────────────────────────────────────────
+  // Registered personas (active/inactive from UserPersona) + the Org PMS application when it has one
   const registeredPersonas = ALL_PERSONAS.filter(p =>
     p.key !== 'ORGANIZATIONAL_PM' && (activeKeys.includes(p.key) || inactiveKeys.includes(p.key))
   );
-
+  const myPersonas = [
+    ...registeredPersonas,
+    ...(showOrgPmsCard ? [ALL_PERSONAS.find(p => p.key === 'ORGANIZATIONAL_PM')] : []),
+  ];
   // Unregistered personas available to add — suppress ORGANIZATIONAL_PM if already active
   const unregisteredPersonas = ALL_PERSONAS.filter(p => {
     if (p.key === 'ORGANIZATIONAL_PM') return orgPmsAvailableToAdd;
     return !activeKeys.includes(p.key) && !inactiveKeys.includes(p.key);
   });
 
-  // All visible personas in default view
-  const visiblePersonas = showAll ? registeredPersonas : registeredPersonas;
+  // ── Status chip / dock wording for one persona ────────────────────────────
+  const describe = (group, p) => {
+    if (group === 'add') {
+      const rejected = p.key === 'ORGANIZATIONAL_PM' && orgPmsStatus === 'REJECTED';
+      return {
+        isNew: true, status: rejected ? 'Re-apply' : 'New role', tone: TONES2.primary,
+        cta: rejected ? 'Start new application' : `Set up ${p.label}`, icon: rejected ? 'ti-plus' : 'ti-arrow-right',
+        dest: rejected ? 'Your previous application was rejected — you can apply again' : p.soon ? `The ${p.portalName} is coming soon` : `Starts the ${p.label} set-up`,
+      };
+    }
+    if (p.key === 'ORGANIZATIONAL_PM') {
+      const st = ORG_PMS_STATE[orgPmsStatus] || ORG_PMS_STATE.DRAFT;
+      return { status: st.label, tone: st.tone, cta: st.cta, icon: 'ti-arrow-right', dest: `${p.sub} · ${st.label}` };
+    }
+    if (inactiveKeys.includes(p.key) && !activeKeys.includes(p.key)) {
+      return { status: 'Inactive', tone: TONES2.neutral, cta: 'Reactivate profile', icon: 'ti-refresh', dest: "Paused — you'll review and resubmit your details" };
+    }
+    return {
+      status: 'Active', tone: TONES2.primary, cta: `Continue to ${p.portalName}`, icon: 'ti-arrow-right',
+      dest: p.soon ? `The ${p.portalName} is coming soon` : `Opens ${p.portalName}`,
+    };
+  };
 
-  const allDisplayCards = [
-    ...registeredPersonas,
-    ...(showOrgPmsCard ? [ALL_PERSONAS.find(p => p.key === 'ORGANIZATIONAL_PM')] : []),
-  ];
+  // ── Selection ──────────────────────────────────────────────────────────────
+  const isSel = (group, key) => selected?.group === group && selected?.key === key;
+  const select = (group, key) => setSelected({ group, key });
 
-  const cardCount = allDisplayCards.length + (showAll ? 0 : 1);
-  const cols      = Math.min(cardCount, 3);
+  // first load: preselect the active persona from the profile, else the first workspace
+  useEffect(() => {
+    if (loading || selected || !myPersonas.length) return;
+    const current = myPersonas.find(p => p.key === user?.active_persona) || myPersonas[0];
+    select('mine', current.key);
+  }, [loading]);   // eslint-disable-line react-hooks/exhaustive-deps
 
-  if (loading) return (
-    <div style={{ minHeight:'100vh', background:C.pageBg, backgroundImage:'radial-gradient(circle, #CBD5E1 1px, transparent 1px)', backgroundSize:'28px 28px', display:'flex', alignItems:'center', justifyContent:'center' }}>
-      <div style={{ width:28, height:28, borderRadius:'50%', border:`3px solid ${C.border}`, borderTopColor:C.primary, animation:'spin 0.7s linear infinite' }} />
-      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
-    </div>
-  );
+  const selPersona = selected && (selected.group === 'mine' ? myPersonas : unregisteredPersonas).find(p => p.key === selected.key);
+  const selInfo = selPersona ? describe(selected.group, selPersona) : null;
+
+  const proceed = async (group = selected?.group, persona = selPersona) => {
+    if (!persona || busy) return;
+    setSelected({ group, key: persona.key });
+    setBusy(true);
+    try {
+      if (group === 'add') handleUnregisteredPersonaClick(persona);
+      else await handlePersonaClick(persona);
+    } finally {
+      if (mounted.current) setBusy(false);
+    }
+  };
+
+  // ── "Add a role" deck: deal in + glide down to it · play the exit, then unmount ──
+  const openAdd = () => {
+    setClosing(false);
+    setShowAll(true);
+    setTimeout(() => addRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 120);
+  };
+  const closeAdd = () => {
+    if (selected?.group === 'add' && myPersonas.length) select('mine', myPersonas[0].key);   // never keep a hidden choice
+    setClosing(true);
+    setTimeout(() => { if (mounted.current) { setShowAll(false); setClosing(false); } }, CLOSE_MS);
+  };
+  const addOpen = showAll && !closing;
+
+  const fanPersonas = unregisteredPersonas.slice(0, 3);
+  const dockShown = !loading && !!selInfo;
+  // dock line: what the role is — or, when it matters more, its state (paused, coming soon, re-apply …)
+  const dockNote = selInfo && (/^(Opens|Starts) /.test(selInfo.dest) ? selPersona.blurb : selInfo.dest);
 
   return (
-    <>
-      <style>{`@keyframes un-pagein { from { opacity:0; } to { opacity:1; } } @keyframes spin { to { transform:rotate(360deg); } }`}</style>
-      <div style={{ minHeight:'100vh', background:C.pageBg, backgroundImage:'radial-gradient(circle, #CBD5E1 1px, transparent 1px)', backgroundSize:'28px 28px', display:'flex', alignItems:'center', justifyContent:'center', padding:'24px' }}>
-        <div style={{ width:'75vw', maxHeight:'90vh', borderRadius:'20px', overflow:'hidden', boxShadow:'0 32px 80px rgba(0,0,0,0.18), 0 2px 8px rgba(0,0,0,0.08)', display:'flex', animation:'un-pagein 0.35s ease both' }}>
-
-          {/* LEFT */}
-          <div style={{ position:'relative', width:'52%', minHeight:'100%', flexShrink:0, overflow:'hidden' }}>
-            <img src={ESTATE_IMAGE} alt="Luxury estate" style={{ position:'absolute', inset:0, width:'100%', height:'100%', objectFit:'cover', objectPosition:'center' }} />
-            <div style={{ position:'absolute', inset:0, background:'linear-gradient(to bottom, rgba(0,20,50,0.42) 0%, rgba(0,20,50,0.12) 40%, rgba(0,20,50,0.62) 100%)' }} />
-            <div style={{ position:'absolute', top:52, left:52, fontFamily:F.body, fontWeight:700, fontSize:15, letterSpacing:'0.38em', color:'#fff', textTransform:'uppercase' }}>URBANNEST</div>
-            <div style={{ position:'absolute', top:20, left:16, fontFamily:F.headline, fontSize:180, fontWeight:700, color:'rgba(255,255,255,0.07)', lineHeight:1, userSelect:'none', pointerEvents:'none' }}>R</div>
-            <TestimonialCarousel />
-          </div>
-
-          {/* RIGHT */}
-          <div style={{ flex:1, background:C.white, display:'flex', flexDirection:'column', justifyContent:'space-between', padding:'52px 60px 36px 56px', overflowY:'auto' }}>
-            <div>
-              <h1 style={{ fontFamily:F.headline, fontSize:'39px', fontWeight:700, color:C.primary, lineHeight:1.15, margin:'0 0 10px', whiteSpace:'nowrap' }}>Persona Selection</h1>
-              <p style={{ fontFamily:F.body, fontSize:'13px', color:C.textSecondary, margin:'0 0 36px', lineHeight:1.6, maxWidth:'260px' }}>Select a profile below to continue to your personalised dashboard and portal.</p>
-              {error && <div style={{ background:'#FEF2F2', border:'1px solid #FECACA', borderRadius:'8px', padding:'8px 12px', marginBottom:'16px', fontFamily:F.body, fontSize:'12px', color:'#DC2626' }}>{error}</div>}
-
-              {/* ── Main cards grid ── */}
-              <div style={{ display:'grid', gridTemplateColumns:`repeat(${cols}, 1fr)`, gap:'14px' }}>
-                {allDisplayCards.map(persona => {
-                  const isOrgPms = persona.key === 'ORGANIZATIONAL_PM';
-                  const badge    = isOrgPms && orgPmsStatus ? ORG_PMS_BADGE[orgPmsStatus] : null;
-                  return (
-                    <PersonaCard
-                      key={persona.key}
-                      persona={persona}
-                      isActive={!isOrgPms && activeKeys.includes(persona.key)}
-                      isInactive={!isOrgPms && inactiveKeys.includes(persona.key)}
-                      orgPmsBadge={badge}
-                      onClick={handlePersonaClick}
-                    />
-                  );
-                })}
-                {!showAll && <AddPersonaCard onClick={handleAddPersonaClick} />}
-              </div>
-
-              {/* ── "Add Persona" expanded list ── */}
-              {showAll && unregisteredPersonas.length > 0 && (
-                <>
-                  <p style={{ margin:'24px 0 10px', fontFamily:F.body, fontSize:'10px', fontWeight:700, color:C.textTertiary, textTransform:'uppercase', letterSpacing:'0.08em' }}>Available to register</p>
-                  <div style={{ display:'grid', gridTemplateColumns:`repeat(${Math.min(unregisteredPersonas.length,3)}, 1fr)`, gap:'14px' }}>
-                    {unregisteredPersonas.map(persona => (
-                      <PersonaCard key={persona.key} persona={persona} isActive={false} isInactive={false}
-                        onClick={handleUnregisteredPersonaClick} />
-                    ))}
-                  </div>
-                </>
-              )}
-
-              {showAll && (
-                <div style={{ marginTop:'16px', textAlign:'center' }}>
-                  <button onClick={() => setShowAll(false)} style={{ background:'none', border:'none', cursor:'pointer', fontFamily:F.body, fontSize:'12px', fontWeight:600, color:C.textSecondary, display:'inline-flex', alignItems:'center', gap:'4px' }}>
-                    <i className="ti ti-chevron-up" style={{ fontSize:'14px' }} aria-hidden="true" />
-                    Show active only
-                  </button>
-                </div>
-              )}
-            </div>
-
-            {/* Footer */}
-            <div style={{ marginTop:'32px', paddingTop:'20px', borderTop:`1px solid ${C.border}`, display:'flex', alignItems:'center', justifyContent:'space-between', gap:'12px' }}>
-              <p style={{ margin:0, fontFamily:F.body, fontSize:'8px', fontWeight:600, color:C.textTertiary, textTransform:'uppercase', letterSpacing:'0.07em' }}>
-                Logged in as <span style={{ color:C.textSecondary }}>{displayEmail.toUpperCase()}</span>
-              </p>
-              <button onClick={handleSignOut}
-                style={{ height:'36px', padding:'0 20px', background:C.primary, color:C.white, border:'none', borderRadius:'8px', fontFamily:F.body, fontSize:'12px', fontWeight:700, cursor:'pointer', letterSpacing:'0.04em', textTransform:'uppercase', transition:'background 0.15s ease', flexShrink:0 }}
-                onMouseEnter={e => e.currentTarget.style.background = C.primaryHover}
-                onMouseLeave={e => e.currentTarget.style.background = C.primary}>
-                Sign Out
-              </button>
-            </div>
-          </div>
-        </div>
+    <div style={S.page}>
+      {/* backdrop: wave art top-right + bottom-left */}
+      <div className="un2-intro-fade" style={introAt(0)}>
+        <ImageBackdrop image={backdropArt} />
+        <div style={S.waveWrap} aria-hidden="true"><div style={S.waveLeft} /></div>
       </div>
 
-      {/* ── Reactivate modal (INDEPENDENT_PM inactive — existing logic) ── */}
-      {showReactivateModal && (
-        <div style={{ position:'fixed', inset:0, zIndex:400, background:'rgba(0,0,0,0.4)', display:'flex', alignItems:'center', justifyContent:'center' }}>
-          <div style={{ background:C.white, borderRadius:'14px', padding:'28px 32px', maxWidth:'400px', width:'90%', boxShadow:'0 24px 64px rgba(0,0,0,0.18)', animation:'un-pagein 0.2s ease both' }}>
-            <div style={{ width:'44px', height:'44px', borderRadius:'50%', background:'#FEF3C7', border:'1px solid #FCD34D', display:'flex', alignItems:'center', justifyContent:'center', marginBottom:'16px' }}>
-              <i className="ti ti-refresh" style={{ fontSize:'20px', color:'#F59E0B' }} />
-            </div>
-            <h2 style={{ margin:'0 0 8px', fontFamily:F.headline, fontSize:'18px', fontWeight:700, color:'#0F172A' }}>Reactivate Profile?</h2>
-            <p style={{ margin:'0 0 24px', fontFamily:F.body, fontSize:'13px', color:'#64748B', lineHeight:1.6 }}>Your {pendingReactivateKey === 'LANDLORD' ? 'Landlord' : 'Independent PM'}  profile is currently inactive. Would you like to reactivate it? You'll need to review and resubmit your details.</p>
-            <div style={{ display:'flex', gap:'10px' }}>
-              <button onClick={handleReactivateCancel} style={{ flex:1, height:'42px', background:C.white, border:'1.5px solid #CBD5E1', borderRadius:'9px', fontFamily:F.body, fontSize:'13px', fontWeight:600, color:'#64748B', cursor:'pointer' }}>Cancel</button>
-              <button onClick={handleReactivateConfirm} style={{ flex:1, height:'42px', background:'#002D5B', border:'none', borderRadius:'9px', fontFamily:F.body, fontSize:'13px', fontWeight:700, color:C.white, cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', gap:'6px' }}
-                onMouseEnter={e => e.currentTarget.style.background='#003d7a'} onMouseLeave={e => e.currentTarget.style.background='#002D5B'}>
-                <i className="ti ti-refresh" style={{ fontSize:'14px' }} />
-                Yes, Reactivate
-              </button>
-            </div>
+      <div style={S.inner}>
+        {/* ── Top bar: brand · who's signed in · Sign out ── */}
+        <header className="un2-intro-up" style={{ ...S.bar, ...introAt(INTRO.bar) }}>
+          <div style={S.brand}>
+            <img src={brandLogo} alt="" style={S.logo} />
+            <span style={S.brandName}>UrbanNest</span>
           </div>
+          <div style={S.who}>
+            <div style={S.whoText} className="un2-hide-md">
+              <span style={S.whoName}>{loading ? ' ' : (fullName || displayEmail)}</span>
+              {fullName && <span style={S.whoMail}>{displayEmail}</span>}
+            </div>
+            {loading
+              ? <span className="un2-skel" style={{ ...UI2.skeleton(SZ2.icon.md, SZ2.icon.md), borderRadius: R2.round }} />
+              : <span style={S.avatar} aria-hidden="true">{initialsOf(user, displayEmail)}</span>}
+            <button type="button" className="un2-btn" style={S.signOut} onClick={handleSignOut}>
+              <i className="ti ti-logout" style={UI2.btnIcon} aria-hidden="true" /> Sign out
+            </button>
+          </div>
+        </header>
+
+        {/* ── Header ── */}
+        <div style={S.head}>
+          <span className="un2-intro-up" style={{ ...S.eyebrow, ...introAt(INTRO.eyebrow) }}>
+            <i className="ti ti-sparkles" aria-hidden="true" /> Welcome back{firstName ? `, ${firstName}` : ''}
+          </span>
+          <h1 className="un2-intro-up" style={{ ...S.h1, ...introAt(INTRO.title) }}>Choose your workspace</h1>
+          <p className="un2-intro-up" style={{ ...S.lead, ...introAt(INTRO.lead) }}>Pick the role you want to work in today — you can switch any time.</p>
+          {error && (
+            <div style={{ ...UI2.errorBanner, marginTop: SP2.md }} role="alert">
+              <i className="ti ti-alert-circle" aria-hidden="true" /> {error}
+            </div>
+          )}
         </div>
+
+        {/* ── Your workspaces ── */}
+        {loading ? (
+          <div style={S.deck(3, CARD_LG)} aria-busy="true">
+            {[0, 1, 2].map(i => <span key={i} className="un2-skel" style={S.skel} />)}
+          </div>
+        ) : (
+          <div role="radiogroup" aria-label="Your workspaces" className="un2-persona-deck" style={S.deck(myPersonas.length + (unregisteredPersonas.length ? 1 : 0), CARD_LG)}>
+            {myPersonas.map((p, i) => (
+              <PersonaCard
+                key={p.key} p={p} info={describe('mine', p)} on={isSel('mine', p.key)} index={i} base={INTRO.deck} disabled={busy} size={CARD_LG}
+                onSelect={() => select('mine', p.key)} onOpen={() => proceed('mine', p)}
+              />
+            ))}
+
+            {unregisteredPersonas.length > 0 && (
+              <div className="un2-deal" style={{ '--un2-i': myPersonas.length, '--un2-deal-base': `${INTRO.deck}s` }}>
+                <button
+                  type="button" className={`un2-persona un2-add${addOpen ? ' is-open' : ''}`} style={S.add(addOpen, CARD_LG)}
+                  onClick={addOpen ? closeAdd : openAdd} aria-expanded={addOpen} aria-controls="persona-add-deck" disabled={busy}
+                >
+                  <span className="un2-fan" style={S.fan(CARD_LG)} aria-hidden="true">
+                    {fanPersonas.map((p, i) => (
+                      <span key={p.key} style={S.fanItem(i, fanPersonas.length, CARD_LG)}><img src={p.img} alt="" style={S.fanImg(p.pos)} /></span>
+                    ))}
+                  </span>
+                  <span style={S.plus}><i className="ti ti-plus un2-add-plus" aria-hidden="true" /></span>
+                  <span style={S.addName}>{addOpen ? 'Hide roles' : 'Add a role'}</span>
+                  <span style={S.addSub}>{unregisteredPersonas.length} {unregisteredPersonas.length === 1 ? 'role' : 'roles'} you can set up</span>
+                </button>
+              </div>
+            )}
+          </div>
+        )}
+
+        {/* ── Roles you can add — dealt in below ── */}
+        {showAll && (
+          <section id="persona-add-deck" ref={addRef} aria-label="Roles you can add">
+            <div className={`un2-deal${closing ? ' is-out' : ''}`} style={S.addHead(unregisteredPersonas.length)}>
+              <span style={S.addRule} />
+              <span style={S.addTitle}>Roles you can add</span>
+              <span style={S.addMeta}>Pick one to see what's included</span>
+              <span style={S.addRule} />
+            </div>
+            <div role="radiogroup" aria-label="Roles you can add" className="un2-persona-deck" style={S.deck(unregisteredPersonas.length)}>
+              {unregisteredPersonas.map((p, i) => (
+                <PersonaCard
+                  key={p.key} p={p} info={describe('add', p)} on={isSel('add', p.key)} index={i + 1} base={0.05} out={closing} disabled={busy}
+                  onSelect={() => select('add', p.key)} onOpen={() => proceed('add', p)}
+                />
+              ))}
+            </div>
+          </section>
+        )}
+      </div>
+
+      {/* ── Floating dock: the selected role + its main action ── */}
+      <div className={`un2-dock${dockShown ? ' is-shown' : ''}`} style={{ ...S.dock, pointerEvents: dockShown ? 'auto' : 'none' }} aria-live="polite">
+        {selPersona && selInfo && (
+          <>
+            <span key={`t-${selected.group}-${selected.key}`} className="un2-swap" style={S.dockThumb}>
+              <img src={selPersona.img} alt="" style={S.fanImg(selPersona.pos)} />
+            </span>
+            <span key={`x-${selected.group}-${selected.key}`} className="un2-swap" style={S.dockText}>
+              <span style={S.dockName}>{selPersona.label}</span>
+              <span style={S.dockMeta} title={dockNote}>{dockNote}</span>
+            </span>
+            <button type="button" className="un2-btn" style={{ ...S.cta, ...(busy ? AUTH.busy : {}) }} onClick={() => proceed()} disabled={busy}>
+              {busy
+                ? <><i className="ti ti-loader-2 un2-spin" style={UI2.btnIcon} aria-hidden="true" /> Opening…</>
+                : <span key={`c-${selected.group}-${selected.key}`} className="un2-swap" style={UI2.row(SP2.sm)}>{selInfo.cta} <i className={`ti ${selInfo.icon}`} style={UI2.btnIcon} aria-hidden="true" /></span>}
+            </button>
+          </>
+        )}
+      </div>
+
+      {/* ── Reactivate modal (inactive Landlord / Independent PM — existing logic) ── */}
+      {showReactivateModal && (
+        <Modal
+          title="Reactivate profile?"
+          onClose={handleReactivateCancel}
+          footer={<>
+            <button type="button" className="un2-btn" style={UI2.btn.soft} onClick={handleReactivateCancel}>Cancel</button>
+            <button type="button" className="un2-btn" style={UI2.btn.brand} onClick={handleReactivateConfirm}>
+              <i className="ti ti-refresh" style={UI2.btnIcon} aria-hidden="true" /> Yes, reactivate
+            </button>
+          </>}
+        >
+          <span style={S.mIcon(TONES2.primary)}><i className="ti ti-refresh" aria-hidden="true" /></span>
+          <p style={S.mText}>
+            Your {pendingReactivateKey === 'LANDLORD' ? 'Landlord' : 'Independent PM'} profile is currently inactive.
+            Would you like to reactivate it? You'll need to review and resubmit your details.
+          </p>
+        </Modal>
       )}
 
-      {/* ── Rejection modal (ORGANIZATIONAL_PM rejected — new) ── */}
+      {/* ── Rejection modal (Organisational PMS application rejected) ── */}
       {showRejectionModal && (
-        <div style={{ position:'fixed', inset:0, zIndex:400, background:'rgba(0,0,0,0.4)', display:'flex', alignItems:'center', justifyContent:'center' }}>
-          <div style={{ background:C.white, borderRadius:'14px', padding:'28px 32px', maxWidth:'420px', width:'90%', boxShadow:'0 24px 64px rgba(0,0,0,0.18)', animation:'un-pagein 0.2s ease both' }}>
-            <div style={{ width:'44px', height:'44px', borderRadius:'50%', background:'#FEF2F2', border:'1px solid #FECACA', display:'flex', alignItems:'center', justifyContent:'center', marginBottom:'16px' }}>
-              <i className="ti ti-alert-circle" style={{ fontSize:'20px', color:'#DC2626' }} />
-            </div>
-            <h2 style={{ margin:'0 0 8px', fontFamily:F.headline, fontSize:'18px', fontWeight:700, color:'#0F172A' }}>Previous Application Rejected</h2>
-            <p style={{ margin:'0 0 12px', fontFamily:F.body, fontSize:'13px', color:'#64748B', lineHeight:1.6 }}>
-              Your previous Organizational PMS application was rejected. You can start a fresh new application — your previous submission will be kept on record.
-            </p>
-            <div style={{ background:'#FEF2F2', border:'1px solid #FECACA', borderRadius:'8px', padding:'10px 14px', marginBottom:'24px' }}>
-              <p style={{ margin:0, fontFamily:F.body, fontSize:'12px', color:'#991B1B', lineHeight:1.6 }}>
-                A new account number will be assigned to your re-application. Your existing personas (Renter, etc.) will not be affected.
-              </p>
-            </div>
-            <div style={{ display:'flex', gap:'10px' }}>
-              <button onClick={() => setShowRejectionModal(false)} style={{ flex:1, height:'42px', background:C.white, border:'1.5px solid #CBD5E1', borderRadius:'9px', fontFamily:F.body, fontSize:'13px', fontWeight:600, color:'#64748B', cursor:'pointer' }}>Cancel</button>
-              <button onClick={handleRejectionConfirm} style={{ flex:1, height:'42px', background:'#002D5B', border:'none', borderRadius:'9px', fontFamily:F.body, fontSize:'13px', fontWeight:700, color:C.white, cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', gap:'6px' }}
-                onMouseEnter={e => e.currentTarget.style.background='#003d7a'} onMouseLeave={e => e.currentTarget.style.background='#002D5B'}>
-                <i className="ti ti-plus" style={{ fontSize:'14px' }} />
-                Start New Application
-              </button>
-            </div>
+        <Modal
+          title="Previous application rejected"
+          onClose={() => setShowRejectionModal(false)}
+          footer={<>
+            <button type="button" className="un2-btn" style={UI2.btn.soft} onClick={() => setShowRejectionModal(false)}>Cancel</button>
+            <button type="button" className="un2-btn" style={UI2.btn.brand} onClick={handleRejectionConfirm}>
+              <i className="ti ti-plus" style={UI2.btnIcon} aria-hidden="true" /> Start new application
+            </button>
+          </>}
+        >
+          <span style={S.mIcon(TONES2.error)}><i className="ti ti-alert-circle" aria-hidden="true" /></span>
+          <p style={S.mText}>
+            Your previous Organizational PMS application was rejected. You can start a fresh new application — your previous submission will be kept on record.
+          </p>
+          <div style={S.mNote}>
+            A new account number will be assigned to your re-application. Your existing personas (Renter, etc.) will not be affected.
           </div>
-        </div>
+        </Modal>
       )}
-    </>
+    </div>
   );
 }
+

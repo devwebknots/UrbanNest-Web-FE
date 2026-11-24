@@ -541,3 +541,63 @@
   margin-right: calc(var(--un2-inline-gap) * -1); opacity: 0; pointer-events: none;
 }
 @media (prefers-reduced-motion: reduce) { .un2-tray-search { transition: none; } }
+
+
+/* ── Pop: a selection mark (✓ badge) springs in when it appears ── */
+@keyframes un2-pop { from { opacity: 0; transform: scale(0.3); } to { opacity: 1; transform: none; } }
+.un2-pop { animation: un2-pop 0.38s var(--un2-spring) both; }
+
+/* ── Persona Select — photo cards (pages/PersonaSelect) ─────────────────────────────────────────────────
+     un2-deal          wrapper that deals a card in: rises out of a 3D tilt, de-blurs, springs into place
+                       (--un2-i = its index, --un2-deal-base = when the row starts). .is-out plays it backwards.
+     un2-persona       the photo card: lifts on hover (--un2-persona-hover = shadow), photo zooms, the details
+                       slide open (un2-persona-more); .is-selected stays lifted + one light sweep across it
+     un2-persona-deck  the row of cards: once one is selected, the others' photos calm down (less colour)
+     un2-fan           the fanned photo stack on the "Add a role" card — spreads on hover
+     un2-dock          floating action bar: springs up from below once .is-shown                          ── */
+@keyframes un2-deal {
+  from { opacity: 0; transform: perspective(900px) translateY(32px) rotateX(20deg) scale(0.92); filter: blur(8px); }
+  60%  { filter: none; }
+  to   { opacity: 1; transform: none; filter: none; }
+}
+@keyframes un2-deal-out { to { opacity: 0; transform: perspective(900px) translateY(24px) rotateX(14deg) scale(0.95); filter: blur(4px); } }
+.un2-deal { animation: un2-deal 0.95s var(--un2-spring) both; animation-delay: calc(var(--un2-deal-base, 0s) + var(--un2-i, 0) * 80ms); }
+.un2-deal.is-out { animation: un2-deal-out 0.32s var(--un2-ease) both; animation-delay: calc(var(--un2-i, 0) * 30ms); }
+
+.un2-persona { position: relative; isolation: isolate; transition: transform 0.55s var(--un2-spring), box-shadow 0.4s var(--un2-ease); }
+.un2-persona:focus { outline: none; }
+.un2-persona:focus-visible { box-shadow: var(--un2-shadow-focus), var(--un2-persona-hover) !important; }
+.un2-persona:not(.is-selected):hover { transform: none; box-shadow: var(--un2-persona-hover) !important; }
+.un2-persona.is-selected { transform: none; }   /* stays level with its row — the ring + ✓ mark it */
+.un2-persona:active { transform: scale(0.985); }
+.un2-persona-photo { transition: transform 1.2s var(--un2-ease), filter 0.5s ease; }
+.un2-persona:hover .un2-persona-photo, .un2-persona.is-selected .un2-persona-photo { transform: scale(1.06); }
+.un2-persona-deck:has(.is-selected) .un2-persona:not(.is-selected):not(:hover) .un2-persona-photo { filter: saturate(0.7) brightness(0.9); }
+/* details under the title: closed → slide open on hover / selection */
+.un2-persona-more { display: grid; grid-template-rows: 0fr; transition: grid-template-rows 0.5s var(--un2-ease); }
+.un2-persona-more > * { min-height: 0; overflow: hidden; opacity: 0; transform: translateY(var(--un2-sp-sm)); transition: opacity 0.3s ease, transform 0.5s var(--un2-ease); }
+.un2-persona:hover .un2-persona-more, .un2-persona.is-selected .un2-persona-more { grid-template-rows: 1fr; }
+.un2-persona:hover .un2-persona-more > *, .un2-persona.is-selected .un2-persona-more > * { opacity: 1; transform: none; transition-delay: 0.08s; }
+/* one light sweep across a card the moment it is selected */
+@keyframes un2-persona-sweep { from { transform: translateX(-120%) skewX(-18deg); } to { transform: translateX(160%) skewX(-18deg); } }
+.un2-persona.is-selected::after {
+  content: ''; position: absolute; top: 0; bottom: 0; left: 0; width: 60%; z-index: 3; pointer-events: none;
+  background: linear-gradient(90deg, transparent 0%, rgba(255, 255, 255, 0.22) 50%, transparent 100%);
+  animation: un2-persona-sweep 0.9s var(--un2-ease) both;
+}
+
+/* "Add a role" card: fanned photo stack (each child sets --r rotate and --x offset), spreads on hover; + turns into × when open */
+.un2-fan > * { transition: transform 0.6s var(--un2-spring); transform: translateX(var(--x, 0)) rotate(var(--r, 0deg)); }
+.un2-add:hover .un2-fan > *, .un2-add.is-open .un2-fan > * { transform: translateX(calc(var(--x, 0px) * 1.6)) translateY(-6px) rotate(calc(var(--r, 0deg) * 1.6)); }
+.un2-add-plus { transition: transform 0.5s var(--un2-spring); }
+.un2-add.is-open .un2-add-plus { transform: rotate(135deg); }
+
+/* floating action bar */
+.un2-dock { transform: translate(-50%, 160%); opacity: 0; transition: transform 0.7s var(--un2-spring), opacity 0.3s ease; }
+.un2-dock.is-shown { transform: translate(-50%, 0); opacity: 1; }
+
+@media (prefers-reduced-motion: reduce) {
+  .un2-pop, .un2-deal, .un2-deal.is-out, .un2-persona.is-selected::after { animation: none; }
+  .un2-persona, .un2-persona-photo, .un2-persona-more, .un2-persona-more > *, .un2-fan > *, .un2-add-plus, .un2-dock { transition: none; }
+  .un2-persona:hover .un2-persona-photo, .un2-persona.is-selected .un2-persona-photo { transform: none; }
+}

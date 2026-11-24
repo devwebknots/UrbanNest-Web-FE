@@ -107,6 +107,9 @@ export const SZ2 = {
   authHeroMin: 480,
   authFit: { w: 0.78, h: 0.72 },               // the card never takes more than 78% of the window's width / 72% of its height — larger → scaled down as a whole (sizes inside unchanged)
   authFitTall: { w: 0.78, h: 0.84 },           // same for a tall form (sign-up): a bit more of the height (still a clear margin top + bottom), so it isn't scaled down as hard
+  // Persona Select (photo cards): card width · height · thumbnail in the fanned "Add a role" stack · selected-role thumb in the action bar
+  personaCard: { w: 168, h: 220, fan: 40, barThumb: 36, dock: 560 },   // dock = max width of the floating action bar
+  personaCardLg: { w: 216, h: 280, fan: 48 },   // "Your workspaces" row — the roles you already hold, a size up from the compact "Roles you can add" cards
 };
 
 // Page & section rhythm — the spacing pattern every v2 screen follows.
