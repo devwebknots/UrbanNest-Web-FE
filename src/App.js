@@ -78,6 +78,10 @@ import UNAdminPartnerManagement from './pages/UNAdminPortal/Partners/TenantScree
 // precedent of shipping the UI ahead of any backend model. Shell tab
 // switcher wraps all four sub-screens — see PromotionEngine.jsx header.
 import PromotionEngine from './pages/UNAdminPortal/Advertise/PromotionEngine/PromotionEngine';
+// Session 60 — Website Builder, Phase 1: UN Admin Website Template Management.
+import UNAdminWebsiteTemplates from './pages/UNAdminPortal/Configurations/WebsiteTemplates/UNAdminWebsiteTemplates';
+// Session 60 — Website Builder, Phase 2: visual website preview (shared WebsiteRenderer).
+import WebsiteTemplateVisualPreview from './pages/UNAdminPortal/Configurations/WebsiteTemplates/WebsiteTemplateVisualPreview';
 
 // PMS Onboarding (existing — pending refactor)
 import PMSOnboardingStep1   from './PMS_Onboarding_Step1';
@@ -419,6 +423,19 @@ function AppRoutes() {
       <Route path="/admin-portal/config/screening" element={
         <UNAdminShell activeId="config-screening" title="Screening Configuration">
           <UNAdminScreeningConfiguration />
+        </UNAdminShell>
+      } />
+      {/* Session 60 — Website Builder, Phase 1: Website Template library
+          (create / edit / structural preview / publish / unpublish). Backend:
+          /api/admin/website-templates/ (websites app), UN_ADMIN only. */}
+      <Route path="/admin-portal/config/website-templates" element={
+        <UNAdminShell activeId="config-website-templates" title="Website Templates">
+          <UNAdminWebsiteTemplates />
+        </UNAdminShell>
+      } />
+      <Route path="/admin-portal/config/website-templates/:id/preview" element={
+        <UNAdminShell activeId="config-website-templates" title="Website Preview">
+          <WebsiteTemplateVisualPreview />
         </UNAdminShell>
       } />
       <Route path="/admin-portal/config/miscellaneous" element={
