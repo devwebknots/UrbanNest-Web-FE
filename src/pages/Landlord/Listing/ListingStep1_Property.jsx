@@ -45,7 +45,7 @@ import {
 } from '../../../components/ui';
 import { C2, TONES2, FS2, SP2, SZ2, LAYOUT2, T2, UI2 } from '../../../constants';
 import { STEPS } from './listingWizardShared';
-import { WizardPage, AiAssist, WZ } from './listingWizardV2';   // shared v2 frame (backdrop · breadcrumb · header · stepper)
+import { WizardPage, AiAssist, ChipInput, WZ } from './listingWizardV2';   // shared v2 frame (backdrop · breadcrumb · header · stepper)
 import { MAP_PILLS } from './mockListingData';
 import {
   getProperty, patchProperty, getUnit, getAmenityCatalog,
@@ -86,11 +86,6 @@ const S = {
   poiX:      { ...UI2.btn.icon(SZ2.control.sm), fontSize: FS2.md, color: C2.textSecondary },
   poiAdd:    { ...UI2.row(SP2.sm), marginTop: SP2.sm },
   poiIn:     (grow) => ({ ...FIELD2.inputSm, flex: grow, minWidth: 0 }),
-  // Nearby landmarks — chips + input inside one field box
-  chipBox:   { ...FIELD2.input, height: 'auto', minHeight: FIELD2.input.height, display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: SP2.xs, padding: `${SP2.xs}px ${SP2.md}px` },
-  chip:      { ...UI2.featureChip() },
-  chipX:     { padding: 0, border: 'none', background: 'none', cursor: 'pointer', color: C2.textSecondary, fontSize: FS2.sm, display: 'inline-flex' },
-  chipIn:    { flex: 1, minWidth: SZ2.searchSm / 3, border: 'none', outline: 'none', background: 'transparent', fontFamily: 'inherit', fontSize: FS2.base, color: C2.textPrimary, height: SZ2.control.md },
   stateBox:  { ...UI2.empty },
 };
 
@@ -462,22 +457,15 @@ export default function ListingStep1_Property() {
 
             <div style={UI2.stack(SP2.lg)}>
               <FormField label="Nearby Landmarks">
-                <div className="un2-focus-ring" style={S.chipBox}>
-                  {landmarks.map((l, i) => (
-                    <span key={i} style={S.chip}>
-                      {l}
-                      <button type="button" style={S.chipX} onClick={() => removeLandmark(i)} aria-label={`Remove ${l}`}><i className="ti ti-x" aria-hidden="true" /></button>
-                    </span>
-                  ))}
-                  <input
-                    style={S.chipIn}
-                    placeholder="Add landmark…"
-                    value={landmarkDraft}
-                    onChange={e => setLandmarkDraft(e.target.value)}
-                    onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addLandmark(); } }}
-                    aria-label="Add landmark"
-                  />
-                </div>
+                <ChipInput
+                  items={landmarks}
+                  draft={landmarkDraft}
+                  onDraft={setLandmarkDraft}
+                  onAdd={addLandmark}
+                  onRemove={removeLandmark}
+                  placeholder="Add landmark…"
+                  label="Add landmark"
+                />
               </FormField>
               <FormField label="Property Website URL">
                 <input

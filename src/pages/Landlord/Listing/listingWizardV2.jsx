@@ -40,11 +40,6 @@ export const WZ = {
   group:     { ...UI2.capsLabel, display: 'block', marginBottom: SP2.sm },  // caps label above a radio / checkbox group
   radios:    { ...UI2.row(SP2.md), flexWrap: 'wrap' },
   checks:    { display: 'flex', flexWrap: 'wrap', columnGap: SP2.xl, rowGap: SP2.sm },
-  // chips + input inside one field box (landmarks, highlights)
-  chipBox:   { ...FIELD2.input, height: 'auto', minHeight: FIELD2.input.height, display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: SP2.xs, padding: `${SP2.xs}px ${SP2.md}px` },
-  chip:      { ...UI2.featureChip() },
-  chipX:     { padding: 0, border: 'none', background: 'none', cursor: 'pointer', color: C2.textSecondary, fontSize: FS2.sm, display: 'inline-flex' },
-  chipIn:    { flex: 1, minWidth: SZ2.searchSm / 3, border: 'none', outline: 'none', background: 'transparent', fontFamily: 'inherit', fontSize: FS2.base, color: C2.textPrimary, height: SZ2.control.md },
   stateBox:  { ...UI2.empty },
   title:     { ...T2.sectionTitle, margin: 0 },
   // Page header — title = the standard page/hero title (Playfair 24 semibold, same as the Dashboard / Portfolio /
@@ -63,24 +58,29 @@ export function AiAssist() {
   );
 }
 
-// Chips + "add" input in one field box (Enter adds) — Nearby Landmarks, Listing Highlights
+// Standard field (FIELD2.input, 36px) + added chips listed under it (Enter adds) — Nearby Landmarks, Listing Highlights
 export function ChipInput({ items, draft, onDraft, onAdd, onRemove, placeholder, label }) {
   return (
-    <div className="un2-focus-ring" style={WZ.chipBox}>
-      {items.map((l, i) => (
-        <span key={i} style={WZ.chip}>
-          {l}
-          <button type="button" style={WZ.chipX} onClick={() => onRemove(i)} aria-label={`Remove ${l}`}><i className="ti ti-x" aria-hidden="true" /></button>
-        </span>
-      ))}
+    <div style={FIELD2.chipField}>
       <input
-        style={WZ.chipIn}
+        className="un2-focus-ring"
+        style={FIELD2.input}
         placeholder={placeholder}
         value={draft}
         onChange={e => onDraft(e.target.value)}
         onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); onAdd(); } }}
         aria-label={label || placeholder}
       />
+      {items.length > 0 && (
+        <div style={FIELD2.chipList}>
+          {items.map((l, i) => (
+            <span key={i} style={FIELD2.chip}>
+              {l}
+              <button type="button" style={FIELD2.chipX} onClick={() => onRemove(i)} aria-label={`Remove ${l}`}><i className="ti ti-x" aria-hidden="true" /></button>
+            </span>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

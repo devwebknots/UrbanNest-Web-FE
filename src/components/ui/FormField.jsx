@@ -15,7 +15,8 @@ import { C2, R2, FS2, LH2, SP2, SZ2, UI2 } from '../../constants';
 //   READ-ONLY   ReadField — same box, background C2.fieldReadOnly (#FBFCFE, just off-white), optional trailing icon.
 //   DROPDOWN    SelectField — same box + chevron, opens our FilterMenu list as wide as the field (never <select>).
 //   TEXTAREA    FIELD2.textarea — same box, min height SZ2.textarea (88), vertical resize.
-//   CHIP INPUT  chips + input in one field box (listingWizardV2 ChipInput) — min height = the field height.
+//   CHIP INPUT  ChipInput (listingWizardV2) — the input is the standard FIELD2.input (36px, same as every field);
+//               added chips wrap in a row under it (FIELD2.chipList / chip / chipX). Never restyle it per page.
 //   COMPACT     FIELD2.inputSm / ChoiceTile — UI2.compact: 34px (SZ2.control.md) · 8px side padding · 12px text.
 //   SELECTION   Checkbox · RadioPill · Switch (FormControls.jsx) — on = light primary blue (G2.primaryButton /
 //               C2.primaryLight), never green. ChoiceTile (amenity) selected = C2.chipBlueHover + navy icon / text.
@@ -44,6 +45,11 @@ export const FIELD2 = {
   textarea: { ...UI2.input, height: 'auto', minHeight: SZ2.textarea, padding: SP2.md, lineHeight: LH2.body, resize: 'vertical', display: 'block' },
   // compact one-line input (small inline add rows)
   inputSm:  { ...UI2.input, ...UI2.compact, height: SZ2.control.md },   // standard compact size (UI2.compact)
+  // chip field (ChipInput) — the input IS the standard FIELD2.input (36px); added chips wrap in a row under it
+  chipField: { display: 'flex', flexDirection: 'column', gap: SP2.sm, minWidth: 0 },
+  chipList:  { display: 'flex', flexWrap: 'wrap', gap: SP2.xs },
+  chip:      { ...UI2.featureChip() },
+  chipX:     { padding: 0, border: 'none', background: 'none', cursor: 'pointer', color: C2.textSecondary, fontSize: FS2.sm, display: 'inline-flex' },
 };
 
 const S = {
