@@ -418,7 +418,7 @@ export default function LandlordDashboard() {
              action={<span className="un2-hide-narrow" style={UI2.pill(TONES2.neutral)}>{chartMonths.length} months</span>} */
           action={
             <FilterMenu
-              title="Filter by property" allLabel="All properties" ariaLabel="Filter rent collection by property"
+              title="Filter by property" allLabel="All properties" itemIcon="ti-building" allIcon="ti-buildings" ariaLabel="Filter rent collection by property"
               options={propertyOptions} value={rentFilter ? rentFilter.value : null} onChange={setRentProperty}
             />
           }
@@ -457,7 +457,7 @@ export default function LandlordDashboard() {
           badge={<span className="un2-live-dot" style={UI2.dot(C2.success)} aria-label="Live" />}
           action={
             <FilterMenu
-              title="Filter by property" allLabel="All properties" ariaLabel="Filter open operations by property"
+              title="Filter by property" allLabel="All properties" itemIcon="ti-building" allIcon="ti-buildings" ariaLabel="Filter open operations by property"
               options={propertyOptions} value={opsFilter ? opsFilter.value : null} onChange={setOpsProperty}
             />
           }
@@ -505,7 +505,7 @@ export default function LandlordDashboard() {
           icon="ti-file-text" title="Recent Documents" subtitle="Leases, reports & filings"
           action={
             <FilterMenu
-              title="Filter by property" allLabel="All properties" ariaLabel="Filter documents by property"
+              title="Filter by property" allLabel="All properties" itemIcon="ti-building" allIcon="ti-buildings" ariaLabel="Filter documents by property"
               options={propertyOptions} value={docsFilter ? docsFilter.value : null} onChange={setDocProperty}
             />
           }
@@ -559,7 +559,7 @@ export default function LandlordDashboard() {
           icon="ti-users" title="Tenant Pulse" subtitle="Residents across your portfolio"
           action={
             <FilterMenu
-              title="Filter by property" allLabel="All properties" ariaLabel="Filter tenants by property"
+              title="Filter by property" allLabel="All properties" itemIcon="ti-building" allIcon="ti-buildings" ariaLabel="Filter tenants by property"
               options={propertyOptions} value={tenantFilter ? tenantFilter.value : null} onChange={setTenantProperty}
             />
           }

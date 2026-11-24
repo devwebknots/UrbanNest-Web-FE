@@ -120,11 +120,11 @@ export function IconField({ icon, trailing, style, ...inputProps }) {
   );
 }
 
-export function SelectField({ value, options = [], onChange, placeholder = 'Select…', label }) {
+export function SelectField({ value, options = [], onChange, placeholder = 'Select…', label, itemIcon }) {
   const cur = options.find(o => o.value === value);
   return (
     <FilterMenu
-      title={label || placeholder} ariaLabel={label || placeholder} showAll={false} matchWidth
+      title={label || placeholder} ariaLabel={label || placeholder} showAll={false} matchWidth itemIcon={itemIcon}
       options={options} value={value === '' || value === undefined ? null : value} onChange={onChange}
       triggerStyle={S.select}
       trigger={open => (

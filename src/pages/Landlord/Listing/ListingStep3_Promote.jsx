@@ -48,7 +48,7 @@ import {
   getLeadSettings, patchLeadSettings,
 } from './listingApi';
 
-const CONTACT_METHODS = [{ value: 'Email', label: 'Email' }, { value: 'Phone', label: 'Phone' }];
+const CONTACT_METHODS = [{ value: 'Email', label: 'Email', icon: 'ti-mail' }, { value: 'Phone', label: 'Phone', icon: 'ti-phone' }];
 
 // ── Page-specific layout (tokens only) ──────────────────────────────────────
 const S = {

@@ -115,8 +115,8 @@ const QA_ITEMS = [
 
 // Document Vault filter (FilterMenu in the card header) — one option per document type
 const DOC_TYPES = [
-  { value: 'LEASE', label: 'Lease' }, { value: 'INSPECTION', label: 'Inspection' },
-  { value: 'INSURANCE', label: 'Insurance' }, { value: 'OWNERSHIP', label: 'Ownership' },
+  { value: 'LEASE', label: 'Lease', icon: 'ti-file-text' }, { value: 'INSPECTION', label: 'Inspection', icon: 'ti-clipboard-check' },
+  { value: 'INSURANCE', label: 'Insurance', icon: 'ti-shield-check' }, { value: 'OWNERSHIP', label: 'Ownership', icon: 'ti-certificate' },
 ];
 const DOC_ITEMS = [
   { icon: 'ti-file-text',       name: 'Lease agreement',              meta: 'PDF · 2.4 MB · Signed',    type: 'LEASE' },
@@ -1571,7 +1571,7 @@ export default function LandlordUnitDetailPage() {
       style={UI2.cardFill} icon="ti-folder" title="Document Vault"
       action={(
         <FilterMenu
-          title="Filter by type" allLabel="All documents" ariaLabel="Filter documents by type"
+          title="Filter by type" allLabel="All documents" allIcon="ti-files" ariaLabel="Filter documents by type"
           options={DOC_TYPES} value={docType} onChange={setDocType}
         />
       )}

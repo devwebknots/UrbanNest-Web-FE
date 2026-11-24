@@ -427,10 +427,10 @@ const KIND = {
 };
 
 const SORTS = [
-  { value: 'latest',    label: 'Latest' },
-  { value: 'rentHigh',  label: 'Rent: high to low' },
-  { value: 'rentLow',   label: 'Rent: low to high' },
-  { value: 'property',  label: 'Property A–Z' },
+  { value: 'latest',    label: 'Latest',            icon: 'ti-clock' },
+  { value: 'rentHigh',  label: 'Rent: high to low', icon: 'ti-sort-descending-numbers' },
+  { value: 'rentLow',   label: 'Rent: low to high', icon: 'ti-sort-ascending-numbers' },
+  { value: 'property',  label: 'Property A–Z',      icon: 'ti-sort-ascending-letters' },
 ];
 
 const ts = (d) => (d ? new Date(d).getTime() : 0);
@@ -683,7 +683,7 @@ export default function LandlordListingsOverview() {
             <ActionTray compact label="Options">
               <div style={S.menuWrap}>
                 <FilterMenu
-                  title="Filter by property" allLabel="All properties" ariaLabel="Filter listings by property"
+                  title="Filter by property" allLabel="All properties" ariaLabel="Filter listings by property" itemIcon="ti-building" allIcon="ti-buildings"
                   options={propertyOptions} value={propFilter} onChange={setPropFilter}
                   triggerStyle={S.toolBtn}
                   trigger={

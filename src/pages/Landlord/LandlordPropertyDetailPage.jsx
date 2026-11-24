@@ -1448,7 +1448,7 @@ export default function LandlordPropertyDetailPage() {
       style={UI2.cardFill} icon="ti-folder" title="Document Vault"
       action={(
         <FilterMenu
-          title="Filter by unit" allLabel="All units" ariaLabel="Filter documents by unit"
+          title="Filter by unit" allLabel="All units" itemIcon="ti-door" allIcon="ti-layout-grid" ariaLabel="Filter documents by unit"
           options={docUnitOptions} value={docUnit} onChange={setDocUnit}
         />
       )}

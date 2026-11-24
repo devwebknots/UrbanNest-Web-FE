@@ -42,6 +42,13 @@ const PROP_TYPE_LABEL = {
   MIXED_USE:          'Mixed Use',
 };
 
+// Dropdown icon per property type (Filter by type menu)
+const PROP_TYPE_ICON = {
+  APARTMENT_COMPLEX: 'ti-building', INDIVIDUAL_HOUSE: 'ti-home', MULTI_FAMILY: 'ti-building-community',
+  CONDOMINIUM: 'ti-building-skyscraper', TOWNHOME: 'ti-buildings', STUDENT_HOUSING: 'ti-school', VILLA: 'ti-home',
+  SERVICED_APARTMENT: 'ti-building-cottage', COMMERCIAL: 'ti-building-store', MIXED_USE: 'ti-building-estate',
+};
+
 const PROP_STATUS = {
   ACTIVE:   { tone: TONES2.success, label: 'Active' },
   INACTIVE: { tone: TONES2.neutral, label: 'Inactive' },
@@ -177,7 +184,7 @@ export default function LandlordPortfolioPage() {
   });
   // Filter icon options = the property types this landlord actually has
   const typeOptions = [...new Set(allProps.map(p => p.property_type).filter(Boolean))]
-    .map(t => ({ value: t, label: PROP_TYPE_LABEL[t] || t }));
+    .map(t => ({ value: t, label: PROP_TYPE_LABEL[t] || t, icon: PROP_TYPE_ICON[t] || 'ti-building' }));
 
   // Tab switched to a filter with no properties → bring the empty state into view (centred).
   // Only on a tab change (not while typing a search), and never on the first load.
@@ -289,7 +296,7 @@ export default function LandlordPortfolioPage() {
                 <i className="ti ti-search" aria-hidden="true" />
               </button>
               <FilterMenu
-                title="Filter by type" allLabel="All types" ariaLabel="Filter properties by type"
+                title="Filter by type" allLabel="All types" allIcon="ti-building" ariaLabel="Filter properties by type"
                 options={typeOptions} value={typeFilter} onChange={setTypeFilter}
               />
               <button type="button" className="un2-btn" style={UI2.btn.brand} onClick={() => navigate('/landlord-portal/add-property')}>
@@ -371,7 +378,7 @@ export default function LandlordPortfolioPage() {
           <SectionCard icon="ti-chart-line" title="Property Insight">
             {insightProp && (
               <FilterMenu
-                title="Choose a property" ariaLabel="Choose a property for the insight"
+                title="Choose a property" ariaLabel="Choose a property for the insight" itemIcon="ti-building"
                 options={insightOptions} value={insightProp.id} onChange={v => v != null && setSelectedPropId(v)}
                 showAll={false} matchWidth triggerStyle={S.picker}
                 trigger={open => (

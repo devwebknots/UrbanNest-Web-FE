@@ -273,6 +273,7 @@ export const G2 = {
   button:        'linear-gradient(135deg, #03264C 0%, #0659B2 100%)',
   // Mobile app "brand" button: gradients.button left → right (UrbanNestMobile/src/components/Button.tsx)
   brandButton:   'linear-gradient(90deg, #03264C 0%, #0659B2 100%)',
+  menuSelected:  'linear-gradient(90deg, #EFF6FF 0%, #DBEAFE 100%)',   // dropdown (FilterMenu) selected row: C2.primaryTint → C2.primarySoft, left → right
   brandBar:      'linear-gradient(180deg, #0659B2 0%, #03264C 100%)',   // same dark brand gradient, vertical — selected-row indicator pill
   primaryButton: `linear-gradient(135deg, ${GSTOPS2.primary[0]} 0%, ${GSTOPS2.primary[1]} 100%)`,
   successButton: `linear-gradient(135deg, ${GSTOPS2.success[0]} 0%, ${GSTOPS2.success[1]} 100%)`,

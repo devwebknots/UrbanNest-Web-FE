@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect, useLayoutEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { C2, R2, SH2, TONES2, F2, FS2, FW2, LH2, T2, SP2, SZ2, ZI2, pad, UI2 } from '../../constants';
+import { C2, G2, R2, SH2, TONES2, F2, FS2, FW2, LH2, SP2, SZ2, ZI2, pad, UI2 } from '../../constants';
 
 // ─── FilterMenu (Design System v2) ───────────────────────────────────────────
 // VERSION 2 dropdown — the v1 equivalent in this folder is CustomDropdown.jsx (older screens).
@@ -8,17 +8,27 @@ import { C2, R2, SH2, TONES2, F2, FS2, FW2, LH2, T2, SP2, SZ2, ZI2, pad, UI2 } f
 // option (e.g. one of the landlord's properties); the first row resets to "All".
 // A small blue dot on the icon shows a filter is active.
 //
-//   (⚲)  ┌──────────────────────────┐
-//        │ FILTER BY PROPERTY       │
-//        │ ✓ All properties         │
-//        │   Regent Plaza           │
-//        │   Kingston Riverside …   │
-//        └──────────────────────────┘
+// STANDARD DROPDOWN LOOK (user design, Downloads/6066815329544902850 1.png — every v2 dropdown, FilterMenu + SelectField):
+//   white rounded panel (R2.lg, SH2.lg, no border) · rows SZ2.field (36) high, icon tile SZ2.icon.sm (28) · rows = soft grey icon tile (grey glyph) + Inter 13 label,
+//   faint divider between unselected rows (starts at the label) · selected row = light-blue gradient
+//   (G2.menuSelected) with a blue icon tile, primary-dark medium label
+//   (no ✓ on the right — user removed it; the gradient + blue tile mark the selection).
 //
-//   <FilterMenu title="Filter by property" allLabel="All properties"
+//   (⚲)  ┌──────────────────────────────────┐
+//        │ ▐[▦]  All properties             ▌│  ← selected: light-blue gradient
+//        │  [▦]  Regent Plaza               │
+//        │       ─────────────────────────  │
+//        │  [▦]  Kingston Riverside …       │
+//        └──────────────────────────────────┘
+//
+//   <FilterMenu title="Filter by property" allLabel="All properties" itemIcon="ti-building" allIcon="ti-buildings"
 //               options={[{ value: 12, label: 'Regent Plaza' }, …]} value={propId} onChange={setPropId} />
 //
-// Props: options [{ value, label }] · value (null = all) · onChange(value | null) · title (menu heading)
+// Icons: option.icon (tabler class) wins, else itemIcon; the "All" row uses allIcon (default itemIcon).
+// Rows without an icon show no tile (plain text rows, same selected / divider style).
+//
+// Props: options [{ value, label, icon? }] · value (null = all) · onChange(value | null) · title (aria label / tooltip)
+//        itemIcon · allIcon (see Icons above)
 //        allLabel · icon (tabler class, default 'ti-adjustments-horizontal' — three lines with dots) · ariaLabel
 //        trigger (node | (open) => node) + triggerStyle → custom trigger instead of the icon (e.g. a property picker)
 //        showAll (default true — false hides the "All" row) · matchWidth (menu as wide as the trigger)
@@ -32,22 +42,26 @@ const S = {
   dot:    { ...UI2.statusDot(TONES2.primary), position: 'absolute', top: SP2.xs, right: SP2.xs, border: `2px solid ${C2.white}`, boxSizing: 'content-box' },
   menu:   (pos) => ({
     position: 'fixed', top: pos.top, right: pos.right, zIndex: ZI2.menu, width: pos.width || SZ2.menu.w, maxHeight: SZ2.menu.maxH, overflowY: 'auto',
+    display: 'flex', flexDirection: 'column', gap: SP2.xxs,
     padding: SP2.xs, background: C2.white, borderRadius: R2.lg, boxShadow: SH2.lg, fontFamily: F2.body,
   }),
-  head:   { ...T2.eyebrow, padding: pad(SP2.sm, SP2.sm, SP2.xs) },
-  item:   (on) => ({
-    ...UI2.row(SP2.sm), width: '100%', padding: pad(SP2.sm, SP2.sm), border: 'none', borderRadius: R2.md, cursor: 'pointer', textAlign: 'left',
-    background: on ? C2.primaryTint : 'transparent', color: on ? C2.primary : C2.navyDeep,
+  item:   (on, withIcon) => ({
+    ...UI2.row(SP2.sm), position: 'relative', flexShrink: 0, width: '100%', minHeight: SZ2.field,   // standard field height (36)
+    padding: withIcon ? pad(SP2.xs, SP2.sm, SP2.xs, SP2.xs) : pad(SP2.xs, SP2.sm),
+    border: 'none', borderRadius: R2.md, cursor: 'pointer', textAlign: 'left',
+    background: on ? G2.menuSelected : 'transparent', color: on ? C2.primaryDark : C2.navyDeep,
     fontFamily: F2.body, fontSize: FS2.base, fontWeight: on ? FW2.medium : FW2.regular, lineHeight: LH2.heading,
   }),
-  check:  (on) => ({ width: FS2.lg, flexShrink: 0, fontSize: FS2.lg, visibility: on ? 'visible' : 'hidden' }),
+  tile:   (on) => ({ ...UI2.iconBox(SZ2.icon.sm, TONES2.primary), borderRadius: R2.sm, background: on ? C2.primarySoft : C2.surfaceMuted, color: on ? C2.primary : C2.textSecondary }),
+  // faint divider above a row, starting where the label starts (never next to the selected row)
+  rule:   (withIcon) => ({ position: 'absolute', top: -SP2.xxs / 2, left: withIcon ? SP2.xs + SZ2.icon.sm + SP2.sm : SP2.sm, right: SP2.sm, height: 1, background: C2.divider }),
   label:  { ...UI2.truncate, minWidth: 0, flex: 1 },
   empty:  { ...UI2.text.caption, padding: pad(SP2.sm, SP2.sm) },
 };
 
 export default function FilterMenu({
   options = [], value = null, onChange, title = 'Filter', allLabel = 'All', icon = 'ti-adjustments-horizontal', ariaLabel,
-  trigger, triggerStyle, showAll = true, matchWidth = false,
+  trigger, triggerStyle, showAll = true, matchWidth = false, itemIcon, allIcon,
 }) {
   const [open, setOpen] = useState(false);
   const [pos, setPos]   = useState({ top: 0, right: 0, width: null });
@@ -85,7 +99,8 @@ export default function FilterMenu({
   }, [open]);
 
   const pick = v => { onChange?.(v); setOpen(false); };
-  const rows = showAll ? [{ value: null, label: allLabel }, ...options] : options;
+  const rows = (showAll ? [{ value: null, label: allLabel, icon: allIcon || itemIcon }, ...options] : options)
+    .map(o => ({ ...o, icon: o.icon || itemIcon }));
 
   return (
     <div style={trigger ? S.wrapFull : S.wrap}>
@@ -103,18 +118,19 @@ export default function FilterMenu({
       </button>
 
       {open && createPortal(
-        <div ref={menuRef} className="un2-menu" style={S.menu(pos)} role="listbox" aria-label={title}>
-          <div style={S.head}>{title}</div>
-          {rows.map(o => {
+        <div ref={menuRef} className="un2-menu" style={S.menu(pos)} role="listbox" aria-label={ariaLabel || title}>
+          {rows.map((o, i) => {
             const on = o.value === value;
+            const ruled = i > 0 && !on && rows[i - 1].value !== value;
             return (
               <button
                 key={o.value ?? '__all'} type="button" role="option" aria-selected={on}
-                className="un2-menu-item" style={S.item(on)} onClick={() => pick(o.value)} title={o.label}
+                className="un2-menu-item" style={S.item(on, !!o.icon)} onClick={() => pick(o.value)} title={o.label}
               >
-                <i className="ti ti-check" style={S.check(on)} aria-hidden="true" />
+                {ruled && <span className="un2-menu-rule" style={S.rule(!!o.icon)} aria-hidden="true" />}
+                {o.icon && <span style={S.tile(on)} aria-hidden="true"><i className={`ti ${o.icon}`} /></span>}
                 <span style={S.label}>{o.label}</span>
-              </button>
+                              </button>
             );
           })}
           {options.length === 0 && <div style={S.empty}>No properties yet.</div>}

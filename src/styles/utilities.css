@@ -525,6 +525,10 @@
 .un2-menu-item { transition: background var(--un2-motion-fast); }
 .un2-menu-item[aria-selected="false"]:hover,
 .un2-menu-item[aria-selected="false"]:focus-visible { background: var(--un2-background) !important; outline: none; }
+.un2-menu-item[aria-selected="true"]:focus-visible { outline: none; box-shadow: var(--un2-shadow-focus); }
+/* the dividers above and below a hovered row fade out so the hover pill reads cleanly */
+.un2-menu-rule { transition: opacity var(--un2-motion-fast); }
+.un2-menu-item:hover .un2-menu-rule, .un2-menu-item:hover + .un2-menu-item .un2-menu-rule { opacity: 0; }
 
 
 /* Toolbar search that gives way to an ActionTray (landlord Listings): while the tray in the same toolbar

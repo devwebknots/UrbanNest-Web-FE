@@ -33,7 +33,7 @@ export const SZ2 = {
   modal:    { w: 520, maxH: '86vh' },           // v2 Modal card
   pillFixed: 72,                               // fixed-width status pills in a list column (Critical / Medium / Low) — fits the longest label
   dot:     6,
-  menu:    { w: 240, maxH: 280 },           // FilterMenu dropdown: width · max height before it scrolls
+  menu:    { w: 240, maxH: 280 },           // FilterMenu dropdown: width · max height before it scrolls (rows are SZ2.field high)
   progress:6,
   sidebar: 224,
   topbar:  56,
