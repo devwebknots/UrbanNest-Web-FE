@@ -11,8 +11,8 @@
 
 import React, { useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { SectionCard, TabBar } from '../../../../components/v2';
-import { C2, SP2, R2, UI2, T2, TONES2, pad } from '../../../../constants/v2';
+import { SectionCard, TabBar } from '../../../../components/ui';
+import { C2, SP2, R2, UI2, T2, TONES2, pad } from '../../../../constants';
 import WebsiteTemplatePreview from './WebsiteTemplatePreview';
 import ContentForm, { pruneContent } from './ContentForm';
 import {

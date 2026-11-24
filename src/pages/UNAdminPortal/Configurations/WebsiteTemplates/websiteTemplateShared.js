@@ -2,7 +2,7 @@
 // Every label comes from the reference lists the backend returns
 // (UNReference module=WEBSITE); nothing here holds option values.
 
-import { TONES2 } from '../../../../constants/v2';
+import { TONES2 } from '../../../../constants';
 
 // Label for a code from one reference list; falls back to the code itself
 // so an inactive or unknown value is still readable.

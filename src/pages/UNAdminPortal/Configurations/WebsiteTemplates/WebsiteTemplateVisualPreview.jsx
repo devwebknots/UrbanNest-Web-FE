@@ -11,8 +11,8 @@
 
 import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { SectionCard, TabBar } from '../../../../components/v2';
-import { C2, SP2, R2, UI2, T2, TONES2 } from '../../../../constants/v2';
+import { SectionCard, TabBar } from '../../../../components/ui';
+import { C2, SP2, R2, UI2, T2, TONES2 } from '../../../../constants';
 import WebsiteRenderer from '../../../../components/website/WebsiteRenderer';
 import { detailView } from '../../../../components/website/propertyData';
 import { getTemplate, getReferences } from './websiteTemplateApi';

@@ -5,7 +5,7 @@
 import React from 'react';
 import { useWebsite } from './WebsiteContext';
 import { FONT, NEUTRAL, RADIUS, SHADOW, MAX_WIDTH, V, size } from './websiteTheme';
-import placeholderImage from '../../assets/v2/landlord/property-placeholder.jpg';
+import placeholderImage from '../../assets/landlord/property-placeholder.jpg';
 
 export const PREVIEW_NOTE = 'Preview — not active';
 

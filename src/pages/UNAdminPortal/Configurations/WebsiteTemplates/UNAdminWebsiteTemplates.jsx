@@ -15,8 +15,8 @@
 
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { SectionCard, DataTable, EmptyState, TabBar } from '../../../../components/v2';
-import { C2, SP2, UI2, T2, TONES2 } from '../../../../constants/v2';
+import { SectionCard, DataTable, EmptyState, TabBar } from '../../../../components/ui';
+import { C2, SP2, UI2, T2, TONES2 } from '../../../../constants';
 import WebsiteTemplateEditor from './WebsiteTemplateEditor';
 import { getTemplates, getReferences } from './websiteTemplateApi';
 import { labelFor, statusTone, formatDate } from './websiteTemplateShared';

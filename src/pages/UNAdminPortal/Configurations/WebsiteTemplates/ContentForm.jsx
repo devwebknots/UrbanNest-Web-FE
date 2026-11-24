@@ -7,7 +7,7 @@
 // Content shape: { site: {key: value}, pages: { PAGE: { SECTION: {key: value} } } }
 
 import React, { useState } from 'react';
-import { C2, SP2, R2, UI2, T2, pad } from '../../../../constants/v2';
+import { C2, SP2, R2, UI2, T2, pad } from '../../../../constants';
 import { labelFor } from './websiteTemplateShared';
 
 const S = {

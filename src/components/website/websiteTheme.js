@@ -6,7 +6,7 @@
 // they come from the website's own content (site.primary_color /
 // site.accent_color), with v2 colours only as fallbacks when none are set.
 
-import { C2, F2 } from '../../constants/v2';
+import { C2, F2 } from '../../constants';
 
 export const FONT = { heading: F2.heading, body: F2.body };
 
