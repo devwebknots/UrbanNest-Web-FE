@@ -283,43 +283,22 @@ export default function OrgPMS_Step4_PlanSelection() {
       localStorage.setItem('org_pms_plan_id',      selectedPlan);
       localStorage.setItem('org_pms_billing_cycle', billingCycle);
 
-      // Step 1 — fetch org record to get account_number + country
-      const orgRes  = await fetch(`${API_BASE}/api/admin/org-pms/${orgId}/`, {
-        headers: { Authorization:'Bearer '+token },
-      });
-      const orgData = await orgRes.json();
-
-      if (!orgRes.ok) {
-        setErrors({ api:'Could not load account details. Please try again.' });
-        setSaving(false);
-        return;
-      }
-
-      const country  = orgData.account_info?.country || 'US';
-      const currency = CURRENCY_MAP[country] || 'USD';
-      const accountNumber = orgData.account_info?.account_number;
-
-      // Step 2 — create UNSubscription with trial dates
-      const now          = new Date();
-      const trialEnd     = new Date(now.getTime() + 30 * 24 * 60 * 60 * 1000);
-      const subRes = await fetch(`${API_BASE}/api/admin/billing/subscriptions/`, {
+      // Phase 3 Stage 3.0 (G6): one account-scoped call. The server resolves
+      // the account from this user's own application, sets the trial dates,
+      // status, currency and persona itself, reuses the existing trial
+      // subscription on a re-submit, and links it to the account.
+      const subRes = await fetch(`${API_BASE}/api/account/subscription/`, {
         method:  'POST',
         headers: { Authorization:'Bearer '+token, 'Content-Type':'application/json' },
         body: JSON.stringify({
-          account_number: accountNumber,
-          persona_type:   'ORG_PMS',
-          plan:           selectedPlan,
-          country:        country,
-          currency:       currency,
-          billing_cycle:  billingCycle,
-          status:         'TRIAL',
-          trial_start:    now.toISOString(),
-          trial_end:      trialEnd.toISOString(),
+          org_pms_id:    Number(orgId),
+          plan:          selectedPlan,
+          billing_cycle: billingCycle,
         }),
       });
 
       if (!subRes.ok) {
-        const data = await subRes.json();
+        const data = await subRes.json().catch(() => ({}));
         setErrors({ api: data.detail || 'Could not save plan. Please try again.' });
         setSaving(false);
         return;
@@ -327,14 +306,6 @@ export default function OrgPMS_Step4_PlanSelection() {
 
       const subData = await subRes.json();
       localStorage.setItem('org_pms_subscription_id', subData.id);
-
-      // Step 3 — link subscription to UNAccount via org-pms PATCH
-      // Uses orgId (integer) to avoid slash issue with account_number in URL
-      await fetch(`${API_BASE}/api/admin/org-pms/${orgId}/`, {
-        method:  'PATCH',
-        headers: { Authorization:'Bearer '+token, 'Content-Type':'application/json' },
-        body: JSON.stringify({ link_subscription: subData.id }),
-      });
 
       navigate('/org-onboarding/step-5');
     } catch {

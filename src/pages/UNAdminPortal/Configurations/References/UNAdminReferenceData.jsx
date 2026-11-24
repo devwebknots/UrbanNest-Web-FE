@@ -26,7 +26,10 @@ const F = {
   body:     "'Nunito Sans', sans-serif",
 };
 
-const API = process.env.REACT_APP_API_BASE_URL || 'http://localhost:8001/api/admin';
+// REACT_APP_API_BASE_URL is the `.../api` root (same convention as every other
+// page), so normalise it and append `/api/admin` — previously this page used
+// the env value as-is and called `.../api/references/` (404).
+const API = (process.env.REACT_APP_API_BASE_URL || 'http://localhost:8001/api').replace(/\/api\/?$/, '') + '/api/admin';
 const authH = () => ({
   Authorization:  `Bearer ${localStorage.getItem('access_token')}`,
   'Content-Type': 'application/json',

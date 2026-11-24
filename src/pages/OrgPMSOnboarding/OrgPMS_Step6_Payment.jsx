@@ -135,9 +135,6 @@ export default function OrgPMS_Step6_Payment() {
   const [saving,        setSaving]        = useState(false);
   const [errors,        setErrors]        = useState({});  // always starts empty — no stale errors on Back
 
-  const [accountNumber, setAccountNumber] = useState('');
-  const [country,       setCountry]       = useState('US');
-
   // ── Card-on-file state (pre-population on Back) ────────────────────────────
   // null  = loading,  false = no card saved,  object = { last4, card_brand } = card exists
   const [savedCard,     setSavedCard]     = useState(null);
@@ -161,15 +158,16 @@ export default function OrgPMS_Step6_Payment() {
       .then(r => r.ok ? r.json() : null)
       .then(data => {
         if (!data?.account_info) { setSavedCard(false); return; }
+        // Account number and country are resolved on the server now
+        // (Phase 3 Stage 3.0, G6); the client only checks the account exists.
         const accNum = data.account_info.account_number || '';
-        const cntry  = data.account_info.country || 'US';
-        setAccountNumber(accNum);
-        setCountry(cntry);
 
-        // 3. Now check if a payment method already exists for this account
+        // 3. Now check if a payment method already exists for this account.
+        // Phase 3 Stage 3.0 (G6): account-scoped endpoint — the server finds
+        // the account from this user's own application.
         if (!accNum) { setSavedCard(false); return; }
         return fetch(
-          `${API_BASE}/api/admin/billing/payment-methods/?account_number=${encodeURIComponent(accNum)}`,
+          `${API_BASE}/api/account/payment-methods/?org_pms_id=${encodeURIComponent(orgId)}`,
           { headers:{ Authorization:'Bearer '+token } }
         );
       })
@@ -214,24 +212,22 @@ export default function OrgPMS_Step6_Payment() {
       const token  = localStorage.getItem('access_token');
       const rawNum = cardNumber.replace(/\s/g,'');
 
-      const res = await fetch(`${API_BASE}/api/admin/billing/payment-methods/`, {
+      // Phase 3 Stage 3.0 (G6): account-scoped endpoint. The server sets the
+      // account, persona, country and gateway; only display details of the
+      // card are sent (never the full card number).
+      const orgId = localStorage.getItem('org_pms_id');
+      const res = await fetch(`${API_BASE}/api/account/payment-methods/`, {
         method:  'POST',
         headers: { Authorization:'Bearer '+token, 'Content-Type':'application/json' },
         body: JSON.stringify({
-          account_number:      accountNumber,
-          persona_type:        'ORG_PMS',
-          country:             country,
-          gateway:             'MOCK',
-          gateway_customer_id: 'mock_cus_' + Date.now(),
-          payment_method_id:   'mock_pm_'  + Date.now(),
-          last4:               rawNum.slice(-4),
-          card_brand:          brand || 'UNKNOWN',
-          is_default:          true,
+          org_pms_id: Number(orgId),
+          last4:      rawNum.slice(-4),
+          card_brand: brand || 'UNKNOWN',
         }),
       });
 
       if (!res.ok) {
-        const data = await res.json();
+        const data = await res.json().catch(() => ({}));
         setErrors({ api: data.detail || 'Could not save payment method. Please try again.' });
         setSaving(false);
         return;
