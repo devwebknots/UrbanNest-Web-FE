@@ -32,7 +32,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { Grid } from '../../../components/layout';
 import { SectionCard, CornerArt, WizardFooter, TextLink, Modal } from '../../../components/ui';
-import { C2, G2, TONES2, F2, FS2, FW2, SP2, SZ2, R2, SH2, T2, UI2 } from '../../../constants';
+import { C2, TONES2, F2, FS2, FW2, SP2, SZ2, R2, SH2, T2, UI2 } from '../../../constants';
 import { WizardPage, WZ } from './listingWizardV2';
 import { MIN_REQUIRED_PHOTOS } from './mockListingData';
 import { getListing, getUnit, getPromotionPlanCatalog, publishListing } from './listingApi';
@@ -79,7 +79,6 @@ const S = {
   totalLbl:  { ...UI2.capsLabel, display: 'block' },
   totalVal:  { ...T2.kpiValue, fontFamily: F2.heading, fontWeight: FW2.semibold },   // 20 · Playfair · 600 — same as the Step 3 promotion cost
   // Published modal
-  doneIcon:  { ...UI2.iconBox(SZ2.icon.lg, TONES2.primary, { round: true, solid: true }), background: G2.primaryButton, margin: '0 auto', fontSize: FS2.xl },
   doneBody:  { textAlign: 'center', ...UI2.stack(SP2.sm), alignItems: 'center' },
 };
 
@@ -514,12 +513,11 @@ export default function ListingStep4_Publish() {
       {/* Published — a small popup over the still-visible Step 4 page (Session 47 fix), Done → unit page */}
       {published && (
         <Modal
+          variant="confirm" icon="ti-check" title="Listing Published"
           onClose={handleDone}
           footer={<button type="button" className="un2-btn" style={{ ...UI2.btn.brand, width: '100%' }} onClick={handleDone}>Done</button>}
         >
           <div style={S.doneBody}>
-            <span style={S.doneIcon}><i className="ti ti-check" aria-hidden="true" /></span>
-            <h2 style={WZ.title}>Listing Published</h2>
             <div style={UI2.text.label}>{propertyName} · Unit {unit.unit_number} is now live on the marketplace.</div>
             {publishedListing?.expires_at && <div style={T2.caption}>Runs through {formatDateTime(publishedListing.expires_at)}</div>}
           </div>

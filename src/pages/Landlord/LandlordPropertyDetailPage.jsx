@@ -3,11 +3,13 @@ import { PageShell, Grid, Breadcrumb, PageFooter } from '../../components/layout
 import {
   SectionCard, TabBar, ListRow, EmptyState,
   DataTable, MetricBar, BarChart, Gauge, TextLink, ActionTray, FilterMenu, DetailHeader, StatGroup, PhotoBento, AssetRow,
+  Modal, ModalSection, FormField, SelectField, IconField, FIELD2, ChoiceTile,
 } from '../../components/ui';
-import { C2, G2, GSTOPS2, TONES2, ACCENT2, T2, FS2, FW2, SP2, SZ2, LAYOUT2, OP2, pad, UI2 } from '../../constants';
+import { C2, G2, GSTOPS2, TONES2, ACCENT2, T2, FS2, FW2, SP2, SZ2, SH2, R2, BLUR2, LAYOUT2, OP2, pad, UI2 } from '../../constants';
 import { C, F } from './landlordTokens';
 import { CustomDropdown } from '../../components/ui';
 import LandlordUnitSelection from './Listing/LandlordUnitSelection';
+import propertyPlaceholder from '../../assets/landlord/property-placeholder.jpg';
 import { PROPERTY_DEMO, withDemo, orDemo, isDemoId } from './propertyDemoData';
 
 const API_BASE = process.env.REACT_APP_API_BASE_URL || 'http://localhost:8001/api';
@@ -129,7 +131,6 @@ const NOTIFICATIONS = [
 const S = {
 
   // CARDS
-  secLbl:   { fontSize:9.5, color:C.txtMuted, fontWeight:600, letterSpacing:0.5, textTransform:'uppercase', marginBottom:4, marginTop:8 },
 
   // FILTER MODAL
   overlay:      { position:'fixed', top:0, left:0, right:0, bottom:0, background:'rgba(0,0,0,0.4)', display:'flex', alignItems:'center', justifyContent:'center', zIndex:1000 },
@@ -176,20 +177,7 @@ const S = {
   bulkFlagReason:       { fontSize:11, color:'#991b1b', marginTop:1 },
   bulkFlagAction:       { fontSize:11.5, fontWeight:700, color:C.blue, flexShrink:0, cursor:'pointer' },
 
-  errBanner:    { background:C.redLight, color:C.red, padding:'10px 28px', fontSize:13 },
 
-  // EDIT PROPERTY / EDIT UNIT MODALS (shared shapes — proper Edit functionality)
-  editFormGrid:     { display:'grid', gridTemplateColumns:'1fr 1fr', gap:'12px 14px' },
-  editLabel:        { fontSize:10, fontWeight:700, color:C.txtMuted, textTransform:'uppercase', letterSpacing:'0.05em', marginBottom:5 },
-  editInput:        { width:'100%', height:36, border:`1px solid ${C.cardBdr}`, borderRadius:6, padding:'0 10px', fontSize:12.5, color:C.txtPrimary, fontFamily:F.sans, outline:'none', background:'#fff', boxSizing:'border-box' },
-  editImgGrid:      { display:'grid', gridTemplateColumns:'repeat(4, 1fr)', gap:10, marginTop:8 },
-  editImgSlot:      { display:'flex', flexDirection:'column', alignItems:'center' },
-  editImgX:         { position:'absolute', top:4, right:4, width:20, height:20, borderRadius:'50%', background:'rgba(0,0,0,0.6)', border:'none', color:'#fff', display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', padding:0 },
-  editAmenityGrid:  { display:'grid', gridTemplateColumns:'1fr 1fr 1fr', gap:7, maxHeight:195, overflowY:'auto', paddingRight:4 },
-  // Session 58 fix — selected state was too heavy (solid blue border + solid
-  // blueLight fill); per explicit feedback, both are now a barely-there
-  // tint of C.blue (rgba at low alpha) rather than a flat token color.
-  editAmenityItem:  (checked) => ({ display:'flex', alignItems:'center', gap:7, background: checked ? 'rgba(61,142,240,0.055)' : '#f8f9fb', border:`1px solid ${checked ? 'rgba(61,142,240,0.18)' : 'transparent'}`, borderRadius:6, padding:'7px 9px', fontSize:12, cursor:'pointer', color: checked ? C.blueDark : C.txtPrimary, fontFamily:F.sans }),
 };
 
 // ─── Edit Property — field options derived from the backend's real choices
@@ -736,187 +724,175 @@ function EditPropertyModal({ propId, prop, amenities, onClose, onSaved }) {
     ? amenityMaster.filter(a => a.name.toLowerCase().includes(amenitySearch.toLowerCase()))
     : amenityMaster;
 
+  const savingOff = saving ? EM.off : {};
+
   return (
-    <div style={S.overlay} onClick={onClose}>
-      <div style={{ ...S.modalBox, width: 680, maxHeight: '86vh', overflowY: 'auto' }} onClick={e => e.stopPropagation()}>
-        <div style={S.modalHdr}>
-          <div style={S.modalTitle}><i className="ti ti-pencil" aria-hidden="true" /> Edit Property</div>
-          <button style={S.modalClose} onClick={onClose} aria-label="Close">&times;</button>
-        </div>
+    <Modal
+      icon="ti-pencil" title="Edit Property" subtitle="Update the details, photos and amenities of this property."
+      onClose={onClose} note={saveError || undefined}
+      media={{
+        image: slotCurrentUrl('main_image_url'), fallback: propertyPlaceholder,
+        caption: (
+          <div style={EM.capPanel}>
+            {PROP_TYPE_LABEL[form.property_type] && <span style={EM.capChip}>{PROP_TYPE_LABEL[form.property_type]}</span>}
+            <span style={EM.capName}>{form.name || 'Untitled property'}</span>
+            <span style={EM.capAddr}>{[form.street1, form.city, form.state].filter(Boolean).join(', ') || 'No address yet'}</span>
+          </div>
+        ),
+      }}
+      footer={<>
+        <button type="button" className="un2-btn" style={{ ...UI2.btn.soft, ...savingOff }} onClick={onClose} disabled={saving}>Cancel</button>
+        <button type="button" className="un2-btn" style={{ ...UI2.btn.brand, ...savingOff }} onClick={handleSave} disabled={saving}>
+          {!saving && <i className="ti ti-check" style={UI2.btnIcon} aria-hidden="true" />}
+          {saving ? 'Saving…' : 'Save changes'}
+        </button>
+      </>}
+    >
+      {/* ── Basics ── */}
+      <ModalSection icon="ti-home" title="Basics" hint="Name, type, ownership and value">
+        <Grid layout="two" as="div" style={EM.grid}>
+          <FormField label="Property name" full>
+            <input className="un2-focus-ring" style={FIELD2.input} value={form.name} onChange={e => upd({ name: e.target.value })} />
+          </FormField>
+          <FormField label="Property type">
+            <SelectField label="Property type" placeholder="Select type" options={EDIT_PROPERTY_TYPE_OPTIONS} value={form.property_type} onChange={v => upd({ property_type: v || '' })} />
+          </FormField>
+          <FormField label="Ownership type">
+            <SelectField label="Ownership type" placeholder="Select ownership" options={EDIT_OWNERSHIP_TYPE_OPTIONS} value={form.ownership_type} onChange={v => upd({ ownership_type: v || '' })} />
+          </FormField>
+          <FormField label="Value">
+            <IconField icon="ti-currency-dollar" type="number" value={form.value} onChange={e => upd({ value: e.target.value })} />
+          </FormField>
+          <FormField label="Build year">
+            <IconField icon="ti-calendar" type="number" value={form.build_year} onChange={e => upd({ build_year: e.target.value })} />
+          </FormField>
+          <FormField label="Description" full>
+            <textarea className="un2-focus-ring" style={FIELD2.textarea} value={form.description} onChange={e => upd({ description: e.target.value })} />
+          </FormField>
+        </Grid>
+      </ModalSection>
 
-        {saveError && <div style={{ ...S.errBanner, borderRadius: 8, padding: '9px 12px', marginBottom: 14 }}><i className="ti ti-alert-circle" aria-hidden="true" /> {saveError}</div>}
+      {/* ── Address ── */}
+      <ModalSection icon="ti-map-pin" title="Address" hint="Where the property is located">
+        <Grid layout="two" as="div" style={EM.grid}>
+          <FormField label="Country">
+            <SelectField label="Country" placeholder="Select country" options={EDIT_COUNTRY_OPTIONS} value={form.country} onChange={v => upd({ country: v || '', state: '' })} />
+          </FormField>
+          <FormField label="State">
+            <SelectField label="State" placeholder={form.country ? 'Select state' : 'Select country first'} options={stateOptions} value={form.state} onChange={v => upd({ state: v || '' })} />
+          </FormField>
+          <FormField label="Street address" full>
+            <input className="un2-focus-ring" style={FIELD2.input} value={form.street1} onChange={e => upd({ street1: e.target.value })} />
+          </FormField>
+          <FormField label="Street address 2 (optional)" full>
+            <input className="un2-focus-ring" style={FIELD2.input} value={form.street2} onChange={e => upd({ street2: e.target.value })} />
+          </FormField>
+          <FormField label="Landmark">
+            <input className="un2-focus-ring" style={FIELD2.input} value={form.landmark} onChange={e => upd({ landmark: e.target.value })} />
+          </FormField>
+          <FormField label="City">
+            <input className="un2-focus-ring" style={FIELD2.input} value={form.city} onChange={e => upd({ city: e.target.value })} />
+          </FormField>
+          <FormField label="ZIP / postal code">
+            <input className="un2-focus-ring" style={FIELD2.input} value={form.zip_code} onChange={e => upd({ zip_code: e.target.value })} />
+          </FormField>
+        </Grid>
+      </ModalSection>
 
-        <div style={S.editFormGrid}>
-          <div style={{ gridColumn: '1 / -1' }}>
-            <div style={S.editLabel}>Property Name</div>
-            <input style={S.editInput} value={form.name} onChange={e => upd({ name: e.target.value })} />
-          </div>
-          <div>
-            <div style={S.editLabel}>Property Type</div>
-            <CustomDropdown options={EDIT_PROPERTY_TYPE_OPTIONS} value={form.property_type} onChange={v => upd({ property_type: v })} placeholder="Select Type" />
-          </div>
-          <div>
-            <div style={S.editLabel}>Ownership Type</div>
-            <CustomDropdown options={EDIT_OWNERSHIP_TYPE_OPTIONS} value={form.ownership_type} onChange={v => upd({ ownership_type: v })} placeholder="Select Ownership" />
-          </div>
-          <div>
-            <div style={S.editLabel}>Value ($)</div>
-            <input style={S.editInput} type="number" value={form.value} onChange={e => upd({ value: e.target.value })} />
-          </div>
-          <div>
-            <div style={S.editLabel}>Build Year</div>
-            <input style={S.editInput} type="number" value={form.build_year} onChange={e => upd({ build_year: e.target.value })} />
-          </div>
-          <div style={{ gridColumn: '1 / -1' }}>
-            <div style={S.editLabel}>Description</div>
-            <textarea style={{ ...S.editInput, height: 70, resize: 'vertical', paddingTop: 8 }} value={form.description} onChange={e => upd({ description: e.target.value })} />
-          </div>
-
-          <div style={{ gridColumn: '1 / -1', ...S.secLbl, marginTop: 4 }}>Address</div>
-          <div>
-            <div style={S.editLabel}>Country</div>
-            <CustomDropdown options={EDIT_COUNTRY_OPTIONS} value={form.country} onChange={v => upd({ country: v, state: '' })} placeholder="Select Country" />
-          </div>
-          <div>
-            <div style={S.editLabel}>State</div>
-            <CustomDropdown options={stateOptions} value={form.state} onChange={v => upd({ state: v })} placeholder={form.country ? 'Select State' : 'Select country first'} disabled={!form.country} />
-          </div>
-          <div style={{ gridColumn: '1 / -1' }}>
-            <div style={S.editLabel}>Street Address</div>
-            <input style={S.editInput} value={form.street1} onChange={e => upd({ street1: e.target.value })} />
-          </div>
-          <div style={{ gridColumn: '1 / -1' }}>
-            <div style={S.editLabel}>Street Address 2 (optional)</div>
-            <input style={S.editInput} value={form.street2} onChange={e => upd({ street2: e.target.value })} />
-          </div>
-          <div>
-            <div style={S.editLabel}>Landmark</div>
-            <input style={S.editInput} value={form.landmark} onChange={e => upd({ landmark: e.target.value })} />
-          </div>
-          <div>
-            <div style={S.editLabel}>City</div>
-            <input style={S.editInput} value={form.city} onChange={e => upd({ city: e.target.value })} />
-          </div>
-          <div>
-            <div style={S.editLabel}>ZIP / Postal Code</div>
-            <input style={S.editInput} value={form.zip_code} onChange={e => upd({ zip_code: e.target.value })} />
-          </div>
-        </div>
-
-        <div style={{ ...S.secLbl, marginTop: 18 }}>Photos</div>
-        <div style={S.editImgGrid}>
+      {/* ── Photos & video ── */}
+      <ModalSection icon="ti-photo" title="Photos & video" hint="Tap a photo to replace it · a video plays in the hero spot on the property page">
+        <Grid layout="four" as="div" style={EM.grid}>
           {IMAGE_SLOTS.map(({ key, label }) => {
             const url = slotCurrentUrl(key);
-            // Session 57 fix — unified with Unit's Gallery Photos / Floor Plan
-            // pattern: the tile itself is the click target (no separate
-            // "Replace"/"Upload" text link underneath).
             return (
-              <div key={key} style={S.editImgSlot}>
-                <div
-                  onClick={() => fileInputRefs.current[key]?.click()}
-                  style={{ position: 'relative', width: '100%', height: 90, borderRadius: 8, overflow: 'hidden', background: C.pageBg, cursor: 'pointer' }}
-                >
-                  {url ? (
-                    <img src={url} alt={label} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                  ) : (
-                    <div style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 3, color: C.txtMuted, fontSize: 11, border: `1px dashed ${C.cardBdr}`, borderRadius: 8 }}>
-                      <i className="ti ti-plus" style={{ fontSize: 16 }} aria-hidden="true" />
-                      Upload
-                    </div>
-                  )}
-                  {url && (
-                    <button
-                      type="button"
-                      onClick={e => { e.stopPropagation(); handleClearSlot(key); }}
-                      style={S.editImgX}
-                      aria-label={`Remove ${label}`}
-                    >
-                      <i className="ti ti-x" style={{ fontSize: 12 }} aria-hidden="true" />
+              <div key={key} style={EM.slot}>
+                {url ? (
+                  <div className="un2-zoom" style={EM.photo} role="button" tabIndex={0} onClick={() => fileInputRefs.current[key]?.click()}
+                    onKeyDown={e => { if (e.key === 'Enter') fileInputRefs.current[key]?.click(); }} aria-label={`Replace ${label}`}>
+                    <img src={url} alt={label} style={UI2.photoMedia} />
+                    <button type="button" className="un2-btn" style={EM.remove} onClick={e => { e.stopPropagation(); handleClearSlot(key); }} aria-label={`Remove ${label}`}>
+                      <i className="ti ti-x" aria-hidden="true" />
                     </button>
-                  )}
-                </div>
-                <div style={{ fontSize: 10.5, color: C.txtMuted, marginTop: 4, textAlign: 'center' }}>{label}</div>
+                  </div>
+                ) : (
+                  <button type="button" className="un2-raise" style={EM.add()} onClick={() => fileInputRefs.current[key]?.click()}>
+                    <i className="ti ti-photo-plus" style={EM.addIcon} aria-hidden="true" /> Upload
+                  </button>
+                )}
+                <span style={EM.cap}>{label}</span>
                 <input
                   ref={el => (fileInputRefs.current[key] = el)}
-                  type="file" accept="image/jpeg,image/png,image/webp" style={{ display: 'none' }}
+                  type="file" accept="image/jpeg,image/png,image/webp" style={EM.hidden}
                   onChange={e => { const f = e.target.files[0]; e.target.value = ''; if (f) handlePickFile(key, f); }}
                 />
               </div>
             );
           })}
-        </div>
 
-        <div style={{ ...S.secLbl, marginTop: 18 }}>Video</div>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 10, marginTop: 8 }}>
-          <div style={S.editImgSlot}>
+          <div style={EM.slot}>
             {videoItem ? (
-              <div style={{ position: 'relative', width: '100%', height: 90, borderRadius: 8, overflow: 'hidden', background: C.pageBg }}>
-                <video src={videoItem.file_url} style={{ width: '100%', height: '100%', objectFit: 'cover' }} muted />
-                <button
-                  type="button"
-                  onClick={() => handleDeleteVideo(videoItem.id)}
-                  disabled={deletingVideoId === videoItem.id}
-                  style={S.editImgX}
-                  aria-label="Remove video"
-                >
-                  <i className={`ti ${deletingVideoId === videoItem.id ? 'ti-loader-2' : 'ti-x'}`} style={{ fontSize: 12 }} aria-hidden="true" />
+              <div style={EM.photo}>
+                <video src={videoItem.file_url} style={UI2.photoMedia} muted />
+                <span style={EM.play} aria-hidden="true"><i className="ti ti-player-play-filled" /></span>
+                <button type="button" className="un2-btn" style={EM.remove} onClick={() => handleDeleteVideo(videoItem.id)} disabled={deletingVideoId === videoItem.id} aria-label="Remove video">
+                  <i className={`ti ${deletingVideoId === videoItem.id ? 'ti-loader-2' : 'ti-x'}`} aria-hidden="true" />
                 </button>
               </div>
             ) : (
-              <div
-                onClick={() => { if (!uploadingVideo) videoInputRef.current?.click(); }}
-                style={{ width: '100%', height: 90, borderRadius: 8, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 3, color: C.txtMuted, fontSize: 11, border: `1px dashed ${C.cardBdr}`, cursor: uploadingVideo ? 'wait' : 'pointer' }}
-              >
-                <i className={`ti ${uploadingVideo ? 'ti-loader-2' : 'ti-video-plus'}`} style={{ fontSize: 16 }} aria-hidden="true" />
+              <button type="button" className="un2-raise" style={EM.add(uploadingVideo)} onClick={() => { if (!uploadingVideo) videoInputRef.current?.click(); }}>
+                <i className={`ti ${uploadingVideo ? 'ti-loader-2' : 'ti-video-plus'}`} style={EM.addIcon} aria-hidden="true" />
                 {uploadingVideo ? 'Uploading…' : 'Add video'}
-              </div>
+              </button>
             )}
-            <div style={{ fontSize: 10.5, color: C.txtMuted, marginTop: 4, textAlign: 'center' }}>Video tour</div>
+            <span style={EM.cap}>Video tour</span>
             <input
               ref={videoInputRef}
-              type="file" accept="video/mp4,video/quicktime" style={{ display: 'none' }}
+              type="file" accept="video/mp4,video/quicktime" style={EM.hidden}
               onChange={e => { const f = e.target.files[0]; e.target.value = ''; if (f) handleAddVideo(f); }}
             />
           </div>
-        </div>
-        <div style={{ fontSize: 10.5, color: C.txtMuted, marginTop: 4 }}>
-          When a video is set, it plays automatically in the hero spot on the Property page.
-        </div>
+        </Grid>
+      </ModalSection>
 
-        <div style={{ ...S.secLbl, marginTop: 18 }}>Amenities</div>
-        <input
-          style={{ ...S.editInput, marginBottom: 8 }}
-          placeholder="Search amenities…"
-          value={amenitySearch}
-          onChange={e => setAmenitySearch(e.target.value)}
-        />
-        <div style={S.editAmenityGrid}>
-          {filteredAmenityMaster.map(a => {
-            const checked = selectedAmenityIds.has(a.id);
-            const { icon, bg, color } = amenityStyle(a.name);
-            return (
-              <div key={a.id} onClick={() => toggleAmenity(a.id)} style={S.editAmenityItem(checked)}>
-                <div style={{ width: 22, height: 22, borderRadius: 6, flexShrink: 0, background: bg, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  <i className={`ti ${a.icon || icon}`} style={{ fontSize: 12, color }} aria-hidden="true" />
-                </div>
-                <span style={{ flex: 1 }}>{a.name}</span>
-                {checked && <i className="ti ti-circle-check-filled" style={{ fontSize: 14, color: C.blue }} aria-hidden="true" />}
-              </div>
-            );
-          })}
-          {filteredAmenityMaster.length === 0 && (
-            <div style={{ fontSize: 12, color: C.txtMuted, fontStyle: 'italic' }}>No amenities found.</div>
-          )}
-        </div>
-
-        <div style={{ ...S.modalFooter, marginTop: 20 }}>
-          <button style={S.resetBtn} onClick={onClose} disabled={saving}>Cancel</button>
-          <button style={S.applyBtn} onClick={handleSave} disabled={saving}>{saving ? 'Saving…' : 'Save Changes'}</button>
-        </div>
-      </div>
-    </div>
+      {/* ── Amenities ── */}
+      <ModalSection
+        icon="ti-armchair" title="Amenities" hint="What the property offers its residents"
+        action={<span style={UI2.pill(TONES2.primary)}>{selectedAmenityIds.size} selected</span>}
+      >
+        <IconField icon="ti-search" placeholder="Search amenities…" value={amenitySearch} onChange={e => setAmenitySearch(e.target.value)} />
+        <Grid layout="three" as="div" style={EM.tiles}>
+          {filteredAmenityMaster.map(a => (
+            <ChoiceTile
+              key={a.id} icon={a.icon || amenityStyle(a.name).icon} label={a.name}
+              selected={selectedAmenityIds.has(a.id)} onClick={() => toggleAmenity(a.id)}
+            />
+          ))}
+        </Grid>
+        {filteredAmenityMaster.length === 0 && <div style={UI2.emptyInline}>No amenities found.</div>}
+      </ModalSection>
+    </Modal>
   );
 }
+
+// Edit Property modal — layout only (fields, tiles and buttons are the shared v2 standards)
+const EM = {
+  grid:    { columnGap: SP2.lg, rowGap: SP2.lg },
+  tiles:   { columnGap: SP2.sm, rowGap: SP2.sm },
+  slot:    { ...UI2.stack(SP2.xs), minWidth: 0 },
+  photo:   { ...UI2.photoTile, height: SZ2.modalPhoto, cursor: 'pointer' },
+  add:     (busy) => ({ ...UI2.addTile(busy), height: SZ2.modalPhoto }),
+  addIcon: { ...UI2.addTileIcon, fontSize: FS2.xl },
+  remove:  { ...UI2.btn.icon(SZ2.control.sm), position: 'absolute', top: SP2.xs, right: SP2.xs, background: C2.white, color: C2.textSecondary, boxShadow: SH2.md },
+  play:    { ...UI2.center, position: 'absolute', inset: 0, color: C2.white, fontSize: FS2.xxl, pointerEvents: 'none' },
+  cap:     { ...UI2.text.meta, textAlign: 'center' },
+  hidden:  { display: 'none' },
+  off:     { opacity: 0.6, cursor: 'not-allowed' },
+  // caption on the Modal photo panel — live name / address / type as you edit (dark glass)
+  capPanel: { ...UI2.stack(SP2.xxs), padding: pad(SP2.md, SP2.md), borderRadius: R2.lg, background: C2.onDark.surfaceHover, border: `${SZ2.hairline}px solid ${C2.onDark.border}`, backdropFilter: BLUR2.glass, WebkitBackdropFilter: BLUR2.glass },
+  capChip:  { ...UI2.chipOnDark, alignSelf: 'flex-start', minHeight: 0, padding: pad(SP2.xxs, SP2.sm), fontSize: FS2.xxs, fontWeight: FW2.semibold, marginBottom: SP2.xxs },
+  capName:  { ...T2.sectionTitle, color: C2.white, ...UI2.truncate },
+  capAddr:  { fontSize: FS2.xs, color: C2.onDark.textSoft, ...UI2.truncate },
+};
 
 // ─── Design System v2 — presentation for the main page ───────────────────────
 // Visual layer only. Data still comes from exactly the same calls as before:

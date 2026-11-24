@@ -105,6 +105,7 @@ export const C2 = {
   backgroundGlass:'rgba(243, 247, 254, 0.92)',  // pageBg at 92% (top bar)
   barGlass:       'transparent',                // frosted sticky bar (WizardFooter) — NO tint: pure blurred glass (BLUR2.bar does the frosting)
   barGlassEdge:   'rgba(255, 255, 255, 0.7)',   // faint light top edge of that glass bar
+  glassCaption:   'rgba(255, 255, 255, 0.86)',  // white frosted card on a photo (Edit Unit fact card on the Modal photo panel)
   pageTint:       '#EEF3F9',
   surface:        '#FFFFFF',
   surfaceMuted:   '#F1F5F9',
@@ -364,6 +365,7 @@ export const G2 = {
   planArtMask:  'linear-gradient(90deg, transparent 0%, rgba(0,0,0,0.35) 30%, #000 60%)',
   // Modal backdrop (v2 Modal)
   modalScrim:   'rgba(15, 23, 42, 0.45)',
+  modalMedia:   'linear-gradient(180deg, rgba(3,38,76,0) 50%, rgba(3,38,76,0.55) 100%)',   // Modal photo panel: darker bottom (caption + blue swoosh read on it)
   // CornerArt rim: white highlight along a card's top edge + top-right corner, fading out to the left and down
   cornerRimMask: 'linear-gradient(205deg, #000 45%, rgba(0,0,0,0.6) 70%, transparent 95%)',
   // OpenHero sky to the LEFT of the photo (portfolio-hero-sunset.jpg): the photo's own left-edge colours,
@@ -436,6 +438,8 @@ export const SH2 = {
   brandButton:  '0 6px 14px rgba(3, 38, 76, 0.28)',
   lightButton:  '0 4px 12px rgba(3, 38, 76, 0.22)',
   focus:      '0 0 0 3px rgba(37, 99, 235, 0.12)',
+  modal:        '0 24px 64px -16px rgba(3, 38, 76, 0.35), 0 2px 8px rgba(16, 24, 40, 0.06)',   // v2 Modal card: deep soft lift over the dimmed page
+  modalHead:    '0 6px 12px -10px rgba(30, 64, 124, 0.25)',                                  // Modal header once the body scrolls under it
   personaSelected: '0 12px 28px -10px rgba(3, 38, 76, 0.32)',   // selected photo card: deep lift only — NO blue ring / halo (user removed it 2026-11-24); the ✓ marks it
   personaHover:    '0 10px 24px -10px rgba(3, 38, 76, 0.3)',
   avatarRing: '0 0 0 3px #FFFFFF, 0 0 0 4px #E2E8F0',

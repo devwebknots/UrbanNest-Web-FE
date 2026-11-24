@@ -657,3 +657,23 @@
   .un2-ps-item { transform: none !important; }
   .un2-persona:hover .un2-persona-photo, .un2-persona.is-selected .un2-persona-photo { transform: none; }
 }
+
+
+/* ── Modal (components/ui/Modal.jsx) — THE standard pop-up ──
+   un2-modal-scrim  dimmed + blurred page fades in
+   un2-modal        the card rises + settles in
+   un2-modal-sec    ModalSection spacing: faint divider + gap above every section except the first
+   un2-modal-acts-fill  confirm variant: footer buttons share the width                                   */
+.un2-modal-scrim { animation: un2-modal-fade 0.22s ease both; }
+.un2-modal { animation: un2-modal-in 0.38s var(--un2-ease) both; }
+@keyframes un2-modal-fade { from { opacity: 0; } to { opacity: 1; } }
+@keyframes un2-modal-in   { from { opacity: 0; transform: translateY(16px) scale(0.97); } to { opacity: 1; transform: none; } }
+.un2-modal-sec + .un2-modal-sec { margin-top: var(--un2-sp-xl); padding-top: var(--un2-sp-xl); border-top: 1px solid var(--un2-divider); }
+.un2-modal-sec:first-child { padding-top: var(--un2-sp-sm); }
+@media (max-width: 860px) { .un2-modal-aside { display: none !important; } }   /* split Modal: preview panel drops on small screens, the form keeps the width */
+.un2-modal-acts-fill > * { flex: 1 1 0; justify-content: center; }
+/* template photo panel (left): slow settle-in zoom · drops on small screens so the form keeps the width */
+.un2-modal-media-img { animation: un2-modal-media 1.6s var(--un2-ease) both; }
+@keyframes un2-modal-media { from { transform: scale(1.1); } to { transform: scale(1); } }
+@media (max-width: 760px) { .un2-modal-media { display: none !important; } }
+@media (prefers-reduced-motion: reduce) { .un2-modal-scrim, .un2-modal, .un2-modal-media-img { animation: none; } }

@@ -607,7 +607,7 @@ export default function ListingStep3_Promote() {
       {/* Plan details */}
       {detailsPlan && (
         <Modal
-          title={`${detailsPlan.name} Plan`}
+          icon="ti-rocket" title={`${detailsPlan.name} Plan`} subtitle="What this promotion plan includes"
           eyebrow={detailsPlan.tag || undefined}
           onClose={() => setDetailsPlanId(null)}
           footer={(

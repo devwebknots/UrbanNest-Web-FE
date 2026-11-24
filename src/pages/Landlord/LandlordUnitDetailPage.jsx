@@ -3,10 +3,12 @@ import { PageShell, Grid, Breadcrumb, PageFooter, PageWave } from '../../compone
 import {
   SectionCard, CardHeader, ListRow, EmptyState,
   DataTable, TextLink, ActionTray, FilterMenu, DetailHeader, PhotoBento, StatGroup, CardWave,
+  Modal, ModalSection, FormField, SelectField, IconField, FIELD2, ChoiceTile, Checkbox,
 } from '../../components/ui';
 import {
-  C2, TONES2, ACCENT2, accentTone, FS2, SH2, SP2, SZ2, LAYOUT2, OP2, UI2,
+  C2, TONES2, ACCENT2, accentTone, FS2, FW2, LH2, T2, R2, BLUR2, SH2, SP2, SZ2, LAYOUT2, OP2, pad, UI2,
 } from '../../constants';
+import unitPlaceholder from '../../assets/landlord/unit-placeholder.jpg';
 import { C, F } from './landlordTokens';
 import { UNIT_DEMO, orDemo, isDemoId } from './propertyDemoData';
 
@@ -144,7 +146,6 @@ const SERVICE_FALLBACK_ICON = 'ti-adjustments';
 // Styles for the modals below (Add Service, Edit Unit, Detail pop-up). The modals are unchanged by the
 // v2 redesign — the page itself is built from v2 components/tokens (see "Design System v2" further down).
 const S = {
-  errBanner:{ background: C.redLight, color: C.red, padding: '10px 28px', fontSize: 13 },
 
   // ADD SERVICE MODAL
   modalOverlay: { position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(13,27,46,0.55)', display: 'flex', alignItems: 'flex-start', justifyContent: 'center', padding: '44px 20px', zIndex: 1000, fontFamily: F.sans },
@@ -171,19 +172,6 @@ const S = {
   emptyModalBody:  { fontSize: 12, color: C.txtMuted, lineHeight: 1.6, maxWidth: 300, margin: '0 auto 16px' },
 
   // EDIT UNIT MODAL
-  editFormGrid:     { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '12px 14px' },
-  editLabel:        { fontSize: 10, fontWeight: 700, color: C.txtMuted, textTransform: 'uppercase', letterSpacing: '0.05em', marginBottom: 5 },
-  editInput:        { width: '100%', height: 36, border: `1px solid ${C.cardBdr}`, borderRadius: 6, padding: '0 10px', fontSize: 12.5, color: C.txtPrimary, fontFamily: F.sans, outline: 'none', background: '#fff', boxSizing: 'border-box' },
-  editSelect:       { width: '100%', height: 36, border: `1px solid ${C.cardBdr}`, borderRadius: 6, padding: '0 10px', fontSize: 12.5, color: C.txtPrimary, fontFamily: F.sans, outline: 'none', background: '#fff', boxSizing: 'border-box', cursor: 'pointer' },
-  editCheckRow:     { display: 'flex', alignItems: 'center', gap: 7, fontSize: 12.5, color: C.txtPrimary, height: 36 },
-  editSecLbl:       { fontSize: 9.5, color: C.txtMuted, fontWeight: 600, letterSpacing: 0.5, textTransform: 'uppercase', marginBottom: 2 },
-  editAmenityGrid:  { display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 7, maxHeight: 175, overflowY: 'auto', paddingRight: 4 },
-  editAmenityItem:  (checked) => ({ display: 'flex', alignItems: 'center', gap: 7, background: checked ? 'rgba(61,142,240,0.055)' : '#f8f9fb', border: `1px solid ${checked ? 'rgba(61,142,240,0.18)' : 'transparent'}`, borderRadius: 6, padding: '7px 9px', fontSize: 12, cursor: 'pointer', color: checked ? C.blueDark : C.txtPrimary, fontFamily: F.sans }),
-  editGalGrid:      { display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 10, marginTop: 8 },
-  editGalItem:      { position: 'relative', borderRadius: 8, overflow: 'hidden', height: 80, background: C.pageBg },
-  editGalX:         { position: 'absolute', top: 4, right: 4, width: 20, height: 20, borderRadius: '50%', background: 'rgba(0,0,0,0.6)', border: 'none', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', padding: 0 },
-  editFpSlot:       { display: 'flex', flexDirection: 'column', alignItems: 'center' },
-  editFpX:          { position: 'absolute', top: 4, right: 4, width: 20, height: 20, borderRadius: '50%', background: 'rgba(0,0,0,0.6)', border: 'none', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', padding: 0 },
 
   // DETAIL MODAL (owner / tenant / ancillary-services pop-ups opened from an eye icon)
   detailRow:  (last) => ({ display: 'flex', justifyContent: 'space-between', gap: 12, padding: '9px 0', borderBottom: last ? 'none' : `1px solid ${C.cardBdr}` }),
@@ -693,226 +681,240 @@ function EditUnitModal({ propId, unitId, unit, amenities, onClose, onSaved }) {
 
   const galleryItemsForModal = unit.gallery_images || [];
 
+  // photo panel: the unit's first gallery photo (else the unit placeholder) — caption = live fact card
+  const heroPhoto = galleryItemsForModal.find(g => g && g.file_type !== 'VIDEO')?.file_url;
+  const money = v => (v === '' || v == null ? '—' : `$${Number(v).toLocaleString()}`);
+  const unitTypeLabel = EDIT_UNIT_TYPE_OPTIONS.find(o => o.value === form.unit_type)?.label;
+  const facts = [
+    { icon: 'ti-bed', value: form.total_rooms || '—', label: 'Beds' },
+    { icon: 'ti-bath', value: form.total_baths || '—', label: 'Baths' },
+    { icon: 'ti-ruler-2', value: form.total_area || form.carpet_area || '—', label: 'Sq ft' },
+  ];
+  const off = saving ? EU.off : {};
+
   return (
-    <div style={S.modalOverlay} onClick={onClose}>
-      <div style={{ ...S.modal, width: 700, maxHeight: '86vh', overflowY: 'auto' }} onClick={e => e.stopPropagation()}>
-        <div style={S.modalHdr}>
-          <h3 style={S.modalHdrTitle}><i className="ti ti-pencil" aria-hidden="true" /> Edit Unit {unit.unit_number}</h3>
-        </div>
-        <div style={{ padding: '4px 22px 22px' }}>
-          {saveError && <div style={{ ...S.errBanner, borderRadius: 8, padding: '9px 12px', marginBottom: 14 }}><i className="ti ti-alert-circle" aria-hidden="true" /> {saveError}</div>}
-
-          <div style={S.editFormGrid}>
-            <div>
-              <div style={S.editLabel}>Unit Number</div>
-              <input style={S.editInput} value={form.unit_number} onChange={e => upd({ unit_number: e.target.value })} />
+    <Modal
+      title={`Edit Unit ${form.unit_number || unit.unit_number || ''}`.trim()}
+      subtitle="Keep the unit's details, pricing, photos and amenities up to date."
+      onClose={onClose} note={saveError || undefined}
+      media={{
+        image: heroPhoto, fallback: unitPlaceholder,
+        caption: (
+          <div style={EU.card}>
+            <div style={EU.cardTop}>
+              <span style={EU.cardName}>Unit {form.unit_number || '—'}</span>
+              {unitTypeLabel && <span style={EU.cardChip}>{unitTypeLabel}</span>}
             </div>
-            <div>
-              <div style={S.editLabel}>Tower</div>
-              <input style={S.editInput} value={form.tower} onChange={e => upd({ tower: e.target.value })} />
+            <span style={EU.cardSub}>{[form.tower && `Tower ${form.tower}`, form.floor !== '' && form.floor != null && `Floor ${form.floor}`].filter(Boolean).join(' · ') || 'Tower / floor not set'}</span>
+            <div style={EU.facts}>
+              {facts.map(f => (
+                <span key={f.label} style={EU.fact}>
+                  <i className={`ti ${f.icon}`} style={EU.factIcon} aria-hidden="true" />
+                  <span style={EU.factVal}>{f.value}</span>
+                  <span style={EU.factLbl}>{f.label}</span>
+                </span>
+              ))}
             </div>
-            <div>
-              <div style={S.editLabel}>Unit Type</div>
-              <select style={S.editSelect} value={form.unit_type} onChange={e => upd({ unit_type: e.target.value })}>
-                <option value="">Select type…</option>
-                {EDIT_UNIT_TYPE_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
-              </select>
-            </div>
-            <div>
-              <div style={S.editLabel}>Ownership Type</div>
-              <select style={S.editSelect} value={form.ownership_type} onChange={e => upd({ ownership_type: e.target.value })}>
-                <option value="">Select ownership…</option>
-                {EDIT_UNIT_OWNERSHIP_TYPE_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
-              </select>
-            </div>
-            <div>
-              <div style={S.editLabel}>Lease Type</div>
-              <select style={S.editSelect} value={form.lease_type} onChange={e => upd({ lease_type: e.target.value })}>
-                <option value="">Select lease type…</option>
-                {EDIT_LEASE_TYPE_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
-              </select>
-            </div>
-            <div>
-              <div style={S.editLabel}>Management Model</div>
-              <select style={S.editSelect} value={form.management_model} onChange={e => upd({ management_model: e.target.value })}>
-                <option value="">Select model…</option>
-                {EDIT_MANAGEMENT_MODEL_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
-              </select>
-            </div>
-            <div>
-              <div style={S.editLabel}>Floor</div>
-              <input style={S.editInput} type="number" value={form.floor} onChange={e => upd({ floor: e.target.value })} />
-            </div>
-            <div>
-              <div style={S.editLabel}>Carpet Area (sq ft)</div>
-              <input style={S.editInput} type="number" value={form.carpet_area} onChange={e => upd({ carpet_area: e.target.value })} />
-            </div>
-            <div>
-              <div style={S.editLabel}>Total Area (sq ft)</div>
-              <input style={S.editInput} type="number" value={form.total_area} onChange={e => upd({ total_area: e.target.value })} />
-            </div>
-            <div>
-              <div style={S.editLabel}>Total Rooms (Beds)</div>
-              <input style={S.editInput} type="number" value={form.total_rooms} onChange={e => upd({ total_rooms: e.target.value })} />
-            </div>
-            <div>
-              <div style={S.editLabel}>Total Baths</div>
-              <input style={S.editInput} type="number" value={form.total_baths} onChange={e => upd({ total_baths: e.target.value })} />
-            </div>
-            <div>
-              <div style={S.editLabel}>Student Housing</div>
-              <label style={S.editCheckRow}>
-                <input type="checkbox" checked={form.student_housing} onChange={e => upd({ student_housing: e.target.checked })} />
-                This unit is student housing
-              </label>
-            </div>
-            <div>
-              <div style={S.editLabel}>Rent Amount ($)</div>
-              <input style={S.editInput} type="number" value={form.rent_amount} onChange={e => upd({ rent_amount: e.target.value })} />
-            </div>
-            <div>
-              <div style={S.editLabel}>Security Deposit ($)</div>
-              <input style={S.editInput} type="number" value={form.security_deposit} onChange={e => upd({ security_deposit: e.target.value })} />
-            </div>
-            <div>
-              <div style={S.editLabel}>Available From</div>
-              <input style={S.editInput} type="date" value={form.available_date || ''} onChange={e => upd({ available_date: e.target.value })} />
-            </div>
-            <div>
-              <div style={S.editLabel}>Floor Plan Name</div>
-              <input style={S.editInput} value={form.floor_plan_name} onChange={e => upd({ floor_plan_name: e.target.value })} />
-            </div>
-            <div style={{ gridColumn: '1 / -1' }}>
-              <div style={S.editLabel}>Description</div>
-              <textarea style={{ ...S.editInput, height: 70, resize: 'vertical', paddingTop: 8 }} value={form.description} onChange={e => upd({ description: e.target.value })} />
+            <div style={EU.rent}>
+              <span style={EU.rentVal}>{money(form.rent_amount)}</span>
+              <span style={EU.rentLbl}>/ month</span>
             </div>
           </div>
+        ),
+      }}
+      footer={<>
+        <button type="button" className="un2-btn" style={{ ...UI2.btn.soft, ...off }} onClick={onClose} disabled={saving}>Cancel</button>
+        <button type="button" className="un2-btn" style={{ ...UI2.btn.brand, ...off }} onClick={handleSave} disabled={saving}>
+          {!saving && <i className="ti ti-check" style={UI2.btnIcon} aria-hidden="true" />}
+          {saving ? 'Saving…' : 'Save changes'}
+        </button>
+      </>}
+    >
+      {/* ── Unit ── */}
+      <ModalSection icon="ti-door" title="Unit" hint="Number, tower, type and ownership">
+        <Grid layout="two" as="div" style={EU.grid}>
+          <FormField label="Unit number">
+            <input className="un2-focus-ring" style={FIELD2.input} value={form.unit_number} onChange={e => upd({ unit_number: e.target.value })} />
+          </FormField>
+          <FormField label="Tower">
+            <input className="un2-focus-ring" style={FIELD2.input} value={form.tower} onChange={e => upd({ tower: e.target.value })} />
+          </FormField>
+          <FormField label="Unit type">
+            <SelectField label="Unit type" placeholder="Select type" options={EDIT_UNIT_TYPE_OPTIONS} value={form.unit_type} onChange={v => upd({ unit_type: v || '' })} />
+          </FormField>
+          <FormField label="Ownership type">
+            <SelectField label="Ownership type" placeholder="Select ownership" options={EDIT_UNIT_OWNERSHIP_TYPE_OPTIONS} value={form.ownership_type} onChange={v => upd({ ownership_type: v || '' })} />
+          </FormField>
+          <FormField label="Floor">
+            <IconField icon="ti-stairs" type="number" value={form.floor} onChange={e => upd({ floor: e.target.value })} />
+          </FormField>
+          <FormField label="Student housing">
+            <div style={EU.checkWrap}>
+              <Checkbox checked={form.student_housing} onChange={() => upd({ student_housing: !form.student_housing })} label="This unit is student housing" />
+            </div>
+          </FormField>
+        </Grid>
+      </ModalSection>
 
-          <div style={{ ...S.editSecLbl, marginTop: 18 }}>Gallery Photos &amp; Video</div>
-          <div style={S.editGalGrid}>
-            {galleryItemsForModal.map(g => (
-              <div key={g.id} style={{ ...S.editGalItem, position: 'relative' }}>
-                {g.file_type === 'VIDEO' ? (
-                  <video src={g.file_url} style={{ width: '100%', height: '100%', objectFit: 'cover' }} muted />
+      {/* ── Size & rooms ── */}
+      <ModalSection icon="ti-ruler-2" title="Size & rooms" hint="Areas in square feet">
+        <Grid layout="two" as="div" style={EU.grid}>
+          <FormField label="Carpet area (sq ft)">
+            <input className="un2-focus-ring" style={FIELD2.input} type="number" value={form.carpet_area} onChange={e => upd({ carpet_area: e.target.value })} />
+          </FormField>
+          <FormField label="Total area (sq ft)">
+            <input className="un2-focus-ring" style={FIELD2.input} type="number" value={form.total_area} onChange={e => upd({ total_area: e.target.value })} />
+          </FormField>
+          <FormField label="Total rooms (beds)">
+            <IconField icon="ti-bed" type="number" value={form.total_rooms} onChange={e => upd({ total_rooms: e.target.value })} />
+          </FormField>
+          <FormField label="Total baths">
+            <IconField icon="ti-bath" type="number" value={form.total_baths} onChange={e => upd({ total_baths: e.target.value })} />
+          </FormField>
+        </Grid>
+      </ModalSection>
+
+      {/* ── Lease & pricing ── */}
+      <ModalSection icon="ti-file-dollar" title="Lease & pricing" hint="How the unit is let, managed and priced">
+        <Grid layout="two" as="div" style={EU.grid}>
+          <FormField label="Lease type">
+            <SelectField label="Lease type" placeholder="Select lease type" options={EDIT_LEASE_TYPE_OPTIONS} value={form.lease_type} onChange={v => upd({ lease_type: v || '' })} />
+          </FormField>
+          <FormField label="Management model">
+            <SelectField label="Management model" placeholder="Select model" options={EDIT_MANAGEMENT_MODEL_OPTIONS} value={form.management_model} onChange={v => upd({ management_model: v || '' })} />
+          </FormField>
+          <FormField label="Rent amount">
+            <IconField icon="ti-currency-dollar" type="number" value={form.rent_amount} onChange={e => upd({ rent_amount: e.target.value })} />
+          </FormField>
+          <FormField label="Security deposit">
+            <IconField icon="ti-shield-dollar" type="number" value={form.security_deposit} onChange={e => upd({ security_deposit: e.target.value })} />
+          </FormField>
+          <FormField label="Available from">
+            <input className="un2-focus-ring" style={FIELD2.input} type="date" value={form.available_date || ''} onChange={e => upd({ available_date: e.target.value })} />
+          </FormField>
+          <FormField label="Description" full>
+            <textarea className="un2-focus-ring" style={FIELD2.textarea} value={form.description} onChange={e => upd({ description: e.target.value })} />
+          </FormField>
+        </Grid>
+      </ModalSection>
+
+      {/* ── Gallery ── */}
+      <ModalSection
+        icon="ti-photo" title="Photos & video" hint="Remove (×) and add to replace · a video plays in the hero spot on the unit page"
+        action={<span style={UI2.pill(TONES2.primary)}>{galleryItemsForModal.length}</span>}
+      >
+        <Grid layout="four" as="div" style={EU.grid}>
+          {galleryItemsForModal.map(g => (
+            <div key={g.id} style={EU.photo}>
+              {g.file_type === 'VIDEO'
+                ? <video src={g.file_url} style={UI2.photoMedia} muted />
+                : <img src={g.file_url} alt="" style={UI2.photoMedia} />}
+              {g.file_type === 'VIDEO' && <span style={EU.play} aria-hidden="true"><i className="ti ti-player-play-filled" /></span>}
+              <button
+                type="button" className="un2-btn" style={EU.remove} onClick={() => handleDeleteGalleryItem(g.id)}
+                disabled={galDeletingId === g.id} aria-label={g.file_type === 'VIDEO' ? 'Remove video' : 'Remove photo'}
+              >
+                <i className={`ti ${galDeletingId === g.id ? 'ti-loader-2' : 'ti-x'}`} aria-hidden="true" />
+              </button>
+            </div>
+          ))}
+          <button type="button" className="un2-raise" style={EU.add(uploadingGalleryInModal)} onClick={() => { if (!uploadingGalleryInModal) galleryModalInputRef.current?.click(); }}>
+            <i className={`ti ${uploadingGalleryInModal ? 'ti-loader-2' : 'ti-photo-plus'}`} style={EU.addIcon} aria-hidden="true" />
+            {uploadingGalleryInModal ? 'Uploading…' : 'Add photo / video'}
+          </button>
+        </Grid>
+        {galleryItemsForModal.length === 0 && <div style={UI2.emptyInline}>No real photos uploaded yet — the unit page shows samples.</div>}
+        <input
+          ref={galleryModalInputRef}
+          type="file" accept="image/jpeg,image/png,image/webp,video/mp4,video/quicktime" style={EU.hidden}
+          onChange={e => { const f = e.target.files[0]; e.target.value = ''; if (f) handleAddGalleryInModal(f); }}
+        />
+      </ModalSection>
+
+      {/* ── Floor plan ── */}
+      <ModalSection icon="ti-layout-board" title="Floor plan" hint="Tap a page to replace it">
+        <FormField label="Floor plan name">
+          <input className="un2-focus-ring" style={FIELD2.input} value={form.floor_plan_name} onChange={e => upd({ floor_plan_name: e.target.value })} />
+        </FormField>
+        <Grid layout="four" as="div" style={EU.grid}>
+          {FP_SLOTS.map(({ key, label }) => {
+            const url = slotCurrentUrl(key);
+            return (
+              <div key={key} style={EU.slot}>
+                {url ? (
+                  <div className="un2-zoom" style={{ ...EU.photo, cursor: 'pointer' }} role="button" tabIndex={0}
+                    onClick={() => fpInputRefs.current[key]?.click()} onKeyDown={e => { if (e.key === 'Enter') fpInputRefs.current[key]?.click(); }} aria-label={`Replace ${label}`}>
+                    <img src={url} alt={label} style={UI2.photoMedia} />
+                    <button type="button" className="un2-btn" style={EU.remove} onClick={e => { e.stopPropagation(); handleClearSlot(key); }} aria-label={`Remove ${label}`}>
+                      <i className="ti ti-x" aria-hidden="true" />
+                    </button>
+                  </div>
                 ) : (
-                  <img src={g.file_url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                  <button type="button" className="un2-raise" style={EU.add()} onClick={() => fpInputRefs.current[key]?.click()}>
+                    <i className="ti ti-upload" style={EU.addIcon} aria-hidden="true" /> Upload
+                  </button>
                 )}
-                {g.file_type === 'VIDEO' && (
-                  <div style={{ position: 'absolute', bottom: 4, left: 4, background: 'rgba(0,0,0,0.6)', color: '#fff', fontSize: 9, fontWeight: 700, letterSpacing: 0.3, padding: '2px 5px', borderRadius: 4 }}>VIDEO</div>
-                )}
-                <button
-                  type="button"
-                  style={S.editGalX}
-                  onClick={() => handleDeleteGalleryItem(g.id)}
-                  disabled={galDeletingId === g.id}
-                  aria-label={g.file_type === 'VIDEO' ? 'Remove video' : 'Remove photo'}
-                >
-                  <i className={`ti ${galDeletingId === g.id ? 'ti-loader-2' : 'ti-x'}`} style={{ fontSize: 11 }} aria-hidden="true" />
-                </button>
+                <span style={EU.cap}>{label}</span>
+                <input
+                  ref={el => (fpInputRefs.current[key] = el)}
+                  type="file" accept="image/jpeg,image/png,image/webp" style={EU.hidden}
+                  onChange={e => { const f = e.target.files[0]; e.target.value = ''; if (f) handlePickFile(key, f); }}
+                />
               </div>
-            ))}
-            <div
-              style={{ ...S.editGalItem, border: `1px dashed ${C.cardBdr}`, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 3, cursor: uploadingGalleryInModal ? 'wait' : 'pointer', color: C.txtMuted, fontSize: 10.5 }}
-              onClick={() => { if (!uploadingGalleryInModal) galleryModalInputRef.current?.click(); }}
-            >
-              <input
-                ref={galleryModalInputRef}
-                type="file" accept="image/jpeg,image/png,image/webp,video/mp4,video/quicktime" style={{ display: 'none' }}
-                onChange={e => { const f = e.target.files[0]; e.target.value = ''; if (f) handleAddGalleryInModal(f); }}
-              />
-              <i className={`ti ${uploadingGalleryInModal ? 'ti-loader-2' : 'ti-plus'}`} style={{ fontSize: 16 }} aria-hidden="true" />
-              {uploadingGalleryInModal ? 'Uploading…' : 'Add photo / video'}
-            </div>
-            {galleryItemsForModal.length === 0 && (
-              <div style={{ gridColumn: '2 / span 3', fontSize: 11.5, color: C.txtMuted, fontStyle: 'italic', alignSelf: 'center' }}>No real photos uploaded yet — showing samples on the unit page.</div>
-            )}
-          </div>
-          <div style={{ fontSize: 10.5, color: C.txtMuted, marginTop: 4 }}>
-            Replacing a photo or video here means removing it (×) and adding the new one. If a video is present, it plays automatically in the hero spot on the Unit page.
-          </div>
+            );
+          })}
+        </Grid>
+      </ModalSection>
 
-          <div style={{ ...S.editSecLbl, marginTop: 18 }}>Floor Plan</div>
-          <div style={S.editGalGrid}>
-            {FP_SLOTS.map(({ key, label }) => {
-              const url = slotCurrentUrl(key);
-              // Session 57 fix — Floor Plan used to have its own pattern (a
-              // separate "Replace"/"Upload" text link under each tile) that
-              // didn't match Gallery Photos' pattern (click the tile itself,
-              // X badge to remove). Unified: the whole tile is now the click
-              // target, same as Gallery Photos, just keeping the small
-              // position label since these 4 slots are order-meaningful
-              // (Gallery Photos' tiles aren't).
-              return (
-                <div key={key} style={S.editFpSlot}>
-                  <div
-                    onClick={() => fpInputRefs.current[key]?.click()}
-                    style={{ position: 'relative', width: '100%', height: 80, borderRadius: 8, overflow: 'hidden', background: C.pageBg, cursor: 'pointer' }}
-                  >
-                    {url ? (
-                      <img src={url} alt={label} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                    ) : (
-                      <div style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 3, color: C.txtMuted, fontSize: 10.5, border: `1px dashed ${C.cardBdr}`, borderRadius: 8 }}>
-                        <i className="ti ti-plus" style={{ fontSize: 15 }} aria-hidden="true" />
-                        Upload
-                      </div>
-                    )}
-                    {url && (
-                      <button
-                        type="button"
-                        onClick={e => { e.stopPropagation(); handleClearSlot(key); }}
-                        style={S.editFpX}
-                        aria-label={`Remove ${label}`}
-                      >
-                        <i className="ti ti-x" style={{ fontSize: 11 }} aria-hidden="true" />
-                      </button>
-                    )}
-                  </div>
-                  <div style={{ fontSize: 10.5, color: C.txtMuted, marginTop: 4, textAlign: 'center' }}>{label}</div>
-                  <input
-                    ref={el => (fpInputRefs.current[key] = el)}
-                    type="file" accept="image/jpeg,image/png,image/webp" style={{ display: 'none' }}
-                    onChange={e => { const f = e.target.files[0]; e.target.value = ''; if (f) handlePickFile(key, f); }}
-                  />
-                </div>
-              );
-            })}
-          </div>
-
-          <div style={{ ...S.editSecLbl, marginTop: 18 }}>Amenities</div>
-          <input
-            style={{ ...S.editInput, marginBottom: 8 }}
-            placeholder="Search amenities…"
-            value={amenitySearch}
-            onChange={e => setAmenitySearch(e.target.value)}
-          />
-          <div style={S.editAmenityGrid}>
-            {filteredAmenityMaster.map(a => {
-              const checked = selectedAmenityIds.has(a.id);
-              const { icon, bg, color } = amenityStyle(a.name);
-              return (
-                <div key={a.id} onClick={() => toggleAmenity(a.id)} style={S.editAmenityItem(checked)}>
-                  <div style={{ width: 22, height: 22, borderRadius: 6, flexShrink: 0, background: bg, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                    <i className={`ti ${a.icon || icon}`} style={{ fontSize: 12, color }} aria-hidden="true" />
-                  </div>
-                  <span style={{ flex: 1 }}>{a.name}</span>
-                  {checked && <i className="ti ti-circle-check-filled" style={{ fontSize: 14, color: C.blue }} aria-hidden="true" />}
-                </div>
-              );
-            })}
-            {filteredAmenityMaster.length === 0 && (
-              <div style={{ fontSize: 12, color: C.txtMuted, fontStyle: 'italic' }}>No amenities found.</div>
-            )}
-          </div>
-        </div>
-
-        <div style={S.modalFooter}>
-          <button style={S.modalBtnSecondary} onClick={onClose} disabled={saving}>Cancel</button>
-          <button style={S.modalBtnPrimary(saving)} disabled={saving} onClick={handleSave}>{saving ? 'Saving…' : 'Save Changes'}</button>
-        </div>
-      </div>
-    </div>
+      {/* ── Amenities ── */}
+      <ModalSection
+        icon="ti-armchair" title="Amenities" hint="What this unit offers"
+        action={<span style={UI2.pill(TONES2.primary)}>{selectedAmenityIds.size} selected</span>}
+      >
+        <IconField icon="ti-search" placeholder="Search amenities…" value={amenitySearch} onChange={e => setAmenitySearch(e.target.value)} />
+        <Grid layout="three" as="div" style={EU.tiles}>
+          {filteredAmenityMaster.map(a => (
+            <ChoiceTile
+              key={a.id} icon={a.icon || amenityStyle(a.name).icon} label={a.name}
+              selected={selectedAmenityIds.has(a.id)} onClick={() => toggleAmenity(a.id)}
+            />
+          ))}
+        </Grid>
+        {filteredAmenityMaster.length === 0 && <div style={UI2.emptyInline}>No amenities found.</div>}
+      </ModalSection>
+    </Modal>
   );
 }
+
+// Edit Unit modal — layout only (fields, tiles, buttons and the frame are the shared v2 standards)
+const EU = {
+  grid:     { columnGap: SP2.lg, rowGap: SP2.lg },
+  tiles:    { columnGap: SP2.sm, rowGap: SP2.sm },
+  checkWrap:{ ...UI2.row(0), minHeight: SZ2.field },
+  slot:     { ...UI2.stack(SP2.xs), minWidth: 0 },
+  photo:    { ...UI2.photoTile, height: SZ2.modalPhoto },
+  add:      (busy) => ({ ...UI2.addTile(busy), height: SZ2.modalPhoto }),
+  addIcon:  { ...UI2.addTileIcon, fontSize: FS2.xl },
+  remove:   { ...UI2.btn.icon(SZ2.control.sm), position: 'absolute', top: SP2.xs, right: SP2.xs, background: C2.white, color: C2.textSecondary, boxShadow: SH2.md },
+  play:     { ...UI2.center, position: 'absolute', inset: 0, color: C2.white, fontSize: FS2.xxl, pointerEvents: 'none' },
+  cap:      { ...UI2.text.meta, textAlign: 'center' },
+  hidden:   { display: 'none' },
+  off:      { opacity: 0.6, cursor: 'not-allowed' },
+  // live fact card on the Modal photo panel (white glass — different from Edit Property's dark caption)
+  card:     { ...UI2.stack(SP2.sm), padding: SP2.md, borderRadius: R2.lg, background: C2.glassCaption, boxShadow: SH2.lg, backdropFilter: BLUR2.glass, WebkitBackdropFilter: BLUR2.glass },
+  cardTop:  { ...UI2.row(SP2.sm), justifyContent: 'space-between' },
+  cardName: { ...T2.sectionTitle, ...UI2.truncate, minWidth: 0 },
+  cardChip: { ...UI2.pill(TONES2.primary), flexShrink: 0 },
+  cardSub:  { ...UI2.text.meta, marginTop: -SP2.xs },
+  facts:    { display: 'flex', justifyContent: 'space-between', gap: SP2.xs, padding: pad(SP2.sm, 0), borderTop: `${SZ2.hairline}px solid ${C2.divider}`, borderBottom: `${SZ2.hairline}px solid ${C2.divider}` },
+  fact:     { ...UI2.stack(0), alignItems: 'center', flex: 1, minWidth: 0 },
+  factIcon: { fontSize: FS2.md, color: C2.primary },
+  factVal:  { fontSize: FS2.md, fontWeight: FW2.semibold, color: C2.textPrimary, lineHeight: LH2.heading },
+  factLbl:  { ...T2.caption },
+  rent:     { ...UI2.row(SP2.xs), alignItems: 'baseline' },
+  rentVal:  { ...T2.kpiValue, color: C2.navyDeep },
+  rentLbl:  { ...T2.caption },
+};
 
 // ─── Design System v2 — presentation for the main page ───────────────────────
 // Visual layer only. Data still comes from exactly the same calls as before:
@@ -923,7 +925,7 @@ function EditUnitModal({ propId, unitId, unit, amenities, onClose, onSaved }) {
 //   POST   /properties/<id>/units/<uid>/services/       (Add Service)
 //   POST   /properties/<id>/units/<uid>/gallery/        (Add photo / video)
 //   PATCH  /properties/<id>/units/<uid>/                (floor plan slot upload / remove)
-// The modals above (Add Service, Edit Unit, Detail pop-up, Gallery lightbox) are unchanged.
+// The modals above (Add Service, Detail pop-up, Gallery lightbox) are unchanged; Edit Unit is on the v2 Modal template.
 //
 // Layout — top per Downloads/image 61.png, cards below = the original unit-page design:
 //   Breadcrumb · DetailHeader (Unit N · Vacant pill · "LL01 – Apartment Complex" │ Edit · Listing · Share · Download)

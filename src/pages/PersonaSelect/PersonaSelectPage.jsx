@@ -247,7 +247,6 @@ const S = {
   addFootRow: (w) => ({ width: '100%', maxWidth: w, margin: '0 auto' }),   // lines up with the cards above
 
   // modals
-  mIcon:    (tone) => ({ ...UI2.iconBox(SZ2.icon.lg, tone), marginBottom: SP2.md }),
   mText:    { ...T2.body, margin: 0 },
   mNote:    { ...UI2.tonePanel(TONES2.error), ...T2.label, color: C2.errorDark, padding: pad(SP2.md, SP2.lg), marginTop: SP2.md },
 };
@@ -845,6 +844,7 @@ export default function PersonaSelectPage() {
       {/* ── Reactivate modal (inactive Landlord / Independent PM — existing logic) ── */}
       {showReactivateModal && (
         <Modal
+          variant="confirm" icon="ti-refresh" tone={TONES2.primary}
           title="Reactivate profile?"
           onClose={handleReactivateCancel}
           footer={<>
@@ -854,7 +854,6 @@ export default function PersonaSelectPage() {
             </button>
           </>}
         >
-          <span style={S.mIcon(TONES2.primary)}><i className="ti ti-refresh" aria-hidden="true" /></span>
           <p style={S.mText}>
             Your {pendingReactivateKey === 'LANDLORD' ? 'Landlord' : 'Independent PM'} profile is currently inactive.
             Would you like to reactivate it? You'll need to review and resubmit your details.
@@ -865,6 +864,7 @@ export default function PersonaSelectPage() {
       {/* ── Rejection modal (Organisational PMS application rejected) ── */}
       {showRejectionModal && (
         <Modal
+          variant="confirm" icon="ti-alert-circle" tone={TONES2.error}
           title="Previous application rejected"
           onClose={() => setShowRejectionModal(false)}
           footer={<>
@@ -874,7 +874,6 @@ export default function PersonaSelectPage() {
             </button>
           </>}
         >
-          <span style={S.mIcon(TONES2.error)}><i className="ti ti-alert-circle" aria-hidden="true" /></span>
           <p style={S.mText}>
             Your previous Organizational PMS application was rejected. You can start a fresh new application — your previous submission will be kept on record.
           </p>
