@@ -11,11 +11,11 @@
 // IconField 36px, brand CTA, soft social buttons — never white buttons on white, TextLink).
 // The sign-in logic (handleSubmit, tokens, refreshAuth, redirects) is unchanged.
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useLayoutEffect, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Grid, ImageBackdrop } from '../../components/layout';
 import { FormField, IconField, TextLink, CornerArt, Particles } from '../../components/ui';
-import { C2, G2, F2, FS2, LH2, LS2, SP2, SZ2, R2, BLUR2, OP2, LAYOUT2, T2, UI2, pad } from '../../constants';
+import { C2, G2, F2, FS2, LH2, LS2, SP2, SZ2, R2, BLUR2, OP2, LAYOUT2, BP2, T2, UI2, pad } from '../../constants';
 import brandLogo from '../../assets/brand/urban-nest-logo.png';
 import backdropArt from '../../assets/landlord/wizard-backdrop.jpg';   // same soft waves as the Create Listing backdrop
 import heroArt from '../../assets/landlord/login-hero.jpg';           // dusk villa + pool (Downloads/image 120.png, resized to 2400px)
@@ -51,6 +51,11 @@ const TESTIMONIALS = [
 ];
 const TESTIMONIAL_MS = 5000;   // carousel auto-advance
 const FOOT_LINKS = ['Privacy', 'Security', 'Terms'];
+// Page-open choreography (seconds from load) — un2-intro-* classes (utilities.css). Card first, then the photo
+// curtain + camera settle, headline lines, the photo copy; the form rows cascade in parallel; one sheen to finish.
+const INTRO = { bg: 0, card: 0.1, photo: 0.45, brand: 1.0, line: 1.15, lineStep: 0.18, sub: 1.55, quote: 1.8, form: 0.7, formStep: 0.12, sheen: 2.5 };
+const at = (s) => ({ '--un2-d': `${s}s` });                     // start time of one intro element
+const formAt = (i) => at(INTRO.form + i * INTRO.formStep);   // i-th row of the form cascade
 // Where the falling leaves come from — the tree crowns in login-hero.jpg (fractions of the photo: x0, y0, x1, y1).
 // position = the photo's object-position (68% center), so Particles crops the areas exactly like the <img>.
 const LEAF_SOURCE = {
@@ -79,7 +84,11 @@ const S = {
     WebkitMaskImage: `${G2.imageBackdropMask}, ${G2.imageBackdropMaskX}`, maskImage: `${G2.imageBackdropMask}, ${G2.imageBackdropMaskX}`,
     WebkitMaskComposite: 'source-in', maskComposite: 'intersect',
   },
-  card:      { ...UI2.card, padding: 0, gap: 0, width: '100%', maxWidth: SZ2.authCard, overflow: 'hidden' },
+  card:      { ...UI2.card, padding: 0, gap: 0, width: '100%', overflow: 'hidden' },
+  // card frame: same max width; scaled down AS A WHOLE when the window is small (see useCardFit) — every size
+  // inside stays the standard one. The wrapper takes the page's entrance animation, the frame only the scale.
+  cardWrap:  { width: '100%', maxWidth: SZ2.authCard },
+  cardFit:   (k) => ({ transform: k === 1 ? 'none' : `scale(${k})`, transformOrigin: 'center' }),
 
   // photo side
   hero:      { position: 'relative', display: 'flex', flexDirection: 'column', minHeight: SZ2.authHeroMin, padding: SP2.huge, background: C2.navyHero, color: C2.white, overflow: 'hidden' },
@@ -90,7 +99,6 @@ const S = {
   logoMark:  { height: SZ2.icon.md, width: 'auto', aspectRatio: SZ2.brandLogoRatio, display: 'block' },
   logoName:  { ...T2.brandTitle, lineHeight: LH2.tight, letterSpacing: LS2.snug },
   title:     { ...T2.heroTitle, margin: pad(SP2.huge, 0, SP2.sm) },
-  accent:    { color: C2.skyOnDark },
   sub:       { margin: 0, fontSize: FS2.base, lineHeight: LH2.body, color: C2.onDark.textSoft },
   // testimonial panel — pinned to the BOTTOM of the photo (same inset as the text), clear navy glass
   quote:     { ...UI2.stack(SP2.md), position: 'absolute', left: SP2.huge, right: SP2.huge, bottom: SP2.huge, margin: 0, padding: SP2.xl, borderRadius: R2.xl, background: G2.authGlass, border: `${SZ2.hairline}px solid ${C2.onDark.borderSoft}`, backdropFilter: BLUR2.md, WebkitBackdropFilter: BLUR2.md },
@@ -151,6 +159,30 @@ export function safeRedirect(path) {
   return typeof path === 'string' && path.startsWith('/') && !path.startsWith('//') ? path : null;
 }
 
+// Card fit: on windows where the card would take more than SZ2.authFit of the width / height (small laptops,
+// Windows display scaling 125 %+), scale the whole card down so it keeps the same share of the screen —
+// nothing inside changes size in the code. Only while photo │ form sit side by side (wider than BP2.lg); stacked
+// (tablets) and phones are left alone.
+function useCardFit() {
+  const ref = useRef(null);
+  const [fit, setFit] = useState(1);
+  useLayoutEffect(() => {
+    const el = ref.current;
+    if (!el) return undefined;
+    const update = () => {
+      const vw = window.innerWidth; const vh = window.innerHeight;
+      const k = vw <= BP2.lg ? 1 : Math.min(1, (vw * SZ2.authFit.w) / el.offsetWidth, (vh * SZ2.authFit.h) / el.offsetHeight);
+      setFit(Math.round(k * 1000) / 1000);
+    };
+    update();
+    const ro = new ResizeObserver(update);   // layout size (a transform never changes it → no loop)
+    ro.observe(el);
+    window.addEventListener('resize', update);
+    return () => { ro.disconnect(); window.removeEventListener('resize', update); };
+  }, []);
+  return [ref, fit];
+}
+
 export default function LoginPage() {
   const navigate = useNavigate();
   const location = useLocation();
@@ -174,6 +206,7 @@ export default function LoginPage() {
     const t = setTimeout(() => step(1), TESTIMONIAL_MS);
     return () => clearTimeout(t);
   }, [carousel.cur, paused]);
+  const [cardRef, fit] = useCardFit();
   const slideCls = (i) => (i === carousel.cur ? 'is-active' : i === carousel.prev ? 'is-leaving' : undefined);
 
   const handleSubmit = async (e) => {
@@ -251,28 +284,35 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="un2-enter-stagger" style={S.page}>
-      <ImageBackdrop image={backdropArt} />
-      <div style={S.waveWrap} aria-hidden="true"><div style={S.waveLeft} /></div>
+    <div style={S.page}>
+      <div className="un2-intro-fade" style={at(INTRO.bg)}>
+        <ImageBackdrop image={backdropArt} />
+        <div style={S.waveWrap} aria-hidden="true"><div style={S.waveLeft} /></div>
+      </div>
 
+      <div className="un2-intro-card" style={{ ...S.cardWrap, ...at(INTRO.card) }}>
+      <div ref={cardRef} style={S.cardFit(fit)}>
       <Grid layout="split" as="div" style={S.card}>
         {/* ── Photo side — brand · headline · testimonial carousel ── */}
-        <div style={S.hero} className="un2-hide-md">
-          <img src={heroArt} alt="" style={S.heroPhoto} />
+        <div style={{ ...S.hero, ...at(INTRO.photo) }} className="un2-hide-md un2-intro-curtain">
+          <img src={heroArt} alt="" className="un2-intro-zoom" style={{ ...S.heroPhoto, ...at(INTRO.photo) }} />
           <div style={S.heroScrim} aria-hidden="true" />
           {/* weather over the photo: rain behind, falling leaves in front (nearer the camera) */}
           <Particles variant="rain" density={0.7} />
           <Particles variant="leaves" source={LEAF_SOURCE} />
           <div style={S.heroBody}>
-            <div style={S.brand}>
+            <div className="un2-intro-up" style={{ ...S.brand, ...at(INTRO.brand) }}>
               <img src={brandLogo} alt="" style={S.logoMark} />
               <span style={S.logoName}>UrbanNest</span>
             </div>
-            <h2 style={S.title}>The Smart Way to<br />Manage &amp; <span style={S.accent}>Find Homes</span></h2>
-            <p style={S.sub}>Rent, buy, manage and explore properties —<br />all in one trusted platform.</p>
+            <h2 style={S.title}>
+              <span className="un2-intro-line"><span style={at(INTRO.line)}>The Smart Way to</span></span>
+              <span className="un2-intro-line"><span style={at(INTRO.line + INTRO.lineStep)}>Manage &amp; Find Homes</span></span>
+            </h2>
+            <p className="un2-intro-up" style={{ ...S.sub, ...at(INTRO.sub) }}>Rent, buy, manage and explore properties —<br />all in one trusted platform.</p>
           </div>
 
-          <figure style={S.quote} onMouseEnter={() => setPaused(true)} onMouseLeave={() => setPaused(false)}
+          <figure className="un2-intro-rise" style={{ ...S.quote, ...at(INTRO.quote) }} onMouseEnter={() => setPaused(true)} onMouseLeave={() => setPaused(false)}
             onFocus={() => setPaused(true)} onBlur={() => setPaused(false)}>
               <i className="ti ti-quote" style={S.quoteMark} aria-hidden="true" />
               {/* every quote sits in the same cell (un2-xfade) → the panel keeps one height and the quotes crossfade */}
@@ -305,7 +345,7 @@ export default function LoginPage() {
         <div style={S.formSide}>
           <CornerArt />
           <div style={S.formCol}>
-            <div>
+            <div className="un2-intro-up" style={formAt(0)}>
               <h1 style={S.h1}>Secure Access</h1>
               <p style={S.lead}>Enter your credentials to access your UrbanNest account.</p>
             </div>
@@ -317,38 +357,40 @@ export default function LoginPage() {
             )}
 
             <form onSubmit={handleSubmit} style={S.form}>
-              <FormField label="Email or Phone">
+              <div className="un2-intro-up" style={formAt(1)}><FormField label="Email or Phone">
                 <IconField icon="ti-mail" type="text" placeholder="Enter your email or phone number" autoComplete="username"
                   value={clientId} onChange={e => { setClientId(e.target.value); setError(''); }} aria-label="Email or phone" />
-              </FormField>
-              <FormField label="Password" action={<TextLink arrow={false} onClick={() => {}}>Forgot password?</TextLink>}>
+              </FormField></div>
+              <div className="un2-intro-up" style={formAt(2)}><FormField label="Password" action={<TextLink arrow={false} onClick={() => {}}>Forgot password?</TextLink>}>
                 <IconField icon="ti-lock" type={showPassword ? 'text' : 'password'} placeholder="Enter your password" autoComplete="current-password"
                   value={password} onChange={e => { setPassword(e.target.value); setError(''); }} aria-label="Password"
                   trailing={{ icon: showPassword ? 'ti-eye-off' : 'ti-eye', label: showPassword ? 'Hide password' : 'Show password', onClick: () => setShowPassword(v => !v) }} />
-              </FormField>
-              <button type="submit" className="un2-btn" style={{ ...S.submit, ...(loading ? S.busy : {}) }} disabled={loading}>
+              </FormField></div>
+              <div className="un2-intro-up" style={formAt(3)}>
+              <button type="submit" className="un2-btn un2-intro-sheen" style={{ ...S.submit, ...(loading ? S.busy : {}), ...at(INTRO.sheen) }} disabled={loading}>
                 <i className={`ti ${loading ? 'ti-loader-2 un2-spin' : 'ti-lock'}`} style={UI2.btnIcon} aria-hidden="true" />
                 {loading ? 'Signing in…' : 'Secure Sign In'}
               </button>
+              </div>
             </form>
 
-            <div style={S.orRow}>
+            <div className="un2-intro-up" style={{ ...S.orRow, ...formAt(4) }}>
               <span style={S.orLine} />
               <span style={S.orText}>Or continue with</span>
               <span style={S.orLine} />
             </div>
 
-            <Grid layout="two" as="div" style={S.socials}>
+            <Grid layout="two" as="div" className="un2-intro-up" style={{ ...S.socials, ...formAt(5) }}>
               <button type="button" className="un2-btn" style={S.social}><GoogleLogo /> Google</button>
               <button type="button" className="un2-btn" style={S.social}><AppleLogo /> Apple</button>
             </Grid>
 
-            <div style={S.signup}>
+            <div className="un2-intro-up" style={{ ...S.signup, ...formAt(6) }}>
               New here?
               <TextLink onClick={() => navigate('/signup', { state: location.state })}>Create Account</TextLink>
             </div>
 
-            <div style={S.foot}>
+            <div className="un2-intro-up" style={{ ...S.foot, ...formAt(7) }}>
               <span style={S.copy}>© 2024 UrbanNest Editorial Systems. All rights reserved.</span>
               <div style={S.footLinks}>
                 {FOOT_LINKS.map(l => <button key={l} type="button" style={S.footLink}>{l}</button>)}
@@ -357,6 +399,8 @@ export default function LoginPage() {
           </div>
         </div>
       </Grid>
+      </div>
+      </div>
     </div>
   );
 }

@@ -69,6 +69,8 @@
   --un2-rise: 12px;                             /* MOTION2.rise — entrance travel */
   --un2-xfade: 0.8s;                            /* un2-xfade — crossfade length (slides in / out) */
   --un2-xfade-delay: 0.18s;                     /* un2-xfade — incoming slide starts a beat after the outgoing one */
+  --un2-intro-ease: cubic-bezier(0.16, 1, 0.3, 1);   /* un2-intro-* — expo ease-out: fast start, long soft landing */
+  --un2-intro-pace: 1.6;                        /* un2-intro-* — speed of every intro animation: 1 = base, higher = slower */
   --un2-nudge: 3px;                             /* MOTION2.nudge — link arrow hover slide */
   --un2-ping: rgba(16, 185, 129, 0.45);         /* live-dot pulse ring (C2.success at 45%) */
   --un2-ping-end: rgba(16, 185, 129, 0);

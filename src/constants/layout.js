@@ -104,6 +104,7 @@ export const SZ2 = {
   authCard: 1120,
   authForm: 400,
   authHeroMin: 480,
+  authFit: { w: 0.78, h: 0.72 },               // the card never takes more than 78% of the window's width / 72% of its height — larger → scaled down as a whole (sizes inside unchanged)
 };
 
 // Page & section rhythm — the spacing pattern every v2 screen follows.
