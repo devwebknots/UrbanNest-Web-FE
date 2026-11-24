@@ -63,7 +63,8 @@ const S = {
   arrows:    { ...UI2.row(SP2.sm), flexShrink: 0 },
   arrow:     { ...UI2.btn.icon(SZ2.control.md), color: C2.white, fontSize: FS2.lg, border: `${SZ2.hairline}px solid ${C2.onDark.border}` },
   form:      { ...UI2.stack(FORM_GAP) },
-  signup:    { ...UI2.row(SP2.xs), justifyContent: 'center', ...T2.label },
+  signup:    { ...UI2.row(SP2.xs), justifyContent: 'center', ...T2.label, fontSize: AUTH.lead.fontSize },
+  signupLink: { fontSize: AUTH.lead.fontSize },   // "Create Account" = same 14px as the "New here?" text (same as Sign Up's "Sign in" line)
 };
 
 // Session 55 — callers that send a signed-out user here (Apply, Book a
@@ -252,7 +253,7 @@ export default function LoginPage() {
 
       <div className="un2-intro-up" style={{ ...S.signup, ...formIntro(6) }}>
         New here?
-        <TextLink onClick={() => navigate('/signup', { state: location.state })}>Create Account</TextLink>
+        <TextLink onClick={() => navigate('/signup', { state: location.state })} style={S.signupLink}>Create Account</TextLink>
       </div>
 
       <div className="un2-intro-up" style={{ ...AUTH.foot, ...formIntro(7) }}>
