@@ -31,11 +31,12 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { Grid } from '../../../components/layout';
-import { SectionCard, CornerArt, WizardFooter, TextLink, Modal } from '../../../components/ui';
+import { SectionCard, CornerArt, WizardFooter, TextLink, SuccessModal } from '../../../components/ui';
 import { C2, TONES2, F2, FS2, FW2, SP2, SZ2, R2, SH2, T2, UI2 } from '../../../constants';
 import { WizardPage, WZ } from './listingWizardV2';
 import { MIN_REQUIRED_PHOTOS } from './mockListingData';
 import { getListing, getUnit, getPromotionPlanCatalog, publishListing } from './listingApi';
+import { TEST_CASES } from '../../../testCases';
 import photoPlaceholder from '../../../assets/landlord/unit-placeholder.jpg';
 
 // ── Page-specific layout (tokens only) ──────────────────────────────────────
@@ -78,8 +79,6 @@ const S = {
   total:     { ...UI2.row(SP2.lg) },
   totalLbl:  { ...UI2.capsLabel, display: 'block' },
   totalVal:  { ...T2.kpiValue, fontFamily: F2.heading, fontWeight: FW2.semibold },   // 20 · Playfair · 600 — same as the Step 3 promotion cost
-  // Published modal
-  doneBody:  { textAlign: 'center', ...UI2.stack(SP2.sm), alignItems: 'center' },
 };
 
 // Summary item — icon · label on the left, value on the right (muted when it's a "not set" placeholder)
@@ -511,17 +510,24 @@ export default function ListingStep4_Publish() {
       />
 
       {/* Published — a small popup over the still-visible Step 4 page (Session 47 fix), Done → unit page */}
-      {published && (
-        <Modal
-          variant="confirm" icon="ti-check" title="Listing Published"
+      {(published || TEST_CASES.showListingPublishedModal) && (
+        <SuccessModal
+          title={amountDueToday > 0 ? "Payment successful — you're live!" : 'Listing published!'}
+          message={`${propertyName} · Unit ${unit.unit_number} is now live on the marketplace.`}
+          item={{
+            image: coverUrl, fallback: photoPlaceholder, status: 'Live',
+            name: `${propertyName} · Unit ${unit.unit_number}`,
+            sub: priceValue ? `${Number(priceValue).toLocaleString()}${priceSuffix ? ` ${priceSuffix}` : ''}` : (addressLine1 || addressLine2),
+          }}
+          details={[
+            { label: 'Promotion plan', value: `${plan.name} (${plan.durationDays} days)` },
+            { label: amountDueToday > 0 ? 'Amount paid' : 'Cost', value: totalLabel, strong: true },
+            publishedListing?.expires_at && { label: 'Live until', value: formatDateTime(publishedListing.expires_at) },
+          ].filter(Boolean)}
+          secondary={{ label: 'All listings', icon: 'ti-list-details', onClick: () => navigate('/landlord-portal/listings') }}
+          primary={{ label: 'View unit', icon: 'ti-arrow-right', onClick: handleDone }}
           onClose={handleDone}
-          footer={<button type="button" className="un2-btn" style={{ ...UI2.btn.brand, width: '100%' }} onClick={handleDone}>Done</button>}
-        >
-          <div style={S.doneBody}>
-            <div style={UI2.text.label}>{propertyName} · Unit {unit.unit_number} is now live on the marketplace.</div>
-            {publishedListing?.expires_at && <div style={T2.caption}>Runs through {formatDateTime(publishedListing.expires_at)}</div>}
-          </div>
-        </Modal>
+        />
       )}
     </>
   );

@@ -110,6 +110,23 @@ function MediaEdge() {
   );
 }
 
+// Shared pop-up behaviour (Modal, SuccessModal): Esc closes · page behind stays still · focus moves into the
+// card and back to where it was when the pop-up closes.
+export function useModalChrome(onClose, cardRef) {
+  useEffect(() => {
+    const onKey = e => { if (e.key === 'Escape') onClose?.(); };
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, [onClose]);
+  useEffect(() => {
+    const prevFocus = document.activeElement;
+    const prevOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    cardRef.current?.focus({ preventScroll: true });
+    return () => { document.body.style.overflow = prevOverflow; prevFocus?.focus?.({ preventScroll: true }); };
+  }, []);   // eslint-disable-line react-hooks/exhaustive-deps
+}
+
 const WIDTH = (size) => SZ2.modal[size] || SZ2.modal.md;
 
 export default function Modal({
@@ -125,19 +142,7 @@ export default function Modal({
     : (media && typeof media === 'object') ? media
     : { image: media || defaultMedia };
 
-  // Esc closes · page behind stays still · focus moves into the card (and back when it closes)
-  useEffect(() => {
-    const onKey = e => { if (e.key === 'Escape') onClose?.(); };
-    document.addEventListener('keydown', onKey);
-    return () => document.removeEventListener('keydown', onKey);
-  }, [onClose]);
-  useEffect(() => {
-    const prevFocus = document.activeElement;
-    const prevOverflow = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
-    cardRef.current?.focus({ preventScroll: true });
-    return () => { document.body.style.overflow = prevOverflow; prevFocus?.focus?.({ preventScroll: true }); };
-  }, []);
+  useModalChrome(onClose, cardRef);
 
   const contentW = width || WIDTH(aside ? 'lg' : size);
   const cardW = contentW + (m ? SZ2.modal.media : 0) + (aside ? SZ2.modal.aside : 0);

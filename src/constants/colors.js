@@ -365,6 +365,9 @@ export const G2 = {
   planArtMask:  'linear-gradient(90deg, transparent 0%, rgba(0,0,0,0.35) 30%, #000 60%)',
   // Modal backdrop (v2 Modal)
   modalScrim:   'rgba(15, 23, 42, 0.45)',
+  successBanner: 'linear-gradient(135deg, #021A38 0%, #03264C 45%, #0659B2 100%)',   // SuccessModal banner: deep navy → brand blue (mobile button stops)
+  successOrb:    'radial-gradient(circle, rgba(96, 165, 250, 0.38) 0%, rgba(96, 165, 250, 0) 70%)',   // soft light orbs drifting in that banner
+  successGlow:   'radial-gradient(circle, rgba(147, 197, 253, 0.55) 0%, rgba(96, 165, 250, 0.22) 32%, rgba(96, 165, 250, 0) 68%)',   // soft light halo behind the check badge (breathes slowly)
   modalMedia:   'linear-gradient(180deg, rgba(3,38,76,0) 50%, rgba(3,38,76,0.55) 100%)',   // Modal photo panel: darker bottom (caption + blue swoosh read on it)
   // CornerArt rim: white highlight along a card's top edge + top-right corner, fading out to the left and down
   cornerRimMask: 'linear-gradient(205deg, #000 45%, rgba(0,0,0,0.6) 70%, transparent 95%)',
@@ -438,6 +441,7 @@ export const SH2 = {
   brandButton:  '0 6px 14px rgba(3, 38, 76, 0.28)',
   lightButton:  '0 4px 12px rgba(3, 38, 76, 0.22)',
   focus:      '0 0 0 3px rgba(37, 99, 235, 0.12)',
+  successBadge: '0 10px 24px -6px rgba(3, 38, 76, 0.45), 0 0 0 6px rgba(255, 255, 255, 0.18)',   // SuccessModal check badge: lift + soft white halo
   modal:        '0 24px 64px -16px rgba(3, 38, 76, 0.35), 0 2px 8px rgba(16, 24, 40, 0.06)',   // v2 Modal card: deep soft lift over the dimmed page
   modalHead:    '0 6px 12px -10px rgba(30, 64, 124, 0.25)',                                  // Modal header once the body scrolls under it
   personaSelected: '0 12px 28px -10px rgba(3, 38, 76, 0.32)',   // selected photo card: deep lift only — NO blue ring / halo (user removed it 2026-11-24); the ✓ marks it

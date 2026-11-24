@@ -119,4 +119,5 @@ export { default as FormField, ReadField, SelectField, IconField, FIELD2 } from 
 export { Switch, Checkbox, RadioPill, ChoiceTile } from './FormControls';
 export { default as MapPreview } from './MapPreview';
 export { default as WizardFooter } from './WizardFooter';
+export { default as SuccessModal } from './SuccessModal';   // celebration pop-up for completed actions (banner · animated check · receipt ticket)
 export { default as Modal, ModalSection } from './Modal';   // THE standard pop-up (icon · title · subtitle · scrolling body · footer) + titled form sections

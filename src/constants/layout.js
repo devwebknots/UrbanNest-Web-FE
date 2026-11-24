@@ -31,7 +31,8 @@ export const SZ2 = {
   cornerArt: { w: '50%', h: 140 },               // CornerArt — wave artwork in a card's top-right corner (Downloads/image 103.png panels)
   planCard: { w: 340, basis: '66%', art: '55%', btn: '80%' },   // Promotion plan card: min width · width (≈ ⅔ of its card, like the design) · building art width · button width (of the text column)
   modal:    { w: 520, maxH: '88vh', sm: 440, md: 520, lg: 760, aside: 340, media: 300, mediaCurve: 72 },   // v2 Modal: content widths sm/md/lg · aside = preview panel · media = left photo panel · mediaCurve = its curved white edge
-  modalPhoto: 96,                               // photo / upload slot height inside a Modal form (Edit Property photos & video)   // v2 Modal card: default width · max height · size='sm' | 'md' | 'lg'
+  modalPhoto: 96,
+  success:  { w: 440, banner: 184, badge: 72, edge: 40, notch: 16, msgMax: 320, orb: [180, 120, 150], glow: 300, skyline: 56, sparkle: 14 },   // SuccessModal: width · banner height · check badge · curved edge · ticket notches · message width · banner light orbs                               // photo / upload slot height inside a Modal form (Edit Property photos & video)   // v2 Modal card: default width · max height · size='sm' | 'md' | 'lg'
   pillFixed: 72,                               // fixed-width status pills in a list column (Critical / Medium / Low) — fits the longest label
   dot:     6,
   menu:    { w: 240, maxH: 280 },           // FilterMenu dropdown: width · max height before it scrolls (rows are SZ2.field high)

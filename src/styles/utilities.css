@@ -677,3 +677,40 @@
 @keyframes un2-modal-media { from { transform: scale(1.1); } to { transform: scale(1); } }
 @media (max-width: 760px) { .un2-modal-media { display: none !important; } }
 @media (prefers-reduced-motion: reduce) { .un2-modal-scrim, .un2-modal, .un2-modal-media-img { animation: none; } }
+
+
+/* ── SuccessModal (components/ui/SuccessModal.jsx) — celebration motion ──
+   un2-confetti        one burst of falling bits (--d delay · --x drift · --r spin · --t duration)
+   un2-success-badge   check badge pops in · un2-success-ring = two pulse rings behind it
+   un2-success-orb     soft light orbs drifting in the banner · un2-success-rise = content rises in, staggered (--k) */
+/* confetti: one shower across the whole banner, then it's gone (staggered starts) */
+.un2-confetti { opacity: 0; animation: un2-confetti var(--t, 2.6s) cubic-bezier(0.3, 0.5, 0.5, 1) var(--d, 0ms) 1 forwards; }
+@keyframes un2-confetti {
+  0%   { opacity: 0; transform: translate(0, 0) rotate(0); }
+  8%   { opacity: 1; }
+  85%  { opacity: 1; }
+  100% { opacity: 0; transform: translate(var(--x, 0), 200px) rotate(var(--r, 180deg)); }
+}
+/* halo behind the badge breathes · sparkles twinkle · the check draws itself in after the badge pops */
+.un2-success-glow { animation: un2-success-glow 3.2s ease-in-out infinite alternate; }
+@keyframes un2-success-glow { from { opacity: 0.7; transform: scale(0.92); } to { opacity: 1; transform: scale(1.05); } }
+.un2-success-sparkle { animation: un2-success-twinkle 2.4s ease-in-out calc(var(--k, 0) * 0.4s) infinite; }
+@keyframes un2-success-twinkle { 0%, 100% { opacity: 0.15; transform: scale(0.6) rotate(0); } 50% { opacity: 0.95; transform: scale(1) rotate(45deg); } }
+.un2-success-tick path { stroke-dasharray: 1; stroke-dashoffset: 1; animation: un2-success-tick 0.5s var(--un2-ease) 0.55s forwards; }
+@keyframes un2-success-tick { to { stroke-dashoffset: 0; } }
+.un2-success-badge { animation: un2-success-pop 0.6s var(--un2-spring) 0.15s both; }
+.un2-success-badge i { display: inline-block; animation: un2-success-pop 0.5s var(--un2-spring) 0.35s both; }
+@keyframes un2-success-pop { from { opacity: 0; transform: scale(0.4); } to { opacity: 1; transform: none; } }
+.un2-success-ring { animation: un2-success-ring 1.8s ease-out 0.4s 2 both; }
+.un2-success-ring.is-late { animation-delay: 0.9s; }
+@keyframes un2-success-ring { from { opacity: 0.9; transform: scale(1); } to { opacity: 0; transform: scale(1.9); } }
+.un2-success-orb { animation: un2-success-orb 9s ease-in-out calc(var(--k, 0) * -3s) infinite alternate; }
+@keyframes un2-success-orb { from { transform: translate(0, 0); } to { transform: translate(24px, 12px); } }
+.un2-success-rise { animation: un2-success-rise 0.55s var(--un2-ease) calc(0.3s + var(--k, 0) * 110ms) both; }
+@keyframes un2-success-rise { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+@media (prefers-reduced-motion: reduce) {
+  .un2-confetti { display: none; }
+  .un2-success-badge, .un2-success-badge i, .un2-success-ring, .un2-success-orb, .un2-success-rise,
+  .un2-success-glow, .un2-success-sparkle { animation: none; }
+  .un2-success-tick path { animation: none; stroke-dashoffset: 0; }
+}
