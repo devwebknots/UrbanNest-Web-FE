@@ -2,7 +2,8 @@ import React, { useEffect, useRef } from 'react';
 import { ILLUS2 } from '../../constants';
 
 // ─── Particles (Design System v2) ────────────────────────────────────────────
-// Weather over a photo: falling LEAVES (tumbling, swaying in a light breeze) or RAIN (slanted streaks).
+// Weather over a photo: falling LEAVES (tumbling, swaying in a light breeze), RAIN (slanted streaks) or a night
+// sky of STARS (twinkling, in the upper part only) with an occasional shooting star (comet) streaking across.
 // Drawn on a canvas that fills its parent (parent must be position: relative / absolute + overflow: hidden),
 // so the photo underneath keeps its full quality. Time-based (same speed on 60 / 120 Hz screens), sharp on
 // retina, pauses with the tab, and draws nothing for users who prefer reduced motion. Purely decorative.
@@ -12,7 +13,7 @@ import { ILLUS2 } from '../../constants';
 //     <Particles variant="leaves" />          // or variant="rain"
 //   </div>
 //
-// Props: variant ('leaves' | 'rain'), density (multiplier, default 1), style,
+// Props: variant ('leaves' | 'rain' | 'stars'), density (multiplier, default 1), style,
 //        source (leaves only) — where in the PHOTO the leaves come from, so they drop out of its trees:
 //          { ratio: photo width / height, position: [x, y] = the img's object-position as 0–1,
 //            areas: [[x0, y0, x1, y1], …] = tree crowns as fractions of the photo (0–1) }
@@ -26,6 +27,23 @@ import { ILLUS2 } from '../../constants';
 const CONFIG = {
   leaves: { count: 2.6, detach: 1.2, fadeIn: 0.6, wait: [0, 1.6], size: [5, 9], fall: [28, 62], sway: [18, 46], swayHz: [0.18, 0.42], spin: [-1.4, 1.4], flipHz: [0.25, 0.7], wind: 10, alpha: [0.75, 0.95] },
   rain:   { count: 22, len: [12, 26], fall: [620, 900], wind: 120, width: [0.8, 1.3], alpha: [0.35, 0.8] },
+  //   stars: sky = the top share of the box the stars live in · r = star radius · twinkleHz = brightness pulse ·
+  //          glowFrom = stars at least this big get a soft halo ·
+  //          comets: ONE big comet first (first = when), again every bigEvery s; small ones drift by every smallEvery s.
+  //          Per kind: speed (px/s — slow, gliding) · len = tail length · width = head / tail thickness · angle =
+  //          steepness below horizontal (radians, travelling down-left) · startX / startY = where it appears (share of
+  //          the width / height); each flies on until it has left the photo —
+  //          sky + startY + angle keep the stars AND the comets in the open sky, never over the building
+  stars:  {
+    count: 18, sky: 0.36, r: [0.45, 1.5], twinkleHz: [0.12, 0.5], alpha: [0.3, 1], glowFrom: 1.1,
+    comets: {
+      first: [0.8, 1.4], bigEvery: [16, 22], smallEvery: [3.5, 7],
+      // every meteor flies all the way out of the photo (no burning out mid-sky) — shallow angles keep even a full
+      // crossing above the roof · fadeIn = px it travels while fading in from nothing
+      big:   { speed: [90, 120], fadeIn: 90, len: [190, 260], width: 2.6, angle: [0.2, 0.3],  startX: [0.75, 1.0], startY: [0.02, 0.08] },
+      small: { speed: [70, 100], fadeIn: 60, len: [70, 120],  width: 1.3, angle: [0.22, 0.36], startX: [0.35, 1.0], startY: [0.0, 0.1] },
+    },
+  },
 };
 
 const rand = ([a, b]) => a + Math.random() * (b - a);
@@ -70,6 +88,69 @@ function makeDrop(w, h, c, first) {
   return { x: Math.random() * (w + c.wind) - c.wind * 0.5, y: first ? Math.random() * h : -rand([0, h]), len: rand(c.len), fall: rand(c.fall), width: rand(c.width), alpha: rand(c.alpha) };
 }
 
+function makeStar(w, h, c) {
+  return { x: Math.random() * w, y: Math.random() * h * c.sky, r: rand(c.r), hz: rand(c.twinkleHz), phase: Math.random() * Math.PI * 2, alpha: rand(c.alpha) };
+}
+// meteor (big fireball or small one): fades in out of nothing as a point · the streak behind it is the path it has
+// travelled (grows from its start, never longer than len) · glides at a slow, steady speed with a faint flicker ·
+// flies on until head AND tail have left the photo
+function makeComet(w, h, k) {
+  const a = rand(k.angle);
+  return {
+    x: w * rand(k.startX), y: h * rand(k.startY), width: k.width, fadeIn: k.fadeIn,
+    dx: -Math.cos(a), dy: Math.sin(a), speed: rand(k.speed), len: rand(k.len), dist: 0,
+  };
+}
+// returns false once the whole streak (head + tail) is past the left / bottom edge
+function stepComet(m, dt, w, h) {
+  const step = m.speed * dt;
+  m.dist += step; m.x += m.dx * step; m.y += m.dy * step;
+  const len = Math.min(m.dist, m.len);
+  const tailX = m.x - m.dx * len; const tailY = m.y - m.dy * len;
+  return tailX >= 0 && tailY <= h;   // the tail trails up-right of the head, so it leaves last
+}
+function drawStars(ctx, stars, c, time) {
+  stars.forEach(s => {
+    const a = s.alpha * (0.55 + 0.45 * Math.sin(time * s.hz * Math.PI * 2 + s.phase));   // twinkle
+    if (s.r >= c.glowFrom) {
+      ctx.globalAlpha = a;
+      ctx.fillStyle = ILLUS2.starGlow;
+      ctx.beginPath(); ctx.arc(s.x, s.y, s.r * 3.2, 0, Math.PI * 2); ctx.fill();
+    }
+    ctx.globalAlpha = a;
+    ctx.fillStyle = ILLUS2.star;
+    ctx.beginPath(); ctx.arc(s.x, s.y, s.r, 0, Math.PI * 2); ctx.fill();
+  });
+}
+function drawComet(ctx, m) {
+  // brightness: eases in from nothing over the first fadeIn px, then steady with a faint flicker
+  const k = Math.min(1, m.dist / m.fadeIn);
+  const bright = k * k * (3 - 2 * k) * (0.9 + Math.random() * 0.1);
+  if (bright <= 0.01) return;
+  // trail = the path behind the head (never behind the start point)
+  const len = Math.min(m.dist, m.len);
+  if (len < 1) return;
+  const tx = m.x - m.dx * len; const ty = m.y - m.dy * len;
+  // tapered streak: full width at the head → a point at the tail, white → pale blue → nothing
+  const nx = -m.dy * m.width * 0.5; const ny = m.dx * m.width * 0.5;
+  const grad = ctx.createLinearGradient(m.x, m.y, tx, ty);
+  grad.addColorStop(0, ILLUS2.cometHead);
+  grad.addColorStop(0.35, ILLUS2.cometMid);
+  grad.addColorStop(1, ILLUS2.cometTail);
+  ctx.globalAlpha = bright;
+  ctx.fillStyle = grad;
+  ctx.beginPath(); ctx.moveTo(m.x + nx, m.y + ny); ctx.lineTo(tx, ty); ctx.lineTo(m.x - nx, m.y - ny); ctx.closePath(); ctx.fill();
+  // glowing head: soft halo + bright core
+  const r = m.width * 4;
+  const glow = ctx.createRadialGradient(m.x, m.y, 0, m.x, m.y, r);
+  glow.addColorStop(0, ILLUS2.cometGlow);
+  glow.addColorStop(1, ILLUS2.cometGlowEnd);
+  ctx.fillStyle = glow;
+  ctx.beginPath(); ctx.arc(m.x, m.y, r, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = ILLUS2.cometHead;
+  ctx.beginPath(); ctx.arc(m.x, m.y, m.width * 0.6, 0, Math.PI * 2); ctx.fill();
+}
+
 // leaf: small, rounded with a pointed tip (short + wide, not long) + a faint midrib; flip squashes it → 3D tumble
 function drawLeaf(ctx, p, alpha) {
   const s = p.size;
@@ -105,9 +186,12 @@ export default function Particles({ variant = 'leaves', density = 1, source, sty
     const ctx = canvas.getContext('2d');
     const c = CONFIG[variant] || CONFIG.leaves;
     const isRain = variant === 'rain';
+    const isStars = variant === 'stars';
     const make = isRain ? makeDrop : makeLeaf;
     const src = JSON.parse(sourceKey);
     let w = 0; let h = 0; let parts = []; let raf = 0; let last = 0; let areas = null;
+    // stars: comets in flight · seconds to the next big / small one · clock (nextBig < 0 = not scheduled yet)
+    let comets = []; let nextBig = -1; let nextSmall = 0; let time = 0;
 
     const resize = () => {
       const box = canvas.parentElement.getBoundingClientRect();
@@ -115,6 +199,12 @@ export default function Particles({ variant = 'leaves', density = 1, source, sty
       w = box.width; h = box.height;
       canvas.width = Math.round(w * dpr); canvas.height = Math.round(h * dpr);
       ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      if (isStars) {   // a fresh star field for the new size (the stars don't move, so nothing to carry over)
+        const n = Math.max(1, Math.round(((w * h * c.sky) / 100000) * c.count * density));
+        parts = Array.from({ length: n }, () => makeStar(w, h, c));
+        if (nextBig < 0) { nextBig = rand(c.comets.first); nextSmall = nextBig + rand(c.comets.smallEvery); }   // the big one opens the show
+        return;
+      }
       areas = isRain ? null : mapAreas(w, h, src);
       const n = Math.max(1, Math.round(((w * h) / 100000) * c.count * density));
       parts = Array.from({ length: n }, (_, i) => parts[i] || make(w, h, c, true, areas));
@@ -124,7 +214,18 @@ export default function Particles({ variant = 'leaves', density = 1, source, sty
       const dt = Math.min((now - (last || now)) / 1000, 0.05);   // seconds; capped so a background tab doesn't jump
       last = now;
       ctx.clearRect(0, 0, w, h);
-      if (isRain) {
+      if (isStars) {
+        time += dt;
+        drawStars(ctx, parts, c, time);
+        nextBig -= dt; nextSmall -= dt;
+        if (nextBig <= 0) { comets.push(makeComet(w, h, c.comets.big)); nextBig = rand(c.comets.bigEvery); }
+        if (nextSmall <= 0) { comets.push(makeComet(w, h, c.comets.small)); nextSmall = rand(c.comets.smallEvery); }
+        comets = comets.filter(m => {
+          if (!stepComet(m, dt, w, h)) return false;   // flown out of the photo
+          drawComet(ctx, m);
+          return true;
+        });
+      } else if (isRain) {
         ctx.lineCap = 'round';
         ctx.strokeStyle = ILLUS2.rain;
         parts.forEach((p, i) => {

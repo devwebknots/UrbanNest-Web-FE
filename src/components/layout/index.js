@@ -14,3 +14,4 @@ export { default as PageFooter } from './PageFooter';
 export { default as Breadcrumb } from './Breadcrumb';
 export { default as PageWave } from './PageWave';
 export { default as ImageBackdrop } from './ImageBackdrop';
+export { default as AuthShell, AUTH, AUTH_INTRO, introAt, formIntro, GoogleLogo, AppleLogo } from './AuthShell';   // sign-in / sign-up frame

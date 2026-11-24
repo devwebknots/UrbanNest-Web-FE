@@ -22,6 +22,7 @@ import { C2, R2, FS2, LH2, SP2, SZ2, UI2 } from '../../constants';
 //   SELECTION   Checkbox · RadioPill · Switch (FormControls.jsx) — on = light primary blue (G2.primaryButton /
 //               C2.primaryLight), never green. ChoiceTile (amenity) selected = C2.chipBlueHover + navy icon / text.
 //   HINT        description under a field / control = UI2.text.meta.
+//   ERROR       invalid field → style={FIELD2.invalid} (red border) + <span style={FIELD2.error}>message</span> under it.
 // ═════════════════════════════════════════════════════════════════════════════
 //
 // ─── FormField (Design System v2) ────────────────────────────────────────────
@@ -53,6 +54,9 @@ export const FIELD2 = {
   chipX:     { padding: 0, border: 'none', background: 'none', cursor: 'pointer', color: C2.textSecondary, fontSize: FS2.sm, display: 'inline-flex' },
   // icon field (IconField) — the input IS the standard FIELD2.input (36px); a field-height square slot on the left
   // holds the icon, an optional one on the right holds a button (e.g. show / hide password)
+  // validation: invalid field = red border (spread into the field's style) · message line under the field
+  invalid:   { borderColor: C2.errorDark },
+  error:     { display: 'block', fontSize: FS2.xs, lineHeight: LH2.body, color: C2.errorDark },
   iconWrap:  { position: 'relative', minWidth: 0 },
   withIcon:  { paddingLeft: SZ2.field },
   withTrail: { paddingRight: SZ2.field },

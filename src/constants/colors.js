@@ -234,6 +234,14 @@ export const ILLUS2 = {
   leaves: ['#14361F', '#1B4428', '#215232', '#2A5E3A'],
   leafVein: 'rgba(255, 255, 255, 0.28)',
   rain:   'rgba(220, 232, 255, 0.42)',
+  // Night sky (Particles variant="stars"): twinkling stars + a soft halo on the bright ones · shooting-star head → tail
+  star:      'rgba(255, 255, 255, 1)',
+  starGlow:  'rgba(190, 212, 255, 0.22)',
+  cometHead: 'rgba(240, 246, 255, 0.95)',
+  cometTail: 'rgba(150, 185, 255, 0)',
+  cometMid:  'rgba(196, 216, 255, 0.45)',   // meteor trail a third of the way back — cools from white to pale blue
+  cometGlow: 'rgba(205, 222, 255, 0.5)',    // halo round a meteor's burning head (fades to transparent)
+  cometGlowEnd: 'rgba(205, 222, 255, 0)',
 };
 
 // Gradient colour stops [from, to] — for places that need the raw colours

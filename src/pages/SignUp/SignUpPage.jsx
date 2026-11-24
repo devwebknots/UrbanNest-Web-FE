@@ -1,86 +1,81 @@
+// ─────────────────────────────────────────────
+// UrbanNest — Sign Up Page (route: /signup)
+// Design System v2 (2026-11-24, layout from Downloads/image 16 (1).png) — built exactly like the Login page:
+// the shared AuthShell frame (page background, split card, villa photo · rain · leaves, card fit, page-open
+// animation) with the perks listed plainly under the subtitle (no glass), and the standard v2 form on the right
+// (FormField + IconField 36px · FIELD2.invalid / FIELD2.error · Checkbox · brand CTA · soft social buttons).
+// The sign-up logic (validate, /api/auth/register/, error mapping, locked invitation email, OTP hand-off) is unchanged.
+// ─────────────────────────────────────────────
+
 import { useState } from "react";
+import { Grid, AuthShell, AUTH, AUTH_INTRO, introAt, formIntro, GoogleLogo, AppleLogo } from '../../components/layout';
+import { FormField, IconField, FIELD2, TextLink, Checkbox } from '../../components/ui';
+import { C2, G2, TONES2, FS2, FW2, LH2, SP2, SZ2, T2, UI2 } from '../../constants';
+import heroArt from '../../assets/landlord/signup-hero.jpg';   // night-blue sky over a lit house + trees (Downloads/image 123.png, resized to 1600px)
 
 const API_BASE = (process.env.REACT_APP_API_BASE_URL || 'http://localhost:8001/api').replace(/\/api\/?$/, '');
 
-const COLORS = {
-  primary:       '#002D5B',
-  primaryHover:  '#003d7a',
-  secondary:     '#064E3B',
-  tertiary:      '#B45309',
-  neutral:       '#F1F5F9',
-  pageBg:        '#F0F2F5',
-  navBg:         '#1a2332',
-  heroBg:        '#001f3f',
-  border:        '#E2E8F0',
-  borderMedium:  '#CBD5E1',
-  textPrimary:   '#0F172A',
-  textSecondary: '#64748B',
-  textTertiary:  '#94A3B8',
-  danger:        '#E53E3E',
-  white:         '#FFFFFF',
-  success:       '#16A34A',
+const PERKS = [
+  { icon: 'ti-bolt',         text: 'Free to join — no hidden fees' },
+  { icon: 'ti-shield-check', text: 'Verified listings only' },
+  { icon: 'ti-file-text',    text: 'Digital lease signing' },
+];
+const FOOT_LINKS = ['Privacy Policy', 'Security', 'Terms of Service'];
+const FORM_GAP = SP2.md;   // row gap inside the form
+const STRENGTH_LABELS = ['', 'Weak', 'Fair', 'Good', 'Strong'];
+// The photo: framed on the house (55% across); the leaves fall from its two tree crowns (fractions of the photo)
+const HERO_POSITION = '55% center';
+const LEAF_SOURCE = {
+  ratio: 1600 / 1777,
+  position: [0.55, 0.5],
+  areas: [
+    [0.20, 0.70, 0.40, 0.80],   // trees left of the house
+    [0.80, 0.62, 1.0, 0.76],    // tree right of the house
+  ],
 };
 
-const FONTS = {
-  headline: "'Noto Serif', serif",
-  body:     "'Nunito Sans', sans-serif",
+const S = {
+  // photo side — perks: plain rows under the subtitle (no glass, like the design)
+  perks:     { ...UI2.stack(SP2.md) },
+  perk:      { ...UI2.row(SP2.md) },
+  perkIcon:  { ...UI2.iconBox(SZ2.icon.sm, { soft: C2.onDark.surfaceHover, strong: C2.white }) },
+  perkText:  { ...UI2.text.title, color: C2.white },
+  // form side
+  step:      { ...UI2.pill(TONES2.primary), alignSelf: 'flex-start' },
+  head:      { ...UI2.stack(SP2.sm), alignItems: 'flex-start' },
+  have:      { ...UI2.row(SP2.xs), ...T2.label },
+  haveLink:  { fontSize: AUTH.lead.fontSize },   // "Sign in" = same 14px (FS2.md) as the "Already have an account?" line it sits in
+  form:      { ...UI2.stack(FORM_GAP) },
+  pair:      { columnGap: SP2.lg, rowGap: SP2.md },          // two fields side by side
+  field:     { ...UI2.stack(SP2.xs) },                        // field + its hint / error / meter
+  readOnly:  { background: C2.fieldReadOnly },
+  // password strength: 4 segments + label (weak = red, then the brand blue — never amber / green)
+  meter:     { ...UI2.row(SP2.sm) },
+  segs:      { display: 'flex', gap: SP2.xs, flex: 1 },
+  seg:       (on, weak) => ({ ...UI2.progressTrack, flex: 1, background: on ? (weak ? G2.errorBar : G2.primaryBar) : C2.surfaceMuted, transition: 'background 0.2s' }),
+  meterText: (weak) => ({ fontSize: FS2.xs, fontWeight: FW2.semibold, lineHeight: LH2.body, color: weak ? C2.errorDark : C2.primary }),
+  match:     (ok) => ({ ...UI2.row(SP2.xs), fontSize: FS2.xs, fontWeight: FW2.semibold, lineHeight: LH2.body, color: ok ? C2.primary : C2.errorDark }),
+  terms:     { ...UI2.row(SP2.sm), flexWrap: 'wrap', rowGap: SP2.xxs },
+  termsText: { ...T2.label, display: 'inline-flex', alignItems: 'center', gap: SP2.xs, flexWrap: 'wrap' },
 };
 
-function SvgIcon({ d, size = 18, color = COLORS.textTertiary, style = {} }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 24 24" fill="none"
-      stroke={color} strokeWidth="1.8" strokeLinecap="round"
-      strokeLinejoin="round" style={style}>
-      <path d={d} />
-    </svg>
-  );
+function FieldError({ children }) {
+  return children ? <span style={FIELD2.error} role="alert">{children}</span> : null;
 }
-
-function FieldLabel({ text }) {
-  return (
-    <label style={{
-      display: 'block', fontFamily: FONTS.body, fontSize: 10, fontWeight: 700,
-      color: COLORS.textSecondary, textTransform: 'uppercase',
-      letterSpacing: '0.08em', marginBottom: 6,
-    }}>{text}</label>
-  );
-}
-
-const EYE_OPEN  = "M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z M12 12m-3 0a3 3 0 1 0 6 0 3 3 0 1 0-6 0";
-const EYE_CLOSE = "M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24 M1 1l22 22";
-const CHECK     = "M20 6L9 17l-5-5";
-const PERSON    = "M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2 M12 11a4 4 0 1 0 0-8 4 4 0 0 0 0 8z";
-const MAIL      = "M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z M22 6l-10 7L2 6";
-const PHONE     = "M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z";
-const LOCK      = "M19 11H5a2 2 0 0 0-2 2v7a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7a2 2 0 0 0-2-2z M7 11V7a5 5 0 0 1 10 0v4";
-const GOOGLE    = "M21.35 11.1h-9.17v2.73h6.51c-.33 3.81-3.5 5.44-6.5 5.44C8.36 19.27 5 16.25 5 12c0-4.1 3.2-7.27 7.2-7.27 3.09 0 4.9 1.97 4.9 1.97L19 4.72S16.56 2 12.1 2C6.42 2 2.03 6.8 2.03 12c0 5.05 4.13 10 10.22 10 5.35 0 9.25-3.67 9.25-9.09 0-1.15-.15-1.81-.15-1.81z";
-const APPLE     = "M12.152 6.896c-.948 0-2.415-1.078-3.96-1.04-2.04.027-3.91 1.183-4.961 3.014-2.117 3.675-.546 9.103 1.519 12.09 1.013 1.454 2.208 3.09 3.792 3.039 1.52-.065 2.09-.987 3.935-.987 1.831 0 2.35.987 3.96.948 1.637-.026 2.676-1.48 3.676-2.948 1.156-1.688 1.636-3.325 1.662-3.415-.039-.013-3.182-1.221-3.22-4.857-.026-3.04 2.48-4.494 2.597-4.559-1.429-2.09-3.623-2.324-4.39-2.376-2-.156-3.675 1.09-4.61 1.09z M15.53 3.83c.843-1.012 1.4-2.427 1.245-3.83-1.207.052-2.662.805-3.532 1.818-.78.896-1.454 2.338-1.273 3.714 1.338.104 2.715-.688 3.559-1.701z";
 
 function PasswordStrength({ password }) {
   if (!password) return null;
-  const checks = [
+  const score = [
     password.length >= 8,
     /[A-Z]/.test(password),
     /[0-9]/.test(password),
     /[^A-Za-z0-9]/.test(password),
-  ];
-  const score = checks.filter(Boolean).length;
-  const labels = ['', 'Weak', 'Fair', 'Good', 'Strong'];
-  const colors = ['', COLORS.danger, COLORS.tertiary, '#2563EB', COLORS.success];
+  ].filter(Boolean).length;
+  const weak = score <= 1;
   return (
-    <div style={{ marginTop: 6, marginBottom: 4 }}>
-      <div style={{ display: 'flex', gap: 4, marginBottom: 4 }}>
-        {[1,2,3,4].map(i => (
-          <div key={i} style={{
-            flex: 1, height: 3, borderRadius: 2,
-            background: i <= score ? colors[score] : COLORS.border,
-            transition: 'background 0.2s',
-          }} />
-        ))}
-      </div>
-      <p style={{ fontFamily: FONTS.body, fontSize: 10, color: colors[score], margin: 0, fontWeight: 600 }}>
-        {labels[score]}
-      </p>
+    <div style={S.meter}>
+      <div style={S.segs}>{[1, 2, 3, 4].map(i => <span key={i} style={S.seg(i <= score, weak)} />)}</div>
+      <span style={S.meterText(weak)}>{STRENGTH_LABELS[score]}</span>
     </div>
   );
 }
@@ -160,283 +155,147 @@ export default function SignUpPage({ onNavigateToLogin, onNavigateToOTP, initial
     }
   }
 
-  const inputStyle = (hasError, hasValue) => ({
-    width: '100%', boxSizing: 'border-box',
-    height: 42, padding: '0 14px',
-    fontFamily: FONTS.body, fontSize: 13, color: COLORS.textPrimary,
-    background: hasValue ? COLORS.white : COLORS.neutral,
-    border: `1.5px solid ${hasError ? COLORS.danger : COLORS.border}`,
-    borderRadius: 8, outline: 'none',
-    transition: 'border-color 0.15s, background 0.15s',
-  });
+  const invalid = (field) => (errors[field] ? FIELD2.invalid : undefined);
+  const eye = (shown, toggle) => ({ icon: shown ? 'ti-eye-off' : 'ti-eye', label: shown ? 'Hide password' : 'Show password', onClick: toggle });
+  const passwordsMatch = form.password === form.confirmPassword;
+  const toggleTerms = () => { setAgreedToTerms(p => !p); if (errors.terms) setErrors(prev => ({ ...prev, terms: '' })); };
+
+  const perks = <div style={S.perks}>{PERKS.map(p => (
+    <div key={p.text} style={S.perk}>
+      <span style={S.perkIcon}><i className={`ti ${p.icon}`} aria-hidden="true" /></span>
+      <span style={S.perkText}>{p.text}</span>
+    </div>
+  ))}</div>;
 
   return (
-    <>
-      <link href="https://fonts.googleapis.com/css2?family=Noto+Serif:wght@400;500;600;700&family=Nunito+Sans:wght@400;500;600;700&display=swap" rel="stylesheet" />
-
-      {/* backdrop */}
-      <div style={{
-        minHeight: '100vh', width: '100%',
-        background: `${COLORS.pageBg} radial-gradient(circle, ${COLORS.borderMedium} 1px, transparent 1px)`,
-        backgroundSize: '28px 28px',
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-        padding: '24px 16px', boxSizing: 'border-box',
-      }}>
-        {/* modal */}
-        <div style={{
-          width: '75vw', maxWidth: 960,
-          background: COLORS.white, borderRadius: 20,
-          boxShadow: '0 32px 80px rgba(0,0,0,0.18)',
-          overflow: 'hidden', display: 'flex',
-        }}>
-
-          {/* LEFT PANEL */}
-          <div style={{
-            width: 300, minWidth: 300, flexShrink: 0,
-            background: COLORS.heroBg,
-            padding: '40px 36px',
-            display: 'flex', flexDirection: 'column', justifyContent: 'space-between',
-            backgroundImage: 'radial-gradient(ellipse at 20% 50%, rgba(44,123,229,0.15) 0%, transparent 60%)',
-          }}>
-            {/* logo */}
-            <div>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 40 }}>
-                <div style={{ width: 32, height: 32, borderRadius: 8, background: COLORS.primary, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                  <SvgIcon d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z M9 22V12h6v10" size={16} color={COLORS.white} />
-                </div>
-                <div>
-                  <div style={{ fontFamily: FONTS.headline, fontSize: 16, fontWeight: 700, color: COLORS.white, lineHeight: 1 }}>UrbanNest</div>
-                  <div style={{ fontFamily: FONTS.body, fontSize: 9, fontWeight: 600, color: 'rgba(255,255,255,0.4)', textTransform: 'uppercase', letterSpacing: '0.1em' }}>Platform</div>
-                </div>
-              </div>
-              <h2 style={{ fontFamily: FONTS.headline, fontSize: 26, fontWeight: 700, color: COLORS.white, lineHeight: 1.3, margin: '0 0 14px' }}>
-                Join the smarter way to manage property.
-              </h2>
-              <p style={{ fontFamily: FONTS.body, fontSize: 13, color: 'rgba(255,255,255,0.55)', lineHeight: 1.7, margin: 0 }}>
-                Create your free account and discover curated listings, seamless leasing, and a platform built for modern renters.
-              </p>
-            </div>
-
-            {/* perks */}
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-              {[
-                { icon: "M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z", text: 'Free to join — no hidden fees' },
-                { icon: "M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z",    text: 'Verified listings only' },
-                { icon: "M13 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V9z M13 2v7h7", text: 'Digital lease signing' },
-              ].map(({ icon, text }) => (
-                <div key={text} style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                  <div style={{ width: 30, height: 30, borderRadius: '50%', background: 'rgba(255,255,255,0.08)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-                    <SvgIcon d={icon} size={14} color='rgba(255,255,255,0.7)' />
-                  </div>
-                  <span style={{ fontFamily: FONTS.body, fontSize: 12, color: 'rgba(255,255,255,0.65)' }}>{text}</span>
-                </div>
-              ))}
-            </div>
-
-            <p style={{ fontFamily: FONTS.body, fontSize: 10, color: 'rgba(255,255,255,0.25)', margin: 0, lineHeight: 1.6 }}>
-              By creating an account you agree to UrbanNest's Terms of Service and Privacy Policy.
-            </p>
-          </div>
-
-          {/* RIGHT PANEL — reduced top/bottom padding to fit everything */}
-          <div style={{ flex: 1, overflowY: 'auto', padding: '32px 44px 28px' }}>
-
-            {/* header */}
-            <div style={{ marginBottom: 20 }}>
-              <p style={{ fontFamily: FONTS.body, fontSize: 11, fontWeight: 700, color: COLORS.textTertiary, textTransform: 'uppercase', letterSpacing: '0.1em', margin: '0 0 6px' }}>
-                Step 1 of 2 — Account Details
-              </p>
-              <h1 style={{ fontFamily: FONTS.headline, fontSize: 26, fontWeight: 700, color: COLORS.textPrimary, margin: '0 0 4px' }}>
-                Create your account
-              </h1>
-              <p style={{ fontFamily: FONTS.body, fontSize: 13, color: COLORS.textSecondary, margin: 0 }}>
-                Already have an account?{' '}
-                <button onClick={onNavigateToLogin} style={{ fontFamily: FONTS.body, fontSize: 13, fontWeight: 700, color: COLORS.primary, background: 'none', border: 'none', cursor: 'pointer', padding: 0, textDecoration: 'underline' }}>
-                  Sign in
-                </button>
-              </p>
-            </div>
-
-            {/* api error */}
-            {apiError && (
-              <div style={{ background: '#FEF2F2', border: `1px solid #FECACA`, borderRadius: 8, padding: '10px 14px', marginBottom: 16, fontFamily: FONTS.body, fontSize: 12, color: COLORS.danger }}>
-                {apiError}
-              </div>
-            )}
-
-            <form onSubmit={handleSubmit} noValidate>
-
-              {/* name row */}
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14, marginBottom: 14 }}>
-                <div>
-                  <FieldLabel text="First Name *" />
-                  <div style={{ position: 'relative' }}>
-                    <div style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }}>
-                      <SvgIcon d={PERSON} size={14} color={COLORS.textTertiary} />
-                    </div>
-                    <input type="text" placeholder="John" value={form.firstName} onChange={set('firstName')} autoComplete="given-name"
-                      style={{ ...inputStyle(errors.firstName, form.firstName), paddingLeft: 34 }} />
-                  </div>
-                  {errors.firstName && <p style={{ fontFamily: FONTS.body, fontSize: 11, color: COLORS.danger, margin: '3px 0 0' }}>{errors.firstName}</p>}
-                </div>
-                <div>
-                  <FieldLabel text="Last Name *" />
-                  <input type="text" placeholder="Doe" value={form.lastName} onChange={set('lastName')} autoComplete="family-name"
-                    style={inputStyle(errors.lastName, form.lastName)} />
-                  {errors.lastName && <p style={{ fontFamily: FONTS.body, fontSize: 11, color: COLORS.danger, margin: '3px 0 0' }}>{errors.lastName}</p>}
-                </div>
-              </div>
-
-              {/* email */}
-              <div style={{ marginBottom: 14 }}>
-                <FieldLabel text="Email Address *" />
-                <div style={{ position: 'relative' }}>
-                  <div style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }}>
-                    <SvgIcon d={MAIL} size={14} color={COLORS.textTertiary} />
-                  </div>
-                  <input type="email" placeholder="john@example.com" value={form.email} onChange={set('email')} autoComplete="email" readOnly={lockEmail} title={lockEmail ? 'This is the email address your invitation was sent to.' : undefined}
-                    style={{ ...inputStyle(errors.email, form.email), paddingLeft: 34 }} />
-                </div>
-                {errors.email && <p style={{ fontFamily: FONTS.body, fontSize: 11, color: COLORS.danger, margin: '3px 0 0' }}>{errors.email}</p>}
-              </div>
-
-              {/* phone */}
-              <div style={{ marginBottom: 14 }}>
-                <FieldLabel text="Phone Number *" />
-                <div style={{ position: 'relative' }}>
-                  <div style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }}>
-                    <SvgIcon d={PHONE} size={14} color={COLORS.textTertiary} />
-                  </div>
-                  <input type="tel" placeholder="+1 (555) 000-0000" value={form.phone} onChange={set('phone')} autoComplete="tel"
-                    style={{ ...inputStyle(errors.phone, form.phone), paddingLeft: 34 }} />
-                </div>
-                {errors.phone
-                  ? <p style={{ fontFamily: FONTS.body, fontSize: 11, color: COLORS.danger, margin: '3px 0 0' }}>{errors.phone}</p>
-                  : <p style={{ fontFamily: FONTS.body, fontSize: 10, color: COLORS.textTertiary, margin: '3px 0 0' }}>Include country code — used for OTP verification</p>
-                }
-              </div>
-
-              {/* password */}
-              <div style={{ marginBottom: 4 }}>
-                <FieldLabel text="Password *" />
-                <div style={{ position: 'relative' }}>
-                  <div style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }}>
-                    <SvgIcon d={LOCK} size={14} color={COLORS.textTertiary} />
-                  </div>
-                  <input type={showPassword ? 'text' : 'password'} placeholder="Min. 8 characters" value={form.password} onChange={set('password')} autoComplete="new-password"
-                    style={{ ...inputStyle(errors.password, form.password), paddingLeft: 34, paddingRight: 40 }} />
-                  <button type="button" onClick={() => setShowPassword(p => !p)} style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', padding: 0, display: 'flex' }}>
-                    <SvgIcon d={showPassword ? EYE_CLOSE : EYE_OPEN} size={16} color={COLORS.textTertiary} />
-                  </button>
-                </div>
-                <PasswordStrength password={form.password} />
-                {errors.password && <p style={{ fontFamily: FONTS.body, fontSize: 11, color: COLORS.danger, margin: '3px 0 0' }}>{errors.password}</p>}
-              </div>
-
-              {/* confirm password */}
-              <div style={{ marginBottom: 18 }}>
-                <FieldLabel text="Confirm Password *" />
-                <div style={{ position: 'relative' }}>
-                  <div style={{ position: 'absolute', left: 12, top: '50%', transform: 'translateY(-50%)', pointerEvents: 'none' }}>
-                    <SvgIcon d={LOCK} size={14} color={COLORS.textTertiary} />
-                  </div>
-                  <input type={showConfirmPassword ? 'text' : 'password'} placeholder="Re-enter your password" value={form.confirmPassword} onChange={set('confirmPassword')} autoComplete="new-password"
-                    style={{ ...inputStyle(errors.confirmPassword, form.confirmPassword), paddingLeft: 34, paddingRight: 40 }} />
-                  <button type="button" onClick={() => setShowConfirmPassword(p => !p)} style={{ position: 'absolute', right: 12, top: '50%', transform: 'translateY(-50%)', background: 'none', border: 'none', cursor: 'pointer', padding: 0, display: 'flex' }}>
-                    <SvgIcon d={showConfirmPassword ? EYE_CLOSE : EYE_OPEN} size={16} color={COLORS.textTertiary} />
-                  </button>
-                </div>
-                {form.confirmPassword && form.password && (
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginTop: 4 }}>
-                    <SvgIcon d={form.password === form.confirmPassword ? CHECK : "M18 6L6 18M6 6l12 12"} size={13}
-                      color={form.password === form.confirmPassword ? COLORS.success : COLORS.danger} />
-                    <span style={{ fontFamily: FONTS.body, fontSize: 10, fontWeight: 600, color: form.password === form.confirmPassword ? COLORS.success : COLORS.danger }}>
-                      {form.password === form.confirmPassword ? 'Passwords match' : 'Passwords do not match'}
-                    </span>
-                  </div>
-                )}
-                {errors.confirmPassword && !form.confirmPassword && (
-                  <p style={{ fontFamily: FONTS.body, fontSize: 11, color: COLORS.danger, margin: '3px 0 0' }}>{errors.confirmPassword}</p>
-                )}
-              </div>
-
-              {/* T&C */}
-              <div style={{ marginBottom: 20 }}>
-                <label style={{ display: 'flex', alignItems: 'flex-start', gap: 10, cursor: 'pointer' }}>
-                  <div onClick={() => { setAgreedToTerms(p => !p); if (errors.terms) setErrors(prev => ({ ...prev, terms: '' })); }}
-                    style={{ width: 18, height: 18, borderRadius: 4, flexShrink: 0, marginTop: 1, border: `1.5px solid ${errors.terms ? COLORS.danger : agreedToTerms ? COLORS.primary : COLORS.borderMedium}`, background: agreedToTerms ? COLORS.primary : COLORS.white, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', transition: 'all 0.15s' }}>
-                    {agreedToTerms && <SvgIcon d={CHECK} size={11} color={COLORS.white} />}
-                  </div>
-                  <span style={{ fontFamily: FONTS.body, fontSize: 12, color: COLORS.textSecondary, lineHeight: 1.5 }}>
-                    I agree to UrbanNest's{' '}
-                    <a href="#" style={{ color: COLORS.primary, fontWeight: 700, textDecoration: 'none' }}>Terms of Service</a>
-                    {' '}and{' '}
-                    <a href="#" style={{ color: COLORS.primary, fontWeight: 700, textDecoration: 'none' }}>Privacy Policy</a>
-                  </span>
-                </label>
-                {errors.terms && <p style={{ fontFamily: FONTS.body, fontSize: 11, color: COLORS.danger, margin: '4px 0 0 28px' }}>{errors.terms}</p>}
-              </div>
-
-              {/* submit */}
-              <button type="submit" disabled={loading} style={{
-                width: '100%', height: 46,
-                background: loading ? COLORS.borderMedium : COLORS.primary,
-                color: COLORS.white, border: 'none', borderRadius: 8,
-                fontFamily: FONTS.body, fontSize: 13, fontWeight: 700,
-                cursor: loading ? 'not-allowed' : 'pointer',
-                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-                marginBottom: 12, transition: 'background 0.15s',
-              }}>
-                {loading ? (
-                  <><div style={{ width: 16, height: 16, border: '2px solid rgba(255,255,255,0.3)', borderTopColor: COLORS.white, borderRadius: '50%', animation: 'un-spin 0.7s linear infinite' }} />Creating account…</>
-                ) : (
-                  <>Create Account <SvgIcon d="M5 12h14M12 5l7 7-7 7" size={16} color={COLORS.white} /></>
-                )}
-              </button>
-
-              {/* divider */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 10 }}>
-                <div style={{ flex: 1, height: 1, background: COLORS.border }} />
-                <span style={{ fontFamily: FONTS.body, fontSize: 11, color: COLORS.textTertiary, whiteSpace: 'nowrap' }}>or sign up with</span>
-                <div style={{ flex: 1, height: 1, background: COLORS.border }} />
-              </div>
-
-              {/* social */}
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12, marginBottom: 20 }}>
-                {[
-                  { label: 'Google', icon: GOOGLE, color: '#EA4335' },
-                  { label: 'Apple',  icon: APPLE,  color: '#000000' },
-                ].map(({ label, icon, color }) => (
-                  <button key={label} type="button" style={{
-                    height: 36, background: COLORS.white,
-                    border: `1px solid ${COLORS.border}`, borderRadius: 8,
-                    fontFamily: FONTS.body, fontSize: 12, fontWeight: 600,
-                    color: COLORS.textPrimary, cursor: 'pointer',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-                  }}>
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill={color}><path d={icon} /></svg>
-                    Continue with {label}
-                  </button>
-                ))}
-              </div>
-
-              {/* footer */}
-              <p style={{ fontFamily: FONTS.body, fontSize: 11, color: COLORS.textTertiary, textAlign: 'center', margin: 0 }}>
-                <a href="#" style={{ color: COLORS.textTertiary, textDecoration: 'none', marginRight: 16 }}>Privacy Policy</a>
-                <a href="#" style={{ color: COLORS.textTertiary, textDecoration: 'none', marginRight: 16 }}>Security</a>
-                <a href="#" style={{ color: COLORS.textTertiary, textDecoration: 'none' }}>Terms of Service</a>
-              </p>
-
-            </form>
+    <AuthShell
+      titleLines={['Join the smarter', 'way to manage', 'property.']}
+      brandSub="Platform"
+      accentRule
+      subtitle="Create your free account and discover curated listings, seamless leasing, and a platform built for modern renters."
+      heroExtra={perks}
+      formGap={SP2.lg}
+      fit={SZ2.authFitTall}
+      layout="wideRight"
+      heroImage={heroArt}
+      heroPosition={HERO_POSITION}
+      leafSource={LEAF_SOURCE}
+      weather="stars"
+      formMax={SZ2.authFormWide}
+    >
+      <div className="un2-intro-up" style={{ ...S.head, ...formIntro(0) }}>
+        <span style={S.step}>Step 1 of 2 — Account details</span>
+        <div>
+          <h1 style={AUTH.h1}>Create your account</h1>
+          <div style={{ ...S.have, ...AUTH.lead }}>
+            Already have an account?
+            <TextLink arrow={false} onClick={onNavigateToLogin} style={S.haveLink}>Sign in</TextLink>
           </div>
         </div>
       </div>
 
-      <style>{`
-        @keyframes un-spin { to { transform: rotate(360deg); } }
-        input::placeholder { color: ${COLORS.textTertiary}; }
-        input:focus { background: ${COLORS.white} !important; border-color: ${COLORS.primary} !important; }
-      `}</style>
-    </>
+      {apiError && (
+        <div style={UI2.errorBanner} role="alert">
+          <i className="ti ti-alert-circle" aria-hidden="true" /> {apiError}
+        </div>
+      )}
+
+      <form onSubmit={handleSubmit} noValidate style={S.form}>
+        <Grid layout="two" as="div" className="un2-intro-up" style={{ ...S.pair, ...formIntro(1) }}>
+          <FormField label="First Name *">
+            <div style={S.field}>
+              <IconField icon="ti-user" type="text" placeholder="John" value={form.firstName} onChange={set('firstName')} autoComplete="given-name" aria-label="First name" style={invalid('firstName')} />
+              <FieldError>{errors.firstName}</FieldError>
+            </div>
+          </FormField>
+          <FormField label="Last Name *">
+            <div style={S.field}>
+              <IconField type="text" placeholder="Doe" value={form.lastName} onChange={set('lastName')} autoComplete="family-name" aria-label="Last name" style={invalid('lastName')} />
+              <FieldError>{errors.lastName}</FieldError>
+            </div>
+          </FormField>
+        </Grid>
+
+        <div className="un2-intro-up" style={formIntro(2)}>
+          <FormField label="Email Address *">
+            <div style={S.field}>
+              <IconField icon="ti-mail" type="email" placeholder="john@example.com" value={form.email} onChange={set('email')} autoComplete="email" aria-label="Email address"
+                readOnly={lockEmail} title={lockEmail ? 'This is the email address your invitation was sent to.' : undefined}
+                style={{ ...(lockEmail ? S.readOnly : {}), ...invalid('email') }} />
+              <FieldError>{errors.email}</FieldError>
+            </div>
+          </FormField>
+        </div>
+
+        <div className="un2-intro-up" style={formIntro(3)}>
+          <FormField label="Phone Number *">
+            <div style={S.field}>
+              <IconField icon="ti-phone" type="tel" placeholder="+1 (555) 000-0000" value={form.phone} onChange={set('phone')} autoComplete="tel" aria-label="Phone number" style={invalid('phone')} />
+              <FieldError>{errors.phone}</FieldError>
+            </div>
+          </FormField>
+        </div>
+
+        <Grid layout="two" as="div" className="un2-intro-up" style={{ ...S.pair, ...formIntro(4) }}>
+          <FormField label="Password *">
+            <div style={S.field}>
+              <IconField icon="ti-lock" type={showPassword ? 'text' : 'password'} placeholder="Min. 8 characters" value={form.password} onChange={set('password')} autoComplete="new-password" aria-label="Password"
+                trailing={eye(showPassword, () => setShowPassword(p => !p))} style={invalid('password')} />
+              <PasswordStrength password={form.password} />
+              <FieldError>{errors.password}</FieldError>
+            </div>
+          </FormField>
+          <FormField label="Confirm Password *">
+            <div style={S.field}>
+              <IconField icon="ti-lock" type={showConfirmPassword ? 'text' : 'password'} placeholder="Re-enter password" value={form.confirmPassword} onChange={set('confirmPassword')} autoComplete="new-password" aria-label="Confirm password"
+                trailing={eye(showConfirmPassword, () => setShowConfirmPassword(p => !p))} style={invalid('confirmPassword')} />
+              {form.confirmPassword && form.password && (
+                <span style={S.match(passwordsMatch)}>
+                  <i className={`ti ${passwordsMatch ? 'ti-circle-check' : 'ti-circle-x'}`} aria-hidden="true" />
+                  {passwordsMatch ? 'Passwords match' : 'Passwords do not match'}
+                </span>
+              )}
+              {errors.confirmPassword && !form.confirmPassword && <FieldError>{errors.confirmPassword}</FieldError>}
+            </div>
+          </FormField>
+        </Grid>
+
+        <div className="un2-intro-up" style={{ ...S.field, ...formIntro(5) }}>
+          <div style={S.terms}>
+            <Checkbox checked={agreedToTerms} onChange={toggleTerms} />
+            <span style={S.termsText}>
+              I agree to UrbanNest's
+              <TextLink arrow={false} onClick={() => {}}>Terms of Service</TextLink>
+              and
+              <TextLink arrow={false} onClick={() => {}}>Privacy Policy</TextLink>
+            </span>
+          </div>
+          <FieldError>{errors.terms}</FieldError>
+        </div>
+
+        <div className="un2-intro-up" style={{ ...AUTH.submitRow(FORM_GAP), ...formIntro(6) }}>
+          <button type="submit" className="un2-btn un2-intro-sheen" style={{ ...AUTH.submit, ...(loading ? AUTH.busy : {}), ...introAt(AUTH_INTRO.sheen) }} disabled={loading}>
+            {loading
+              ? <><i className="ti ti-loader-2 un2-spin" style={UI2.btnIcon} aria-hidden="true" /> Creating account…</>
+              : <>Create Account <i className="ti ti-arrow-right" style={UI2.btnIcon} aria-hidden="true" /></>}
+          </button>
+        </div>
+      </form>
+
+      <div className="un2-intro-up" style={{ ...AUTH.orRow, ...formIntro(7) }}>
+        <span style={AUTH.orLine} />
+        <span style={AUTH.orText}>Or sign up with</span>
+        <span style={AUTH.orLine} />
+      </div>
+
+      <Grid layout="two" as="div" className="un2-intro-up" style={{ ...AUTH.socials, ...formIntro(8) }}>
+        <button type="button" className="un2-btn" style={AUTH.social}><GoogleLogo /> Continue with Google</button>
+        <button type="button" className="un2-btn" style={AUTH.social}><AppleLogo /> Continue with Apple</button>
+      </Grid>
+
+      <div className="un2-intro-up" style={{ ...AUTH.footLinks, ...formIntro(9) }}>
+        {FOOT_LINKS.map(l => <button key={l} type="button" style={AUTH.footLink}>{l}</button>)}
+      </div>
+    </AuthShell>
   );
 }
