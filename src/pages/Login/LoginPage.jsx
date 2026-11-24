@@ -14,7 +14,7 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { Grid, ImageBackdrop } from '../../components/layout';
-import { FormField, IconField, TextLink, CornerArt } from '../../components/ui';
+import { FormField, IconField, TextLink, CornerArt, Particles } from '../../components/ui';
 import { C2, G2, F2, FS2, LH2, LS2, SP2, SZ2, R2, BLUR2, OP2, LAYOUT2, T2, UI2, pad } from '../../constants';
 import brandLogo from '../../assets/brand/urban-nest-logo.png';
 import backdropArt from '../../assets/landlord/wizard-backdrop.jpg';   // same soft waves as the Create Listing backdrop
@@ -51,6 +51,17 @@ const TESTIMONIALS = [
 ];
 const TESTIMONIAL_MS = 5000;   // carousel auto-advance
 const FOOT_LINKS = ['Privacy', 'Security', 'Terms'];
+// Where the falling leaves come from — the tree crowns in login-hero.jpg (fractions of the photo: x0, y0, x1, y1).
+// position = the photo's object-position (68% center), so Particles crops the areas exactly like the <img>.
+const LEAF_SOURCE = {
+  ratio: 2400 / 1351,
+  position: [0.68, 0.5],
+  areas: [
+    [0.69, 0.02, 1.0, 0.33],    // big tree, top right
+    [0.82, 0.30, 1.0, 0.60],    // tree beside the house, right
+    [0.22, 0.45, 0.39, 0.61],   // young trees left of the house
+  ],
+};
 const initials = (name) => name.split(' ').map(w => w[0]).join('').slice(0, 2);
 
 const S = {
@@ -249,6 +260,9 @@ export default function LoginPage() {
         <div style={S.hero} className="un2-hide-md">
           <img src={heroArt} alt="" style={S.heroPhoto} />
           <div style={S.heroScrim} aria-hidden="true" />
+          {/* weather over the photo: rain behind, falling leaves in front (nearer the camera) */}
+          <Particles variant="rain" density={0.7} />
+          <Particles variant="leaves" source={LEAF_SOURCE} />
           <div style={S.heroBody}>
             <div style={S.brand}>
               <img src={brandLogo} alt="" style={S.logoMark} />

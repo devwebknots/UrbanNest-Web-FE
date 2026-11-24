@@ -102,6 +102,7 @@ export { default as KpiStrip } from './KpiStrip';
 export { default as AssetRow } from './AssetRow';
 export { default as CountUp } from './CountUp';
 export { default as TextLink } from './TextLink';
+export { default as Particles } from './Particles';   // falling leaves / rain over a photo (sign-in page)
 export { default as ActionTray } from './ActionTray';
 export { default as DetailHeader } from './DetailHeader';
 export { default as StatGroup } from './StatGroup';

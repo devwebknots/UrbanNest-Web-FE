@@ -229,6 +229,11 @@ export const ILLUS2 = {
   personBackBody: '#DCE6F8',
   personFront:    '#5B8DEF',
   personFrontBody:'#8FB1F3',
+  // Particles (falling leaves / rain over a photo — sign-in page). Leaf colours = the photo's own foliage
+  // (dark greens only — no red / yellow). Rain = pale moonlit streak.
+  leaves: ['#14361F', '#1B4428', '#215232', '#2A5E3A'],
+  leafVein: 'rgba(255, 255, 255, 0.28)',
+  rain:   'rgba(220, 232, 255, 0.42)',
 };
 
 // Gradient colour stops [from, to] — for places that need the raw colours
