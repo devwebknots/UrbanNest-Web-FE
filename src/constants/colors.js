@@ -397,6 +397,8 @@ export const G2 = {
   authGlass:     'linear-gradient(180deg, rgba(11,29,58,0.32) 0%, rgba(11,29,58,0.5) 100%)',
   // Persona Select photo cards: light shade at the top (status chip), clear middle, deep navy at the bottom (title + details)
   personaScrim:  'linear-gradient(180deg, rgba(7,21,38,0.38) 0%, rgba(7,21,38,0) 26%, rgba(7,21,38,0.12) 48%, rgba(7,21,38,0.9) 100%)',
+  // Persona Select left photo: solid on the left, fading out towards the right so the sky melts into the page (no hard edge)
+  personaPhotoMask: 'linear-gradient(90deg, #000 0%, #000 62%, transparent 100%)',
   // Light diagonal wash for a tone: G2.tone(TONES2.success) / G2.panel(TONES2.warning)
   tone:  (t) => `linear-gradient(135deg, #FFFFFF 0%, ${t.cardTint} 100%)`,
   panel: (t) => `linear-gradient(135deg, ${t.panelFrom} 0%, ${t.panelTo} 100%)`,
