@@ -18,16 +18,29 @@
 //    plain list of upper-case keys (`ListingRentalTerms.utilities_included`
 //    JSONField), not an object of booleans — converted at the load/save
 //    boundary only, so the JSX below is unchanged.
+//
+// 2026-11-23 — REDESIGNED on Design System v2 (design: Downloads/image 93.png). Same frame as Step 1
+// (listingWizardV2.jsx: wave backdrop · breadcrumb · Create Listing header · stepper). ALL data loading, saving
+// and navigation is unchanged:
+//   <Grid wideLeft>
+//     left : Unit Information (ReadFields from the Unit record · Floor Plan Name input + NEW tag)
+//            Amenity(s) (ChoiceTile grid · "also update the unit record")
+//            Rental Terms (Rent) | Sales Terms (Sell) — fields · RadioPills · utility Checkboxes · fees · concession
+//     right: Listing Basics (title · description · highlights · available date)
+//            Photos & Media (existing photos to include · uploads (not wired yet) · video / tour URLs · floor plan)
+//   WizardFooter (sticky: Step 2 of 4 · error note · Back · Save & Exit · Continue)
 // ─────────────────────────────────────────────────────────────────────────────
 
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
-import { C } from '../landlordTokens';
-import { CustomDropdown } from '../../../components/ui';
+import { Grid } from '../../../components/layout';
 import {
-  LS, ListingPageShell, ListingFooter, SectionHead,
-  AiAssistButton, Checkbox, RadioPillButton,
-} from './listingWizardShared';
+  SectionCard, CornerArt, FormField, ReadField, SelectField, FIELD2,
+  Checkbox, RadioPill, ChoiceTile, WizardFooter, TextLink,
+} from '../../../components/ui';
+import { C2, TONES2, FS2, SP2, SZ2, R2, SH2, UI2 } from '../../../constants';
+import { STEPS } from './listingWizardShared';
+import { WizardPage, AiAssist, ChipInput, WZ } from './listingWizardV2';
 import {
   getUnit, patchUnit, getAmenityCatalog,
   getListing, patchListing,
@@ -46,20 +59,33 @@ const UTILITY_KEYS = [
   { key: 'internet', label: 'Internet' },
 ];
 
-// Lease Term / Parking Fee Type / Other Fee Type option lists come from the
-// admin-configurable UNDropdown table (screen=LISTING_STEP2_UNIT), fetched
-// via getListingDropdownOptions — NOT hardcoded here. See
-// core/migrations/0027_seed_listing_dropdowns.py for the seeded rows.
-// `parking_fee.type` / `other_fees[].type` on the backend are still plain
-// freeform strings (no DB-level choices constraint), so DropdownOrCustom
-// below keeps a "Custom…" escape hatch: a value the backend already has
-// (e.g. from before this dropdown existed) that isn't one of the fetched
-// option codes is never silently dropped.
+const HOA_FREQUENCIES = ['Monthly', 'Quarterly', 'Semi-Annually', 'Annually'].map(v => ({ value: v, label: v }));
 
-// Renders via the standardized CustomDropdown (components/ui) — see its
-// header comment: "replaces all native <select> elements" — plus a
-// "Custom…" choice that reveals a free-text (or numeric) input.
-function DropdownOrCustom({ value, onChange, options, placeholder = 'Select…', customPlaceholder = 'Enter custom value', type = 'text' }) {
+// ── Page-specific layout (tokens only) ──────────────────────────────────────
+const S = {
+  newTag:    { ...UI2.pill(TONES2.primary) },
+  pair:      { columnGap: SP2.lg, rowGap: SP2.lg },                        // <Grid two> of side-by-side groups
+  // Photos & Media
+  labelRow:  { display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: SP2.sm, marginBottom: SP2.sm },
+  subtle:    { ...UI2.text.label },
+  tiles:     { gap: SP2.sm },
+  photo:     (on, url) => ({
+    ...UI2.photoTile, aspectRatio: `${SZ2.thumb.w} / ${SZ2.thumb.h}`, width: '100%', padding: 0, border: 'none', cursor: 'pointer',
+    ...UI2.center, borderRadius: R2.lg,
+    ...(url ? { backgroundImage: `url(${url})`, backgroundSize: 'cover', backgroundPosition: 'center' } : {}),
+    boxShadow: on ? SH2.controlHover : UI2.photoTile.boxShadow,   // selected = raised (our hover-lift shadow, visible on the white card) + blue ✓ badge, no ring
+  }),
+  photoIcon: { fontSize: FS2.xxl, color: C2.textSecondary },
+  photoCheck:{ ...UI2.checkBadge, position: 'absolute', top: SP2.sm, right: SP2.sm },   // standard selected-tick badge (UI2.checkBadge)
+  upload:    { ...UI2.addTile(false), aspectRatio: `${SZ2.thumb.w} / ${SZ2.thumb.h}`, height: 'auto', opacity: 0.6, cursor: 'not-allowed', borderRadius: R2.lg },
+  video:     { ...UI2.photoTile, ...UI2.center, aspectRatio: `${SZ2.thumb.w} / ${SZ2.thumb.h}`, borderRadius: R2.lg, background: C2.navyDeep, color: C2.white, fontSize: FS2.xxl },
+  plan:      { ...UI2.photoTile, ...UI2.center, aspectRatio: `${SZ2.thumb.w} / ${SZ2.thumb.h}`, borderRadius: R2.lg, color: C2.textSecondary, fontSize: FS2.xxl },
+  mediaGap:  { marginTop: SP2.lg },
+};
+
+// Dropdown with a "Custom…" escape hatch — the backend fields are freeform strings, so a stored value that
+// isn't one of the fetched option codes is never silently dropped (same behaviour as before, v2 SelectField).
+function DropdownOrCustom({ value, onChange, options, placeholder = 'Select…', customPlaceholder = 'Enter custom value', type = 'text', label }) {
   const optionValues = options.map(o => o.value);
   const isCustom = !!value && !optionValues.includes(value);
   const [customMode, setCustomMode] = useState(isCustom);
@@ -69,25 +95,36 @@ function DropdownOrCustom({ value, onChange, options, placeholder = 'Select…',
 
   return (
     <>
-      <CustomDropdown
+      <SelectField
+        label={label}
         options={ddOptions}
         value={customMode ? '__custom__' : value}
         placeholder={placeholder}
         onChange={v => {
           if (v === '__custom__') { setCustomMode(true); onChange(''); }
-          else { setCustomMode(false); onChange(v); }
+          else { setCustomMode(false); onChange(v ?? ''); }
         }}
       />
       {customMode && (
         <input
-          style={{ ...LS.inp, marginTop: 6 }}
+          className="un2-focus-ring"
+          style={FIELD2.input}
           type={type}
           placeholder={customPlaceholder}
           value={value}
           onChange={e => onChange(e.target.value)}
+          aria-label={customPlaceholder}
         />
       )}
     </>
+  );
+}
+
+// money / text input in the standard field box
+function Field({ value, onChange, placeholder, type = 'text', label }) {
+  return (
+    <input className="un2-focus-ring" style={FIELD2.input} type={type} placeholder={placeholder} value={value}
+      onChange={e => onChange(e.target.value)} aria-label={label || placeholder} />
   );
 }
 
@@ -393,455 +430,360 @@ export default function ListingStep2_Unit() {
     }
   };
 
+  const unitLabel = unit ? `Unit ${unit.unit_number}` : `Unit ${unitId}`;
+  const shell = (children) => (
+    <WizardPage propertyName={propertyName || 'Property'} unitLabel={unitLabel} current={2}>{children}</WizardPage>
+  );
+
   if (loading) {
-    return (
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100vh', color: C.txtSec }}>
-        Loading unit…
-      </div>
-    );
+    return shell(<div style={WZ.stateBox}>Loading unit…</div>);
   }
 
   if (loadError || !unit) {
-    return (
-      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', height: '100vh', gap: 10, color: C.txtSec }}>
-        <div>{loadError || 'This unit could not be loaded.'}</div>
+    return shell(
+      <div style={WZ.stateBox}>
+        <div style={UI2.errorBanner}><i className="ti ti-alert-circle" aria-hidden="true" /> {loadError || 'This unit could not be loaded.'}</div>
       </div>
     );
   }
 
+  // [label, value, trailing icon]
   const unitInfoFields = [
     ['Unit Number', unit.unit_number],
-    ['Unit Type', unit.unit_type || '—'],
-    ['Square Footage', unit.total_area ? `${unit.total_area} sq ft` : '—'],
-    ['Carpet Area', unit.carpet_area ? `${unit.carpet_area} sq ft` : '—'],
-    ['Bedrooms', unit.total_rooms ?? '—'],
-    ['Bathrooms', unit.total_baths ?? '—'],
-    ['Floor', unit.floor ?? '—'],
-    ['Lease Type', unit.lease_type || '—'],
+    ['Unit Type', unit.unit_type, 'ti-chevron-down'],
+    ['Square Footage', unit.total_area ? `${unit.total_area} sq ft` : null],
+    ['Carpet Area', unit.carpet_area ? `${unit.carpet_area} sq ft` : null],
+    ['Bedrooms', unit.total_rooms, 'ti-chevron-down'],
+    ['Bathrooms', unit.total_baths, 'ti-chevron-down'],
+    ['Floor', unit.floor, 'ti-chevron-down'],
+    ['Lease Type', unit.lease_type, 'ti-chevron-down'],
   ];
 
-  return (
-    <ListingPageShell
-      propertyName={propertyName || 'Property'}
-      unitLabel={`Unit ${unit.unit_number}`}
-      current={2}
-      footer={
-        <ListingFooter
-          current={2}
-          onBack={handleBack}
-          onSaveExit={handleSaveExit}
-          onContinue={handleContinue}
-          continueLabel={saving ? 'Saving…' : 'Continue →'}
-          continueDisabled={saving}
-          noteContent={saveError || undefined}
-        />
-      }
-    >
-      <div style={LS.split}>
+  const utilityGroup = (group, title) => (
+    <div>
+      <span style={WZ.group}>{title}</span>
+      <div style={WZ.checks}>
+        {UTILITY_KEYS.map(u => (
+          <Checkbox key={u.key} checked={terms[group][u.key]} onChange={() => toggleUtility(group, u.key)} label={u.label} />
+        ))}
+      </div>
+    </div>
+  );
+
+  return shell(
+    <>
+      <Grid layout="wideLeft">
 
         {/* ── LEFT COLUMN ─────────────────────────────────────────── */}
-        <div style={LS.splitCol}>
+        <div style={WZ.col}>
 
           {/* Unit Information */}
-          <div style={LS.card}>
-            <SectionHead
-              icon="ti-bed"
-              bg={C.blueLight}
-              color={C.blue}
-              title="Unit Information"
-              note="Pulled from the Unit record — edits here apply to this listing only"
-            />
-            <div style={LS.grid2}>
-              {unitInfoFields.map(([label, value]) => (
-                <div key={label} style={LS.field}>
-                  <span style={LS.lbl}>{label}</span>
-                  <div style={LS.inpStatic}>{value}</div>
-                </div>
+          <SectionCard
+            icon="ti-bed"
+            title="Unit Information"
+            subtitle="Pulled from the Unit record — edits here apply to this listing only."
+            pattern={false}
+            decoration={<CornerArt />}
+          >
+            <Grid layout="two" as="div" style={{ ...WZ.fields, ...WZ.body }}>
+              {unitInfoFields.map(([label, value, icon]) => (
+                <FormField key={label} label={label}><ReadField value={value} icon={icon} /></FormField>
               ))}
-              <div style={LS.field}>
-                <span style={LS.lbl}>Floor Plan Name<span style={LS.lblNew}>NEW</span></span>
-                <input style={LS.inp} value={floorPlanName} onChange={e => setFloorPlanName(e.target.value)} />
-                <p style={LS.hint}>Groups this unit under "{floorPlanName || 'this floor plan'}" when part of a Multi-Unit listing</p>
-              </div>
-            </div>
-          </div>
+              <FormField full label="Floor Plan Name" action={<span style={S.newTag}>NEW</span>}>
+                <Field value={floorPlanName} onChange={setFloorPlanName} label="Floor plan name" />
+                <p style={WZ.hint}>Groups this unit under "{floorPlanName || 'this floor plan'}" when part of a Multi-Unit listing.</p>
+              </FormField>
+            </Grid>
+          </SectionCard>
 
           {/* Amenity(s) */}
-          <div style={LS.card}>
-            <SectionHead
-              icon="ti-sofa"
-              bg="#e8f5f0"
-              color={C.teal}
-              title="Amenity(s)"
-              note="Sourced from the UN Reference amenity list — not free text"
-            />
-            <div style={LS.amenityGrid}>
-              {amenities.map(a => (
-                <div key={a.id} style={LS.amenityTile(a.selected)} onClick={() => toggleAmenity(a.id)}>
-                  <div style={LS.amenityIcon}><i className={`ti ${a.icon}`} aria-hidden="true" /></div>
-                  <span style={LS.amenityLabel}>{a.name}</span>
-                </div>
-              ))}
-              {amenities.length === 0 && (
-                <div style={{ fontSize: 12, color: C.txtMuted, gridColumn: '1 / -1' }}>No unit amenities configured yet.</div>
+          <SectionCard
+            icon="ti-sofa"
+            tone={TONES2.primary}
+            title="Amenity(s)"
+            subtitle="Sourced from the UN Reference amenity list — not free text."
+            pattern={false}
+            decoration={<CornerArt />}
+          >
+            <div style={WZ.body}>
+              {amenities.length === 0 ? (
+                <div style={UI2.emptyInline}>No unit amenities configured yet.</div>
+              ) : (
+                <Grid layout="three" as="div" style={WZ.tiles}>
+                  {amenities.map(a => (
+                    <ChoiceTile key={a.id} icon={a.icon} label={a.name} selected={a.selected} onClick={() => toggleAmenity(a.id)} />
+                  ))}
+                </Grid>
               )}
+              <div style={WZ.rule} />
+              <Checkbox
+                strong
+                checked={syncAmenitiesToUnit}
+                onChange={() => setSyncAmenitiesToUnit(v => !v)}
+                label="Also update the unit record"
+                hint="Syncs these amenity selections back to the unit's saved amenity list — otherwise this only affects the listing."
+              />
             </div>
-            <div style={LS.syncRow}>
-              <Checkbox checked={syncAmenitiesToUnit} onChange={() => setSyncAmenitiesToUnit(v => !v)} />
-              <div>
-                <span style={{ ...LS.cktext, fontWeight: 550, color: C.txtPrimary }}>Also update the unit record</span>
-                <p style={{ ...LS.hint, marginTop: 2 }}>Syncs these amenity selections back to the unit's saved amenity list — otherwise this only affects the listing</p>
-              </div>
-            </div>
-          </div>
+          </SectionCard>
 
           {/* Rental Terms (listingType === 'RENT') */}
           {listingType === 'RENT' && (
-          <div style={LS.card}>
-            <SectionHead
+            <SectionCard
               icon="ti-cash"
-              bg={C.blueLight}
-              color={C.blue}
               title="Rental Terms"
-              note="Shown because Listing Type = Rent"
-            />
+              subtitle="Shown because Listing Type = Rent."
+              pattern={false}
+              decoration={<CornerArt />}
+            >
+              <div style={WZ.body}>
+                <Grid layout="two" as="div" style={WZ.fields}>
+                  <FormField label="Monthly Rent"><Field placeholder="0.00" value={terms.monthlyRent} onChange={v => setTerm('monthlyRent', v)} label="Monthly rent" /></FormField>
+                  <FormField label="Security Deposit"><Field placeholder="0.00" value={terms.securityDeposit} onChange={v => setTerm('securityDeposit', v)} label="Security deposit" /></FormField>
+                  <FormField label="Lease Term (months)">
+                    <DropdownOrCustom
+                      label="Lease term (months)"
+                      value={terms.leaseTermMonths}
+                      onChange={v => setTerm('leaseTermMonths', v)}
+                      options={leaseTermOptions}
+                      customPlaceholder="Enter number of months"
+                      type="number"
+                    />
+                  </FormField>
+                  <FormField label="Application Fee"><Field placeholder="$ 0.00" value={terms.applicationFee} onChange={v => setTerm('applicationFee', v)} label="Application fee" /></FormField>
+                </Grid>
 
-            <div style={{ ...LS.grid2, marginBottom: 16 }}>
-              <div style={LS.field}>
-                <span style={LS.lbl}>Monthly Rent</span>
-                <input style={LS.inp} placeholder="$ 0.00" value={terms.monthlyRent} onChange={e => setTerm('monthlyRent', e.target.value)} />
-              </div>
-              <div style={LS.field}>
-                <span style={LS.lbl}>Security Deposit</span>
-                <input style={LS.inp} placeholder="$ 0.00" value={terms.securityDeposit} onChange={e => setTerm('securityDeposit', e.target.value)} />
-              </div>
-              <div style={LS.field}>
-                <span style={LS.lbl}>Lease Term (months)</span>
-                <DropdownOrCustom
-                  value={terms.leaseTermMonths}
-                  onChange={v => setTerm('leaseTermMonths', v)}
-                  options={leaseTermOptions}
-                  customPlaceholder="Enter number of months"
-                  type="number"
-                />
-              </div>
-              <div style={LS.field}>
-                <span style={LS.lbl}>Application Fee</span>
-                <input style={LS.inp} placeholder="$ 0.00" value={terms.applicationFee} onChange={e => setTerm('applicationFee', e.target.value)} />
-              </div>
-            </div>
+                <div style={WZ.rule} />
 
-            <span style={LS.ckGroupLbl}>Pet Policy</span>
-            <div style={{ ...LS.radiopill, marginBottom: 16 }}>
-              <RadioPillButton label="Allowed" on={terms.petPolicy === 'ALLOWED'} onClick={() => setTerm('petPolicy', 'ALLOWED')} />
-              <RadioPillButton label="Not Allowed" on={terms.petPolicy === 'NOT_ALLOWED'} onClick={() => setTerm('petPolicy', 'NOT_ALLOWED')} />
-            </div>
-            {terms.petPolicy === 'ALLOWED' && (
-              <div style={{ ...LS.grid2, marginBottom: 16 }}>
-                <div style={LS.field}>
-                  <span style={LS.lbl}>Pet Deposit</span>
-                  <input style={LS.inp} placeholder="$ 0.00" value={terms.petDeposit} onChange={e => setTerm('petDeposit', e.target.value)} />
+                <span style={WZ.group}>Pet Policy</span>
+                <div style={WZ.radios} role="radiogroup" aria-label="Pet policy">
+                  <RadioPill label="Allowed" on={terms.petPolicy === 'ALLOWED'} onClick={() => setTerm('petPolicy', 'ALLOWED')} />
+                  <RadioPill label="Not Allowed" on={terms.petPolicy === 'NOT_ALLOWED'} onClick={() => setTerm('petPolicy', 'NOT_ALLOWED')} />
                 </div>
-                <div style={LS.field}>
-                  <span style={LS.lbl}>Pet Rent (monthly)</span>
-                  <input style={LS.inp} placeholder="$ 0.00" value={terms.petRent} onChange={e => setTerm('petRent', e.target.value)} />
+                {terms.petPolicy === 'ALLOWED' && (
+                  <Grid layout="two" as="div" style={{ ...WZ.fields, ...WZ.body }}>
+                    <FormField label="Pet Deposit"><Field placeholder="$ 0.00" value={terms.petDeposit} onChange={v => setTerm('petDeposit', v)} label="Pet deposit" /></FormField>
+                    <FormField label="Pet Rent (monthly)"><Field placeholder="$ 0.00" value={terms.petRent} onChange={v => setTerm('petRent', v)} label="Pet rent (monthly)" /></FormField>
+                  </Grid>
+                )}
+
+                <div style={WZ.rule} />
+
+                <div style={UI2.stack(SP2.lg)}>
+                  {utilityGroup('utilitiesIncluded', 'Utilities Included in Rent')}
+                  {utilityGroup('utilitiesTenantPaid', 'Utilities Paid by Tenant')}
+                  <Checkbox strong checked={terms.smokingAllowed} onChange={() => setTerm('smokingAllowed', !terms.smokingAllowed)} label="Smoking Allowed" />
                 </div>
-              </div>
-            )}
 
-            <div style={LS.hr} />
+                <div style={WZ.rule} />
 
-            <span style={LS.ckGroupLbl}>Utilities Included in Rent</span>
-            <div style={{ ...LS.ckRow, marginBottom: 16 }}>
-              {UTILITY_KEYS.map(u => (
-                <div key={u.key} style={LS.ckItem}>
-                  <Checkbox checked={terms.utilitiesIncluded[u.key]} onChange={() => toggleUtility('utilitiesIncluded', u.key)} />
-                  <span style={LS.cktext}>{u.label}</span>
-                </div>
-              ))}
-            </div>
-
-            <span style={LS.ckGroupLbl}>Utilities Paid by Tenant</span>
-            <div style={{ ...LS.ckRow, marginBottom: 16 }}>
-              {UTILITY_KEYS.map(u => (
-                <div key={u.key} style={LS.ckItem}>
-                  <Checkbox checked={terms.utilitiesTenantPaid[u.key]} onChange={() => toggleUtility('utilitiesTenantPaid', u.key)} />
-                  <span style={LS.cktext}>{u.label}</span>
-                </div>
-              ))}
-            </div>
-
-            <div style={{ ...LS.ckItem, marginBottom: 16 }}>
-              <Checkbox checked={terms.smokingAllowed} onChange={() => setTerm('smokingAllowed', !terms.smokingAllowed)} />
-              <span style={{ ...LS.cktext, fontWeight: 550, color: C.txtPrimary }}>Smoking Allowed</span>
-            </div>
-
-            <div style={LS.hr} />
-
-            <span style={LS.ckGroupLbl}>Parking Fee</span>
-            <div style={{ ...LS.radiopill, marginBottom: 14 }}>
-              <RadioPillButton label="Yes" on={terms.parkingFeeEnabled} onClick={() => setTerm('parkingFeeEnabled', true)} />
-              <RadioPillButton label="No" on={!terms.parkingFeeEnabled} onClick={() => setTerm('parkingFeeEnabled', false)} />
-            </div>
-            {terms.parkingFeeEnabled && (
-              <div style={{ ...LS.grid2, marginBottom: 16 }}>
-                <div style={LS.field}>
-                  <span style={LS.lbl}>Fee Type</span>
-                  <DropdownOrCustom
-                    value={terms.parkingFeeType}
-                    onChange={v => setTerm('parkingFeeType', v)}
-                    options={parkingFeeTypeOptions}
-                    customPlaceholder="Enter fee type"
-                  />
-                </div>
-                <div style={LS.field}>
-                  <span style={LS.lbl}>Amount</span>
-                  <input style={LS.inp} placeholder="$ 0.00" value={terms.parkingFeeAmount} onChange={e => setTerm('parkingFeeAmount', e.target.value)} />
-                </div>
-              </div>
-            )}
-
-            <span style={LS.ckGroupLbl}>Other Fees</span>
-            <div style={{ ...LS.radiopill, marginBottom: 14 }}>
-              <RadioPillButton label="Yes" on={terms.otherFeesEnabled} onClick={() => setTerm('otherFeesEnabled', true)} />
-              <RadioPillButton label="No" on={!terms.otherFeesEnabled} onClick={() => setTerm('otherFeesEnabled', false)} />
-            </div>
-            {terms.otherFeesEnabled && (
-              <>
-                {terms.otherFees.map((fee, idx) => (
-                  <div key={idx} style={{ ...LS.grid2, marginBottom: 8 }}>
-                    <div style={LS.field}>
-                      <span style={LS.lbl}>Fee Type</span>
-                      <DropdownOrCustom
-                        value={fee.type}
-                        onChange={v => updateOtherFee(idx, 'type', v)}
-                        options={otherFeeTypeOptions}
-                        customPlaceholder="Enter fee type"
-                      />
+                <Grid layout="two" as="div" style={S.pair}>
+                  {/* Parking Fee */}
+                  <div>
+                    <span style={WZ.group}>Parking Fee</span>
+                    <div style={WZ.radios} role="radiogroup" aria-label="Parking fee">
+                      <RadioPill label="Yes" on={terms.parkingFeeEnabled} onClick={() => setTerm('parkingFeeEnabled', true)} />
+                      <RadioPill label="No" on={!terms.parkingFeeEnabled} onClick={() => setTerm('parkingFeeEnabled', false)} />
                     </div>
-                    <div style={LS.field}>
-                      <span style={LS.lbl}>Amount</span>
-                      <input style={LS.inp} placeholder="$ 0.00" value={fee.amount} onChange={e => updateOtherFee(idx, 'amount', e.target.value)} />
-                    </div>
+                    {terms.parkingFeeEnabled && (
+                      <div style={{ ...UI2.stack(SP2.lg), ...WZ.body }}>
+                        <FormField label="Fee Type">
+                          <DropdownOrCustom label="Parking fee type" value={terms.parkingFeeType} onChange={v => setTerm('parkingFeeType', v)} options={parkingFeeTypeOptions} customPlaceholder="Enter fee type" />
+                        </FormField>
+                        <FormField label="Amount"><Field placeholder="$ 0.00" value={terms.parkingFeeAmount} onChange={v => setTerm('parkingFeeAmount', v)} label="Parking fee amount" /></FormField>
+                      </div>
+                    )}
                   </div>
-                ))}
-                <span style={{ ...LS.addLink, marginBottom: 16, marginTop: 4 }} onClick={addOtherFee}>+ Add Fees</span>
-              </>
-            )}
 
-            <div style={LS.hr} />
+                  {/* Other Fees */}
+                  <div>
+                    <span style={WZ.group}>Other Fees</span>
+                    <div style={WZ.radios} role="radiogroup" aria-label="Other fees">
+                      <RadioPill label="Yes" on={terms.otherFeesEnabled} onClick={() => setTerm('otherFeesEnabled', true)} />
+                      <RadioPill label="No" on={!terms.otherFeesEnabled} onClick={() => setTerm('otherFeesEnabled', false)} />
+                    </div>
+                    {terms.otherFeesEnabled && (
+                      <div style={{ ...UI2.stack(SP2.lg), ...WZ.body }}>
+                        {terms.otherFees.map((fee, idx) => (
+                          <div key={idx} style={UI2.stack(SP2.sm)}>
+                            <FormField label="Fee Type">
+                              <DropdownOrCustom label="Other fee type" value={fee.type} onChange={v => updateOtherFee(idx, 'type', v)} options={otherFeeTypeOptions} customPlaceholder="Enter fee type" />
+                            </FormField>
+                            <FormField label="Amount"><Field placeholder="$ 0.00" value={fee.amount} onChange={v => updateOtherFee(idx, 'amount', v)} label="Other fee amount" /></FormField>
+                          </div>
+                        ))}
+                        <TextLink arrow={false} onClick={addOtherFee}>+ Add Fees</TextLink>
+                      </div>
+                    )}
+                  </div>
+                </Grid>
 
-            <div style={LS.grid2}>
-              <div style={LS.field}>
-                <span style={LS.lbl}>Rent Concession</span>
-                <input style={LS.inp} value={terms.rentConcession} onChange={e => setTerm('rentConcession', e.target.value)} />
+                <div style={WZ.rule} />
+
+                <Grid layout="two" as="div" style={WZ.fields}>
+                  <FormField label="Rent Concession"><Field value={terms.rentConcession} onChange={v => setTerm('rentConcession', v)} label="Rent concession" /></FormField>
+                  <FormField label="Concession Amount"><Field placeholder="$ 0.00" value={terms.concessionAmount} onChange={v => setTerm('concessionAmount', v)} label="Concession amount" /></FormField>
+                </Grid>
               </div>
-              <div style={LS.field}>
-                <span style={LS.lbl}>Concession Amount</span>
-                <input style={LS.inp} placeholder="$ 0.00" value={terms.concessionAmount} onChange={e => setTerm('concessionAmount', e.target.value)} />
-              </div>
-            </div>
-          </div>
+            </SectionCard>
           )}
 
           {/* Sales Terms (listingType === 'SALE') */}
           {listingType === 'SALE' && (
-          <div style={LS.card}>
-            <SectionHead
+            <SectionCard
               icon="ti-cash"
-              bg={C.blueLight}
-              color={C.blue}
               title="Sales Terms"
-              note="Shown because Listing Type = Sell"
-            />
+              subtitle="Shown because Listing Type = Sell."
+              pattern={false}
+              decoration={<CornerArt />}
+            >
+              <div style={WZ.body}>
+                <Grid layout="two" as="div" style={WZ.fields}>
+                  <FormField label="Asking Price *"><Field placeholder="$ 0.00" value={saleTerms.askingPrice} onChange={v => setSaleTerm('askingPrice', v)} label="Asking price" /></FormField>
+                  <FormField label="Available Date *"><Field type="date" value={saleTerms.availableDate} onChange={v => setSaleTerm('availableDate', v)} label="Available date" /></FormField>
+                  <FormField label="Property Tax"><Field placeholder="$ 0.00" value={saleTerms.propertyTax} onChange={v => setSaleTerm('propertyTax', v)} label="Property tax" /></FormField>
+                  <FormField label="HOA">
+                    <div style={WZ.radios} role="radiogroup" aria-label="HOA">
+                      <RadioPill label="Yes" on={saleTerms.hoaEnabled} onClick={() => setSaleTerm('hoaEnabled', true)} />
+                      <RadioPill label="No" on={!saleTerms.hoaEnabled} onClick={() => setSaleTerm('hoaEnabled', false)} />
+                    </div>
+                  </FormField>
+                  {saleTerms.hoaEnabled && (
+                    <>
+                      <FormField label="HOA Fee"><Field placeholder="$ 0.00" value={saleTerms.hoaFee} onChange={v => setSaleTerm('hoaFee', v)} label="HOA fee" /></FormField>
+                      <FormField label="HOA Fee Frequency">
+                        <SelectField label="HOA fee frequency" options={HOA_FREQUENCIES} value={saleTerms.hoaFeeFrequency} onChange={v => setSaleTerm('hoaFeeFrequency', v || 'Monthly')} />
+                      </FormField>
+                    </>
+                  )}
+                </Grid>
 
-            <div style={{ ...LS.grid2, marginBottom: 16 }}>
-              <div style={LS.field}>
-                <span style={LS.lbl}>Asking Price *</span>
-                <input style={LS.inp} placeholder="$ 0.00" value={saleTerms.askingPrice} onChange={e => setSaleTerm('askingPrice', e.target.value)} />
-              </div>
-              <div style={LS.field}>
-                <span style={LS.lbl}>Available Date *</span>
-                <input type="date" style={LS.inp} value={saleTerms.availableDate} onChange={e => setSaleTerm('availableDate', e.target.value)} />
-              </div>
-              <div style={LS.field}>
-                <span style={LS.lbl}>Property Tax</span>
-                <input style={LS.inp} placeholder="$ 0.00" value={saleTerms.propertyTax} onChange={e => setSaleTerm('propertyTax', e.target.value)} />
-              </div>
-              <div style={LS.field}>
-                <span style={LS.lbl}>HOA</span>
-                <div style={LS.radiopill}>
-                  <RadioPillButton label="Yes" on={saleTerms.hoaEnabled} onClick={() => setSaleTerm('hoaEnabled', true)} />
-                  <RadioPillButton label="No" on={!saleTerms.hoaEnabled} onClick={() => setSaleTerm('hoaEnabled', false)} />
+                <div style={WZ.rule} />
+
+                <div style={UI2.stack(SP2.lg)}>
+                  <FormField label="Showing Instructions"><Field placeholder="e.g. Call agent before showing" value={saleTerms.showingInstructions} onChange={v => setSaleTerm('showingInstructions', v)} label="Showing instructions" /></FormField>
+                  <FormField label="Possession Terms"><Field placeholder="e.g. Negotiable / Close of escrow" value={saleTerms.possessionTerms} onChange={v => setSaleTerm('possessionTerms', v)} label="Possession terms" /></FormField>
+                  <div>
+                    <span style={WZ.group}>Seller Financing</span>
+                    <div style={WZ.radios} role="radiogroup" aria-label="Seller financing">
+                      <RadioPill label="Yes" on={saleTerms.sellerFinancingEnabled} onClick={() => setSaleTerm('sellerFinancingEnabled', true)} />
+                      <RadioPill label="No" on={!saleTerms.sellerFinancingEnabled} onClick={() => setSaleTerm('sellerFinancingEnabled', false)} />
+                    </div>
+                  </div>
                 </div>
+
+                <div style={WZ.rule} />
+
+                <FormField label="Other Sale Terms">
+                  <textarea
+                    className="un2-focus-ring"
+                    style={FIELD2.textarea}
+                    placeholder="Add any other sale terms…"
+                    value={saleTerms.otherSaleTerms}
+                    onChange={e => setSaleTerm('otherSaleTerms', e.target.value)}
+                    aria-label="Other sale terms"
+                  />
+                </FormField>
               </div>
-              {saleTerms.hoaEnabled && (
-                <>
-                  <div style={LS.field}>
-                    <span style={LS.lbl}>HOA Fee</span>
-                    <input style={LS.inp} placeholder="$ 0.00" value={saleTerms.hoaFee} onChange={e => setSaleTerm('hoaFee', e.target.value)} />
-                  </div>
-                  <div style={LS.field}>
-                    <span style={LS.lbl}>HOA Fee Frequency</span>
-                    <select style={LS.inp} value={saleTerms.hoaFeeFrequency} onChange={e => setSaleTerm('hoaFeeFrequency', e.target.value)}>
-                      <option>Monthly</option>
-                      <option>Quarterly</option>
-                      <option>Semi-Annually</option>
-                      <option>Annually</option>
-                    </select>
-                  </div>
-                </>
-              )}
-            </div>
-
-            <div style={LS.hr} />
-
-            <div style={{ ...LS.field, ...LS.fieldFull, marginBottom: 16 }}>
-              <span style={LS.lbl}>Showing Instructions</span>
-              <input style={LS.inp} placeholder="e.g. Call agent before showing" value={saleTerms.showingInstructions} onChange={e => setSaleTerm('showingInstructions', e.target.value)} />
-            </div>
-            <div style={{ ...LS.field, ...LS.fieldFull, marginBottom: 16 }}>
-              <span style={LS.lbl}>Possession Terms</span>
-              <input style={LS.inp} placeholder="e.g. Negotiable / Close of escrow" value={saleTerms.possessionTerms} onChange={e => setSaleTerm('possessionTerms', e.target.value)} />
-            </div>
-
-            <span style={LS.ckGroupLbl}>Seller Financing</span>
-            <div style={{ ...LS.radiopill, marginBottom: 16 }}>
-              <RadioPillButton label="Yes" on={saleTerms.sellerFinancingEnabled} onClick={() => setSaleTerm('sellerFinancingEnabled', true)} />
-              <RadioPillButton label="No" on={!saleTerms.sellerFinancingEnabled} onClick={() => setSaleTerm('sellerFinancingEnabled', false)} />
-            </div>
-
-            <div style={LS.hr} />
-
-            <div style={{ ...LS.field, ...LS.fieldFull }}>
-              <span style={LS.lbl}>Other Sale Terms</span>
-              <textarea
-                style={LS.txtarea}
-                placeholder="Add any other sale terms…"
-                value={saleTerms.otherSaleTerms}
-                onChange={e => setSaleTerm('otherSaleTerms', e.target.value)}
-              />
-            </div>
-          </div>
+            </SectionCard>
           )}
         </div>
 
         {/* ── RIGHT COLUMN ────────────────────────────────────────── */}
-        <div style={LS.splitCol}>
+        <div style={WZ.col}>
 
           {/* Listing Basics */}
-          <div style={LS.card}>
-            <SectionHead icon="ti-file-text" bg={C.greenLight} color={C.green} title="Listing Basics" />
-
-            <div style={{ ...LS.field, ...LS.fieldFull, marginBottom: 16 }}>
-              <div style={LS.lblRow}>
-                <span style={{ ...LS.lbl, marginBottom: 0 }}>Listing Title</span>
-                <AiAssistButton />
-              </div>
-              <input style={LS.inp} placeholder="e.g. Stunning 2BR with City Views" value={basics.title} onChange={e => setBasic('title', e.target.value)} />
-            </div>
-
-            <div style={{ ...LS.field, ...LS.fieldFull, marginBottom: 16 }}>
-              <div style={LS.lblRow}>
-                <span style={{ ...LS.lbl, marginBottom: 0 }}>Listing Description</span>
-                <AiAssistButton />
-              </div>
-              <textarea
-                style={LS.txtarea}
-                placeholder="Craft a compelling description for prospective tenants…"
-                value={basics.description}
-                onChange={e => setBasic('description', e.target.value)}
-              />
-            </div>
-
-            <div style={{ ...LS.field, ...LS.fieldFull, marginBottom: 16 }}>
-              <span style={LS.lbl}>Listing Highlights</span>
-              <div style={LS.chiprow}>
-                {basics.highlights.map((h, i) => (
-                  <div key={i} style={LS.chip}>
-                    {h}
-                    <i className="ti ti-x" style={{ fontSize: 10, cursor: 'pointer' }} onClick={() => removeHighlight(i)} aria-hidden="true" />
-                  </div>
-                ))}
-                <input
-                  style={{ ...LS.chipPh, border: 'none', outline: 'none', background: 'transparent', flex: 1, minWidth: 90, fontSize: 12.5, fontFamily: 'inherit' }}
-                  placeholder="Add highlight…"
-                  value={highlightDraft}
-                  onChange={e => setHighlightDraft(e.target.value)}
-                  onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addHighlight(); } }}
+          <SectionCard icon="ti-file-text" title="Listing Basics" pattern={false}>
+            <div style={{ ...UI2.stack(SP2.lg), ...WZ.body }}>
+              <FormField label="Listing Title" action={<AiAssist />}>
+                <Field placeholder="e.g. Stunning 2BR with City Views" value={basics.title} onChange={v => setBasic('title', v)} label="Listing title" />
+              </FormField>
+              <FormField label="Listing Description" action={<AiAssist />}>
+                <textarea
+                  className="un2-focus-ring"
+                  style={FIELD2.textarea}
+                  placeholder="Craft a compelling description for prospective tenants…"
+                  value={basics.description}
+                  onChange={e => setBasic('description', e.target.value)}
+                  aria-label="Listing description"
                 />
-              </div>
+              </FormField>
+              <FormField label="Listing Highlights">
+                <ChipInput
+                  items={basics.highlights}
+                  draft={highlightDraft}
+                  onDraft={setHighlightDraft}
+                  onAdd={addHighlight}
+                  onRemove={removeHighlight}
+                  placeholder="Add highlight…"
+                />
+              </FormField>
+              <FormField label="Available Date">
+                <Field type="date" value={basics.availableDate} onChange={v => setBasic('availableDate', v)} label="Available date" />
+              </FormField>
             </div>
-
-            <div style={{ ...LS.field, ...LS.fieldFull }}>
-              <span style={LS.lbl}>Available Date</span>
-              <input type="date" style={LS.inp} value={basics.availableDate} onChange={e => setBasic('availableDate', e.target.value)} />
-            </div>
-          </div>
+          </SectionCard>
 
           {/* Photos & Media */}
-          <div style={LS.card}>
-            <SectionHead icon="ti-photo" bg={C.amberLight} color={C.amber} title="Photos & Media" />
-
-            <div style={LS.lblRow}>
-              <span style={{ ...LS.lbl, marginBottom: 0 }}>Existing Photos</span>
-              <span style={{ fontSize: 10.5, fontWeight: 600, color: C.txtMuted, textTransform: 'none', letterSpacing: 0 }}>Select to include</span>
-            </div>
-            <div style={{ ...LS.photoGrid, marginTop: 10, marginBottom: 16 }}>
-              {photos.map(p => (
-                <div
-                  key={p.id}
-                  style={{
-                    ...LS.photoTile(p.selected),
-                    ...(p.url ? { background: `url(${p.url}) center/cover` } : {}),
-                  }}
-                  onClick={() => togglePhoto(p.id)}
-                >
-                  {!p.url && <i className="ti ti-photo" style={{ fontSize: 22, color: 'rgba(255,255,255,0.75)' }} aria-hidden="true" />}
-                  {p.selected && (
-                    <div style={LS.photoCheck}><i className="ti ti-check" style={{ fontSize: 9, color: '#fff' }} aria-hidden="true" /></div>
-                  )}
+          <SectionCard icon="ti-photo" title="Photos & Media" pattern={false}>
+            <div style={WZ.body}>
+              <div style={S.labelRow}>
+                <span style={UI2.capsLabel}>Existing Photos</span>
+                <span style={S.subtle}>Select to include</span>
+              </div>
+              <Grid layout="three" as="div" style={S.tiles}>
+                {photos.map(p => (
+                  <button key={p.id} type="button" style={S.photo(p.selected, p.url)} onClick={() => togglePhoto(p.id)}
+                    role="checkbox" aria-checked={p.selected} aria-label="Include this photo">
+                    {!p.url && <i className="ti ti-photo" style={S.photoIcon} aria-hidden="true" />}
+                    {p.selected && <span style={S.photoCheck}><i className="ti ti-check" aria-hidden="true" /></span>}
+                  </button>
+                ))}
+                <div style={S.upload} title="Uploading a new photo isn't available yet — coming soon" aria-disabled="true">
+                  <i className="ti ti-plus" style={UI2.addTileIcon} aria-hidden="true" />Upload New
                 </div>
-              ))}
-              {photos.length === 0 && (
-                <div style={{ fontSize: 12, color: C.txtMuted, gridColumn: '1 / -1' }}>No unit photos uploaded yet.</div>
-              )}
-              <div style={{ ...LS.uploadTile, opacity: 0.55, cursor: 'not-allowed' }} title="Uploading a new photo isn't available yet — coming soon">
-                <i className="ti ti-plus" style={{ fontSize: 18 }} aria-hidden="true" />Upload New
-              </div>
-            </div>
-            <p style={{ ...LS.hint, marginTop: -10, marginBottom: 16 }}>Uploading new photo files isn't wired to the backend yet — the tiles above select from photos already on the Unit record</p>
+              </Grid>
+              {photos.length === 0 && <div style={UI2.emptyInline}>No unit photos uploaded yet.</div>}
+              <p style={WZ.hint}>Uploading new photo files isn't wired to the backend yet — the tiles above select from photos already on the Unit record.</p>
 
-            <span style={{ ...LS.lbl, marginBottom: 10 }}>Videos</span>
-            <div style={{ ...LS.videoGrid, marginTop: 10, marginBottom: 16 }}>
-              <div style={LS.videoThumb}><i className="ti ti-player-play" style={{ fontSize: 20, color: 'rgba(255,255,255,0.85)' }} aria-hidden="true" /></div>
-              <div style={{ ...LS.uploadTile, opacity: 0.55, cursor: 'not-allowed' }} title="Uploading a new video isn't available yet — coming soon">
-                <i className="ti ti-plus" style={{ fontSize: 18 }} aria-hidden="true" />Upload New
+              <div style={S.mediaGap}>
+                <span style={WZ.group}>Videos</span>
+                <Grid layout="three" as="div" style={S.tiles}>
+                  <div style={S.video} aria-hidden="true"><i className="ti ti-player-play" /></div>
+                  <div style={S.upload} title="Uploading a new video isn't available yet — coming soon" aria-disabled="true">
+                    <i className="ti ti-plus" style={UI2.addTileIcon} aria-hidden="true" />Upload New
+                  </div>
+                </Grid>
               </div>
-            </div>
 
-            <div style={{ ...LS.field, ...LS.fieldFull, marginBottom: 16 }}>
-              <span style={LS.lbl}>Video URL</span>
-              <input style={LS.inp} placeholder="YouTube or Vimeo link" value={videoUrl} onChange={e => setVideoUrl(e.target.value)} />
-            </div>
-            <div style={{ ...LS.field, ...LS.fieldFull, marginBottom: 16 }}>
-              <span style={LS.lbl}>Virtual Tour URL</span>
-              <input style={LS.inp} placeholder="Matterport or similar link" value={virtualTourUrl} onChange={e => setVirtualTourUrl(e.target.value)} />
-            </div>
+              <div style={{ ...UI2.stack(SP2.lg), ...S.mediaGap }}>
+                <FormField label="Video URL"><Field placeholder="YouTube or Vimeo link" value={videoUrl} onChange={setVideoUrl} label="Video URL" /></FormField>
+                <FormField label="Virtual Tour URL"><Field placeholder="Matterport or similar link" value={virtualTourUrl} onChange={setVirtualTourUrl} label="Virtual tour URL" /></FormField>
+              </div>
 
-            <span style={{ ...LS.lbl, marginBottom: 10 }}>Floor Plan Image</span>
-            <div style={{ display: 'flex', gap: 10 }}>
-              <div style={{ ...LS.photoTile(false), width: 90, flexShrink: 0 }}>
-                <i className="ti ti-layout-2" style={{ fontSize: 20, color: 'rgba(255,255,255,0.75)' }} aria-hidden="true" />
-              </div>
-              <div style={{ ...LS.uploadTile, width: 90, flexShrink: 0, opacity: 0.55, cursor: 'not-allowed' }} title="Uploading a floor plan image isn't available yet — coming soon">
-                <i className="ti ti-plus" style={{ fontSize: 18 }} aria-hidden="true" />Upload
+              <div style={S.mediaGap}>
+                <span style={WZ.group}>Floor Plan Image</span>
+                <Grid layout="three" as="div" style={S.tiles}>
+                  <div style={S.plan} aria-hidden="true"><i className="ti ti-layout-2" /></div>
+                  <div style={S.upload} title="Uploading a floor plan image isn't available yet — coming soon" aria-disabled="true">
+                    <i className="ti ti-plus" style={UI2.addTileIcon} aria-hidden="true" />Upload
+                  </div>
+                </Grid>
+                <p style={WZ.hint}>Separate from the Floor Plan Name field — image upload isn't wired to the backend yet.</p>
               </div>
             </div>
-            <p style={LS.hint}>Separate from the Floor Plan Name field — image upload isn't wired to the backend yet</p>
-          </div>
+          </SectionCard>
         </div>
-      </div>
-    </ListingPageShell>
+      </Grid>
+
+      <WizardFooter
+        step={2}
+        total={STEPS.length}
+        note={saveError || undefined}
+        onBack={handleBack}
+        onSaveExit={handleSaveExit}
+        onContinue={handleContinue}
+        busy={saving}
+      />
+    </>
   );
 }

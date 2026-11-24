@@ -1,10 +1,10 @@
 import React, { useState } from 'react';
-import { C2, G2, R2, SH2, F2, FS2, FW2, LH2, LS2, T2, SP2, SZ2, MOTION2, pad, UI2 } from '../../constants/v2';
-import sidebarBuilding from '../../assets/v2/landlord/sidebar-building.jpg';
-import brandLogo from '../../assets/v2/brand/urban-nest-logo.png';
+import { C2, G2, R2, SH2, F2, FS2, FW2, LH2, LS2, T2, SP2, SZ2, MOTION2, pad, UI2 } from '../../constants';
+import sidebarBuilding from '../../assets/landlord/sidebar-building.jpg';
+import brandLogo from '../../assets/brand/urban-nest-logo.png';
 
 // ─── NavF — Landlord Portal Left Navigation (Design System v2) ───────────────
-// Reusable across all Landlord portal pages. All values come from constants/v2.
+// Reusable across all Landlord portal pages. All values come from constants.
 // Usage:
 //   import NavF from '../../components/layout/NavF';
 //   <NavF activePage="dashboard" />

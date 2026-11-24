@@ -1,145 +1,335 @@
-import React, { useState, useEffect } from 'react';
+// ─────────────────────────────────────────────
+// UrbanNest — Persona Select (route: /persona-select)
+// Design System v2 (2026-11-24, layout from Downloads/image 20.png) — split screen:
+//   LEFT   dusk house photo (full height, assets/personas/persona-hero.jpg) · twinkling stars · brand · "One account, / multiple roles." · rule ·
+//          subtitle · three feature rows (same plain rows as the sign-up perks)
+//   RIGHT  who's signed in + Sign out, then a white sheet whose rounded corner runs over the photo:
+//          header · the PHOTO CARDS of the roles you hold + "Add a role" · the action row (selected role + main button)
+//
+// Flow: select → continue (nothing navigates on the first click):
+//   · Click a card → light-blue ring + ✓ + one light sweep; the action row swaps to that role and its main button
+//     ("Continue to Landlord Portal", "Reactivate profile", "Resume application" …). Double-click / Enter continues.
+//   · "Add a role" → the cards fade out, then the WHITE SHEET itself grows over the whole page (its slanted, rounded
+//     edge straightens as it travels); the roles you can still set up appear on it as compact photo cards. Cancel /
+//     Esc → that view fades, the sheet shrinks back to its slanted place beside the photo and your cards return.
+//   · Inactive profiles and a rejected PMS application still ask first (v2 Modal).
+// The data loading (/auth/me, /admin/org-pms), switch-persona call and every navigation target are unchanged.
+// ─────────────────────────────────────────────
+
+import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
-
-if (!document.getElementById('tabler-icons-cdn')) {
-  const link = document.createElement('link');
-  link.id   = 'tabler-icons-cdn';
-  link.rel  = 'stylesheet';
-  link.href = 'https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css';
-  document.head.appendChild(link);
-}
+import { ImageBackdrop, AUTH, introAt } from '../../components/layout';
+import { Modal, CornerArt, Particles } from '../../components/ui';
+import { C2, G2, SH2, TONES2, F2, FS2, FW2, LH2, LS2, R2, SP2, SZ2, BLUR2, OP2, LAYOUT2, T2, UI2, pad } from '../../constants';
+import brandLogo from '../../assets/brand/urban-nest-logo.png';
+import backdropArt from '../../assets/landlord/wizard-backdrop.jpg';
+import heroArt from '../../assets/personas/persona-hero.jpg';   // dusk sky over a lit modern house (Downloads/image 130.png, 1800px, mirrored so the house sits bottom-left under the copy)
+// role photos — renter / landlord / PMS company from the user's set (Downloads/Tenant.png, Landlord.png, PMS.png,
+// resized to 1400px); the others reuse the app's own hero art
+import imgRenter from '../../assets/personas/renter.jpg';
+import imgLandlord from '../../assets/personas/landlord.jpg';
+import imgPmsCompany from '../../assets/personas/pms-company.jpg';
+import imgTenant from '../../assets/landlord/signup-hero.jpg';
+import imgIndependentPm from '../../assets/landlord/dashboard-hero.jpg';
+import imgAgent from '../../assets/landlord/login-hero.jpg';
+import imgAdmin from '../../assets/landlord/portfolio-hero-sunset.jpg';
+import imgStaff from '../../assets/landlord/services/lease-management.jpg';
 
 const API_BASE = (process.env.REACT_APP_API_BASE_URL || 'http://localhost:8001/api').replace(/\/api\/?$/, '');
 
-const C = {
-  primary:'#002D5B', primaryHover:'#003d7a', pageBg:'#F0F2F5',
-  border:'#E2E8F0', borderMedium:'#CBD5E1',
-  textPrimary:'#0F172A', textSecondary:'#64748B', textTertiary:'#94A3B8',
-  white:'#FFFFFF', neutral:'#F1F5F9',
-};
-const F = { headline:"'Noto Serif', serif", body:"'Nunito Sans', sans-serif" };
-
-const ESTATE_IMAGE = 'https://images.unsplash.com/photo-1613977257363-707ba9348227?w=900&q=80&fit=crop';
-const TESTIMONIALS = [
-  { quote: '"Experience the pinnacle of urban living with curated spaces designed for the modern tenant. URBANNEST provides the clarity and security essential for navigating complex global markets with confidence."', name: 'JULIAN VANE', title: 'GLOBAL PORTFOLIO STRATEGY, LONDON' },
-  { quote: '"Unparalleled access to prime real estate opportunities across three continents. URBANNEST redefines what private wealth management looks like."', name: 'SOPHIA HARTWELL', title: 'PRIVATE EQUITY DIRECTOR, ZÜRICH' },
-  { quote: '"From acquisition to legacy planning, URBANNEST has been the cornerstone of our family office strategy for over a decade."', name: 'MARCUS DELACROIX', title: 'FAMILY OFFICE PRINCIPAL, SINGAPORE' },
-];
-
-// ─── Org PMS status badge config ──────────────────────────────────────────────
-const ORG_PMS_BADGE = {
-  DRAFT:     { label:'Draft',    bg:'#FEF3C7', color:'#92400E', border:'#FCD34D' },
-  PENDING:   { label:'Pending',  bg:'#EFF6FF', color:'#1D4ED8', border:'#BFDBFE' },
-  APPROVED:  { label:'Active',   bg:'#F0FDF4', color:'#166534', border:'#BBF7D0' },
-  SUSPENDED: { label:'Suspended',bg:'#FEF2F2', color:'#991B1B', border:'#FECACA' },
-};
-
 // ─── Persona catalogue ─────────────────────────────────────────────────────────
+// key · route (set-up flow for a role you don't hold yet) · portal (where it opens) — unchanged.
+// img / pos = card photo + its framing · portalName / blurb = what the action row tells you.
 const ALL_PERSONAS = [
-  { key:'RENTER',            label:'Renter',            sub:'Main Account',       icon:'ti-home',                color:C.primary,  route:'/marketplace',            portal:'/marketplace' },
-  { key:'TENANT',            label:'Tenant',            sub:'Active Tenancy',     icon:'ti-users',               color:'#1D4ED8',  route:'/coming-soon',            portal:'/coming-soon' },
-  { key:'LANDLORD',          label:'Landlord',          sub:'Property Owner',     icon:'ti-building',            color:'#064E3B',  route:'/landlord-registration/step-1', portal:'/landlord-portal/dashboard' },
-  { key:'INDEPENDENT_PM',    label:'Property Manager',  sub:'Independent PM',     icon:'ti-briefcase',           color:'#B45309',  route:'/pm-registration',        portal:'/pm-portal/dashboard/welcome' },
-  { key:'ORGANIZATIONAL_PM', label:'PMS Company',       sub:'Organisational PM',  icon:'ti-building-skyscraper', color:'#BE123C',  route:'/org-onboarding/step-1',  portal:'/org-onboarding/step-1' },
-  { key:'REAL_ESTATE_AGENT', label:'Real Estate Agent', sub:'Agent Portal',       icon:'ti-id-badge',            color:'#7C3AED',  route:'/coming-soon',            portal:'/coming-soon' },
-  { key:'UN_ADMIN',          label:'UN Admin',          sub:'Lead Administrator', icon:'ti-shield-lock',         color:C.primary,  route:'/admin-portal/dashboard', portal:'/admin-portal/dashboard' },
-  { key:'PM_STAFF',          label:'PM Staff',          sub:'Team Member',        icon:'ti-users',               color:'#0F766E', route:'/pm-portal/dashboard/welcome', portal:'/pm-portal/dashboard/my-dashboard' },
+  { key:'RENTER',            label:'Renter',            sub:'Main account',       icon:'ti-home',                img:imgRenter,        pos:'56% center', route:'/marketplace',                  portal:'/marketplace',
+    portalName:'Marketplace',         blurb:'Browse verified homes, book tours and track your applications.' },
+  { key:'TENANT',            label:'Tenant',            sub:'Active tenancy',     icon:'ti-key',                 img:imgTenant,        pos:'55% center', route:'/coming-soon',                  portal:'/coming-soon',
+    portalName:'Tenant Portal',       blurb:'Your lease, rent payments and maintenance requests in one place.', soon:true },
+  { key:'LANDLORD',          label:'Landlord',          sub:'Property owner',     icon:'ti-building',            img:imgLandlord,      pos:'56% center', route:'/landlord-registration/step-1', portal:'/landlord-portal/dashboard',
+    portalName:'Landlord Portal',     blurb:'Run your portfolio — listings, units, rent collection and residents.' },
+  { key:'INDEPENDENT_PM',    label:'Property Manager',  sub:'Independent PM',     icon:'ti-briefcase',           img:imgIndependentPm, pos:'60% center', route:'/pm-registration',              portal:'/pm-portal/dashboard/welcome',
+    portalName:'PM Portal',           blurb:'Manage properties for your clients, from leasing to maintenance.' },
+  { key:'ORGANIZATIONAL_PM', label:'PMS Company',       sub:'Organisational PM',  icon:'ti-building-skyscraper', img:imgPmsCompany,    pos:'64% center', route:'/org-onboarding/step-1',        portal:'/org-onboarding/step-1',
+    portalName:'Organisation Portal', blurb:'Your property-management company — teams, portfolios and billing.' },
+  { key:'REAL_ESTATE_AGENT', label:'Real Estate Agent', sub:'Agent portal',       icon:'ti-id-badge',            img:imgAgent,         pos:'62% center', route:'/coming-soon',                  portal:'/coming-soon',
+    portalName:'Agent Portal',        blurb:'List on behalf of owners and follow your leads to signed leases.', soon:true },
+  { key:'UN_ADMIN',          label:'UN Admin',          sub:'Lead administrator', icon:'ti-shield-lock',         img:imgAdmin,         pos:'50% center', route:'/admin-portal/dashboard',       portal:'/admin-portal/dashboard',
+    portalName:'Admin Portal',        blurb:'Platform administration — approvals, screening and configuration.' },
+  { key:'PM_STAFF',          label:'PM Staff',          sub:'Team member',        icon:'ti-user-cog',            img:imgStaff,         pos:'78% center', route:'/pm-portal/dashboard/welcome',  portal:'/pm-portal/dashboard/my-dashboard',
+    portalName:'PM Workspace',        blurb:'Your assigned properties, tasks and team updates.' },
 ];
 
-function TestimonialCarousel() {
-  const [idx, setIdx] = useState(0);
-  const t = TESTIMONIALS[idx];
-  return (
-    <div style={{ position:'absolute', bottom:48, left:36, right:36, background:'rgba(255,255,255,0.12)', backdropFilter:'blur(12px)', WebkitBackdropFilter:'blur(12px)', borderRadius:16, border:'1px solid rgba(255,255,255,0.18)', padding:'28px 32px 22px' }}>
-      <p style={{ fontFamily:F.headline, fontSize:14, fontWeight:400, color:'#fff', lineHeight:1.7, margin:'0 0 20px', fontStyle:'italic' }}>{t.quote}</p>
-      <div style={{ display:'flex', alignItems:'center', justifyContent:'space-between' }}>
-        <div>
-          <p style={{ fontFamily:F.body, fontSize:11, fontWeight:700, color:'#fff', margin:'0 0 2px', letterSpacing:'0.06em' }}>{t.name}</p>
-          <p style={{ fontFamily:F.body, fontSize:10, color:'rgba(255,255,255,0.6)', margin:0, letterSpacing:'0.04em' }}>{t.title}</p>
-        </div>
-        <div style={{ display:'flex', gap:8 }}>
-          {[() => setIdx(i => (i-1+TESTIMONIALS.length)%TESTIMONIALS.length), () => setIdx(i => (i+1)%TESTIMONIALS.length)].map((fn,i) => (
-            <button key={i} onClick={fn} style={{ width:32, height:32, borderRadius:'50%', background:'rgba(255,255,255,0.15)', border:'1px solid rgba(255,255,255,0.25)', color:'#fff', cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', fontFamily:F.body, fontSize:14 }}>
-              {i===0?'‹':'›'}
-            </button>
-          ))}
-        </div>
-      </div>
-    </div>
-  );
-}
+// Org PMS application status → chip · main-button label
+const ORG_PMS_STATE = {
+  DRAFT:     { label:'Draft',     tone:TONES2.neutral, cta:'Resume application' },
+  PENDING:   { label:'In review', tone:TONES2.purple,  cta:'View application status' },
+  APPROVED:  { label:'Active',    tone:TONES2.primary, cta:'Continue to Organisation Portal' },
+  SUSPENDED: { label:'Suspended', tone:TONES2.error,   cta:'View account status' },
+};
+
+// left panel feature rows
+const PERKS = [
+  { icon: 'ti-layout-dashboard', text: 'Personalised dashboards' },
+  { icon: 'ti-stack-2',          text: 'Role-based access' },
+  { icon: 'ti-users-plus',       text: 'Add multiple roles' },
+];
+
+// page-open timing (s): photo curtain → headline lines → copy · sheet → its rows → the cards are dealt in
+const INTRO = { photo: 0.05, brand: 0.55, line: 0.7, lineStep: 0.16, copy: 1.05, perks: 1.2, sheet: 0.15, head: 0.45, deck: 0.7, action: 1.0 };
+const SHEET_MS = 1400;  // full close (add view out · sheet shrinks · your cards back) — the add pick is cleared after it
+const CARD = SZ2.personaCard;        // compact — "Roles you can add"
+const CARD_LG = SZ2.personaCardLg;   // "Your workspaces" — a size up
+const SPLIT = SZ2.personaSplit;
+const TOP_H = SZ2.topbar + SP2.lg;   // top bar (who's signed in · Sign out) — the sheet surface starts right under it
+const DECK_GAP = SP2.lg;    // "Your workspaces" (fluid thirds on the sheet)
+const ADD_GAP = SP2.huge + SP2.sm;   // "Add a role" grid — 48px between columns (horizontal only)
+const ADD_ROW_GAP = SP2.xxl;        // … and 24px between rows
+const ADD_MAX_COLS = 3;   // add view: a 3-column grid (3 × 3 at most on screen) — fewer columns only if the window is too narrow (useAddCols)
+const CARD_WIDE = SZ2.personaCardWide;   // "Add a role" grid — landscape cards, fluid width (rows stay short on low screens)
+// width of one grid cell for c columns (gaps taken out), e.g. 3 → a third of the grid
+const addCell = (c) => ({ width: `calc((100% - ${(c - 1) * ADD_GAP}px) / ${c})`, flexShrink: 0 });
+
+const S = {
+  // ── page (split screen) ──
+  page:     { position: 'relative', zIndex: 0, height: '100vh', overflow: 'hidden', background: C2.pageBg, fontFamily: F2.body, color: C2.textPrimary,
+              '--un2-ps-start': `${SPLIT.start}%`, '--un2-ps-top': `${TOP_H}px`, '--un2-ps-slant': `${SPLIT.slant}deg`, '--un2-ps-radius': `${R2.header * 2}px` },
+  // the white sheet's SURFACE — one page-sized white layer. Resting: slid right to --un2-ps-start, down below the top bar,
+  // leaning back from its bottom-left corner (slanted edge, big rounded top corner over the photo). "Add a role": it
+  // grows over the whole page (un2-ps-surface in utilities.css). Only the surface moves — content sits on top of it.
+  surfaceWrap: { position: 'absolute', inset: 0, zIndex: 1, pointerEvents: 'none' },
+  surface:  { position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', background: G2.glass, boxShadow: SH2.lg, transformOrigin: 'left bottom' },
+  waveWrap: { position: 'absolute', inset: 0, zIndex: -1, overflow: 'hidden', pointerEvents: 'none' },
+  // the wave art again, turned 180° → waves bottom-left too (same as the sign-in frame)
+  waveLeft: {
+    position: 'absolute', left: 0, right: 0, bottom: 0, height: SZ2.imageBackdrop, opacity: OP2.backdrop, transform: 'rotate(180deg)',
+    backgroundImage: `url(${backdropArt})`, backgroundSize: '100% auto', backgroundPosition: 'right top', backgroundRepeat: 'no-repeat',
+    WebkitMaskImage: `${G2.imageBackdropMask}, ${G2.imageBackdropMaskX}`, maskImage: `${G2.imageBackdropMask}, ${G2.imageBackdropMaskX}`,
+    WebkitMaskComposite: 'source-in', maskComposite: 'intersect',
+  },
+
+  // ── LEFT photo (like the design): one photo layer behind the left part of the page, solid on the left and fading
+  //    out to the right (personaPhotoMask) so its sky melts into the page — no hard edge; the white sheet lies over it.
+  //    The copy sits in the dark sky above the house.
+  photoPanel: { position: 'absolute', top: 0, left: 0, bottom: 0, width: `${SPLIT.photo}%` },
+  photoClip:  { position: 'absolute', inset: 0, overflow: 'hidden', background: C2.navyHero, color: C2.white, WebkitMaskImage: G2.personaPhotoMask, maskImage: G2.personaPhotoMask },
+  photoImg:   { ...UI2.photoMedia, objectPosition: 'left bottom' },
+  scrimTop:   { position: 'absolute', inset: 0, background: G2.authHeroScrim, pointerEvents: 'none' },
+  scrimSide:  { position: 'absolute', inset: 0, background: G2.heroScrim, opacity: OP2.muted, pointerEvents: 'none' },
+  // copy column = the part of the page left of the white sheet
+  // copy column = the page left of the white sheet (start % of the PAGE — the panel itself is photo % wide)
+  photoBody:  { position: 'absolute', top: 0, left: 0, bottom: 0, width: `${(SPLIT.start / SPLIT.photo) * 100}%`, ...UI2.stack(0), boxSizing: 'border-box', padding: pad(SP2.huge, SP2.huge + SP2.lg, SP2.huge, SP2.huge + SP2.lg), color: C2.white },
+  brand:      { ...UI2.row(SP2.md) },
+  logo:       { height: SZ2.icon.lg, width: 'auto', aspectRatio: SZ2.brandLogoRatio, display: 'block' },
+  brandName:  { ...T2.brandTitle, display: 'block', lineHeight: LH2.tight, letterSpacing: LS2.snug },
+  brandSub:   { ...T2.eyebrow, display: 'block', color: C2.onDark.textMuted, marginTop: SP2.xxs },
+  title:      { ...T2.heroTitle, margin: pad(SP2.huge * 2, 0, 0) },
+  rule:       { width: SP2.huge + SP2.lg, height: SZ2.hairline * 3, borderRadius: R2.pill, background: C2.white, margin: pad(SP2.xl, 0, SP2.xl) },
+  copy:       { margin: 0, maxWidth: SZ2.authForm, fontSize: FS2.md, lineHeight: LH2.body, color: C2.onDark.textSoft },
+  perks:      { ...UI2.stack(SP2.sm), alignItems: 'flex-start', marginTop: SP2.xxl },
+  // feature rows = frosted glass tiles (icon box + label), like the design
+  perk:       { ...UI2.row(SP2.md), padding: pad(SP2.xs, SP2.lg, SP2.xs, SP2.xs), borderRadius: R2.lg, background: C2.onDark.surface, backdropFilter: BLUR2.md, WebkitBackdropFilter: BLUR2.md },
+  perkIcon:   { ...UI2.iconBox(SZ2.icon.md, { soft: C2.onDark.surfaceHover, strong: C2.white }) },
+  perkText:   { ...UI2.text.title, color: C2.white, whiteSpace: 'nowrap' },
+
+  // ── RIGHT: who's signed in + the white sheet ──
+  right:      { position: 'relative', zIndex: 2, height: '100%', display: 'flex', flexDirection: 'column' },
+  topBar:     { ...UI2.row(SP2.md), justifyContent: 'flex-end', flexShrink: 0, height: TOP_H, boxSizing: 'border-box', padding: pad(0, LAYOUT2.pageX) },   // fixed height = where the sheet surface starts
+  // account chip: ONE white pill on the light top area — TopBar's avatar (navy, white ring) · name / email · hairline · Sign out
+  account:    { ...UI2.row(SP2.md), minWidth: 0, padding: pad(SP2.xs, SP2.xs, SP2.xs, SP2.xs), borderRadius: R2.pill, background: C2.white, boxShadow: SH2.control },
+  whoText:    { ...UI2.stack(0), minWidth: 0, paddingRight: SP2.xs },
+  whoName:    { ...UI2.text.title, lineHeight: LH2.heading, ...UI2.truncate },
+  whoMail:    { ...T2.caption, ...UI2.truncate },
+  avatar:     { ...UI2.avatar(SZ2.icon.md, { soft: C2.navyDeep, fg: C2.white }), boxShadow: SH2.avatarRing },   // same as the v2 TopBar avatar
+  accountRule:{ width: SZ2.hairline, alignSelf: 'stretch', margin: pad(SP2.xs, 0), background: C2.border },
+  signOut:    { ...UI2.btn.textLink, color: C2.textSecondary, padding: pad(0, SP2.md, 0, SP2.xs), minHeight: SZ2.control.sm },   // quiet text action inside the chip
+  sheetWrap:  { position: 'relative', flex: 1, minHeight: 0, display: 'flex' },
+  sheet:      {
+    position: 'relative', flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden',   // header + action row stay put — only the cards scroll (S.deckScroll)
+    padding: pad(SP2.huge + SP2.md, SP2.huge, 0, SPLIT.edgePad),   // left inset clears the slanted edge at the top · no bottom padding: the footer bar sits on the bottom edge
+  },
+  sheetCol:   (w) => ({ position: 'relative', ...UI2.stack(SP2.xxl), flex: 1, minHeight: 0, width: '100%', maxWidth: w }),
+  // the card list takes ALL the height down to the sheet's bottom edge; the glass footer floats over its end, so the
+  // list gets extra bottom room (footer height) — the last card can always scroll up clear of the footer.
+  // padding = room for the selection ring + shadow
+  deckScroll: { flex: '1 1 auto', minHeight: 0, overflowY: 'auto', overflowX: 'hidden', padding: pad(SP2.sm, SP2.sm, SZ2.footerBar + SP2.lg), margin: pad(-SP2.sm, -SP2.sm, 0) },
+  // glass footer: floats over the bottom of the card list (takes no space of its own) — see-through frosted bar (same
+  // glass as the wizard footer: BLUR2.bar, light top edge, soft upward shadow), full sheet width. Its left end stops
+  // SP2.sm inside the sheet's slanted edge so it never pokes over the photo; its content lines up with the cards.
+  actionInner: { flex: 1, minWidth: 0 },
+  actionWrap: {
+    position: 'absolute', bottom: 0, left: -(SPLIT.edgePad - SP2.sm), right: -SP2.huge, zIndex: 2, minHeight: SZ2.footerBar, boxSizing: 'border-box',
+    display: 'flex', alignItems: 'center', padding: pad(SP2.sm, SP2.huge, SP2.sm, SPLIT.edgePad - SP2.sm),
+    background: C2.barGlass, backdropFilter: BLUR2.bar, WebkitBackdropFilter: BLUR2.bar,
+    borderTop: `${SZ2.hairline}px solid ${C2.barGlassEdge}`, boxShadow: SH2.barUp,
+  },
+  head:       { ...UI2.stack(SP2.sm), alignItems: 'flex-start' },
+  eyebrow:    { ...UI2.pill(TONES2.primary) },
+  h1:         { ...T2.pageHeroTitle, margin: 0 },
+  lead:       { ...T2.pageHeroSub, margin: 0 },
+
+  // ── decks ──
+  deck:       { display: 'flex', flexWrap: 'wrap', justifyContent: 'flex-start', columnGap: ADD_GAP, rowGap: ADD_ROW_GAP, width: '100%' },
+  skel:       { display: 'block', width: '100%', aspectRatio: `${CARD_LG.w} / ${CARD_LG.h}`, borderRadius: R2.xxl },
+  // "Your workspaces": always 3 per row, each a third of the sheet (fluid — fills the width, keeps the card's proportions)
+  deckFluid:  { display: 'flex', flexWrap: 'wrap', gap: DECK_GAP, width: '100%' },
+  cell:       { width: `calc((100% - ${DECK_GAP * 2}px) / 3)`, flexShrink: 0 },
+  fluidBox:   (sz) => ({ width: '100%', height: 'auto', aspectRatio: `${sz.w} / ${sz.h}` }),
+
+  // ── photo card ──
+  card:     (on, sz) => ({
+    display: 'block', width: sz.w, height: sz.h, padding: 0, border: 'none', borderRadius: R2.xxl, overflow: 'hidden', cursor: 'pointer',
+    textAlign: 'left', fontFamily: F2.body, color: C2.white, background: C2.navyHero,
+    boxShadow: on ? SH2.personaSelected : SH2.card, '--un2-persona-hover': SH2.personaHover,
+  }),
+  photo:    (pos) => ({ ...UI2.photoMedia, objectPosition: pos }),
+  scrim:    { position: 'absolute', inset: 0, background: G2.personaScrim, pointerEvents: 'none' },
+  top:      { ...UI2.rowBetween(SP2.sm), position: 'absolute', top: SP2.md, left: SP2.md, right: SP2.md, zIndex: 2 },
+  chip:     { ...UI2.chipOnDark, minHeight: 0, padding: pad(SP2.xxs, SP2.sm), fontSize: FS2.xxs, fontWeight: FW2.semibold, gap: SP2.xs },
+  chipDot:  (tone) => ({ ...UI2.statusDot(tone), boxShadow: `0 0 0 2px ${C2.onDark.surfaceHover}` }),
+  // selection mark: empty frosted ring → light-blue ✓
+  mark:     (on) => ({
+    ...UI2.center, width: SZ2.icon.xs, height: SZ2.icon.xs, flexShrink: 0, boxSizing: 'border-box', borderRadius: R2.round,
+    border: on ? 'none' : `2px solid ${C2.onDark.border}`, background: on ? G2.primaryButton : C2.onDark.surface,
+    backdropFilter: BLUR2.sm, WebkitBackdropFilter: BLUR2.sm, color: C2.white, fontSize: FS2.xs, transition: 'background 0.2s ease',
+  }),
+  markIcon: { display: 'inline-block' },   // transform (pop) needs a box
+  body:     { ...UI2.stack(SP2.xxs), position: 'absolute', left: SP2.md, right: SP2.md, bottom: SP2.md, zIndex: 2 },
+  icon:     { ...UI2.iconBox(SZ2.icon.sm, { soft: C2.onDark.surfaceHover, strong: C2.white }), backdropFilter: BLUR2.sm, WebkitBackdropFilter: BLUR2.sm, marginBottom: SP2.xs },
+  name:     { ...T2.sectionTitle, color: C2.white, ...UI2.truncate },
+  sub:      { ...T2.caption, color: C2.onDark.textMuted, ...UI2.truncate },
+
+  // ── "Add a role" card: white, fanned photo stack ──
+  add:      (sz) => ({
+    ...UI2.stack(SP2.sm), alignItems: 'center', justifyContent: 'center', width: sz.w, height: sz.h, padding: SP2.lg, boxSizing: 'border-box',
+    // an empty "add" slot (the v2 add-tile language, like PhotoBento's "Add images"): soft blue panel tint + dashed
+    // periwinkle outline + a clear lift, so it reads on the white sheet next to the photo cards
+    border: `${SZ2.dashed}px dashed ${C2.periwinkle}`, borderRadius: R2.xxl, cursor: 'pointer', fontFamily: F2.body, textAlign: 'center',
+    background: G2.panel(TONES2.primary), boxShadow: SH2.tile, '--un2-persona-hover': SH2.personaHover,
+  }),
+  fan:      (sz) => ({ position: 'relative', width: sz.fan * 2.5, height: sz.fan * 1.4, marginBottom: SP2.sm }),
+  fanItem:  (i, n, sz) => ({
+    position: 'absolute', left: '50%', top: 0, width: sz.fan, height: sz.fan * 1.3, marginLeft: -sz.fan / 2, borderRadius: R2.lg,
+    overflow: 'hidden', boxShadow: SH2.lg, zIndex: i === Math.floor(n / 2) ? 2 : 1,
+    '--r': `${(i - (n - 1) / 2) * 10}deg`, '--x': `${(i - (n - 1) / 2) * (sz.fan * 0.55)}px`,
+  }),
+  thumbImg: (pos) => ({ ...UI2.photoMedia, objectPosition: pos }),
+  plus:     { ...UI2.iconBox(SZ2.icon.md, TONES2.primary, { round: true, solid: true }), boxShadow: SH2.primary },
+  addName:  { ...T2.sectionTitle, marginTop: SP2.xxs },
+  addSub:   { ...T2.label },   // a step darker than the muted meta line, so it stays readable on the tint
+
+  // ── action row (selected role + main button) — light-blue tint panel, no border ──
+  action:   (w, bare) => ({ ...UI2.row(SP2.md), width: '100%', maxWidth: w, boxSizing: 'border-box', ...(bare ? {} : { padding: pad(SP2.sm, SP2.sm, SP2.sm, SP2.md), borderRadius: R2.xl, background: C2.primaryWash }) }),   // bare = inside the footer bar (no tint panel)
+  actThumb: { position: 'relative', width: CARD.barThumb, height: CARD.barThumb, flexShrink: 0, borderRadius: R2.md, overflow: 'hidden', boxShadow: SH2.md },
+  actText:  { ...UI2.stack(SP2.xxs), flex: 1, minWidth: 0 },
+  actName:  { ...T2.sectionTitle, ...UI2.truncate },   // Playfair role name — same font as the name on the photo cards
+  actMeta:  { ...T2.caption, color: C2.textSecondary, ...UI2.truncate },   // a step darker than the muted caption — readable on the glass footers
+  actHint:  { ...UI2.row(SP2.sm), flex: 1, minWidth: 0, ...T2.label },
+  cta:      { ...UI2.btn.brand, padding: pad(0, SP2.lg), flexShrink: 0 },
+  cancel:   { ...UI2.btn.soft, flexShrink: 0 },
+
+  // ── "Add a role" view — sits on the same white surface once it has grown over the page ──
+  addSheet: { position: 'absolute', inset: 0, zIndex: 3, overflowY: 'auto' },
+  addInner: { position: 'relative', zIndex: 0, display: 'flex', flexDirection: 'column', minHeight: '100%', boxSizing: 'border-box', padding: pad(SP2.lg, LAYOUT2.pageX, 0) },   // no bottom padding: the glass footer sits on the bottom edge
+  addBg:    { position: 'absolute', inset: 0, zIndex: -1, overflow: 'hidden', background: C2.pageBg, pointerEvents: 'none' },   // positioned itself: the fade wrapper would otherwise become the art's frame
+  addBar:   { ...UI2.row(SP2.md), justifyContent: 'flex-start', width: '100%', height: TOP_H - SP2.lg, flexShrink: 0 },   // full width → logo at the top-LEFT corner, where the brand always sits
+  // header shares the top bar's line: the pill sits level with Back / the logo (pulled up by the bar's height)
+  addHead:  { ...UI2.stack(SP2.md), alignItems: 'center', textAlign: 'center', marginTop: -(TOP_H - SP2.lg + SZ2.icon.xs) / 2, padding: pad(0, 0, SP2.lg), pointerEvents: 'none' },   /* pill centred on the bar's line */   // pointerEvents none: never blocks the bar underneath
+  addStack: (w) => ({ ...UI2.stack(SP2.huge), alignItems: 'center', width: '100%', maxWidth: w, margin: '0 auto', paddingBottom: SP2.huge }),
+  // glass footer of the add view: sticks to the bottom of the screen (same glass as the workspace footer), full width;
+  // marginTop auto keeps it on the bottom edge when the cards are few
+  addFoot:  {
+    position: 'sticky', bottom: 0, zIndex: 2, marginTop: 'auto', marginLeft: -LAYOUT2.pageX, marginRight: -LAYOUT2.pageX,
+    minHeight: SZ2.footerBar, boxSizing: 'border-box', display: 'flex', alignItems: 'center', padding: pad(SP2.sm, LAYOUT2.pageX),
+    background: C2.backgroundGlass, backdropFilter: BLUR2.bar, WebkitBackdropFilter: BLUR2.bar,   // light tint: the blue waves behind it never wash out the text
+    borderTop: `${SZ2.hairline}px solid ${C2.barGlassEdge}`, boxShadow: SH2.barUp,
+  },
+  addFootRow: (w) => ({ width: '100%', maxWidth: w, margin: '0 auto' }),   // lines up with the cards above
+
+  // modals
+  mText:    { ...T2.body, margin: 0 },
+  mNote:    { ...UI2.tonePanel(TONES2.error), ...T2.label, color: C2.errorDark, padding: pad(SP2.md, SP2.lg), marginTop: SP2.md },
+};
 
 function decodeJWT(token) {
   try { return JSON.parse(atob(token.split('.')[1].replace(/-/g,'+').replace(/_/g,'/'))); }
   catch { return null; }
 }
 
-// ─── Persona card — supports orgPmsBadge for ORGANIZATIONAL_PM ────────────────
-// All other personas use existing isActive/isInactive system — UNTOUCHED.
-function PersonaCard({ persona, isActive, isInactive, orgPmsBadge, onClick }) {
-  const [hovered, setHovered] = useState(false);
-  const { label, sub, icon, color } = persona;
+const initialsOf = (user, email) => {
+  const n = [user?.first_name, user?.last_name].filter(Boolean).map(s => s[0]).join('');
+  return (n || email.slice(0, 1) || 'U').toUpperCase();
+};
 
-  // For ORGANIZATIONAL_PM: use orgPmsBadge styling if provided
-  const hasOrgBadge = !!orgPmsBadge;
-  const bg     = hasOrgBadge ? orgPmsBadge.bg
-               : isActive || hovered ? '#F0F4F8'
-               : isInactive ? '#FFF7ED'
-               : C.white;
-  const border = hasOrgBadge ? `2px solid ${orgPmsBadge.border}`
-               : isActive ? `2px solid ${C.primary}`
-               : isInactive ? `2px solid #F59E0B`
-               : hovered ? `2px solid ${C.borderMedium}`
-               : `1.5px solid ${C.border}`;
+// How many compact cards fit in a row of the add view at the current window width (max ADD_MAX_COLS) — updates on resize
+function useAddCols() {
+  const fit = () => Math.max(1, Math.min(ADD_MAX_COLS, Math.floor((Math.min(window.innerWidth - LAYOUT2.pageX * 2, CARD_WIDE.max) + ADD_GAP) / (CARD_WIDE.min + ADD_GAP))));
+  const [cols, setCols] = useState(fit);
+  useEffect(() => {
+    const onResize = () => setCols(fit());
+    window.addEventListener('resize', onResize);
+    return () => window.removeEventListener('resize', onResize);
+  }, []);   // eslint-disable-line react-hooks/exhaustive-deps
+  return cols;
+}
 
+// ─── One photo card ───────────────────────────────────────────────────────────
+// item = its step in the view-switch choreography (un2-ps-item, --k) instead of the page-open deal-in
+function PersonaCard({ p, info, on, index, base, out, disabled, onSelect, onOpen, size = CARD, tabbable = true, fluid = false, item, cell }) {   // cell = custom fluid cell (add grid)
+  const wrap = item === undefined
+    ? { className: `un2-deal${out ? ' is-out' : ''}`, style: { ...(fluid ? S.cell : {}), '--un2-i': index, '--un2-deal-base': `${base}s` } }
+    : { className: 'un2-ps-item', style: { ...(cell || (fluid ? S.cell : {})), '--k': item } };
   return (
-    <div onClick={() => onClick(persona)}
-      onMouseEnter={() => setHovered(true)} onMouseLeave={() => setHovered(false)}
-      role="button" tabIndex={0} onKeyDown={e => (e.key==='Enter'||e.key===' ')&&onClick(persona)}
-      style={{ position:'relative', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:'8px', padding:'21px 10px 16px', borderRadius:'11px', border, background:bg, cursor:'pointer', transition:'all 0.18s ease', transform:hovered&&!isActive&&!isInactive&&!hasOrgBadge?'translateY(-1px)':'none', boxShadow:isActive?'0 4px 16px rgba(0,45,91,0.12)':isInactive?'0 4px 16px rgba(245,158,11,0.10)':hovered?'0 4px 12px rgba(0,0,0,0.06)':'0 1px 3px rgba(0,0,0,0.04)', textAlign:'center', minHeight:'120px' }}>
-
-      {/* ── Org PMS status badge (DRAFT/PENDING/ACTIVE/SUSPENDED) ── */}
-      {hasOrgBadge && (
-        <div style={{ position:'absolute', top:'-11px', left:'50%', transform:'translateX(-50%)', background:orgPmsBadge.color, color:C.white, fontFamily:F.body, fontSize:'9px', fontWeight:700, letterSpacing:'0.1em', padding:'3px 10px', borderRadius:'99px', textTransform:'uppercase', whiteSpace:'nowrap' }}>
-          {orgPmsBadge.label}
-        </div>
-      )}
-
-      {/* ── Standard Active badge (other personas) ── */}
-      {isActive && !hasOrgBadge && (
-        <div style={{ position:'absolute', top:'-11px', left:'50%', transform:'translateX(-50%)', background:C.primary, color:C.white, fontFamily:F.body, fontSize:'9px', fontWeight:700, letterSpacing:'0.1em', padding:'3px 10px', borderRadius:'99px', textTransform:'uppercase', whiteSpace:'nowrap' }}>Active</div>
-      )}
-
-      {/* ── Standard Inactive badge (other personas) ── */}
-      {isInactive && !hasOrgBadge && (
-        <div style={{ position:'absolute', top:'-11px', left:'50%', transform:'translateX(-50%)', background:'#F59E0B', color:C.white, fontFamily:F.body, fontSize:'9px', fontWeight:700, letterSpacing:'0.1em', padding:'3px 10px', borderRadius:'99px', textTransform:'uppercase', whiteSpace:'nowrap' }}>Inactive</div>
-      )}
-
-      <div style={{ width:'42px', height:'42px', borderRadius:'50%', background:hasOrgBadge?`${orgPmsBadge.color}22`:isActive?C.primary:isInactive?'#FEF3C7':hovered?`${color}18`:C.neutral, display:'flex', alignItems:'center', justifyContent:'center', transition:'background 0.18s ease', flexShrink:0 }}>
-        <i className={`ti ${icon}`} style={{ fontSize:'16px', color:hasOrgBadge?orgPmsBadge.color:isActive?C.white:isInactive?'#F59E0B':color }} aria-hidden="true" />
-      </div>
-      <div>
-        <p style={{ margin:'0 0 2px', fontFamily:F.headline, fontSize:'11px', fontWeight:700, color:C.textPrimary, lineHeight:1.2 }}>{label}</p>
-        <p style={{ margin:0, fontFamily:F.body, fontSize:'8px', fontWeight:700, color:C.textTertiary, textTransform:'uppercase', letterSpacing:'0.07em' }}>{sub}</p>
-      </div>
+    <div className={wrap.className} style={wrap.style}>
+      <button
+        type="button" role="radio" aria-checked={on} aria-label={`${p.label} — ${info.status}`} disabled={disabled} tabIndex={tabbable ? 0 : -1}
+        className={`un2-persona${on ? ' is-selected' : ''}`} style={{ ...S.card(on, size), ...(fluid ? S.fluidBox(size) : {}) }}
+        onClick={onSelect} onDoubleClick={onOpen}
+        onKeyDown={e => { if (e.key === 'Enter' && on) { e.preventDefault(); onOpen(); } }}
+      >
+        <img src={p.img} alt="" className="un2-persona-photo" style={S.photo(p.pos)} />
+        <span style={S.scrim} aria-hidden="true" />
+        <span style={S.top}>
+          <span style={S.chip}>
+            {!info.isNew && <span style={S.chipDot(info.tone)} />}
+            {info.status}
+          </span>
+          <span style={S.mark(on)} aria-hidden="true">{on && <i className="ti ti-check un2-pop" style={S.markIcon} />}</span>
+        </span>
+        <span style={S.body}>
+          <span style={S.icon}><i className={`ti ${p.icon}`} aria-hidden="true" /></span>
+          <span style={S.name}>{p.label}</span>
+          <span style={S.sub}>{p.sub}</span>
+        </span>
+      </button>
     </div>
   );
 }
 
-function AddPersonaCard({ onClick }) {
-  const [hovered, setHovered] = useState(false);
+// ─── Action row: selected role + its main button ────────────────────────────────
+function ActionRow({ width, persona, info, note, busy, onGo, onCancel, emptyHint, bare = false }) {
+  const id = persona ? persona.key : 'none';
   return (
-    <div onClick={onClick} onMouseEnter={() => setHovered(true)} onMouseLeave={() => setHovered(false)}
-      role="button" tabIndex={0} onKeyDown={e => (e.key==='Enter'||e.key===' ')&&onClick()}
-      style={{ display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:'8px', padding:'21px 10px 16px', borderRadius:'11px', border:`1.5px dashed ${hovered?C.primary:C.borderMedium}`, background:hovered?'#F8FAFC':'transparent', cursor:'pointer', transition:'all 0.18s ease', textAlign:'center', minHeight:'120px' }}>
-      <div style={{ width:'42px', height:'42px', borderRadius:'50%', border:`1.5px dashed ${hovered?C.primary:C.borderMedium}`, display:'flex', alignItems:'center', justifyContent:'center', transition:'all 0.18s ease', flexShrink:0 }}>
-        <i className="ti ti-plus" style={{ fontSize:'15px', color:hovered?C.primary:C.textTertiary }} aria-hidden="true" />
-      </div>
-      <div>
-        <p style={{ margin:'0 0 2px', fontFamily:F.headline, fontSize:'11px', fontWeight:700, color:hovered?C.primary:C.textSecondary, lineHeight:1.2, transition:'color 0.18s ease' }}>Add Persona</p>
-        <p style={{ margin:0, fontFamily:F.body, fontSize:'8px', fontWeight:700, color:C.textTertiary, textTransform:'uppercase', letterSpacing:'0.07em' }}>Unlock a new role</p>
-      </div>
+    <div style={S.action(width, bare)} aria-live="polite">
+      {persona && info ? (
+        <>
+          <span key={`t-${id}`} className="un2-swap" style={S.actThumb}><img src={persona.img} alt="" style={S.thumbImg(persona.pos)} /></span>
+          <span key={`x-${id}`} className="un2-swap" style={S.actText}>
+            <span style={S.actName}>{persona.label}</span>
+            <span style={S.actMeta} title={note}>{note}</span>
+          </span>
+        </>
+      ) : (
+        <span style={S.actHint}><i className="ti ti-hand-click" style={UI2.btnIcon} aria-hidden="true" /> {emptyHint}</span>
+      )}
+      {onCancel && <button type="button" className="un2-btn" style={S.cancel} onClick={onCancel}>Cancel</button>}
+      <button type="button" className="un2-btn" style={{ ...S.cta, ...(busy || !info ? AUTH.busy : {}), ...(!info ? { cursor: 'not-allowed' } : {}) }} onClick={onGo} disabled={busy || !info}>
+        {busy
+          ? <><i className="ti ti-loader-2 un2-spin" style={UI2.btnIcon} aria-hidden="true" /> Opening…</>
+          : info
+            ? <span key={`c-${id}`} className="un2-swap" style={UI2.row(SP2.sm)}>{info.cta} <i className={`ti ${info.icon}`} style={UI2.btnIcon} aria-hidden="true" /></span>
+            : 'Continue'}
+      </button>
     </div>
   );
 }
@@ -170,7 +360,7 @@ export default function PersonaSelectPage() {
   const [activeKeys,           setActiveKeys]           = useState([]);
   const [inactiveKeys,         setInactiveKeys]         = useState([]);
   const [loading,              setLoading]              = useState(true);
-  const [showAll,              setShowAll]              = useState(false);
+  const [showAll,              setShowAll]              = useState(false);   // "Add a role" sheet open
   const [error,                setError]                = useState('');
 
   // ── Org PMS specific state ─────────────────────────────────────────────────
@@ -181,6 +371,15 @@ export default function PersonaSelectPage() {
   const [showReactivateModal,  setShowReactivateModal]  = useState(false);
   const [pendingReactivateKey, setPendingReactivateKey] = useState(null);
   const [showRejectionModal,   setShowRejectionModal]   = useState(false);
+
+  // ── Selection (select → continue) ─────────────────────────────────────────
+  const [selected,  setSelected]  = useState(null);   // a role you hold: { key }
+  const [addPick,   setAddPick]   = useState(null);   // a role picked in the add sheet: key
+  const [busy,      setBusy]      = useState(false);
+  const mounted = useRef(true);
+  const closeTimer = useRef(null);
+  const addCols = useAddCols();
+  useEffect(() => () => { mounted.current = false; clearTimeout(closeTimer.current); }, []);
 
   useEffect(() => {
     const load = async () => {
@@ -317,12 +516,8 @@ export default function PersonaSelectPage() {
       navigate(persona.route);
     }
   };
-  
-  const handleAddPersonaClick = () => {
-    setShowAll(true);
-  };
 
-  // ── When user selects ORGANIZATIONAL_PM from "Add Persona" list ───────────
+  // ── When user picks a persona in the "Add a role" sheet ───────────────────
   const handleUnregisteredPersonaClick = (persona) => {
     if (persona.key === 'ORGANIZATIONAL_PM') {
       if (orgPmsStatus === 'REJECTED') {
@@ -364,165 +559,329 @@ export default function PersonaSelectPage() {
   };
 
   const displayEmail = user?.email || user?.username || '';
+  const firstName    = user?.first_name || '';
+  const fullName     = [user?.first_name, user?.last_name].filter(Boolean).join(' ');
 
-  // ── Card lists ─────────────────────────────────────────────────────────────
-  // Registered personas (active/inactive from UserPersona) — shown by default
+  // ── Lists ──────────────────────────────────────────────────────────────────
+  // Registered personas (active/inactive from UserPersona) + the Org PMS application when it has one
   const registeredPersonas = ALL_PERSONAS.filter(p =>
     p.key !== 'ORGANIZATIONAL_PM' && (activeKeys.includes(p.key) || inactiveKeys.includes(p.key))
   );
-
+  const myPersonas = [
+    ...registeredPersonas,
+    ...(showOrgPmsCard ? [ALL_PERSONAS.find(p => p.key === 'ORGANIZATIONAL_PM')] : []),
+  ];
   // Unregistered personas available to add — suppress ORGANIZATIONAL_PM if already active
   const unregisteredPersonas = ALL_PERSONAS.filter(p => {
     if (p.key === 'ORGANIZATIONAL_PM') return orgPmsAvailableToAdd;
     return !activeKeys.includes(p.key) && !inactiveKeys.includes(p.key);
   });
 
-  // All visible personas in default view
-  const visiblePersonas = showAll ? registeredPersonas : registeredPersonas;
+  // ── Status chip / action-row wording for one persona ──────────────────────
+  const describe = (group, p) => {
+    if (group === 'add') {
+      const rejected = p.key === 'ORGANIZATIONAL_PM' && orgPmsStatus === 'REJECTED';
+      return {
+        isNew: true, status: rejected ? 'Re-apply' : 'New role', tone: TONES2.primary,
+        cta: rejected ? 'Start new application' : `Set up ${p.label}`, icon: rejected ? 'ti-plus' : 'ti-arrow-right',
+        note: rejected ? 'Your previous application was rejected — you can apply again' : p.soon ? `The ${p.portalName} is coming soon` : p.blurb,
+      };
+    }
+    if (p.key === 'ORGANIZATIONAL_PM') {
+      const st = ORG_PMS_STATE[orgPmsStatus] || ORG_PMS_STATE.DRAFT;
+      return { status: st.label, tone: st.tone, cta: st.cta, icon: 'ti-arrow-right', note: `${p.sub} · ${st.label}` };
+    }
+    if (inactiveKeys.includes(p.key) && !activeKeys.includes(p.key)) {
+      return { status: 'Inactive', tone: TONES2.neutral, cta: 'Reactivate profile', icon: 'ti-refresh', note: "Paused — you'll review and resubmit your details" };
+    }
+    return {
+      status: 'Active', tone: TONES2.primary, cta: `Continue to ${p.portalName}`, icon: 'ti-arrow-right',
+      note: p.soon ? `The ${p.portalName} is coming soon` : p.blurb,
+    };
+  };
 
-  const allDisplayCards = [
-    ...registeredPersonas,
-    ...(showOrgPmsCard ? [ALL_PERSONAS.find(p => p.key === 'ORGANIZATIONAL_PM')] : []),
-  ];
+  // first load: preselect the active persona from the profile, else the first workspace
+  useEffect(() => {
+    if (loading || selected || !myPersonas.length) return;
+    const current = myPersonas.find(p => p.key === user?.active_persona) || myPersonas[0];
+    setSelected(current.key);
+  }, [loading]);   // eslint-disable-line react-hooks/exhaustive-deps
 
-  const cardCount = allDisplayCards.length + (showAll ? 0 : 1);
-  const cols      = Math.min(cardCount, 3);
+  const selPersona = myPersonas.find(p => p.key === selected);
+  const selInfo = selPersona ? describe('mine', selPersona) : null;
+  const addPersona = unregisteredPersonas.find(p => p.key === addPick);
+  const addInfo = addPersona ? describe('add', addPersona) : null;
 
-  if (loading) return (
-    <div style={{ minHeight:'100vh', background:C.pageBg, backgroundImage:'radial-gradient(circle, #CBD5E1 1px, transparent 1px)', backgroundSize:'28px 28px', display:'flex', alignItems:'center', justifyContent:'center' }}>
-      <div style={{ width:28, height:28, borderRadius:'50%', border:`3px solid ${C.border}`, borderTopColor:C.primary, animation:'spin 0.7s linear infinite' }} />
-      <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
-    </div>
-  );
+  const proceed = async (group, persona) => {
+    if (!persona || busy) return;
+    if (group === 'add') setAddPick(persona.key); else setSelected(persona.key);
+    setBusy(true);
+    try {
+      if (group === 'add') handleUnregisteredPersonaClick(persona);
+      else await handlePersonaClick(persona);
+    } finally {
+      if (mounted.current) setBusy(false);
+    }
+  };
+
+  // ── "Add a role": the view is always mounted (hidden) — only CSS state changes, so nothing pops in or restarts ──
+  const openAdd = () => {
+    clearTimeout(closeTimer.current);
+    setAddPick(null);
+    setShowAll(true);
+  };
+  const closeAdd = () => {
+    setShowAll(false);
+    clearTimeout(closeTimer.current);
+    closeTimer.current = setTimeout(() => { if (mounted.current) setAddPick(null); }, SHEET_MS);   // clear the pick once it's out of sight
+  };
+  // Esc closes the sheet (not while a confirmation modal is open — the Modal handles its own Esc)
+  useEffect(() => {
+    if (!showAll || showReactivateModal || showRejectionModal) return undefined;
+    const onKey = (e) => { if (e.key === 'Escape') closeAdd(); };
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
+  }, [showAll, showReactivateModal, showRejectionModal]);   // eslint-disable-line react-hooks/exhaustive-deps
+
+  const fanPersonas = unregisteredPersonas.slice(0, 3);
+  const addWidth = CARD_WIDE.max;   // grid + footer width (fluid below it)
 
   return (
-    <>
-      <style>{`@keyframes un-pagein { from { opacity:0; } to { opacity:1; } } @keyframes spin { to { transform:rotate(360deg); } }`}</style>
-      <div style={{ minHeight:'100vh', background:C.pageBg, backgroundImage:'radial-gradient(circle, #CBD5E1 1px, transparent 1px)', backgroundSize:'28px 28px', display:'flex', alignItems:'center', justifyContent:'center', padding:'24px' }}>
-        <div style={{ width:'75vw', maxHeight:'90vh', borderRadius:'20px', overflow:'hidden', boxShadow:'0 32px 80px rgba(0,0,0,0.18), 0 2px 8px rgba(0,0,0,0.08)', display:'flex', animation:'un-pagein 0.35s ease both' }}>
+    <div className={`un2-ps${showAll ? ' is-away' : ''}`} style={S.page}>
+      {/* backdrop: wave art top-right + bottom-left */}
+      <div className="un2-intro-fade" style={introAt(0)}>
+        <ImageBackdrop image={backdropArt} />
+        <div style={S.waveWrap} aria-hidden="true"><div style={S.waveLeft} /></div>
+      </div>
 
-          {/* LEFT */}
-          <div style={{ position:'relative', width:'52%', minHeight:'100%', flexShrink:0, overflow:'hidden' }}>
-            <img src={ESTATE_IMAGE} alt="Luxury estate" style={{ position:'absolute', inset:0, width:'100%', height:'100%', objectFit:'cover', objectPosition:'center' }} />
-            <div style={{ position:'absolute', inset:0, background:'linear-gradient(to bottom, rgba(0,20,50,0.42) 0%, rgba(0,20,50,0.12) 40%, rgba(0,20,50,0.62) 100%)' }} />
-            <div style={{ position:'absolute', top:52, left:52, fontFamily:F.body, fontWeight:700, fontSize:15, letterSpacing:'0.38em', color:'#fff', textTransform:'uppercase' }}>URBANNEST</div>
-            <div style={{ position:'absolute', top:20, left:16, fontFamily:F.headline, fontSize:180, fontWeight:700, color:'rgba(255,255,255,0.07)', lineHeight:1, userSelect:'none', pointerEvents:'none' }}>R</div>
-            <TestimonialCarousel />
+      {/* ═══ LEFT — photo panel ═══ */}
+      <aside className="un2-hide-md" style={S.photoPanel}>
+        <div className="un2-intro-curtain" style={{ ...S.photoClip, ...introAt(INTRO.photo) }}>
+          <img src={heroArt} alt="" className="un2-intro-zoom" style={{ ...S.photoImg, ...introAt(INTRO.photo) }} />
+          <div style={S.scrimTop} aria-hidden="true" />
+          <div style={S.scrimSide} aria-hidden="true" />
+          <Particles variant="stars" />
+        </div>
+        {/* copy — outside the faded photo layer, so it never fades with it */}
+        <div style={S.photoBody}>
+            <div className="un2-intro-up" style={{ ...S.brand, ...introAt(INTRO.brand) }}>
+              <img src={brandLogo} alt="" style={S.logo} />
+              <span>
+                <span style={S.brandName}>UrbanNest</span>
+                <span style={S.brandSub}>Platform</span>
+              </span>
+            </div>
+            <h2 style={S.title}>
+              {['One account,', 'multiple roles.'].map((line, i) => (
+                <span key={line} className="un2-intro-line"><span style={introAt(INTRO.line + i * INTRO.lineStep)}>{line}</span></span>
+              ))}
+            </h2>
+            <div className="un2-intro-up" style={{ ...S.rule, ...introAt(INTRO.copy) }} aria-hidden="true" />
+            <p className="un2-intro-up" style={{ ...S.copy, ...introAt(INTRO.copy) }}>
+              Manage your rentals, properties and profiles — all in one place.
+            </p>
+            <div style={S.perks}>
+              {PERKS.map((p, i) => (
+                <div key={p.text} className="un2-intro-up" style={{ ...S.perk, ...introAt(INTRO.perks + i * INTRO.lineStep) }}>
+                  <span style={S.perkIcon}><i className={`ti ${p.icon}`} aria-hidden="true" /></span>
+                  <span style={S.perkText}>{p.text}</span>
+                </div>
+              ))}
+            </div>
           </div>
+      </aside>
 
-          {/* RIGHT */}
-          <div style={{ flex:1, background:C.white, display:'flex', flexDirection:'column', justifyContent:'space-between', padding:'52px 60px 36px 56px', overflowY:'auto' }}>
-            <div>
-              <h1 style={{ fontFamily:F.headline, fontSize:'39px', fontWeight:700, color:C.primary, lineHeight:1.15, margin:'0 0 10px', whiteSpace:'nowrap' }}>Persona Selection</h1>
-              <p style={{ fontFamily:F.body, fontSize:'13px', color:C.textSecondary, margin:'0 0 36px', lineHeight:1.6, maxWidth:'260px' }}>Select a profile below to continue to your personalised dashboard and portal.</p>
-              {error && <div style={{ background:'#FEF2F2', border:'1px solid #FECACA', borderRadius:'8px', padding:'8px 12px', marginBottom:'16px', fontFamily:F.body, fontSize:'12px', color:'#DC2626' }}>{error}</div>}
+      {/* ═══ The white sheet's surface — grows over the whole page for "Add a role", shrinks back after ═══ */}
+      <div className="un2-intro-rise" style={{ ...S.surfaceWrap, ...introAt(INTRO.sheet) }} aria-hidden="true">
+        <div className="un2-ps-surface" style={S.surface} />
+      </div>
 
-              {/* ── Main cards grid ── */}
-              <div style={{ display:'grid', gridTemplateColumns:`repeat(${cols}, 1fr)`, gap:'14px' }}>
-                {allDisplayCards.map(persona => {
-                  const isOrgPms = persona.key === 'ORGANIZATIONAL_PM';
-                  const badge    = isOrgPms && orgPmsStatus ? ORG_PMS_BADGE[orgPmsStatus] : null;
-                  return (
-                    <PersonaCard
-                      key={persona.key}
-                      persona={persona}
-                      isActive={!isOrgPms && activeKeys.includes(persona.key)}
-                      isInactive={!isOrgPms && inactiveKeys.includes(persona.key)}
-                      orgPmsBadge={badge}
-                      onClick={handlePersonaClick}
-                    />
-                  );
-                })}
-                {!showAll && <AddPersonaCard onClick={handleAddPersonaClick} />}
+      {/* ═══ RIGHT — who's signed in + the white sheet ═══ */}
+      <div className="un2-ps-right un2-ps-content" style={S.right} aria-hidden={showAll}>
+        <div className="un2-ps-item" style={{ flexShrink: 0, '--k': 0 }}>
+        <header className="un2-intro-up" style={{ ...S.topBar, ...introAt(INTRO.sheet) }}>
+          <div style={S.account}>
+            {loading
+              ? <span className="un2-skel" style={{ ...UI2.skeleton(SZ2.icon.md, SZ2.icon.md), borderRadius: R2.round }} />
+              : <span style={S.avatar} aria-hidden="true">{initialsOf(user, displayEmail)}</span>}
+            <div style={S.whoText} className="un2-hide-md">
+              <span style={S.whoName}>{loading ? ' ' : (fullName || displayEmail)}</span>
+              {fullName && <span style={S.whoMail}>{displayEmail}</span>}
+            </div>
+            <span style={S.accountRule} aria-hidden="true" />
+            <button type="button" className="un2-link" style={S.signOut} onClick={handleSignOut} tabIndex={showAll ? -1 : 0}>
+              <i className="ti ti-logout" style={UI2.btnIcon} aria-hidden="true" /> Sign out
+            </button>
+          </div>
+        </header>
+        </div>
+
+        <div style={S.sheetWrap}>
+          <main style={S.sheet}>
+            <div className="un2-ps-fade"><CornerArt /></div>
+            <div style={S.sheetCol('100%')}>
+              <div className="un2-ps-item" style={{ ...S.head, '--k': 1 }}>
+                <span className="un2-intro-up" style={{ ...S.eyebrow, ...introAt(INTRO.head) }}>
+                  <i className="ti ti-sparkles" aria-hidden="true" /> Welcome back{firstName ? `, ${firstName}` : ''}
+                </span>
+                <h1 className="un2-intro-up" style={{ ...S.h1, ...introAt(INTRO.head + 0.08) }}>Choose your workspace</h1>
+                <p className="un2-intro-up" style={{ ...S.lead, ...introAt(INTRO.head + 0.16) }}>Select a role to continue to its dashboard — you can switch any time.</p>
               </div>
 
-              {/* ── "Add Persona" expanded list ── */}
-              {showAll && unregisteredPersonas.length > 0 && (
-                <>
-                  <p style={{ margin:'24px 0 10px', fontFamily:F.body, fontSize:'10px', fontWeight:700, color:C.textTertiary, textTransform:'uppercase', letterSpacing:'0.08em' }}>Available to register</p>
-                  <div style={{ display:'grid', gridTemplateColumns:`repeat(${Math.min(unregisteredPersonas.length,3)}, 1fr)`, gap:'14px' }}>
-                    {unregisteredPersonas.map(persona => (
-                      <PersonaCard key={persona.key} persona={persona} isActive={false} isInactive={false}
-                        onClick={handleUnregisteredPersonaClick} />
-                    ))}
-                  </div>
-                </>
+              {error && (
+                <div style={UI2.errorBanner} role="alert">
+                  <i className="ti ti-alert-circle" aria-hidden="true" /> {error}
+                </div>
               )}
 
-              {showAll && (
-                <div style={{ marginTop:'16px', textAlign:'center' }}>
-                  <button onClick={() => setShowAll(false)} style={{ background:'none', border:'none', cursor:'pointer', fontFamily:F.body, fontSize:'12px', fontWeight:600, color:C.textSecondary, display:'inline-flex', alignItems:'center', gap:'4px' }}>
-                    <i className="ti ti-chevron-up" style={{ fontSize:'14px' }} aria-hidden="true" />
-                    Show active only
-                  </button>
+              <div className="un2-ps-item" style={{ ...S.deckScroll, '--k': 2 }}>
+              {loading ? (
+                <div style={S.deckFluid} aria-busy="true">
+                  {[0, 1, 2].map(i => <span key={i} style={S.cell}><span className="un2-skel" style={S.skel} /></span>)}
+                </div>
+              ) : (
+                <div role="radiogroup" aria-label="Your workspaces" className="un2-persona-deck" style={S.deckFluid}>
+                  {myPersonas.map((p, i) => (
+                    <PersonaCard
+                      key={p.key} p={p} info={describe('mine', p)} on={selected === p.key} index={i} base={INTRO.deck}
+                      disabled={busy} size={CARD_LG} tabbable={!showAll} fluid
+                      onSelect={() => setSelected(p.key)} onOpen={() => proceed('mine', p)}
+                    />
+                  ))}
+
+                  {unregisteredPersonas.length > 0 && (
+                    <div className="un2-deal" style={{ ...S.cell, '--un2-i': myPersonas.length, '--un2-deal-base': `${INTRO.deck}s` }}>
+                      <button
+                        type="button" className="un2-persona un2-add" style={{ ...S.add(CARD_LG), ...S.fluidBox(CARD_LG) }} tabIndex={showAll ? -1 : 0}
+                        onClick={openAdd} aria-expanded={showAll} aria-controls="persona-add-sheet" disabled={busy}
+                      >
+                        <span className="un2-fan" style={S.fan(CARD_LG)} aria-hidden="true">
+                          {fanPersonas.map((p, i) => (
+                            <span key={p.key} style={S.fanItem(i, fanPersonas.length, CARD_LG)}><img src={p.img} alt="" style={S.thumbImg(p.pos)} /></span>
+                          ))}
+                        </span>
+                        <span style={S.plus}><i className="ti ti-plus un2-add-plus" aria-hidden="true" /></span>
+                        <span style={S.addName}>Add a role</span>
+                        <span style={S.addSub}>{unregisteredPersonas.length} {unregisteredPersonas.length === 1 ? 'role' : 'roles'} you can set up</span>
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )}
+              </div>
+
+              {!loading && (
+                <div className="un2-ps-item" style={{ ...S.actionWrap, '--k': 3 }}>
+                  <div className="un2-intro-up" style={{ ...S.actionInner, ...introAt(INTRO.action) }}>
+                    <ActionRow
+                      bare width="100%" persona={selPersona} info={selInfo} note={selInfo?.note} busy={busy && !showAll}
+                      onGo={() => proceed('mine', selPersona)} emptyHint="Select a workspace to continue"
+                    />
+                  </div>
                 </div>
               )}
             </div>
-
-            {/* Footer */}
-            <div style={{ marginTop:'32px', paddingTop:'20px', borderTop:`1px solid ${C.border}`, display:'flex', alignItems:'center', justifyContent:'space-between', gap:'12px' }}>
-              <p style={{ margin:0, fontFamily:F.body, fontSize:'8px', fontWeight:600, color:C.textTertiary, textTransform:'uppercase', letterSpacing:'0.07em' }}>
-                Logged in as <span style={{ color:C.textSecondary }}>{displayEmail.toUpperCase()}</span>
-              </p>
-              <button onClick={handleSignOut}
-                style={{ height:'36px', padding:'0 20px', background:C.primary, color:C.white, border:'none', borderRadius:'8px', fontFamily:F.body, fontSize:'12px', fontWeight:700, cursor:'pointer', letterSpacing:'0.04em', textTransform:'uppercase', transition:'background 0.15s ease', flexShrink:0 }}
-                onMouseEnter={e => e.currentTarget.style.background = C.primaryHover}
-                onMouseLeave={e => e.currentTarget.style.background = C.primary}>
-                Sign Out
-              </button>
-            </div>
-          </div>
+          </main>
         </div>
       </div>
 
-      {/* ── Reactivate modal (INDEPENDENT_PM inactive — existing logic) ── */}
-      {showReactivateModal && (
-        <div style={{ position:'fixed', inset:0, zIndex:400, background:'rgba(0,0,0,0.4)', display:'flex', alignItems:'center', justifyContent:'center' }}>
-          <div style={{ background:C.white, borderRadius:'14px', padding:'28px 32px', maxWidth:'400px', width:'90%', boxShadow:'0 24px 64px rgba(0,0,0,0.18)', animation:'un-pagein 0.2s ease both' }}>
-            <div style={{ width:'44px', height:'44px', borderRadius:'50%', background:'#FEF3C7', border:'1px solid #FCD34D', display:'flex', alignItems:'center', justifyContent:'center', marginBottom:'16px' }}>
-              <i className="ti ti-refresh" style={{ fontSize:'20px', color:'#F59E0B' }} />
-            </div>
-            <h2 style={{ margin:'0 0 8px', fontFamily:F.headline, fontSize:'18px', fontWeight:700, color:'#0F172A' }}>Reactivate Profile?</h2>
-            <p style={{ margin:'0 0 24px', fontFamily:F.body, fontSize:'13px', color:'#64748B', lineHeight:1.6 }}>Your {pendingReactivateKey === 'LANDLORD' ? 'Landlord' : 'Independent PM'}  profile is currently inactive. Would you like to reactivate it? You'll need to review and resubmit your details.</p>
-            <div style={{ display:'flex', gap:'10px' }}>
-              <button onClick={handleReactivateCancel} style={{ flex:1, height:'42px', background:C.white, border:'1.5px solid #CBD5E1', borderRadius:'9px', fontFamily:F.body, fontSize:'13px', fontWeight:600, color:'#64748B', cursor:'pointer' }}>Cancel</button>
-              <button onClick={handleReactivateConfirm} style={{ flex:1, height:'42px', background:'#002D5B', border:'none', borderRadius:'9px', fontFamily:F.body, fontSize:'13px', fontWeight:700, color:C.white, cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', gap:'6px' }}
-                onMouseEnter={e => e.currentTarget.style.background='#003d7a'} onMouseLeave={e => e.currentTarget.style.background='#002D5B'}>
-                <i className="ti ti-refresh" style={{ fontSize:'14px' }} />
-                Yes, Reactivate
-              </button>
+      {/* ═══ "Add a role" view — appears on the white surface once it covers the page ═══ */}
+      <section
+        id="persona-add-sheet" className="un2-ps-add" style={S.addSheet}
+        role="dialog" aria-modal="true" aria-label="Add a role" aria-hidden={!showAll}
+      >
+        <div style={S.addInner}>
+          {/* our page background (pageBg + the soft wave art top-right and bottom-left) — fades with the view, never moves */}
+          <div className="un2-ps-fade" style={S.addBg} aria-hidden="true">
+            <ImageBackdrop image={backdropArt} />
+            <div style={S.waveWrap}><div style={S.waveLeft} /></div>
+          </div>
+
+          <div className="un2-ps-item" style={{ ...S.addBar, '--k': 0 }}>
+            <div style={S.brand}>
+              <img src={brandLogo} alt="" style={S.logo} />
+              <span style={{ ...S.brandName, color: C2.navyDeep }}>UrbanNest</span>
             </div>
           </div>
+
+          {!loading && (
+            <>
+              <div style={S.addHead}>
+                {/* <span className="un2-ps-item" style={{ ...S.eyebrow, '--k': 1 }}>
+                  <i className="ti ti-users-plus" aria-hidden="true" /> Add a role
+                </span> */}
+                <h2 className="un2-ps-item" style={{ ...S.h1, '--k': 2 }}>Unlock a new role</h2>
+                <p className="un2-ps-item" style={{ ...S.lead, '--k': 3 }}>Pick what else you do — we'll walk you through setting it up.</p>
+              </div>
+
+              <div style={S.addStack(addWidth)}>
+                <div role="radiogroup" aria-label="Roles you can add" className="un2-persona-deck" style={S.deck}>
+                  {unregisteredPersonas.map((p, i) => (
+                    <PersonaCard
+                      key={p.key} p={p} info={describe('add', p)} on={addPick === p.key} item={4 + i} size={CARD_WIDE} fluid cell={addCell(addCols)}
+                      disabled={busy} tabbable={showAll}
+                      onSelect={() => setAddPick(p.key)} onOpen={() => proceed('add', p)}
+                    />
+                  ))}
+                </div>
+              </div>
+
+              {/* glass footer — pinned to the bottom of the screen, so Cancel / Set up are visible at first look;
+                  the cards scroll underneath it */}
+              <div className="un2-ps-item" style={{ ...S.addFoot, '--k': 4 + unregisteredPersonas.length }}>
+                <div style={S.addFootRow(addWidth)}>
+                  <ActionRow
+                    bare width="100%" persona={addPersona} info={addInfo} note={addInfo?.note} busy={busy && showAll}
+                    onGo={() => proceed('add', addPersona)} onCancel={closeAdd} emptyHint="Pick a role to see how to set it up"
+                  />
+                </div>
+              </div>
+            </>
+          )}
         </div>
+      </section>
+
+      {/* ── Reactivate modal (inactive Landlord / Independent PM — existing logic) ── */}
+      {showReactivateModal && (
+        <Modal
+          variant="confirm" icon="ti-refresh" tone={TONES2.primary}
+          title="Reactivate profile?"
+          onClose={handleReactivateCancel}
+          footer={<>
+            <button type="button" className="un2-btn" style={UI2.btn.soft} onClick={handleReactivateCancel}>Cancel</button>
+            <button type="button" className="un2-btn" style={UI2.btn.brand} onClick={handleReactivateConfirm}>
+              <i className="ti ti-refresh" style={UI2.btnIcon} aria-hidden="true" /> Yes, reactivate
+            </button>
+          </>}
+        >
+          <p style={S.mText}>
+            Your {pendingReactivateKey === 'LANDLORD' ? 'Landlord' : 'Independent PM'} profile is currently inactive.
+            Would you like to reactivate it? You'll need to review and resubmit your details.
+          </p>
+        </Modal>
       )}
 
-      {/* ── Rejection modal (ORGANIZATIONAL_PM rejected — new) ── */}
+      {/* ── Rejection modal (Organisational PMS application rejected) ── */}
       {showRejectionModal && (
-        <div style={{ position:'fixed', inset:0, zIndex:400, background:'rgba(0,0,0,0.4)', display:'flex', alignItems:'center', justifyContent:'center' }}>
-          <div style={{ background:C.white, borderRadius:'14px', padding:'28px 32px', maxWidth:'420px', width:'90%', boxShadow:'0 24px 64px rgba(0,0,0,0.18)', animation:'un-pagein 0.2s ease both' }}>
-            <div style={{ width:'44px', height:'44px', borderRadius:'50%', background:'#FEF2F2', border:'1px solid #FECACA', display:'flex', alignItems:'center', justifyContent:'center', marginBottom:'16px' }}>
-              <i className="ti ti-alert-circle" style={{ fontSize:'20px', color:'#DC2626' }} />
-            </div>
-            <h2 style={{ margin:'0 0 8px', fontFamily:F.headline, fontSize:'18px', fontWeight:700, color:'#0F172A' }}>Previous Application Rejected</h2>
-            <p style={{ margin:'0 0 12px', fontFamily:F.body, fontSize:'13px', color:'#64748B', lineHeight:1.6 }}>
-              Your previous Organizational PMS application was rejected. You can start a fresh new application — your previous submission will be kept on record.
-            </p>
-            <div style={{ background:'#FEF2F2', border:'1px solid #FECACA', borderRadius:'8px', padding:'10px 14px', marginBottom:'24px' }}>
-              <p style={{ margin:0, fontFamily:F.body, fontSize:'12px', color:'#991B1B', lineHeight:1.6 }}>
-                A new account number will be assigned to your re-application. Your existing personas (Renter, etc.) will not be affected.
-              </p>
-            </div>
-            <div style={{ display:'flex', gap:'10px' }}>
-              <button onClick={() => setShowRejectionModal(false)} style={{ flex:1, height:'42px', background:C.white, border:'1.5px solid #CBD5E1', borderRadius:'9px', fontFamily:F.body, fontSize:'13px', fontWeight:600, color:'#64748B', cursor:'pointer' }}>Cancel</button>
-              <button onClick={handleRejectionConfirm} style={{ flex:1, height:'42px', background:'#002D5B', border:'none', borderRadius:'9px', fontFamily:F.body, fontSize:'13px', fontWeight:700, color:C.white, cursor:'pointer', display:'flex', alignItems:'center', justifyContent:'center', gap:'6px' }}
-                onMouseEnter={e => e.currentTarget.style.background='#003d7a'} onMouseLeave={e => e.currentTarget.style.background='#002D5B'}>
-                <i className="ti ti-plus" style={{ fontSize:'14px' }} />
-                Start New Application
-              </button>
-            </div>
+        <Modal
+          variant="confirm" icon="ti-alert-circle" tone={TONES2.error}
+          title="Previous application rejected"
+          onClose={() => setShowRejectionModal(false)}
+          footer={<>
+            <button type="button" className="un2-btn" style={UI2.btn.soft} onClick={() => setShowRejectionModal(false)}>Cancel</button>
+            <button type="button" className="un2-btn" style={UI2.btn.brand} onClick={handleRejectionConfirm}>
+              <i className="ti ti-plus" style={UI2.btnIcon} aria-hidden="true" /> Start new application
+            </button>
+          </>}
+        >
+          <p style={S.mText}>
+            Your previous Organizational PMS application was rejected. You can start a fresh new application — your previous submission will be kept on record.
+          </p>
+          <div style={S.mNote}>
+            A new account number will be assigned to your re-application. Your existing personas (Renter, etc.) will not be affected.
           </div>
-        </div>
+        </Modal>
       )}
-    </>
+    </div>
   );
 }

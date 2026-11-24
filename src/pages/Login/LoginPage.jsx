@@ -1,15 +1,21 @@
 // ─────────────────────────────────────────────
 // UrbanNest — Login Page
-// Route: / (inside LoginModal)
+// Route: / (via LoginModal) and /login — same v2 page
 // Auth model: Option B — universal login, no persona dropdown
 // On success: saves JWT tokens → navigates to /persona-select
 // ─────────────────────────────────────────────
 
-import { useState } from 'react';
+// Design System v2 (2026-11-24, layout from Downloads/image 14.png). The frame — page background, split card,
+// photo side (villa · rain · leaves · brand · headline), card fit and the page-open animation — is the shared
+// AuthShell (components/layout); this page adds the testimonial carousel (bottom glass panel) and the sign-in form
+// (FormField + IconField 36px, brand CTA, soft social buttons, TextLink).
+// The sign-in logic (handleSubmit, tokens, refreshAuth, redirects) is unchanged.
+
+import { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Button, Input, Divider, TestimonialCarousel } from '../../components/ui';
-import { C } from '../../constants/colors';
-import { F } from '../../constants/fonts';
+import { Grid, AuthShell, AUTH, AUTH_INTRO, introAt, formIntro, GoogleLogo, AppleLogo } from '../../components/layout';
+import { FormField, IconField, TextLink } from '../../components/ui';
+import { C2, FS2, LH2, SP2, SZ2, T2, UI2 } from '../../constants';
 // Session 51, Phase 3 fix — AuthContext.refreshAuth() exists specifically
 // "to call after login" (see its own doc comment), but nothing here ever
 // called it. AuthProvider only bootstraps `user`/`permissions` once, on the
@@ -22,54 +28,44 @@ import { useAuth } from '../../context/AuthContext';
 
 const API_BASE = process.env.REACT_APP_API_BASE_URL || 'http://localhost:8001/api';
 
-const ESTATE_IMAGE = 'https://images.unsplash.com/photo-1613977257363-707ba9348227?w=900&q=80&fit=crop';
 
 const TESTIMONIALS = [
   {
-    quote: '-The intersection of heritage and innovation. URBANNEST provides the clarity and security essential for navigating complex global markets with confidence.-',
-    name: 'JULIAN VANE',
+    quote: 'The intersection of heritage and innovation. UrbanNest provides the clarity and security essential for navigating complex global markets with confidence.',
+    name: 'Julian Vane',
     title: 'Global Portfolio Strategy, London',
   },
   {
-    quote: '-Unparalleled access to prime real estate opportunities across three continents. URBANNEST redefines what private wealth management looks like.-',
-    name: 'SOPHIA HARTWELL',
+    quote: 'Unparalleled access to prime real estate opportunities across three continents. UrbanNest redefines what private wealth management looks like.',
+    name: 'Sophia Hartwell',
     title: 'Private Equity Director, Zürich',
   },
   {
-    quote: '-From acquisition to legacy planning, URBANNEST has been the cornerstone of our family office strategy for over a decade.-',
-    name: 'MARCUS DELACROIX',
+    quote: 'From acquisition to legacy planning, UrbanNest has been the cornerstone of our family office strategy for over a decade.',
+    name: 'Marcus Delacroix',
     title: 'Family Office Principal, Singapore',
   },
 ];
+const TESTIMONIAL_MS = 5000;   // carousel auto-advance
+const FORM_GAP = SP2.lg;   // row gap inside the form
+const FOOT_LINKS = ['Privacy', 'Security', 'Terms'];
+const initials = (name) => name.split(' ').map(w => w[0]).join('').slice(0, 2);
 
-function LockIcon() {
-  return (
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none"
-      stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-      <rect x="3" y="11" width="18" height="11" rx="2"/>
-      <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
-    </svg>
-  );
-}
-
-function GoogleLogo() {
-  return (
-    <svg width="17" height="17" viewBox="0 0 24 24">
-      <path d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" fill="#4285F4"/>
-      <path d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" fill="#34A853"/>
-      <path d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z" fill="#FBBC05"/>
-      <path d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z" fill="#EA4335"/>
-    </svg>
-  );
-}
-
-function AppleLogo() {
-  return (
-    <svg width="15" height="17" viewBox="0 0 814 1000" fill={C.textPrimary}>
-      <path d="M788.1 340.9c-5.8 4.5-108.2 62.2-108.2 190.5 0 148.4 130.3 200.9 134.2 202.2-.6 3.2-20.7 71.9-68.7 141.9-42.8 61.6-87.5 123.1-155.5 123.1s-85.5-39.5-164-39.5c-76 0-103.7 40.8-165.9 40.8s-105.2-62.3-150.6-123.6C46.5 726 1.1 583.9 1.1 440.8c0-109.1 39.1-212.2 103.7-283.6 56-62.2 140.7-101.7 232.8-101.7 85.5 0 152.6 42.3 204.8 42.3 49.4 0 126.9-45.3 227.2-45.3 34.2 0 150.4 3.2 224.1 110.9zM490.1 73.6c28.9-38.8 48.9-91.1 48.9-143.4 0-5.8-.6-11.7-1.3-17.6-47.5 2.6-104.6 32.5-138.2 74-26.9 32.5-50 84.7-50 136.9 0 6.5.6 12.9 1.3 15.5 3.2.6 8.4 1.3 13.6 1.3 42.9 0 96.9-28.3 125.7-66.7z"/>
-    </svg>
-  );
-}
+// page-specific: the testimonial carousel in the bottom glass panel + the "New here?" line
+const S = {
+  quoteMark: { fontSize: FS2.xxl, lineHeight: LH2.none, color: C2.white },
+  quoteText: { ...T2.quote, margin: 0, color: C2.white },
+  author:    { ...UI2.row(SP2.md), justifyContent: 'space-between' },
+  person:    { ...UI2.row(SP2.md), minWidth: 0 },
+  avatar:    { ...UI2.avatar(SZ2.icon.lg, { soft: C2.onDark.surfaceHover, fg: C2.white }) },
+  name:      { ...UI2.text.title, color: C2.white },
+  role:      { ...T2.caption, color: C2.onDark.textMuted, ...UI2.truncate },
+  arrows:    { ...UI2.row(SP2.sm), flexShrink: 0 },
+  arrow:     { ...UI2.btn.icon(SZ2.control.md), color: C2.white, fontSize: FS2.lg, border: `${SZ2.hairline}px solid ${C2.onDark.border}` },
+  form:      { ...UI2.stack(FORM_GAP) },
+  signup:    { ...UI2.row(SP2.xs), justifyContent: 'center', ...T2.label, fontSize: AUTH.lead.fontSize },
+  signupLink: { fontSize: AUTH.lead.fontSize },   // "Create Account" = same 14px as the "New here?" text (same as Sign Up's "Sign in" line)
+};
 
 // Session 55 — callers that send a signed-out user here (Apply, Book a
 // Tour, Applications, a co-applicant invitation) pass
@@ -90,6 +86,19 @@ export default function LoginPage() {
   const [password, setPassword] = useState('');
   const [loading,  setLoading]  = useState(false);
   const [error,    setError]    = useState('');
+  const [showPassword, setShowPassword] = useState(false);
+  // testimonial carousel — current slide + the one fading out (crossfade, un2-xfade)
+  const [carousel, setCarousel] = useState({ cur: 0, prev: null });
+  const [paused, setPaused] = useState(false);   // hover / focus on the panel holds the current quote
+  const step = (d) => setCarousel(({ cur }) => ({ cur: (cur + d + TESTIMONIALS.length) % TESTIMONIALS.length, prev: cur }));
+
+  // auto-advance; the timer restarts after every change (incl. a manual prev / next) and stops while paused
+  useEffect(() => {
+    if (paused) return undefined;
+    const t = setTimeout(() => step(1), TESTIMONIAL_MS);
+    return () => clearTimeout(t);
+  }, [carousel.cur, paused]);
+  const slideCls = (i) => (i === carousel.cur ? 'is-active' : i === carousel.prev ? 'is-leaving' : undefined);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -165,116 +174,94 @@ export default function LoginPage() {
     }
   };
 
-  return (
+  const testimonials = (
     <>
-      <style>{`
-        @keyframes un-spin   { to { transform: rotate(360deg); } }
-        @keyframes un-fadein { from { opacity:0; transform:translateY(5px); } to { opacity:1; transform:none; } }
-        @keyframes un-pagein { from { opacity:0; } to { opacity:1; } }
-        .un-login-root { animation: un-pagein 0.45s ease; }
-        .un-btn-primary:hover:not(:disabled) { background: ${C.primaryHover} !important; }
-        .un-btn-primary:active:not(:disabled){ transform: scale(0.99); }
-        .un-btn-social:hover  { border-color: #94A3B8 !important; background: #F8FAFC !important; }
-        .un-reglink:hover     { border-color: ${C.textPrimary} !important; }
-        .un-footlink:hover    { color: ${C.primary} !important; }
-      `}</style>
-
-      <div className="un-login-root" style={{
-        display: 'flex', minHeight: '100%',
-        fontFamily: F.body, background: '#fff',
-      }}>
-
-        {/* ── LEFT — hero image + testimonial ── */}
-        <div style={{ position: 'relative', width: '52%', minHeight: '100%', overflow: 'hidden', flexShrink: 0 }}>
-          <img src={ESTATE_IMAGE} alt="Luxury estate"
-            style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', objectPosition: 'center' }} />
-          <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(to bottom, rgba(0,20,50,0.42) 0%, rgba(0,20,50,0.12) 40%, rgba(0,20,50,0.62) 100%)' }} />
-          <div style={{ position: 'absolute', top: 52, left: 52, fontFamily: F.body, fontWeight: 700, fontSize: 15, letterSpacing: '0.38em', color: '#fff', textTransform: 'uppercase' }}>
-            URBANNEST
-          </div>
-          <TestimonialCarousel testimonials={TESTIMONIALS} />
-        </div>
-
-        {/* ── RIGHT — form panel ── */}
-        <div style={{
-          flex: 1, display: 'flex', flexDirection: 'column',
-          justifyContent: 'space-between',
-          padding: '56px 76px 36px 68px', background: '#fff',
-        }}>
-          {/* Session 51 fix — this panel is `flex: 1` (grows to fill the
-              window) while this block is capped at a fixed max-width, so
-              on a wide/maximized window it used to sit flush left with a
-              growing gap of empty space to its right (reported live,
-              comparing a narrower vs. a maximized browser window). `margin:
-              '0 auto'` centers it within the panel at any window width
-              instead, so the form reads the same regardless of how wide
-              the browser is. */}
-          <div style={{ maxWidth: 440, margin: '0 auto' }}>
-            <h1 style={{ fontFamily: F.headline, fontWeight: 700, fontSize: 40, color: C.primary, lineHeight: 1.2, marginBottom: 10 }}>
-              Secure Access
-            </h1>
-            <p style={{ fontFamily: F.body, fontWeight: 400, fontSize: 13, color: C.textSecondary, marginBottom: 34, lineHeight: 1.5 }}>
-              Enter your credentials to access your UrbanNest account.
-            </p>
-
-            {error && (
-              <div style={{
-                background: '#FEF2F2', border: '1px solid #FECACA', borderRadius: 8,
-                padding: '10px 14px', marginBottom: 18, display: 'flex', alignItems: 'center',
-                gap: 8, fontFamily: F.body, fontSize: 12, color: '#DC2626', animation: 'un-fadein 0.2s ease',
-              }}>
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#DC2626" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                  <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
-                </svg>
-                {error}
-              </div>
-            )}
-
-            <form onSubmit={handleSubmit}>
-              <Input label="Email or Phone" type="text" placeholder="Enter your email or phone number"
-                value={clientId} onChange={e => { setClientId(e.target.value); setError(''); }} autoComplete="username" />
-              <Input label="Password" type="password" placeholder="• • • • • • • •"
-                value={password} onChange={e => { setPassword(e.target.value); setError(''); }} autoComplete="current-password"
-                rightAction={{ label: 'Forgot password?', onClick: () => {} }} style={{ marginBottom: 22 }} />
-              <Button type="submit" variant="primary" loading={loading} disabled={loading}>
-                <LockIcon /> Secure Sign In
-              </Button>
-            </form>
-
-            <Divider label="OR CONTINUE WITH" />
-
-            <div style={{ display: 'flex', gap: 14, marginBottom: 26 }}>
-              <Button variant="social" fullWidth={false} style={{ flex: 1 }}><GoogleLogo /> Google</Button>
-              <Button variant="social" fullWidth={false} style={{ flex: 1 }}><AppleLogo /> Apple</Button>
-            </div>
-
-            <div style={{ textAlign: 'center' }}>
-              <span style={{ fontFamily: F.body, fontSize: 13, fontWeight: 400, color: C.textSecondary }}>
-                New here?{' '}
-                <a href="/signup" className="un-reglink"
-                  onClick={(e) => { e.preventDefault(); navigate('/signup', { state: location.state }); }}
-                  style={{ color: C.textPrimary, fontWeight: 600, textDecoration: 'none', borderBottom: '1px solid transparent', transition: 'border-color 0.18s' }}>
-                  Create Account ↗
-                </a>
+      <i className="ti ti-quote" style={S.quoteMark} aria-hidden="true" />
+      {/* every quote sits in the same cell (un2-xfade) → the panel keeps one height and the quotes crossfade */}
+      <div className="un2-xfade" aria-live="polite">
+        {TESTIMONIALS.map((t, i) => (
+          <blockquote key={t.name} className={slideCls(i)} style={S.quoteText} aria-hidden={i !== carousel.cur}>“{t.quote}”</blockquote>
+        ))}
+      </div>
+      <figcaption style={S.author}>
+        <span className="un2-xfade" style={UI2.minWidth0}>
+          {TESTIMONIALS.map((t, i) => (
+            <span key={t.name} className={slideCls(i)} style={S.person} aria-hidden={i !== carousel.cur}>
+              <span style={S.avatar} aria-hidden="true">{initials(t.name)}</span>
+              <span style={UI2.minWidth0}>
+                <span style={{ ...S.name, display: 'block' }}>{t.name}</span>
+                <span style={{ ...S.role, display: 'block' }}>{t.title}</span>
               </span>
-            </div>
-          </div>
+            </span>
+          ))}
+        </span>
+        <span style={S.arrows}>
+          <button type="button" className="un2-btn" style={S.arrow} onClick={() => step(-1)} aria-label="Previous testimonial"><i className="ti ti-chevron-left" aria-hidden="true" /></button>
+          <button type="button" className="un2-btn" style={S.arrow} onClick={() => step(1)} aria-label="Next testimonial"><i className="ti ti-chevron-right" aria-hidden="true" /></button>
+        </span>
+      </figcaption>
+    </>
+  );
 
-          <div style={{ textAlign: 'center', marginTop: 32 }}>
-            <p style={{ fontFamily: F.body, fontSize: 11, color: C.textTertiary, letterSpacing: '0.05em', marginBottom: 10 }}>
-              © 2024 URBANNEST EDITORIAL SYSTEMS. ALL RIGHTS RESERVED.
-            </p>
-            <div style={{ display: 'flex', gap: 16, justifyContent: 'center' }}>
-              {['Privacy', 'Security', 'Terms'].map(l => (
-                <a key={l} href="#" className="un-footlink"
-                  style={{ fontFamily: F.body, fontSize: 11, fontWeight: 500, color: C.textSecondary, textDecoration: 'none', transition: 'color 0.18s' }}>
-                  {l}
-                </a>
-              ))}
-            </div>
-          </div>
+  return (
+    <AuthShell
+      titleLines={['The Smart Way to', 'Manage & Find Homes']}
+      subtitle={<>Rent, buy, manage and explore properties —<br />all in one trusted platform.</>}
+      panel={testimonials}
+      panelAs="figure"
+      panelProps={{ onMouseEnter: () => setPaused(true), onMouseLeave: () => setPaused(false), onFocus: () => setPaused(true), onBlur: () => setPaused(false) }}
+    >
+      <div className="un2-intro-up" style={formIntro(0)}>
+        <h1 style={AUTH.h1}>Secure Access</h1>
+        <p style={AUTH.lead}>Enter your credentials to access your UrbanNest account.</p>
+      </div>
+
+      {error && (
+        <div style={UI2.errorBanner} role="alert">
+          <i className="ti ti-alert-circle" aria-hidden="true" /> {error}
+        </div>
+      )}
+
+      <form onSubmit={handleSubmit} style={S.form}>
+        <div className="un2-intro-up" style={formIntro(1)}><FormField label="Email or Phone">
+          <IconField icon="ti-mail" type="text" placeholder="Enter your email or phone number" autoComplete="username"
+            value={clientId} onChange={e => { setClientId(e.target.value); setError(''); }} aria-label="Email or phone" />
+        </FormField></div>
+        <div className="un2-intro-up" style={formIntro(2)}><FormField label="Password" action={<TextLink arrow={false} onClick={() => {}}>Forgot password?</TextLink>}>
+          <IconField icon="ti-lock" type={showPassword ? 'text' : 'password'} placeholder="Enter your password" autoComplete="current-password"
+            value={password} onChange={e => { setPassword(e.target.value); setError(''); }} aria-label="Password"
+            trailing={{ icon: showPassword ? 'ti-eye-off' : 'ti-eye', label: showPassword ? 'Hide password' : 'Show password', onClick: () => setShowPassword(v => !v) }} />
+        </FormField></div>
+        <div className="un2-intro-up" style={{ ...AUTH.submitRow(FORM_GAP), ...formIntro(3) }}>
+          <button type="submit" className="un2-btn un2-intro-sheen" style={{ ...AUTH.submit, ...(loading ? AUTH.busy : {}), ...introAt(AUTH_INTRO.sheen) }} disabled={loading}>
+            <i className={`ti ${loading ? 'ti-loader-2 un2-spin' : 'ti-lock'}`} style={UI2.btnIcon} aria-hidden="true" />
+            {loading ? 'Signing in…' : 'Secure Sign In'}
+          </button>
+        </div>
+      </form>
+
+      <div className="un2-intro-up" style={{ ...AUTH.orRow, ...formIntro(4) }}>
+        <span style={AUTH.orLine} />
+        <span style={AUTH.orText}>Or continue with</span>
+        <span style={AUTH.orLine} />
+      </div>
+
+      <Grid layout="two" as="div" className="un2-intro-up" style={{ ...AUTH.socials, ...formIntro(5) }}>
+        <button type="button" className="un2-btn" style={AUTH.social}><GoogleLogo /> Google</button>
+        <button type="button" className="un2-btn" style={AUTH.social}><AppleLogo /> Apple</button>
+      </Grid>
+
+      <div className="un2-intro-up" style={{ ...S.signup, ...formIntro(6) }}>
+        New here?
+        <TextLink onClick={() => navigate('/signup', { state: location.state })} style={S.signupLink}>Create Account</TextLink>
+      </div>
+
+      <div className="un2-intro-up" style={{ ...AUTH.foot, ...formIntro(7) }}>
+        <span style={AUTH.copy}>© 2024 UrbanNest Editorial Systems. All rights reserved.</span>
+        <div style={AUTH.footLinks}>
+          {FOOT_LINKS.map(l => <button key={l} type="button" style={AUTH.footLink}>{l}</button>)}
         </div>
       </div>
-    </>
+    </AuthShell>
   );
 }

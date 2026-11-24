@@ -1,0 +1,75 @@
+import React from 'react';
+import { C2, TONES2, R2, SH2, F2, FS2, FW2, T2, SP2, SZ2, LAYOUT2, pad, UI2 } from '../../constants';
+
+// ─── TopBar (Design System v2) ───────────────────────────────────────────────
+// VERSION 2 top bar — the v1 equivalents in this folder are Header.jsx / PMTopBar.jsx (older screens).
+// Page title on the left; search, notifications, help and avatar on the right.
+//   <TopBar title="UrbanNest Landlord" avatarText="NW" avatarLabel="Profile: Nick" />
+// Props:
+//   title             string
+//   searchPlaceholder string | null   (null hides the search box)
+//   onSearch          (value) => void  (optional, fires on Enter)
+//   notificationDot   boolean          (red dot on the bell)
+//   avatarText        string           (initials)
+//   avatarLabel       string           (screen-reader label)
+//   actions           node             (extra buttons before the bell)
+
+const S = {
+  bar:      { ...UI2.rowBetween(SP2.xl), height: SZ2.topbar, flexShrink: 0, padding: pad(0, LAYOUT2.pageX), background: C2.backgroundGlass,
+              // border as longhands (not the borderBottom shorthand) so the overlay can switch its colour safely
+              borderBottomWidth: SZ2.hairline, borderBottomStyle: 'solid', borderBottomColor: C2.border },
+  title:    { ...T2.pageTitle, color: C2.navyDeep, whiteSpace: 'nowrap' },
+  search:   { ...UI2.searchField, width: SZ2.search, maxWidth: '36vw' },
+  input:    { flex: 1, minWidth: 0, border: 'none', outline: 'none', background: 'transparent', fontFamily: F2.body, fontSize: FS2.base, color: C2.textPrimary },
+  kbd:      { fontSize: FS2.xs, fontWeight: FW2.semibold, color: C2.textSecondary, background: C2.surfaceMuted, border: `1px solid ${C2.border}`, borderRadius: R2.sm, padding: pad(SP2.xxs, SP2.sm) },
+  bellDot:  { ...UI2.statusDot(TONES2.error), position: 'absolute', top: SP2.sm, right: SP2.sm, border: `2px solid ${C2.pageBg}`, boxSizing: 'content-box' },
+  avatar:   { ...UI2.avatar(SZ2.icon.md, { soft: C2.navyDeep, fg: C2.white }), cursor: 'pointer', boxShadow: SH2.avatarRing },
+  // overlay: floats over the hero photo; turns back into the normal glass bar when the page scrolls
+  // Both states set background + border colour EXPLICITLY: dropping them on scroll made React clear the colour,
+  // and the border fell back to the text colour (a black line under the bar).
+  overlay:  (solid) => ({ position: 'absolute', top: 0, left: 0, right: 0, zIndex: 5, transition: 'background 0.2s ease, border-color 0.2s ease',
+    background: solid ? C2.backgroundGlass : 'transparent',
+    borderBottomColor: solid ? C2.border : 'transparent' }),
+};
+
+export default function TopBar({
+  title,
+  searchPlaceholder = 'Search properties, tenants, leases...',
+  onSearch,
+  notificationDot = true,
+  avatarText = '',
+  avatarLabel = 'Profile',
+  actions = null,
+  overlay = false,   // floats ON the page hero (PageShell heroBehindTopBar)
+  solid = false,     // overlay only: normal glass bar again once the page scrolls
+}) {
+  return (
+    <header style={overlay ? { ...S.bar, ...S.overlay(solid) } : S.bar}>
+      <div style={S.title}>{title}</div>
+      <div style={UI2.row(SP2.md)}>
+        {searchPlaceholder !== null && (
+          <label className="un2-focus-ring un2-hide-md" style={S.search}>
+            <i className="ti ti-search" style={{ fontSize: FS2.xl, color: C2.textSecondary }} aria-hidden="true" />
+            <input
+              style={S.input}
+              type="search"
+              placeholder={searchPlaceholder}
+              aria-label="Search"
+              onKeyDown={e => { if (e.key === 'Enter' && onSearch) onSearch(e.currentTarget.value); }}
+            />
+            <span style={S.kbd}>⌘K</span>
+          </label>
+        )}
+        {actions}
+        <button style={UI2.btn.icon()} aria-label="Notifications">
+          <i className="ti ti-bell" aria-hidden="true" />
+          {notificationDot && <span style={S.bellDot} />}
+        </button>
+        <button style={UI2.btn.icon()} aria-label="Help">
+          <i className="ti ti-help-circle" aria-hidden="true" />
+        </button>
+        <div style={S.avatar} role="img" aria-label={avatarLabel}>{avatarText}</div>
+      </div>
+    </header>
+  );
+}

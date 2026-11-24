@@ -100,82 +100,42 @@
 // fake statistic. Rows mirror activeListings exactly (same real units,
 // same real Property/Unit labels) — no activity shows for a unit with no
 // real active listing, matching Active Listings' own empty state.
+//
+// 2026-11-23 — REDESIGNED on Design System v2 (design: Downloads/image 84.png). Layout only came from the
+// design; every style is a v2 token / shared v2 component:
+//   PageShell (NavF + TopBar)
+//   ListingsHero   same styles + height as the dashboard / portfolio heroes (pill · title · subtitle · one stat row),
+//                  banner art (Downloads/image 85.png, text removed) as the container background ·
+//                  Create Listing button under the stats (like the dashboard hero's buttons)
+//   toolbar        TabBar underline (All · Active · Ready to List · Not Ready · Drafts, with counts) │
+//                  search field (always shown) · ActionTray "Options" toggle sliding out Filter (property) · Sort: Latest
+//   open table     (no card — sits on the page like Portfolio's My Properties) ONE DataTable for every listing state — Property / unit (photo · name · type │ unit) ·
+//                  Rent · Status (status dot pill) · Published · Views · Saves · Applications · Trend · row action (small primary button)
+//                  (Active → View · Ready → List · Not ready → View Unit · Draft → Resume — same actions as before)
+// Data wiring is unchanged: GET /listings/pm-overview/, the same predicates, the same Resume router state
+// and the same ListingSummaryModal (still on the old landlordTokens styles, like the other v2 pages' modals).
+// Views / Saves / Applications / Trend stay SAMPLE figures for active listings (seeded per unit — see below).
 // ─────────────────────────────────────────────────────────────────────────────
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import NavF from '../../../components/layout/NavF';
+import { PageShell } from '../../../components/layout';
+import {
+  ListingsHero, TabBar, ActionTray, DataTable, FilterMenu, EmptyState, CountUp,
+} from '../../../components/ui';
+import {
+  C2, TONES2, ACCENT2, accentTone, F2, FS2, SP2, SZ2, LAYOUT2, UI2,
+} from '../../../constants';
 import { C, F } from '../landlordTokens';
 import { getPMListingsOverview } from './listingApi';
+import heroImage from '../../../assets/landlord/listings-hero.jpg';   // Downloads/image 85.png with its baked-in text removed
+import propertyPlaceholder from '../../../assets/landlord/property-placeholder.jpg';
 
-// ── Style tokens — local to this page, same convention as LandlordDashboard
-// .jsx's own `S` object (not shared/exported there either). ──────────────
-const S = {
-  shell:   { display: 'flex', height: '100vh', fontFamily: F.sans, background: C.pageBg, overflow: 'hidden' },
-  main:    { flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden' },
-  topbar:  { background: C.topbarBg, borderBottom: `1px solid ${C.topbarBdr}`, padding: '0 24px', height: 52, display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexShrink: 0 },
-  topbarTitle: { fontSize: 14, fontWeight: 600, color: C.txtPrimary, letterSpacing: 0.1 },
-  content: { flex: 1, overflowY: 'auto', padding: '20px 24px 32px' },
-  errBanner: { background: C.redLight, color: C.red, padding: '12px 18px', borderRadius: 8, fontSize: 13, marginBottom: 16 },
-
-  pageHead:    { display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 18 },
-  pageTitle:   { fontSize: 20, fontWeight: 700, color: C.txtPrimary, marginBottom: 3 },
-  pageSub:     { fontSize: 12.5, color: C.txtMuted },
-  createBtn:   { background: C.blue, color: '#fff', border: 'none', borderRadius: 7, padding: '9px 15px', fontSize: 12.5, fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, fontFamily: F.sans },
-
-  // Session 48 — row narrowed to 60% container width (40% shorter
-  // horizontally, user ask), cards stay 4 equal columns within that.
-  statRow:  { display: 'grid', gridTemplateColumns: 'repeat(4,1fr)', gap: 12, marginBottom: 20, width: '60%' },
-  // Session 48 — status cards ~40% shorter (user ask): vertical padding
-  // 13px → 8px, value/label font sizes and spacing scaled down to match,
-  // same "shrink padding + type scale together" approach PMListingsOverview
-  // used for its own stat-tile height passes.
-  statCard: (accent) => ({ background: C.cardBg, border: `1px solid ${C.cardBdr}`, borderLeft: `3px solid ${accent}`, borderRadius: 10, padding: '8px 16px' }),
-  statNum:  { fontSize: 18, fontWeight: 700, color: C.txtPrimary, lineHeight: 1, marginBottom: 2 },
-  statLbl:  { fontSize: 10, color: C.txtSec },
-
-  card:      { background: C.cardBg, border: `1px solid ${C.cardBdr}`, borderRadius: 12, marginBottom: 20, overflow: 'hidden' },
-  cardHdr:   { padding: '14px 18px', borderBottom: `1px solid ${C.cardBdr}`, display: 'flex', alignItems: 'center', gap: 8 },
-  cardTitle: { fontSize: 14, fontWeight: 700, color: C.txtPrimary, flex: 1 },
-  cardBody:  { padding: '4px 18px 14px' },
-  // Session 48 — Ready to List / Not Ready / Drafts moved into one row
-  // (user ask: "positioning ... in the same line itself"), replacing the
-  // prior twoCol (Ready to List + Not Ready) / full-width Drafts split.
-  threeCol:  { display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 20 },
-
-  empty: { padding: '18px 0', fontSize: 12.5, color: C.txtMuted, textAlign: 'center' },
-
-  th: { textAlign: 'left', padding: '8px 6px', fontFamily: F.sans, fontSize: 10.5, fontWeight: 700, color: C.txtMuted, textTransform: 'uppercase', letterSpacing: '0.04em' },
-  td: { padding: '10px 6px', fontFamily: F.sans, fontSize: 12.5, color: C.txtSec, borderTop: `1px solid ${C.cardBdr}` },
-  tdStrong: { padding: '10px 6px', fontFamily: F.sans, fontSize: 12.5, color: C.txtPrimary, fontWeight: 600, borderTop: `1px solid ${C.cardBdr}` },
-
-  rowLink: { background: 'none', border: 'none', padding: 0, fontFamily: F.sans, fontSize: 12, fontWeight: 700, color: C.blue, cursor: 'pointer' },
+// ── Legacy style used only by the ListingSummaryModal / CountdownBadge below (old landlordTokens) ──
+const M = {
   pill: (bg, col) => ({ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 11, fontWeight: 700, padding: '3px 9px', borderRadius: 99, background: bg, color: col, fontFamily: F.sans, whiteSpace: 'nowrap' }),
-
-  draftRow:   { display: 'flex', alignItems: 'center', gap: 10, padding: '10px 4px', borderTop: `1px solid ${C.cardBdr}` },
-  draftDot:   { width: 6, height: 6, borderRadius: '50%', background: C.blue, flexShrink: 0 },
-  draftMain:  { flex: 1, minWidth: 0 },
-  draftTitle: { fontSize: 12.5, fontWeight: 600, color: C.txtPrimary },
-  draftSub:   { fontSize: 11, color: C.txtMuted, marginTop: 1 },
-
-  // ── Listing Activity matrix (Session 48) — a 40%/60% row, matrix on the
-  // left, styled as a table matching Active Listings' own (S.th/S.td/
-  // S.tdStrong, reused as-is rather than a bespoke card-row layout — user's
-  // explicit ask, "display it the same way as Active Listings"). sampleBadge
-  // follows PMListingsOverview's established "full-color content + a small
-  // corner tag" sample-data convention, not a greyed-out treatment. ───────
-  matrixRow:   { display: 'grid', gridTemplateColumns: '40% 60%', gap: 20, marginBottom: 20 },
-  sampleBadge: { marginLeft: 'auto', fontSize: 9.5, fontWeight: 700, letterSpacing: '0.03em', textTransform: 'uppercase', padding: '3px 8px', borderRadius: 99, background: C.amberLight, color: C.amber, fontFamily: F.sans, whiteSpace: 'nowrap' },
 };
 
-// ── Readiness display config (Landlord palette equivalent of PM's
-// READINESS_CFG). No stub-category handling needed here at all — those
-// only ever appear inside a unit's real not-ready reason text below, which
-// is opaque to this file either way. ─────────────────────────────────────
-const READINESS_CFG = {
-  LIST_READY:          { label: 'Ready',          bg: C.greenLight, color: C.greenDark },
-  READY_WITH_WARNINGS: { label: 'Ready (warn)',   bg: C.amberLight, color: C.amber },
-};
 
 function fmtDate(d) {
   return d ? new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '—';
@@ -208,7 +168,7 @@ function CountdownBadge({ expiresAt }) {
   const cfg = countdownConfig(daysUntil(expiresAt));
   if (!cfg) return <span style={{ fontSize: 12.5, color: C.txtMuted }}>—</span>;
   return (
-    <span style={S.pill(cfg.bg, cfg.color)}>
+    <span style={M.pill(cfg.bg, cfg.color)}>
       <i className="ti ti-clock" style={{ fontSize: 10.5 }} />{cfg.label}
     </span>
   );
@@ -436,180 +396,6 @@ function computeStats(units, drafts) {
   };
 }
 
-// ── Small shared bits ────────────────────────────────────────────────────
-function SectionCard({ title, icon, count, badge, children }) {
-  return (
-    <div style={S.card}>
-      <div style={S.cardHdr}>
-        {icon && <i className={`ti ${icon}`} style={{ fontSize: 15, color: C.blue }} />}
-        <span style={S.cardTitle}>{title}{typeof count === 'number' ? ` (${count})` : ''}</span>
-        {badge}
-      </div>
-      <div style={S.cardBody}>{children}</div>
-    </div>
-  );
-}
-
-function StatTile({ label, value, accent }) {
-  return (
-    <div style={S.statCard(accent)}>
-      <div style={S.statNum}>{value}</div>
-      <div style={S.statLbl}>{label}</div>
-    </div>
-  );
-}
-
-// ── Listing Activity matrix (Session 48, sample data — see file header).
-// Deliberately the same table shape as ActiveListingsTable below — same
-// S.th/S.td/S.tdStrong tokens, same row-per-unit structure — per the
-// user's explicit ask to display/design it the same way. ─────────────────
-function ListingActivityMatrix({ rows, propertyName }) {
-  if (rows.length === 0) return <p style={S.empty}>No activity yet — this fills in once a listing goes live.</p>;
-  return (
-    <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-      <thead>
-        <tr>{['Property', 'Unit', 'Views', 'Save', 'Application', 'Trend'].map(h => <th key={h} style={S.th}>{h}</th>)}</tr>
-      </thead>
-      <tbody>
-        {rows.map(u => {
-          const a = _sampleActivityFor(u.id);
-          const up = a.trendPct >= 0;
-          return (
-            <tr key={u.id}>
-              <td style={S.tdStrong}>{propertyName(u.propertyId)}</td>
-              <td style={S.td}>Unit {u.unit}</td>
-              <td style={S.td}>{a.views}</td>
-              <td style={S.td}>{a.saves}</td>
-              <td style={S.td}>{a.applications}</td>
-              <td style={S.td}>
-                <span style={S.pill(up ? C.greenLight : C.redLight, up ? C.greenDark : C.red)}>
-                  <i className={`ti ${up ? 'ti-trending-up' : 'ti-trending-down'}`} style={{ fontSize: 10.5 }} />
-                  {up ? '+' : ''}{a.trendPct}%
-                </span>
-              </td>
-            </tr>
-          );
-        })}
-      </tbody>
-    </table>
-  );
-}
-
-// ── Active Listings ──────────────────────────────────────────────────────
-function ActiveListingsTable({ rows, propertyName, onView }) {
-  if (rows.length === 0) return <p style={S.empty}>No active listings yet. Published units will show up here with their promotion countdown.</p>;
-  return (
-    <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-      <thead>
-        <tr>{['Property', 'Unit', 'Published', 'Channel', 'Expires', ''].map(h => <th key={h} style={S.th}>{h}</th>)}</tr>
-      </thead>
-      <tbody>
-        {rows.map(u => (
-          <tr key={u.id}>
-            <td style={S.tdStrong}>{propertyName(u.propertyId)}</td>
-            <td style={S.td}>Unit {u.unit}</td>
-            <td style={S.td}>{fmtDate(u.publishedDate)}</td>
-            <td style={S.td}>{u.channel || '—'}</td>
-            <td style={S.td}><CountdownBadge expiresAt={u.expiresAt} /></td>
-            <td style={{ ...S.td, textAlign: 'right' }}>
-              {/* Session 48 fix — was window.location.href to LandlordUnitDetailPage;
-                  now opens ListingSummaryModal, matching PM/Org PM's "View". */}
-              <button style={S.rowLink} onClick={() => onView(u)}>View</button>
-            </td>
-          </tr>
-        ))}
-      </tbody>
-    </table>
-  );
-}
-
-// ── Ready to List ────────────────────────────────────────────────────────
-function ReadyToListRows({ rows, propertyName }) {
-  if (rows.length === 0) return <p style={S.empty}>Nothing waiting to be listed right now.</p>;
-  return (
-    <table style={{ width: '100%', borderCollapse: 'collapse' }}>
-      <thead>
-        <tr>{['Property', 'Unit', 'Rent', 'Status', ''].map(h => <th key={h} style={S.th}>{h}</th>)}</tr>
-      </thead>
-      <tbody>
-        {rows.map(u => {
-          const cfg = READINESS_CFG[u.readiness] || READINESS_CFG.LIST_READY;
-          return (
-            <tr key={u.id}>
-              <td style={S.tdStrong}>{propertyName(u.propertyId)}</td>
-              <td style={S.td}>Unit {u.unit}</td>
-              <td style={S.td}>{fmtRent(u.rent)}</td>
-              <td style={S.td}><span style={S.pill(cfg.bg, cfg.color)}>{cfg.label}</span></td>
-              <td style={{ ...S.td, textAlign: 'right' }}>
-                <button
-                  style={{ ...S.rowLink, textDecoration: 'none' }}
-                  onClick={() => { window.location.href = `/landlord-portal/property/${u.propertyId}/unit/${u.id}/list/step-1`; }}
-                >
-                  List →
-                </button>
-              </td>
-            </tr>
-          );
-        })}
-      </tbody>
-    </table>
-  );
-}
-
-// ── Not Ready ─────────────────────────────────────────────────────────────
-function NotReadyRows({ rows, propertyName }) {
-  if (rows.length === 0) return <p style={S.empty}>Nothing's blocked — every unit is either live or ready.</p>;
-  return (
-    <div>
-      {rows.map(u => (
-        <div key={u.id} style={{ padding: '10px 4px', borderTop: `1px solid ${C.cardBdr}` }}>
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', gap: 8 }}>
-            <span style={{ fontSize: 12.5, fontWeight: 600, color: C.txtPrimary }}>{propertyName(u.propertyId)} · Unit {u.unit}</span>
-            <button style={S.rowLink} onClick={() => { window.location.href = `/landlord-portal/property/${u.propertyId}/unit/${u.id}`; }}>View Unit →</button>
-          </div>
-          <div style={{ fontSize: 11.5, color: C.txtMuted, marginTop: 2 }}>
-            {(u.notReadyReason || 'Not ready yet').replace(/^STUB:/, '')}
-          </div>
-        </div>
-      ))}
-    </div>
-  );
-}
-
-// ── Drafts — one line per in-progress wizard submission, no property
-// grouping/matrix (that's the PM-scale version of this same data). ───────
-// Session 48 fix — "Resume" now routes back into the exact wizard step the
-// draft was left on, via useNavigate() + router state (see file header for
-// the full root-cause writeup: the wizard steps require location.state,
-// which a plain window.location.href can't carry). Individual drafts
-// (d.type === 'individual') carry d.listingId/d.unitId from the backend;
-// multi-unit drafts (d.type === 'multi') carry d.propertyListingId. Both
-// were added to pm_listings_overview's drafts payload for this fix — a
-// draft from a build predating that change would fall back to the
-// property page rather than crash, same as the old behavior.
-function DraftRows({ drafts, propertyName, onResume }) {
-  if (drafts.length === 0) return <p style={S.empty}>No listings in progress.</p>;
-  return (
-    <div>
-      {drafts.map(d => (
-        <div key={d.id} style={S.draftRow}>
-          <span style={S.draftDot} />
-          <div style={S.draftMain}>
-            <div style={S.draftTitle}>{propertyName(d.propertyId)} · {d.unitLabel}</div>
-            <div style={S.draftSub}>Step {d.step} of 4 — {d.stepLabel} · last edited {fmtDate(d.lastEdited)}</div>
-          </div>
-          <button
-            style={{ ...S.rowLink, flexShrink: 0 }}
-            onClick={() => onResume(d)}
-          >
-            Resume →
-          </button>
-        </div>
-      ))}
-    </div>
-  );
-}
-
 // Builds the wizard step URL + router state for a given draft, branching
 // on d.type. Falls back to the property page (old behavior) if the
 // backend fields this needs aren't present — e.g. a draft fetched before
@@ -632,14 +418,105 @@ function _resumeTarget(d) {
   return { path: `/landlord-portal/property/${d.propertyId}`, state: undefined };
 }
 
+// ── Status per listing kind (v2 tones — no yellow: drafts use the violet accent) ──
+const KIND = {
+  active:   { label: 'Active',    tone: TONES2.success },
+  ready:    { label: 'Ready',     tone: TONES2.primary },
+  notReady: { label: 'Not ready', tone: TONES2.error },
+  draft:    { label: 'Draft',     tone: accentTone(ACCENT2.violet) },
+};
+
+const SORTS = [
+  { value: 'latest',    label: 'Latest',            icon: 'ti-clock' },
+  { value: 'rentHigh',  label: 'Rent: high to low', icon: 'ti-sort-descending-numbers' },
+  { value: 'rentLow',   label: 'Rent: low to high', icon: 'ti-sort-ascending-numbers' },
+  { value: 'property',  label: 'Property A–Z',      icon: 'ti-sort-ascending-letters' },
+];
+
+const ts = (d) => (d ? new Date(d).getTime() : 0);
+
+// ── Page-specific layout (tokens only) ──────────────────────────────────────
+const S = {
+  // Tabs left · search / filter / sort right, on one line (wraps under on narrow widths)
+  toolbar:   { display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: SP2.md, flexWrap: 'wrap', marginBottom: LAYOUT2.cardHeaderGap },
+  tabsWrap:  { flex: '1 1 auto', minWidth: 0 },
+  search:    { ...UI2.searchField, width: SZ2.searchSm, maxWidth: '100%' },
+  searchIcon:{ fontSize: FS2.lg, color: C2.textSecondary },
+  input:     { flex: 1, minWidth: 0, border: 'none', outline: 'none', background: 'transparent', fontFamily: F2.body, fontSize: FS2.base, color: C2.textPrimary },
+  toolBtn:   { ...UI2.btn.soft },
+  tableWrap: { minWidth: 0 },   // open section: no card background / shadow around the table
+  rowBtn:    { ...UI2.btn.brand, ...UI2.btnSmStd },   // row action — standard small primary button (same width in every row)
+  tools:     { ...UI2.row(LAYOUT2.inlineGap), marginLeft: 'auto', justifyContent: 'flex-end', flexWrap: 'wrap' },   // stays on the right, also when it wraps under the tabs
+  menuWrap:  { flexShrink: 0 },      // FilterMenu with a custom trigger spans its parent — this keeps it button-sized   // Filter / Sort — secondary (soft) buttons on a light surface
+  // Property / unit cell: photo · name + type │ "Unit" + number
+  unitCell:  { ...UI2.row(SP2.md), minWidth: 0 },
+  thumb:     { ...UI2.thumb, width: SZ2.assetThumb.w, height: SZ2.assetThumb.h, flexShrink: 0 },
+  nameCol:   { flex: 1, minWidth: 0 },   // fills the cell → the Unit block sits at the same x in every row
+  name:      { ...UI2.text.rowTitle, ...UI2.truncate },
+  type:      { ...UI2.text.meta, ...UI2.truncate },
+  // fixed width (same in every row) → the divider and "Unit" sit at the same x whatever the unit number
+  unitCol:   { width: SZ2.tableFitCol, boxSizing: 'border-box', paddingLeft: SP2.md, borderLeft: `${SZ2.hairline}px solid ${C2.divider}`, flexShrink: 0, minWidth: 0 },
+  unitLabel: { ...UI2.text.meta },
+  unitNo:    { ...UI2.text.rowTitle, ...UI2.truncate },
+  metric:    { ...UI2.row(SP2.xs), color: C2.textPrimary },
+  metricIcon:{ fontSize: FS2.lg, color: C2.textSecondary },
+  dash:      { color: C2.textMuted },
+  trend:     (up) => UI2.delta(up),   // standard delta: coloured arrow + figure, no box
+};
+
+// ── Small cells ─────────────────────────────────────────────────────────────
+const Dash = () => <span style={S.dash}>—</span>;
+
+function Metric({ icon, value }) {
+  return (
+    <span style={S.metric}>
+      <i className={`ti ${icon}`} style={S.metricIcon} aria-hidden="true" />{value}
+    </span>
+  );
+}
+
+function StatusCell({ row }) {
+  const k = KIND[row.kind];
+  return (
+    <span style={UI2.statusPill(k.tone)} title={row.reason || undefined}>
+      <span style={UI2.statusDot(k.tone)} />{k.label}
+    </span>
+  );
+}
+
+function UnitCell({ row }) {
+  return (
+    <div style={S.unitCell}>
+      <img
+        src={row.photo || propertyPlaceholder}
+        alt=""
+        style={S.thumb}
+        onError={e => { if (e.currentTarget.src !== propertyPlaceholder) e.currentTarget.src = propertyPlaceholder; }}
+      />
+      <div style={S.nameCol}>
+        <div style={S.name} title={row.propertyName}>{row.propertyName}</div>
+        <div style={S.type}>{row.propertyType}</div>
+      </div>
+      <div style={S.unitCol}>
+        <div style={S.unitLabel}>Unit</div>
+        <div style={S.unitNo}>{row.unitNo}</div>
+      </div>
+    </div>
+  );
+}
+
 // ── Page ──────────────────────────────────────────────────────────────────
 export default function LandlordListingsOverview() {
   const navigate = useNavigate();
   const [overview, setOverview] = useState(null);
   const [loading, setLoading]   = useState(true);
   const [error, setError]       = useState(null);
-  // Session 48 — Active Listings "View" opens this instead of navigating away.
+  // Active Listings "View" opens this instead of navigating away (Session 48).
   const [viewingUnit, setViewingUnit] = useState(null);
+  const [tab, setTab]           = useState('all');
+  const [search, setSearch]     = useState('');
+  const [propFilter, setPropFilter] = useState(null);   // property id (null = all)
+  const [sort, setSort]         = useState('latest');
 
   useEffect(() => {
     let cancelled = false;
@@ -652,85 +529,217 @@ export default function LandlordListingsOverview() {
     return () => { cancelled = true; };
   }, []);
 
-  const properties = overview?.properties ?? [];
-  const units      = overview?.units ?? [];
-  const drafts     = overview?.drafts ?? [];
+  const properties = useMemo(() => overview?.properties ?? [], [overview]);
+  const units      = useMemo(() => overview?.units ?? [], [overview]);
+  const drafts     = useMemo(() => overview?.drafts ?? [], [overview]);
 
   const propertyName = (pid) => properties.find(p => p.id === pid)?.name || '—';
 
   const stats = computeStats(units, drafts);
-  const activeListings = units.filter(isActiveListingUnit);
-  const readyToList    = units.filter(isReadyToListUnit);
-  const notReadyUnits  = units.filter(isNotReadyUnit);
+
+  // Every listing state as ONE row shape for the table
+  const rows = useMemo(() => {
+    const base = (pid) => {
+      const p = properties.find(x => x.id === pid) || {};
+      return {
+        propertyId: pid,
+        propertyName: p.name || '—',
+        propertyType: p.type || p.propertyType || p.property_type || 'Property',
+        photo: p.photo || p.coverPhoto || p.cover_photo || p.image || null,
+      };
+    };
+    const unitRow = (kind, u, extra = {}) => ({
+      ...base(u.propertyId), key: `${kind}-${u.id}`, kind, unit: u, unitNo: u.unit, rent: u.rent,
+      date: u.publishedDate || null, sortDate: ts(u.publishedDate || u.availableDate), ...extra,
+    });
+    return [
+      ...units.filter(isActiveListingUnit).map(u => unitRow('active', u, { activity: _sampleActivityFor(u.id) })),
+      ...units.filter(isReadyToListUnit).map(u => unitRow('ready', u)),
+      ...units.filter(isNotReadyUnit).map(u => unitRow('notReady', u, { reason: (u.notReadyReason || 'Not ready yet').replace(/^STUB:/, '') })),
+      ...drafts.map(d => ({
+        ...base(d.propertyId), key: `draft-${d.id}`, kind: 'draft', draft: d,
+        unitNo: (d.unitLabel || '—').replace(/^Unit\s*/i, ''), rent: d.rent ?? null,
+        date: null, step: `Step ${d.step} of 4`, sortDate: ts(d.lastEdited),
+      })),
+    ];
+  }, [units, drafts, properties]);
+
+  const TABS = [
+    { id: 'all',      label: 'All Listings' },
+    { id: 'active',   label: `Active (${stats.active})` },
+    { id: 'ready',    label: `Ready to List (${stats.ready})` },
+    { id: 'notReady', label: `Not Ready (${stats.notReady})` },
+    { id: 'draft',    label: `Drafts (${stats.draftsInProgress})` },
+  ];
+
+  const q = search.trim().toLowerCase();
+  const shown = rows
+    .filter(r => tab === 'all' || r.kind === tab)
+    .filter(r => propFilter == null || r.propertyId === propFilter)
+    .filter(r => !q || `${r.propertyName} ${r.propertyType} unit ${r.unitNo}`.toLowerCase().includes(q))
+    .sort((a, b) => {
+      if (sort === 'rentHigh') return (b.rent ?? -1) - (a.rent ?? -1);
+      if (sort === 'rentLow')  return (a.rent ?? Infinity) - (b.rent ?? Infinity);
+      if (sort === 'property') return a.propertyName.localeCompare(b.propertyName);
+      return b.sortDate - a.sortDate;
+    });
+
+  const resume = (d) => { const { path, state } = _resumeTarget(d); navigate(path, { state }); };
+  // Row action — the same one-click actions the page had before the redesign:
+  // Active → View (listing summary) · Ready → List (wizard step 1) · Not ready → View Unit · Draft → Resume
+  const actionFor = (r) => {
+    if (r.kind === 'active') return { label: 'View', onClick: () => setViewingUnit(r.unit) };
+    if (r.kind === 'ready') return { label: 'List', onClick: () => { window.location.href = `/landlord-portal/property/${r.propertyId}/unit/${r.unit.id}/list/step-1`; } };
+    if (r.kind === 'notReady') return { label: 'View Unit', onClick: () => { window.location.href = `/landlord-portal/property/${r.propertyId}/unit/${r.unit.id}`; } };
+    return { label: 'Resume', onClick: () => resume(r.draft) };
+  };
+
+  // Column widths (fr of the spare width) follow the content: wide property cell, mid-size rent / status / date,
+  // narrow counters — every column left-aligned so each heading sits straight above its values with even gaps.
+  const COLUMNS = [
+    { key: 'unit',   label: 'Property / unit', type: 'primary', width: 1.8, render: r => <UnitCell row={r} /> },
+    { key: 'rent',   label: 'Rent',      type: 'amount', align: 'left', width: 0.9, fit: true, render: r => (r.rent != null ? fmtRent(r.rent) : <Dash />) },
+    { key: 'status', label: 'Status',    type: 'status', width: 0.9, fit: true, render: r => <StatusCell row={r} /> },
+    { key: 'pub',    label: 'Published', type: 'secondary', width: 1.1, fit: true,
+      render: r => (r.date ? <Metric icon="ti-calendar" value={fmtDate(r.date)} /> : r.step ? r.step : <Dash />) },
+    { key: 'views',  label: 'Views',     type: 'text', width: 0.7, fit: true, render: r => (r.activity ? <Metric icon="ti-eye" value={r.activity.views} /> : <Dash />) },
+    { key: 'saves',  label: 'Saves',     type: 'text', width: 0.7, fit: true, render: r => (r.activity ? <Metric icon="ti-bookmark" value={r.activity.saves} /> : <Dash />) },
+    { key: 'apps',   label: 'Applications', type: 'text', width: 0.9, fit: true, render: r => (r.activity ? <Metric icon="ti-users" value={r.activity.applications} /> : <Dash />) },
+    { key: 'trend',  label: 'Trend',     type: 'status', width: 0.7, fit: true,
+      render: r => {
+        if (!r.activity) return <Dash />;
+        const up = r.activity.trendPct >= 0;
+        return (
+          <span style={S.trend(up)}>
+            <i className={`ti ${up ? 'ti-arrow-up-right' : 'ti-arrow-down-right'}`} aria-hidden="true" />
+            {up ? '+' : ''}{r.activity.trendPct}%
+          </span>
+        );
+      } },
+    { key: 'action', label: '', type: 'status', render: r => { const a = actionFor(r); return <button type="button" className="un2-btn" style={S.rowBtn} onClick={a.onClick}>{a.label}</button>; } },
+  ];
+
+  const HERO_STATS = [
+    { icon: 'ti-speakerphone',     label: 'Active',             value: loading ? '—' : <CountUp value={stats.active} />, tone: TONES2.success },
+    { icon: 'ti-stack-2',          label: 'Ready to List',      value: loading ? '—' : <CountUp value={stats.ready} />, tone: TONES2.primary },
+    { icon: 'ti-alert-triangle',   label: 'Not Ready',          value: loading ? '—' : <CountUp value={stats.notReady} />, tone: TONES2.error },
+    { icon: 'ti-file-text',        label: 'Drafts in Progress', value: loading ? '—' : <CountUp value={stats.draftsInProgress} />, tone: accentTone(ACCENT2.violet) },
+  ];
+
+  const propertyOptions = properties.map(p => ({ value: p.id, label: p.name }));
+  const sortLabel = SORTS.find(s => s.value === sort)?.label || 'Latest';
+  const filtered = !!q || propFilter != null || tab !== 'all';
 
   return (
-    <div style={S.shell}>
-      <NavF activePage="listings" />
+    <PageShell
+      animate
+      activePage="listings"
+      title="UrbanNest Landlord"
+      searchPlaceholder="Search properties, units, tenants…"
+    >
+      {/* ── HERO: ListingsHero — same styles + height as the dashboard / portfolio heroes, banner art as background ── */}
+      <ListingsHero
+        eyebrow="Listings Overview"
+        title="Listings"
+        subtitle="What's live, what's ready, and what needs attention."
+        image={heroImage}
+        stats={HERO_STATS}
+        actions={(
+          // Create Listing — the page's CTA before the redesign, same route (pick a property → unit);
+          // placed like the dashboard hero's buttons (row under the stats, standard brand button)
+          <button type="button" className="un2-btn" style={UI2.btn.brand} onClick={() => { window.location.href = '/landlord-portal/portfolio'; }}>
+            <i className="ti ti-plus" style={UI2.btnIcon} aria-hidden="true" /> Create Listing
+          </button>
+        )}
+      />
 
-      <div style={S.main}>
-        <header style={S.topbar}>
-          <div style={S.topbarTitle}>UrbanNest Landlord</div>
-        </header>
+      {error && (
+        <div style={UI2.errorBanner}>
+          <i className="ti ti-alert-circle" aria-hidden="true" /> Could not load your listings — {error}
+        </div>
+      )}
 
-        <main style={S.content}>
-          {error && (
-            <div style={S.errBanner}>
-              <i className="ti ti-alert-circle" aria-hidden="true" /> Could not load your listings — {error}
-            </div>
-          )}
-
-          <div style={S.pageHead}>
-            <div>
-              <div style={S.pageTitle}>Listings</div>
-              <div style={S.pageSub}>What's live, what's ready, and what needs attention.</div>
-            </div>
-            <button style={S.createBtn} onClick={() => { window.location.href = '/landlord-portal/portfolio'; }}>
-              <i className="ti ti-plus" style={{ fontSize: 13 }} />Create Listing
-            </button>
+      {/* ── LISTINGS: tabs │ search · property filter · sort, then one table ── */}
+      <section className="un2-cq">
+        <div style={S.toolbar}>
+          <div style={S.tabsWrap}>
+            <TabBar variant="underline" ariaLabel="Listing filters" value={tab} onChange={setTab} tabs={TABS} />
           </div>
+          {/* Search box, then the "Options" toggle on its right — Filter + Sort slide out between them
+              (same ActionTray as the property / unit detail headers; compact = soft toggle on a light surface) */}
+          {/* un2-tray-tools / un2-tray-search (utilities.css): the search field slides away while Options is open */}
+          <div className="un2-tray-tools" style={S.tools}>
+            <label className="un2-focus-ring un2-tray-search" style={S.search}>
+              <i className="ti ti-search" style={S.searchIcon} aria-hidden="true" />
+              <input
+                style={S.input}
+                type="search"
+                placeholder="Search listings…"
+                value={search}
+                onChange={e => setSearch(e.target.value)}
+                aria-label="Search listings"
+              />
+            </label>
+            <ActionTray compact label="Options">
+              <div style={S.menuWrap}>
+                <FilterMenu
+                  title="Filter by property" allLabel="All properties" ariaLabel="Filter listings by property" itemIcon="ti-building" allIcon="ti-buildings"
+                  options={propertyOptions} value={propFilter} onChange={setPropFilter}
+                  triggerStyle={S.toolBtn}
+                  trigger={
+                    <>
+                      <i className="ti ti-filter" style={UI2.btnIcon} aria-hidden="true" />
+                      <span className="un2-hide-narrow">Filter</span>
+                      {propFilter != null && <span style={UI2.statusDot(TONES2.primary)} aria-hidden="true" />}
+                    </>
+                  }
+                />
+              </div>
+              <div style={S.menuWrap}>
+                <FilterMenu
+                  title="Sort by" ariaLabel="Sort listings" showAll={false}
+                  options={SORTS} value={sort} onChange={v => setSort(v || 'latest')}
+                  triggerStyle={S.toolBtn}
+                  trigger={open => (
+                    <>
+                      <i className="ti ti-arrows-sort" style={UI2.btnIcon} aria-hidden="true" />
+                      <span className="un2-hide-narrow">Sort: {sortLabel}</span>
+                      <i className="ti ti-chevron-down" style={{ ...UI2.btnIcon, transform: open ? 'rotate(180deg)' : 'none' }} aria-hidden="true" />
+                    </>
+                  )}
+                />
+              </div>
+            </ActionTray>
+          </div>
+        </div>
 
+        <div style={S.tableWrap}>
           {loading ? (
-            <p style={{ fontSize: 12.5, color: C.txtMuted }}>Loading…</p>
+            <div style={UI2.stack(SP2.md)}>
+              {[0, 1, 2].map(i => <div key={i} className="un2-skel" style={UI2.skeleton('100%', SZ2.assetThumb.h)} />)}
+            </div>
           ) : (
-            <>
-              <div style={S.statRow}>
-                <StatTile label="Active" value={stats.active} accent={C.green} />
-                <StatTile label="Ready to List" value={stats.ready} accent={C.blue} />
-                <StatTile label="Not Ready" value={stats.notReady} accent={C.red} />
-                <StatTile label="Drafts in Progress" value={stats.draftsInProgress} accent={C.amber} />
-              </div>
-
-              <div style={S.matrixRow}>
-                <SectionCard title="Listing Activity" icon="ti-chart-bar" badge={<span style={S.sampleBadge}>Sample Data</span>}>
-                  <ListingActivityMatrix rows={activeListings} propertyName={propertyName} />
-                </SectionCard>
-                <SectionCard title="Active Listings" icon="ti-list-check" count={activeListings.length}>
-                  <ActiveListingsTable rows={activeListings} propertyName={propertyName} onView={setViewingUnit} />
-                </SectionCard>
-              </div>
-
-              <div style={S.threeCol}>
-                <SectionCard title="Ready to List" icon="ti-clipboard-check" count={readyToList.length}>
-                  <ReadyToListRows rows={readyToList} propertyName={propertyName} />
-                </SectionCard>
-                <SectionCard title="Not Ready" icon="ti-alert-triangle" count={notReadyUnits.length}>
-                  <NotReadyRows rows={notReadyUnits} propertyName={propertyName} />
-                </SectionCard>
-                <SectionCard title="Drafts" icon="ti-file-text" count={drafts.length}>
-                  <DraftRows
-                    drafts={drafts}
-                    propertyName={propertyName}
-                    onResume={(d) => {
-                      const { path, state } = _resumeTarget(d);
-                      navigate(path, { state });
-                    }}
-                  />
-                </SectionCard>
-              </div>
-            </>
+            <DataTable
+              columns={COLUMNS}
+              rows={shown}
+              rowKey={r => r.key}
+              empty={
+                <EmptyState
+                  icon="ti-speakerphone"
+                  title={filtered ? 'No listings match' : 'No listings yet'}
+                  text={filtered ? 'Try another tab, search or filter.' : 'Add a property and its units to start listing them.'}
+                >
+                  {!filtered && (
+                    <button type="button" className="un2-btn" style={UI2.btn.brand} onClick={() => navigate('/landlord-portal/portfolio')}>
+                      <i className="ti ti-plus" style={UI2.btnIcon} aria-hidden="true" /> Create listing
+                    </button>
+                  )}
+                </EmptyState>
+              }
+            />
           )}
-        </main>
-      </div>
+        </div>
+      </section>
 
       {viewingUnit && (
         <ListingSummaryModal
@@ -739,6 +748,6 @@ export default function LandlordListingsOverview() {
           onClose={() => setViewingUnit(null)}
         />
       )}
-    </div>
+    </PageShell>
   );
 }

@@ -1,17 +1,18 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { PageShell, Grid, PageFooter } from '../../components/layout';
 import {
-  PageShell, Grid, ProfileHero, KpiStrip, SectionCard, AssetRow, InsightCard, MetricBar,
-  ListRow, EmptyState, MessageItem, PageFooter, BarChart, Sparkline, CountUp, TextLink,
+  ProfileHero, KpiStrip, SectionCard, AssetRow, InsightCard, MetricBar,
+  ListRow, EmptyState, MessageItem, BarChart, Sparkline, CountUp, TextLink,
   CardWave, DonutChart, FilterMenu,
-} from '../../components/v2';
+} from '../../components/ui';
 import {
   C2, TONES2, ACCENT2, AVATAR2, CHART2,
   T2, FS2, LH2,
   SP2, SZ2, LAYOUT2, UI2,
-} from '../../constants/v2';
-import heroImage from '../../assets/v2/landlord/dashboard-hero-light.jpg';   // bright building + soft waves (cut from the dashboard design, Downloads/image 40.png)
-import propertyPlaceholder from '../../assets/v2/landlord/property-placeholder.jpg';
+} from '../../constants';
+import heroImage from '../../assets/landlord/dashboard-hero-light.jpg';   // bright building + soft waves (cut from the dashboard design, Downloads/image 40.png)
+import propertyPlaceholder from '../../assets/landlord/property-placeholder.jpg';
 import { DASHBOARD_DEMO, withDemo, orDemo } from './dashboardDemoData';
 
 const API_BASE = process.env.REACT_APP_API_BASE_URL || 'http://localhost:8001/api';
@@ -33,7 +34,7 @@ const API_BASE = process.env.REACT_APP_API_BASE_URL || 'http://localhost:8001/ap
 // ─── Card-internal styles specific to this page (tokens only) ────────────────
 
 // Shared card patterns (UI2.cardFill · capsLabel · labelRow · context · subhead · cardFoot · strong ·
-// delta · amount · legend* · accentItem · tintRow) come from constants/v2/components.js.
+// delta · amount · legend* · accentItem · tintRow) come from constants/components.js.
 // Only layout that is specific to this page stays here.
 const S = {
   rentSide:  { ...UI2.stack(SP2.md), justifyContent: 'center', paddingLeft: SP2.lg, borderLeft: `${SZ2.hairline}px solid ${C2.border}` },
@@ -417,7 +418,7 @@ export default function LandlordDashboard() {
              action={<span className="un2-hide-narrow" style={UI2.pill(TONES2.neutral)}>{chartMonths.length} months</span>} */
           action={
             <FilterMenu
-              title="Filter by property" allLabel="All properties" ariaLabel="Filter rent collection by property"
+              title="Filter by property" allLabel="All properties" itemIcon="ti-building" allIcon="ti-buildings" ariaLabel="Filter rent collection by property"
               options={propertyOptions} value={rentFilter ? rentFilter.value : null} onChange={setRentProperty}
             />
           }
@@ -456,7 +457,7 @@ export default function LandlordDashboard() {
           badge={<span className="un2-live-dot" style={UI2.dot(C2.success)} aria-label="Live" />}
           action={
             <FilterMenu
-              title="Filter by property" allLabel="All properties" ariaLabel="Filter open operations by property"
+              title="Filter by property" allLabel="All properties" itemIcon="ti-building" allIcon="ti-buildings" ariaLabel="Filter open operations by property"
               options={propertyOptions} value={opsFilter ? opsFilter.value : null} onChange={setOpsProperty}
             />
           }
@@ -504,7 +505,7 @@ export default function LandlordDashboard() {
           icon="ti-file-text" title="Recent Documents" subtitle="Leases, reports & filings"
           action={
             <FilterMenu
-              title="Filter by property" allLabel="All properties" ariaLabel="Filter documents by property"
+              title="Filter by property" allLabel="All properties" itemIcon="ti-building" allIcon="ti-buildings" ariaLabel="Filter documents by property"
               options={propertyOptions} value={docsFilter ? docsFilter.value : null} onChange={setDocProperty}
             />
           }
@@ -558,7 +559,7 @@ export default function LandlordDashboard() {
           icon="ti-users" title="Tenant Pulse" subtitle="Residents across your portfolio"
           action={
             <FilterMenu
-              title="Filter by property" allLabel="All properties" ariaLabel="Filter tenants by property"
+              title="Filter by property" allLabel="All properties" itemIcon="ti-building" allIcon="ti-buildings" ariaLabel="Filter tenants by property"
               options={propertyOptions} value={tenantFilter ? tenantFilter.value : null} onChange={setTenantProperty}
             />
           }

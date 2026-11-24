@@ -1,16 +1,17 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { PageShell, Grid, PageFooter } from '../../components/layout';
 import {
-  PageShell, Grid, HeroBanner, SectionCard, TabBar, PropertyRow, ListRow, FilterMenu, PageWave,
-  EmptyState, LineChart, CountUp, TextLink, PageFooter,
+  WaveHero, SectionCard, TabBar, PropertyRow, ListRow, FilterMenu,
+  EmptyState, LineChart, CountUp, TextLink,
   // ActionTile — used by the Quick Actions card, commented out below
-} from '../../components/v2';
+} from '../../components/ui';
 import {
-  C2, TONES2, ACCENT2, GSTOPS2, accentTone,
+  C2, TONES2, ACCENT2, accentTone,
   T2, F2, FS2, SP2, SZ2, LAYOUT2, UI2,
-} from '../../constants/v2';
-import heroImage from '../../assets/v2/landlord/portfolio-hero-banner.png';   // full banner art (navy → sky, building right) — Downloads/urbannest_banner_transparent 1.png
-import propertyPlaceholder from '../../assets/v2/landlord/property-placeholder.jpg';
+} from '../../constants';
+import heroImage from '../../assets/landlord/portfolio-hero-banner.png';   // full banner art (navy → sky, building right) — Downloads/urbannest_banner_transparent 1.png
+import propertyPlaceholder from '../../assets/landlord/property-placeholder.jpg';
 
 const API_BASE = process.env.REACT_APP_API_BASE_URL || 'http://localhost:8001/api';
 
@@ -18,14 +19,14 @@ const API_BASE = process.env.REACT_APP_API_BASE_URL || 'http://localhost:8001/ap
 // Visual layer only. Data comes from GET /landlord/portfolio/ exactly as before:
 //   summary · properties · recent_units
 // Layout (design: Downloads/image 64.png):
-//   HeroBanner compact (navy, building photo right) — "Portfolio Overview" pill · Property List · subtitle
-//     + stats row: Total Properties · Total Units · Avg Occupancy · Rent This Month
+//   WaveHero (light, looks like the dashboard hero, building photo right; its own component) — "Portfolio Overview" pill ·
+//     Property List · subtitle + stats 2 × 2: Total Properties · Total Units · Avg Occupancy · Rent This Month
 //   <Grid layout="mainSide">
 //     My Properties (title · TabBar underline filters │ search · type filter · Add Property, PropertyRow list)
 //     │ Property Insight (property picker · figure + delta + LineChart) · Recent Unit Activities
 //       (Quick Actions card commented out)
 //   PageFooter
-// No page-level spacing, sizes, fonts or colours — everything comes from constants/v2.
+// No page-level spacing, sizes, fonts or colours — everything comes from constants.
 
 // ─── Property type label map ──────────────────────────────────────────────────
 const PROP_TYPE_LABEL = {
@@ -39,6 +40,13 @@ const PROP_TYPE_LABEL = {
   SERVICED_APARTMENT: 'Serviced Apt',
   COMMERCIAL:         'Commercial',
   MIXED_USE:          'Mixed Use',
+};
+
+// Dropdown icon per property type (Filter by type menu)
+const PROP_TYPE_ICON = {
+  APARTMENT_COMPLEX: 'ti-building', INDIVIDUAL_HOUSE: 'ti-home', MULTI_FAMILY: 'ti-building-community',
+  CONDOMINIUM: 'ti-building-skyscraper', TOWNHOME: 'ti-buildings', STUDENT_HOUSING: 'ti-school', VILLA: 'ti-home',
+  SERVICED_APARTMENT: 'ti-building-cottage', COMMERCIAL: 'ti-building-store', MIXED_USE: 'ti-building-estate',
 };
 
 const PROP_STATUS = {
@@ -176,7 +184,7 @@ export default function LandlordPortfolioPage() {
   });
   // Filter icon options = the property types this landlord actually has
   const typeOptions = [...new Set(allProps.map(p => p.property_type).filter(Boolean))]
-    .map(t => ({ value: t, label: PROP_TYPE_LABEL[t] || t }));
+    .map(t => ({ value: t, label: PROP_TYPE_LABEL[t] || t, icon: PROP_TYPE_ICON[t] || 'ti-building' }));
 
   // Tab switched to a filter with no properties → bring the empty state into view (centred).
   // Only on a tab change (not while typing a search), and never on the first load.
@@ -191,12 +199,11 @@ export default function LandlordPortfolioPage() {
   // ── Summary stats ───────────────────────────────────────────────────────────
   const rentThisMonth = Number(summary.rent_this_month ?? 0);
   const STATS = [
-    { icon: 'ti-building',   label: 'Total Properties', value: num(summary.total_properties ?? 0), accent: ACCENT2.blue },
-    { icon: 'ti-stack-2',    label: 'Total Units',      value: num(summary.total_units ?? 0),
-      accent: { soft: TONES2.success.soft, fg: TONES2.success.strong, bar: GSTOPS2.success } },
-    { icon: 'ti-percentage', label: 'Avg Occupancy',    value: loading ? '—' : <CountUp value={Number(summary.avg_occupancy) || 0} format={v => `${Math.round(v)}%`} />, accent: ACCENT2.blue },
+    { icon: 'ti-building',   label: 'Properties', value: num(summary.total_properties ?? 0), tone: TONES2.primary },
+    { icon: 'ti-stack-2',    label: 'Units',      value: num(summary.total_units ?? 0), tone: TONES2.success },
+    { icon: 'ti-percentage', label: 'Avg Occupancy',    value: loading ? '—' : <CountUp value={Number(summary.avg_occupancy) || 0} format={v => `${Math.round(v)}%`} />, tone: TONES2.primary },
     { icon: 'ti-wallet',     label: 'Rent This Month',  value: loading ? '—' : <CountUp value={rentThisMonth} format={fmtCurrency} />,
-      accent: ACCENT2.violet },   // white like the other values on the dark banner
+      tone: accentTone(ACCENT2.violet) },
   ];
 
   // ── Property insight ───────────────────────────────────────────────────────
@@ -247,7 +254,6 @@ export default function LandlordPortfolioPage() {
   return (
     <PageShell
       animate
-      backdrop={<PageWave />}
       activePage="properties"
       title="UrbanNest Landlord"
       searchPlaceholder="Search properties, units, tenants…"
@@ -255,14 +261,14 @@ export default function LandlordPortfolioPage() {
       avatarLabel={`Profile: ${landlordName || 'Landlord'}`}
     >
 
-      {/* ── HERO: navy banner, building photo right · Portfolio Overview · Property List · 4 stats ── */}
-      <HeroBanner
-        variant="compact"
+      {/* ── HERO: WaveHero — light hero like the dashboard, building photo right · Portfolio Overview · Property List · 4 stats ── */}
+      <WaveHero
         eyebrow="Portfolio Overview"
         title="Property List"
         subtitle="Explore and manage all your properties in one place."
         image={heroImage}
-        imageFull
+        imagePosition="right 30%"      // building sits at the art's right end — keep it in view, the navy left part falls outside the photo area
+        imageSize="auto 125%"          // zoomed in so the building fills the photo area like the dashboard building
         stats={STATS}
       />
 
@@ -290,7 +296,7 @@ export default function LandlordPortfolioPage() {
                 <i className="ti ti-search" aria-hidden="true" />
               </button>
               <FilterMenu
-                title="Filter by type" allLabel="All types" ariaLabel="Filter properties by type"
+                title="Filter by type" allLabel="All types" allIcon="ti-building" ariaLabel="Filter properties by type"
                 options={typeOptions} value={typeFilter} onChange={setTypeFilter}
               />
               <button type="button" className="un2-btn" style={UI2.btn.brand} onClick={() => navigate('/landlord-portal/add-property')}>
@@ -372,7 +378,7 @@ export default function LandlordPortfolioPage() {
           <SectionCard icon="ti-chart-line" title="Property Insight">
             {insightProp && (
               <FilterMenu
-                title="Choose a property" ariaLabel="Choose a property for the insight"
+                title="Choose a property" ariaLabel="Choose a property for the insight" itemIcon="ti-building"
                 options={insightOptions} value={insightProp.id} onChange={v => v != null && setSelectedPropId(v)}
                 showAll={false} matchWidth triggerStyle={S.picker}
                 trigger={open => (
