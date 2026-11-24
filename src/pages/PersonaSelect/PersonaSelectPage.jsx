@@ -222,7 +222,7 @@ const S = {
   action:   (w, bare) => ({ ...UI2.row(SP2.md), width: '100%', maxWidth: w, boxSizing: 'border-box', ...(bare ? {} : { padding: pad(SP2.sm, SP2.sm, SP2.sm, SP2.md), borderRadius: R2.xl, background: C2.primaryWash }) }),   // bare = inside the footer bar (no tint panel)
   actThumb: { position: 'relative', width: CARD.barThumb, height: CARD.barThumb, flexShrink: 0, borderRadius: R2.md, overflow: 'hidden', boxShadow: SH2.md },
   actText:  { ...UI2.stack(SP2.xxs), flex: 1, minWidth: 0 },
-  actName:  { ...UI2.text.titleLg, ...UI2.truncate },
+  actName:  { ...T2.sectionTitle, ...UI2.truncate },   // Playfair role name — same font as the name on the photo cards
   actMeta:  { ...T2.caption, color: C2.textSecondary, ...UI2.truncate },   // a step darker than the muted caption — readable on the glass footers
   actHint:  { ...UI2.row(SP2.sm), flex: 1, minWidth: 0, ...T2.label },
   cta:      { ...UI2.btn.brand, padding: pad(0, SP2.lg), flexShrink: 0 },
@@ -292,7 +292,7 @@ function PersonaCard({ p, info, on, index, base, out, disabled, onSelect, onOpen
         <span style={S.scrim} aria-hidden="true" />
         <span style={S.top}>
           <span style={S.chip}>
-            {info.isNew ? <i className="ti ti-sparkles" aria-hidden="true" /> : <span style={S.chipDot(info.tone)} />}
+            {!info.isNew && <span style={S.chipDot(info.tone)} />}
             {info.status}
           </span>
           <span style={S.mark(on)} aria-hidden="true">{on && <i className="ti ti-check un2-pop" style={S.markIcon} />}</span>

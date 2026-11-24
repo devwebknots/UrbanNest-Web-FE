@@ -572,7 +572,7 @@
 .un2-persona:focus { outline: none; }
 .un2-persona:focus-visible { box-shadow: var(--un2-shadow-focus), var(--un2-persona-hover) !important; }
 .un2-persona:not(.is-selected):hover { transform: none; box-shadow: var(--un2-persona-hover) !important; }
-.un2-persona.is-selected { transform: none; }   /* stays level with its row — the ring + ✓ mark it */
+.un2-persona.is-selected { transform: none; }   /* stays level with its row — the ✓ marks it (no blue ring) */
 .un2-persona:active { transform: scale(0.985); }
 .un2-persona-photo { transition: transform 1.2s var(--un2-ease), filter 0.5s ease; }
 .un2-persona:hover .un2-persona-photo, .un2-persona.is-selected .un2-persona-photo { transform: scale(1.06); }

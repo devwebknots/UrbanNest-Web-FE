@@ -436,7 +436,7 @@ export const SH2 = {
   brandButton:  '0 6px 14px rgba(3, 38, 76, 0.28)',
   lightButton:  '0 4px 12px rgba(3, 38, 76, 0.22)',
   focus:      '0 0 0 3px rgba(37, 99, 235, 0.12)',
-  personaSelected: '0 0 0 2px #3B82F6, 0 0 0 5px rgba(59, 130, 246, 0.16), 0 12px 28px -10px rgba(3, 38, 76, 0.32)',   // selected photo card: light-blue ring + halo + deep lift
+  personaSelected: '0 12px 28px -10px rgba(3, 38, 76, 0.32)',   // selected photo card: deep lift only — NO blue ring / halo (user removed it 2026-11-24); the ✓ marks it
   personaHover:    '0 10px 24px -10px rgba(3, 38, 76, 0.3)',
   avatarRing: '0 0 0 3px #FFFFFF, 0 0 0 4px #E2E8F0',
   dotSuccess: '0 0 0 3px rgba(16, 185, 129, 0.18)',
