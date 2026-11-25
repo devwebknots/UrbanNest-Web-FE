@@ -1451,7 +1451,7 @@ export default function LandlordPropertyDetailPage() {
           { key: 'renewal', label: 'Renewal', type: 'text', fit: true,
             render: u => <span style={{ color: u.maint_open > 0 ? C2.errorDark : C2.textMuted }}>{u.maint_open > 0 ? 'Active ticket' : '—'}</span> },
           // Row action: open this tenant's unit (sample rows don't navigate — goUnit ignores demo ids)
-          { key: 'action', label: '', align: 'right', fit: true,
+          { key: 'action', label: 'Actions', fit: true,
             render: u => <TextLink arrow={false} onClick={() => goUnit(u)}>View</TextLink> },
         ]}
         rows={tenantUnits}

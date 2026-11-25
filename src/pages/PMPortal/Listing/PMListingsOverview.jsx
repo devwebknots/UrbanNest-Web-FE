@@ -621,7 +621,7 @@ function ActiveListingsTable({ rows, propertyName, onView }) {
         { key: 'available', label: 'Available', type: 'secondary', fit: true, render: u => fmtDate(u.availableDate) },
         { key: 'channel', label: 'Channel', type: 'text', render: u => u.channel || <Dash /> },
         { key: 'expires', label: 'Expires', type: 'status', fit: true, render: u => <CountdownBadge expiresAt={u.expiresAt} /> },
-        { key: 'view', label: '', align: 'right', fit: true, render: u => <RowAction icon="ti-eye" label="View listing summary" onClick={() => onView(u)} /> },   // shared round eye (UI2.btn.rowIcon)
+        { key: 'view', label: 'Actions', fit: true, render: u => <RowAction icon="ti-eye" label="View listing summary" onClick={() => onView(u)} /> },   // shared round eye (UI2.btn.rowIcon)
       ]}
       rows={rows}
       rowKey={u => u.id}
@@ -678,7 +678,7 @@ function ReadyToListTable({ rows, propertyName, onList, selectedIds, onToggle, s
         { key: 'rent', label: 'Rent', type: 'amount', align: 'left', fit: true, render: u => fmtRent(u.rent) },
         { key: 'readiness', label: 'Readiness', type: 'status', fit: true, render: u => <ReadinessBadge code={u.readiness} /> },
         { key: 'available', label: 'Available', type: 'secondary', fit: true, render: u => fmtDate(u.availableDate) },
-        { key: 'action', label: '', align: 'right', fit: true,
+        { key: 'action', label: 'Actions', fit: true,
           render: u => (sample
             ? <OffButton brand label="List" tooltip="Sample data — no real backend record exists for this unit yet." />
             : <button type="button" className="un2-btn" style={S.rowBtn} onClick={() => onList(u.propertyId)}>List</button>) },
@@ -1060,12 +1060,15 @@ export default function PMListingsOverview() {
             </span>
           </div>
         </div>
-        <ReadyToListTable
-          rows={readyToList.slice(0, CAPS.readyToList)} propertyName={propertyName}
-          onList={pid => navigate(`/pm-portal/properties/${pid}`)}
-          selectedIds={selectedReadyIds} onToggle={toggleReadySelection}
-          sample={usingSampleReadyToList}
-        />
+        {/* white card behind the table: rows sit on white, hover shows the light-blue band */}
+        <div style={S.panel}>
+          <ReadyToListTable
+            rows={readyToList.slice(0, CAPS.readyToList)} propertyName={propertyName}
+            onList={pid => navigate(`/pm-portal/properties/${pid}`)}
+            selectedIds={selectedReadyIds} onToggle={toggleReadySelection}
+            sample={usingSampleReadyToList}
+          />
+        </div>
       </section>
 
       <PageFooter />

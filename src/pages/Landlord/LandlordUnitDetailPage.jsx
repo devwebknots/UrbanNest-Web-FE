@@ -1645,7 +1645,7 @@ export default function LandlordUnitDetailPage() {
                 render: t => t.renewal_window || t.lease_end_date || '—' }
             : { key: 'lease_end', label: 'Lease End', type: 'secondary', fit: true,
                 render: t => t.lease_end_date || '—' },
-          { key: 'view', label: '', align: 'right', fit: true,
+          { key: 'view', label: 'Actions', fit: true,
             render: t => eyeCell(`View ${t.name || 'tenant'} details`, () => setDetailModal({ type: 'tenant', row: { ...t, _past: tenantTab === 'past' } })) },
         ]}
         rows={tenantRows}
@@ -1671,7 +1671,7 @@ export default function LandlordUnitDetailPage() {
             render: o => o.owner_name },
           { key: 'role', label: 'Role', type: 'text', fit: true },
           { key: 'share_pct', label: 'Stake', type: 'secondary', fit: true, render: o => `${o.share_pct}%` },
-          { key: 'view', label: '', align: 'right', fit: true,
+          { key: 'view', label: 'Actions', fit: true,
             render: o => eyeCell(`View ${o.owner_name} details`, () => setDetailModal({ type: 'owner', row: o })) },
         ]}
         rows={ownerRows}

@@ -444,7 +444,7 @@ const S = {
   searchIcon:UI2.toolbar.searchIcon,
   input:     UI2.searchInput,
   toolBtn:   UI2.toolbar.button,
-  tableWrap: { minWidth: 0 },   // open section: no card background / shadow around the table
+  tableWrap: { ...UI2.card, minWidth: 0 },   // white card behind the table: rows sit on white, hover shows the light-blue band
   rowBtn:    { ...UI2.btn.brand, ...UI2.btnSmStd },   // row action — standard small primary button (same width in every row)
   tools:     UI2.toolbar.tools,
   menuWrap:  UI2.toolbar.menuWrap,
@@ -616,7 +616,7 @@ export default function LandlordListingsOverview() {
           </span>
         );
       } },
-    { key: 'action', label: '', type: 'status', render: r => { const a = actionFor(r); return <button type="button" className="un2-btn" style={S.rowBtn} onClick={a.onClick}>{a.label}</button>; } },
+    { key: 'action', label: 'Actions', type: 'status', render: r => { const a = actionFor(r); return <button type="button" className="un2-btn" style={S.rowBtn} onClick={a.onClick}>{a.label}</button>; } },
   ];
 
   const HERO_STATS = [
