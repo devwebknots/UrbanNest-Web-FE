@@ -956,7 +956,7 @@ const V = {
   disabled:    { opacity: OP2.muted, cursor: 'not-allowed' },
   hidden:      { display: 'none' },
   // Unit & Lease Overview rows = UI2.kvRow / UI2.kvVal (shared row spacing LAYOUT2.rowY)
-  eyeBtn:      (on) => ({ ...UI2.btn.icon(SZ2.icon.xs), fontSize: FS2.sm, color: on ? C2.primary : C2.textSubtle, background: on ? C2.primarySoft : C2.surfaceMuted, ...(on ? {} : { cursor: 'not-allowed' }) }),
+  eyeBtn:      (on) => UI2.btn.rowIcon(TONES2.primary, on),   // shared round row action (UI2.btn.rowIcon)
   // Floor plan: main sheet + 3 page tiles (photo tiles / dashed add tiles — same look as PhotoBento)
   fpOpen:      { display: 'flex', flexDirection: 'column', minWidth: 0, paddingTop: LAYOUT2.cardY },   // same top inset as the card beside it → headers line up
   fpMain:      { ...UI2.photoTile, height: SZ2.floorPlanMain },   // fixed — keeps the Overview / Floor Plan row compact

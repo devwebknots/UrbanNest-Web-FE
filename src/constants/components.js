@@ -43,6 +43,11 @@ const btnBase = {
   cursor: 'pointer',
   transition: `filter ${MOTION2.fast}, background ${MOTION2.fast}`,
 };
+// Round icon-only button (top-bar bell, row actions) — defined once: UI2.btn.icon + UI2.btn.rowIcon
+const btnIconRound = (size = SZ2.control.md) => ({
+  ...center, position: 'relative', width: size, height: size, flexShrink: 0, padding: 0,
+  borderRadius: R2.round, border: 'none', background: 'transparent', color: C2.navyDeep, cursor: 'pointer', fontSize: FS2.xl,
+});
 // Soft (secondary) button — light blue fill, navy text. Defined once: UI2.btn.soft + UI2.toolbar.button
 const btnSoft = { ...btnBase, background: C2.chipBlue, color: C2.navy };
 
@@ -244,9 +249,12 @@ export const UI2 = {
       display: 'inline-flex', alignItems: 'center', gap: SP2.xs, padding: 0, background: 'none', border: 'none', cursor: 'pointer',
       fontFamily: F2.body, fontSize: FS2.sm, fontWeight: FW2.medium, color: C2.primary, whiteSpace: 'nowrap',
     },
-    icon: (size = SZ2.control.md) => ({
-      ...center, position: 'relative', width: size, height: size, flexShrink: 0, padding: 0,
-      borderRadius: R2.round, border: 'none', background: 'transparent', color: C2.navyDeep, cursor: 'pointer', fontSize: FS2.xl,
+    icon: btnIconRound,
+    // Small round tinted row action (eye / ✓ / ✕ in tables and list rows): tone glyph on its soft tint;
+    // on = false → grey + not-allowed (pair with disabled + a title saying why). Single source for every row icon action.
+    rowIcon: (tone = TONES2.primary, on = true) => ({
+      ...btnIconRound(SZ2.icon.xs), fontSize: FS2.sm,
+      color: on ? tone.strong : C2.textSubtle, background: on ? tone.soft : C2.surfaceMuted, ...(on ? {} : { cursor: 'not-allowed' }),
     }),
     iconOutline: (size = SZ2.control.md) => ({
       ...center, width: size, height: size, flexShrink: 0, padding: 0,
@@ -363,6 +371,13 @@ export const UI2 = {
 
   // ── Icons ──────────────────────────────────────────────────────────────────
   btnIcon:  { fontSize: FS2.md },                                  // leading icon inside a button
+  // Unavailable action — spread AFTER a button style: { ...UI2.btn.soft, ...UI2.btnOff } (+ disabled attr + a title
+  // explaining why). One look for every "not available yet" button.
+  btnOff:   { opacity: OP2.muted, cursor: 'not-allowed', boxShadow: 'none' },
+  // Unavailable action ON THE PAGE ARTWORK (wave backdrop / photo — where buttons are UI2.btn.light): fading it would
+  // make it vanish into the art, so it stays an opaque white button and only its text / icon go grey.
+  //   { ...UI2.btn.light, ...UI2.btnOffOnArt }
+  btnOffOnArt: { color: C2.textMuted, cursor: 'not-allowed' },
   chevron:  { fontSize: FS2.xl, color: C2.textSecondary },         // "go to" chevron on cards / rows
   minWidth0:{ minWidth: 0 },                                       // let a flex child truncate
   // Limit text to N lines with an ellipsis

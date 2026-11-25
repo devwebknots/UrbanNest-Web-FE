@@ -143,7 +143,7 @@ const S = {
   dash:      { color: C2.textMuted },
   actions:   { ...UI2.row(SP2.xs), justifyContent: 'flex-end' },
   // row icon button = the unit page's eye button: small round, tone glyph on its soft tint · grey + not-allowed when off
-  act:       (tone, on) => ({ ...UI2.btn.icon(SZ2.icon.xs), fontSize: FS2.sm, color: on ? tone.strong : C2.textSubtle, background: on ? tone.soft : C2.surfaceMuted, ...(on ? {} : { cursor: 'not-allowed' }) }),
+  act:       (tone, on) => UI2.btn.rowIcon(tone, on),   // shared round row action (UI2.btn.rowIcon)
   // detail pop-up
   info:      (first) => ({ ...UI2.kvRow(first) }),
   infoVal:   { ...UI2.kvVal, wordBreak: 'break-word' },

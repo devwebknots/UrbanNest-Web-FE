@@ -14,10 +14,13 @@ import { UI2 } from '../../constants';
 // Props:
 //   leading, title (UI2.text.rowTitle), meta (UI2.text.meta), metaColor, trailing
 //   variant  'divided' (default — hairline between rows) | 'hover' (same hairline between rows + row highlights on hover)
-//   onClick, style
+//   onClick, style · wrap (true → text wraps instead of "…", for narrow columns — off by default)
 
-export default function ListRow({ leading, title, meta, metaColor, trailing, variant = 'divided', onClick, style }) {
+// wrap (default false): true → title / meta wrap onto more lines instead of "…" — for lists in a NARROW column
+//   whose text must be read in full (e.g. PM Listings Not Ready reasons). Off = the standard one-line row.
+export default function ListRow({ leading, title, meta, metaColor, trailing, variant = 'divided', onClick, style, wrap = false }) {
   const hover = variant === 'hover';
+  const fit = wrap ? { overflowWrap: 'anywhere' } : UI2.truncate;
   return (
     <div
       className={hover ? 'un2-row-hover un2-row-divided' : 'un2-row-divided'}
@@ -26,8 +29,8 @@ export default function ListRow({ leading, title, meta, metaColor, trailing, var
     >
       {leading}
       <div style={{ ...UI2.minWidth0, flex: 1 }}>
-        <div style={{ ...UI2.text.rowTitle, ...UI2.truncate }}>{title}</div>
-        {meta && <div style={{ ...UI2.text.meta, ...UI2.truncate, ...(metaColor ? { color: metaColor } : {}) }}>{meta}</div>}
+        <div style={{ ...UI2.text.rowTitle, ...fit }}>{title}</div>
+        {meta && <div style={{ ...UI2.text.meta, ...fit, ...(metaColor ? { color: metaColor } : {}) }}>{meta}</div>}
       </div>
       {trailing && <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', flexShrink: 0, whiteSpace: 'nowrap' }}>{trailing}</div>}
     </div>
