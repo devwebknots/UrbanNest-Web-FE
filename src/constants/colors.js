@@ -274,6 +274,10 @@ export const G2 = {
   button:        'linear-gradient(135deg, #03264C 0%, #0659B2 100%)',
   // Mobile app "brand" button: gradients.button left → right (UrbanNestMobile/src/components/Button.tsx)
   brandButton:   'linear-gradient(90deg, #03264C 0%, #0659B2 100%)',
+  // Create Listing stepper: current-step badge = white face inside a brand-gradient ring (padding-box / border-box trick)
+  stepRing:      'linear-gradient(#FFFFFF, #FFFFFF) padding-box, linear-gradient(135deg, #03264C 0%, #0659B2 100%) border-box',
+  stepLead:      'linear-gradient(90deg, #3B82F6 0%, rgba(59, 130, 246, 0.22) 100%)',   // connector after the current step: one continuous blue fade over the full track (no hard split)
+  stepTrack:     'rgba(11, 42, 91, 0.12)',                                               // stepper connector track — navy tint, stays visible on the light-blue wave backdrop
   menuSelected:  'linear-gradient(90deg, #EFF6FF 0%, #DBEAFE 100%)',   // dropdown (FilterMenu) selected row: C2.primaryTint → C2.primarySoft, left → right
   brandBar:      'linear-gradient(180deg, #0659B2 0%, #03264C 100%)',   // same dark brand gradient, vertical — selected-row indicator pill
   primaryButton: `linear-gradient(135deg, ${GSTOPS2.primary[0]} 0%, ${GSTOPS2.primary[1]} 100%)`,
@@ -439,6 +443,10 @@ export const SH2 = {
   controlHover: '0 2px 4px rgba(16, 24, 40, 0.08), 0 6px 14px rgba(30, 64, 124, 0.14)',
   darkButton:   '0 6px 14px rgba(15, 23, 42, 0.25)',
   brandButton:  '0 6px 14px rgba(3, 38, 76, 0.28)',
+  stepDone:     '0 4px 10px -2px rgba(3, 38, 76, 0.35), inset 0 1px 0 rgba(255, 255, 255, 0.22)',   // stepper ✓ badge: lift + glossy top edge
+  stepCurrent:  '0 0 0 4px rgba(6, 89, 178, 0.10), 0 6px 14px -4px rgba(3, 38, 76, 0.30)',      // stepper current badge: soft blue halo + lift
+  stepTodo:     '0 0 0 2px #FFFFFF, 0 4px 10px -2px rgba(3, 38, 76, 0.22)',                      // stepper upcoming badge: white rim + soft navy lift so it never melts into the light-blue backdrop
+  stepPulse:    '0 0 0 2px rgba(6, 89, 178, 0.35)',                                               // stepper current badge: breathing outer ring
   lightButton:  '0 4px 12px rgba(3, 38, 76, 0.22)',
   focus:      '0 0 0 3px rgba(37, 99, 235, 0.12)',
   successBadge: '0 10px 24px -6px rgba(3, 38, 76, 0.45), 0 0 0 6px rgba(255, 255, 255, 0.18)',   // SuccessModal check badge: lift + soft white halo

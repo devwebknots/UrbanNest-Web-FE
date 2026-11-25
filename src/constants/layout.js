@@ -18,6 +18,8 @@ export const SZ2 = {
   // Form controls + wizard (Create Listing) — Stepper · Switch · Checkbox · RadioPill · MapPreview · WizardFooter
   stepDot:  28,                                 // Stepper numbered circle
   stepLine: { w: 64, h: 2 },                    // Stepper connector between steps
+  stepBadge: 32,                                // Stepper (premium) numbered circle
+  stepTrack: { w: 72, h: 3 },                   // Stepper (premium) connector track
   switch:   { w: 40, h: 22, knob: 18 },         // Switch (on/off) track + knob
   check:    18,                                 // Checkbox box / RadioPill radio circle
   radioDot: 8,                                  // RadioPill inner dot
