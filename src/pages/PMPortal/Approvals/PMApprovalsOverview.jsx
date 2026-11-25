@@ -88,10 +88,10 @@ const TREND_SERIES = [   // line colour (chart) + tone (legend chip)
 
 // ── Page-specific layout only (shared patterns come from UI2 / v2 components) ──
 const S = {
-  headBlock: { paddingBottom: SP2.sm },                 // a little extra air before the insights panel
+  headBlock: UI2.pageHead.block,   // shared header-block spacing (UI2.pageHead) — same on PM Listings
   head:      { ...UI2.stack(SP2.xs) },                 // title → subtitle SP2.xs apart (= Portfolio WaveHero)
-  tabs:      { marginTop: SP2.xl },                     // top tabs, clear of the subtitle
-  stats:     { marginTop: SP2.xxl },                    // = ListingsHero spacing: stats row under the tabs
+  tabs:      UI2.pageHead.next,    // top tabs, SP2.xl under the subtitle
+  stats:     UI2.pageHead.stats,   // stats row, SP2.xxl under the tabs
   title:     { ...T2.heroHeading, margin: 0 },        // same heading as Portfolio "Property List" (WaveHero title)
   sub:       { ...T2.lead, margin: 0 },               // same subtitle as Portfolio (Playfair 13, grey)
   // insights panel

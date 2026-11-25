@@ -1,5 +1,6 @@
 import React from 'react';
-import { C2, G2, R2, SH2, TONES2, F2, FS2, FW2, LH2, LS2, T2, SP2, SZ2, pad, UI2 } from '../../constants';
+import { C2, G2, R2, SH2, F2, FS2, FW2, LH2, T2, SP2, SZ2, pad, UI2 } from '../../constants';
+import HeroStats from './HeroStats';
 
 // ─── ProfileHero (Design System v2) ──────────────────────────────────────────
 // LIGHT dashboard hero: soft blue-glass surface, the artwork on the right (bright building framed
@@ -49,10 +50,6 @@ const S = {
   sub:     { ...T2.lead },
 
   stats:   { marginTop: SP2.xxl },
-  stat:    (first) => ({ ...UI2.row(SP2.md), padding: pad(0, SP2.xl), ...(first ? { paddingLeft: 0 } : {}) }),
-  sLabel:  { ...T2.eyebrow, color: C2.textSecondary, letterSpacing: LS2.wide },
-  sValue:  { ...T2.kpiValue, lineHeight: LH2.tight, marginTop: SP2.xxs },   // standard KPI figure — 20px / 400
-  sNote:   { fontSize: FS2.xs, lineHeight: LH2.heading, color: C2.textMuted, marginTop: SP2.xxs },
 
   actions: { display: 'flex', flexWrap: 'wrap', gap: SP2.sm, marginTop: SP2.xxl },
 };
@@ -83,23 +80,8 @@ export default function ProfileHero({
         <h1 style={S.title}>{title}</h1>
         {subtitle && <div style={S.sub}>{subtitle}</div>}
 
-        {stats.length > 0 && (
-          <div className="un2-phero-stats" style={S.stats}>
-            {stats.map((s, i) => {
-              const tone = s.tone || TONES2.primary;
-              return (
-                <div key={s.label} style={S.stat(i === 0)}>
-                  <div style={UI2.iconBox(SZ2.icon.lg, tone, { round: true })}><i className={`ti ${s.icon}`} aria-hidden="true" /></div>
-                  <div style={UI2.minWidth0}>
-                    <div style={S.sLabel}>{s.label}</div>
-                    <div style={S.sValue}>{s.value}</div>
-                    {s.note && <div style={{ ...S.sNote, ...(s.noteTone ? { color: s.noteTone.strong, fontWeight: FW2.medium } : {}) }}>{s.note}</div>}
-                  </div>
-                </div>
-              );
-            })}
-          </div>
-        )}
+        {/* stats row — the shared HeroStats component (same markup + styles as before) */}
+        <HeroStats stats={stats} style={S.stats} />
 
         {actions && <div style={S.actions}>{actions}</div>}
       </div>

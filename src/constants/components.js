@@ -293,6 +293,18 @@ export const UI2 = {
   // Its text input (no box of its own) — every search box: top bars + list toolbars
   searchInput,
 
+  // ── Open page header block (PM Approvals is the reference) — single source for its vertical rhythm ──
+  //   <section style={UI2.pageHead.block}>
+  //     title (T2.heroHeading) + subtitle (T2.lead)
+  //     <div style={UI2.pageHead.next}>  tabs / toolbar row  </div>      ← SP2.xl under the title
+  //     <div style={UI2.pageHead.stats}> <HeroStats …/> </div>             ← SP2.xxl under that row
+  //   </section>                                                          ← SP2.sm extra air before the first panel
+  pageHead: {
+    block: { paddingBottom: SP2.sm },
+    next:  { marginTop: SP2.xl },
+    stats: { marginTop: SP2.xxl },
+  },
+
   // ── List toolbar (Listings is the reference) — single source for every "search · Options ▸ filters" toolbar ──
   //   <div className="un2-tray-tools" style={UI2.toolbar.tools}>
   //     <label className="un2-focus-ring un2-tray-search" style={UI2.toolbar.search}>

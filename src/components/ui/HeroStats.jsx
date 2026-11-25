@@ -2,7 +2,8 @@ import React from 'react';
 import { C2, TONES2, FS2, FW2, LH2, LS2, T2, SP2, SZ2, pad, UI2 } from '../../constants';
 
 // ─── HeroStats (Design System v2) ────────────────────────────────────────────
-// The hero stats row of the Listings banner (ListingsHero renders exactly this) — one row of stats:
+// THE hero stats row — single source for ProfileHero (Dashboard), WaveHero (Portfolio), ListingsHero, PM Approvals,
+// PM Listings — one row of stats:
 // round tinted icon box · caps label · KPI figure (+ optional note), split by hairlines (un2-phero-stats).
 // Reuse it anywhere the same stats row is wanted (e.g. PM Approvals) — never copy its styles.
 //
@@ -13,6 +14,7 @@ import { C2, TONES2, FS2, FW2, LH2, LS2, T2, SP2, SZ2, pad, UI2 } from '../../co
 //
 // Props: stats [{ icon, tone (TONES2 / accentTone), label, value (node), note, noteTone }],
 //        style (extra style on the row, e.g. ListingsHero's top margin under its subtitle)
+//        className (responsive row class — default un2-phero-stats; WaveHero passes un2-whero-stats)
 // Responsive (utilities.css .un2-phero-stats): wraps; ≤ 600px 2 per row without dividers.
 
 const S = {
@@ -22,10 +24,10 @@ const S = {
   sNote:  { fontSize: FS2.xs, lineHeight: LH2.heading, color: C2.textMuted, marginTop: SP2.xxs },
 };
 
-export default function HeroStats({ stats = [], style }) {
+export default function HeroStats({ stats = [], style, className = 'un2-phero-stats' }) {
   if (!stats.length) return null;
   return (
-    <div className="un2-phero-stats" style={style}>
+    <div className={className} style={style}>
       {stats.map((s, i) => {
         const tone = s.tone || TONES2.primary;
         return (

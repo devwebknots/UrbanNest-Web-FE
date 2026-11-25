@@ -364,6 +364,9 @@ function countdownConfig(days) {
 // ── Page-specific layout only — every look comes from UI2 / T2 / the v2 components ──
 const S = {
   // header
+  headBlock: UI2.pageHead.block,   // header block spacing — shared with PM Approvals (UI2.pageHead)
+  toolsGap:  UI2.pageHead.next,
+  statsGap:  UI2.pageHead.stats,
   headRow:   { display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: SP2.lg, flexWrap: 'wrap' },
   head:      { ...UI2.stack(SP2.xs), minWidth: 0 },
   title:     { ...T2.heroHeading, margin: 0 },          // = Portfolio / Approvals page heading
@@ -867,7 +870,7 @@ export default function PMListingsOverview() {
   // ── Summary stats — the shared HeroStats row (same as Listings hero / Approvals) ──
   const STATS = [
     { tone: TONES2.success,               icon: 'ti-circle-check',    label: 'Active',         value: stats.active,   note: 'live listings' },
-    { tone: TONES2.primary,               icon: 'ti-clipboard-check', label: 'Ready to List',  value: stats.ready,    note: `across ${opportunities.length + 1} props · +4.2% (sample trend)` },
+    { tone: TONES2.primary,               icon: 'ti-clipboard-check', label: 'Ready to List',  value: stats.ready,    note: `across ${opportunities.length + 1} props` /* + ` · +4.2% (sample trend)` — illustrative trend (old amber "+4.2%" pill), commented out for now */ },
     { tone: TONES2.error,                 icon: 'ti-alert-triangle',  label: 'Not Ready',      value: stats.notReady, note: 'blocked' },
     { tone: accentTone(ACCENT2.violet),   icon: 'ti-file-text',       label: 'Draft',          value: stats.draft,    note: 'unpublished' },
     { tone: accentTone(ACCENT2.rose),     icon: 'ti-clock-hour-4',    label: 'Expiring (30d)', value: stats.expiring, note: 'next 30 days' },
@@ -905,8 +908,8 @@ export default function PMListingsOverview() {
         { label: 'Listings' },
       ]} />
 
-      {/* ── Header: title · subtitle │ Export Inventory · Create Listing, then the search / filters toolbar ── */}
-      <section style={UI2.stack(SP2.xl)}>
+      {/* ── Header block (= Approvals): title · subtitle │ Export · Create, toolbar SP2.xl below, stats SP2.xxl below ── */}
+      <section style={S.headBlock}>
         <div style={S.headRow}>
           <div style={S.head}>
             <h1 style={S.title}>Listings</h1>
@@ -922,7 +925,7 @@ export default function PMListingsOverview() {
 
         {/* Search, then the "Options" toggle — the filters slide out between them (same ActionTray toolbar as
             Listings / Approvals). Property · Status · Type · Channel · Portfolio = the old filter panel's fields. */}
-        <div className="un2-tray-tools" style={S.toolsRow}>
+        <div className="un2-tray-tools" style={{ ...S.toolsRow, ...S.toolsGap }}>
           <label className="un2-focus-ring un2-tray-search" style={UI2.toolbar.search}>
             <i className="ti ti-search" style={S.searchIcon} aria-hidden="true" />
             <input
@@ -943,12 +946,12 @@ export default function PMListingsOverview() {
             {activeFilterCount > 0 && <TextLink arrow={false} onClick={clearFilters}>Clear all</TextLink>}
           </ActionTray>
         </div>
-      </section>
 
-      {/* ── Summary stats (live; sample together with Portfolio Coverage when the backend has no units) ── */}
-      <section style={S.statsRow}>
-        <HeroStats stats={STATS} />
-        {usingSampleStats && <SamplePill title="No units from the backend yet — these counts are sample data." />}
+        {/* Summary stats (live; sample together with Portfolio Coverage when the backend has no units) */}
+        <div style={{ ...S.statsRow, ...S.statsGap }}>
+          <HeroStats stats={STATS} />
+          {usingSampleStats && <SamplePill title="No units from the backend yet — these counts are sample data." />}
+        </div>
       </section>
 
       {/* ── Portfolio Coverage │ Listing Performance — one panel, divided columns ── */}
