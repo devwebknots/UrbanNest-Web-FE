@@ -3,11 +3,10 @@ import { PageShell, Grid, Breadcrumb, PageFooter } from '../../components/layout
 import {
   SectionCard, TabBar, ListRow, EmptyState,
   DataTable, MetricBar, BarChart, Gauge, TextLink, ActionTray, FilterMenu, DetailHeader, StatGroup, StatSpark, PhotoBento, AssetRow,
-  Modal, ModalSection, FormField, SelectField, IconField, FIELD2, ChoiceTile,
+  Modal, ModalSection, FormField, SelectField, IconField, FIELD2, ChoiceTile, SuccessModal, Checkbox,
 } from '../../components/ui';
 import { C2, G2, GSTOPS2, TONES2, ACCENT2, T2, FS2, FW2, SP2, SZ2, SH2, R2, BLUR2, LAYOUT2, OP2, pad, UI2 } from '../../constants';
 import { C, F } from './landlordTokens';
-import { CustomDropdown } from '../../components/ui';
 import LandlordUnitSelection from './Listing/LandlordUnitSelection';
 import propertyPlaceholder from '../../assets/landlord/property-placeholder.jpg';
 import { PROPERTY_DEMO, withDemo, orDemo, isDemoId } from './propertyDemoData';
@@ -127,59 +126,6 @@ const NOTIFICATIONS = [
 // than the wireframe's per-unit flagged list, since that per-unit outcome
 // isn't actually possible with this endpoint.
 
-// ─── Styles ───────────────────────────────────────────────────────────────────
-const S = {
-
-  // CARDS
-
-  // FILTER MODAL
-  overlay:      { position:'fixed', top:0, left:0, right:0, bottom:0, background:'rgba(0,0,0,0.4)', display:'flex', alignItems:'center', justifyContent:'center', zIndex:1000 },
-  modalBox:     { background:'#fff', borderRadius:14, width:540, padding:'24px 28px' },
-  modalHdr:     { display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:20, paddingBottom:14, borderBottom:`1px solid ${C.cardBdr}` },
-  modalTitle:   { fontSize:16, fontWeight:700, color:C.txtPrimary, display:'flex', alignItems:'center', gap:8 },
-  modalClose:   { background:'none', border:'none', fontSize:20, color:C.txtMuted, cursor:'pointer', lineHeight:1 },
-  filterGrid:   { display:'grid', gridTemplateColumns:'1fr 1fr', gap:'16px 20px', marginBottom:24 },
-  filterField:  { display:'flex', flexDirection:'column', gap:5 },
-  filterLbl:    { fontSize:12.5, color:C.txtSec, display:'flex', alignItems:'center', gap:5 },
-  filterSelect: { border:`1px solid ${C.cardBdr}`, borderRadius:7, padding:'8px 10px', fontSize:12.5, color:C.txtPrimary, fontFamily:F.sans, background:'#fff', cursor:'pointer', outline:'none' },
-  modalFooter:  { display:'flex', justifyContent:'flex-end', gap:10 },
-  resetBtn:     { background:'none', border:'none', fontSize:13.5, color:C.txtSec, cursor:'pointer', padding:'8px 16px', fontFamily:F.sans },
-  applyBtn:     { background:C.navBg, color:'#fff', border:'none', borderRadius:7, padding:'9px 22px', fontSize:13.5, fontWeight:600, cursor:'pointer', fontFamily:F.sans },
-
-  // BULK ADD SERVICE MODAL (Unit Inventory → "Add Service to All Units")
-  bulkOverlay:      { position:'fixed', top:0, left:0, right:0, bottom:0, background:'rgba(13,27,46,0.55)', display:'flex', alignItems:'flex-start', justifyContent:'center', padding:'30px 20px', zIndex:1000, fontFamily:F.sans },
-  bulkModal:        { background:'#fff', borderRadius:12, width:560, maxWidth:'100%', boxShadow:'0 24px 50px rgba(0,0,0,0.3)', overflow:'hidden', color:C.txtPrimary },
-  bulkModalHdr:     { padding:'18px 22px 6px' },
-  bulkModalHdrTitle:{ margin:'0 0 3px', fontSize:16, fontWeight:700 },
-  bulkModalHdrSub:  { margin:0, fontSize:12, color:C.txtMuted },
-  bulkSvcRow:       { padding:'12px 22px 4px' },
-  bulkSvcLbl:       { fontSize:10.5, fontWeight:700, letterSpacing:'0.05em', textTransform:'uppercase', color:C.txtMuted, marginBottom:6 },
-  bulkSelectAllRow: { display:'flex', alignItems:'center', justifyContent:'space-between', padding:'10px 22px 6px', borderTop:`1px solid ${C.cardBdr}`, marginTop:10 },
-  bulkSelectAllLbl: { fontSize:12, fontWeight:600, display:'flex', alignItems:'center', gap:7, cursor:'pointer' },
-  bulkSelectCount:  { fontSize:11.5, color:C.txtMuted },
-  bulkPickList:     { maxHeight:300, overflowY:'auto', padding:'0 22px' },
-  bulkPickRow:      { display:'flex', alignItems:'flex-start', gap:10, padding:'10px 0', borderBottom:`1px solid ${C.cardBdr}` },
-  bulkPickName:     { fontSize:12.5, fontWeight:700 },
-  bulkPickSub:      { fontSize:11, color:C.txtMuted, marginTop:1 },
-  bulkAlreadyTag:   { fontSize:10, fontWeight:700, background:'#f1f3f7', color:C.txtMuted, padding:'2px 8px', borderRadius:10, marginLeft:'auto', flexShrink:0, alignSelf:'center' },
-  bulkResolveNote:  (ok) => ({ fontSize:10.5, marginTop:4, padding:'3px 8px', borderRadius:5, display:'inline-flex', alignItems:'center', gap:4, fontWeight:600, background: ok ? C.greenLight : C.redLight, color: ok ? C.greenDark : C.red }),
-  bulkModalFooter:  { padding:'14px 22px 20px', display:'flex', justifyContent:'flex-end', gap:10, marginTop:6 },
-  bulkBtnSecondary: { background:'#fff', color:C.txtPrimary, border:`1px solid ${C.cardBdr}`, padding:'9px 16px', borderRadius:7, fontSize:13, fontWeight:600, cursor:'pointer', fontFamily:F.sans },
-  bulkBtnPrimary:   (disabled) => ({ background: disabled ? '#9db8e8' : C.blue, color:'#fff', border:'none', padding:'9px 16px', borderRadius:7, fontSize:13, fontWeight:700, cursor: disabled?'default':'pointer', fontFamily:F.sans, opacity: disabled?0.6:1 }),
-  bulkResultBody:       { padding:'20px 22px 6px' },
-  bulkResultBanner:     { display:'flex', alignItems:'center', gap:10, background:C.greenLight, borderRadius:8, padding:'12px 14px', marginBottom:14 },
-  bulkResultCheck:      { width:26, height:26, borderRadius:'50%', background:C.green, color:'#fff', display:'flex', alignItems:'center', justifyContent:'center', fontSize:13, flexShrink:0 },
-  bulkResultTitle:      { fontSize:13.5, fontWeight:700, color:'#14532d' },
-  bulkResultSub:        { fontSize:11.5, color:'#166534', marginTop:1 },
-  bulkFlagSectionTitle: { fontSize:11, fontWeight:700, letterSpacing:'0.04em', textTransform:'uppercase', color:C.red, margin:'4px 0 8px' },
-  bulkFlagRow:          { display:'flex', alignItems:'center', justifyContent:'space-between', background:C.redLight, borderRadius:7, padding:'9px 12px', marginBottom:6 },
-  bulkFlagName:         { fontSize:12.5, fontWeight:700 },
-  bulkFlagReason:       { fontSize:11, color:'#991b1b', marginTop:1 },
-  bulkFlagAction:       { fontSize:11.5, fontWeight:700, color:C.blue, flexShrink:0, cursor:'pointer' },
-
-
-};
-
 // ─── Edit Property — field options derived from the backend's real choices
 // (OWNERSHIP_TYPE_CHOICES / PROPERTY_TYPE_CHOICES confirmed live against
 // properties/models.py — not guessed) ──────────────────────────────────────────
@@ -249,66 +195,63 @@ function GalleryLightbox({ items, index, onClose, onNav }) {
   );
 }
 
-// ─── Filter Modal ─────────────────────────────────────────────────────────────
+// ─── Filter Properties — standard v2 Modal (no photo: a short dialog) ───────────
+// Same six filters and options as before, now v2 SelectFields (caps label · 36px field · FilterMenu list)
+// in a two-column FormField grid. Like before, the choices are not wired to the inventory yet — Apply closes
+// the dialog; Reset clears the choices.
+const FILTER_FIELDS = [
+  { key: 'propType', label: 'Property type', icon: 'ti-building',    all: 'All Properties', opts: ['Apartment', 'Multi-Family', 'Villa', 'Commercial'] },
+  { key: 'unitType', label: 'Unit type',     icon: 'ti-door',        all: 'All Types',      opts: ['Studio', '1 Bed', '2 Bed', '3 Bed', '4 Bed+'] },
+  { key: 'status',   label: 'Unit status',   icon: 'ti-info-circle', all: 'All Status',     opts: ['Occupied', 'Vacant', 'Overdue'] },
+  { key: 'bed',      label: 'Bed',           icon: 'ti-bed',         all: 'Any',            opts: ['1', '2', '3', '4+'] },
+  { key: 'bath',     label: 'Bath',          icon: 'ti-bath',        all: 'Any',            opts: ['1', '2', '3+'] },
+  { key: 'sqft',     label: 'Sqft range',    icon: 'ti-ruler',       all: 'Any',            opts: ['< 500', '500–1000', '1000–2000', '2000+'] },
+];
+
 function FilterModal({ onClose }) {
+  const [vals, setVals] = useState({});
+  const chosen = Object.values(vals).filter(Boolean).length;
   return (
-    <div style={S.overlay} onClick={onClose}>
-      <div style={S.modalBox} onClick={e => e.stopPropagation()}>
-        <div style={S.modalHdr}>
-          <div style={S.modalTitle}>
-            <i className="ti ti-adjustments-horizontal" style={{ fontSize:18 }} aria-hidden="true" />
-            Filter Properties
-          </div>
-          <button style={S.modalClose} onClick={onClose} aria-label="Close">×</button>
-        </div>
-        <div style={S.filterGrid}>
-          {[
-            { lbl:'Property Type', icon:'ti-building',    opts:['All Properties','Apartment','Multi-Family','Villa','Commercial'] },
-            { lbl:'Unit Type',     icon:'ti-door',        opts:['All Types','Studio','1 Bed','2 Bed','3 Bed','4 Bed+'] },
-            { lbl:'Unit Status',   icon:'ti-info-circle', opts:['All Status','Occupied','Vacant','Overdue'] },
-            { lbl:'Bed',           icon:'ti-bed',         opts:['Any','1','2','3','4+'] },
-            { lbl:'Bath',          icon:'ti-bath',        opts:['Any','1','2','3+'] },
-            { lbl:'Sqft range',    icon:'ti-ruler',       opts:['Any','< 500','500–1000','1000–2000','2000+'] },
-          ].map(f => (
-            <div key={f.lbl} style={S.filterField}>
-              <label style={S.filterLbl}>
-                <i className={`ti ${f.icon}`} style={{ fontSize:13, color:C.txtMuted }} aria-hidden="true" />
-                {f.lbl}
-              </label>
-              <select style={S.filterSelect}>
-                {f.opts.map(o => <option key={o}>{o}</option>)}
-              </select>
-            </div>
-          ))}
-        </div>
-        <div style={S.modalFooter}>
-          <button style={S.resetBtn} onClick={onClose}>Reset</button>
-          <button style={S.applyBtn} onClick={onClose}>Apply Filter</button>
-        </div>
-      </div>
-    </div>
+    <Modal
+      size="md" media={false} icon="ti-adjustments-horizontal"
+      title="Filter Properties" subtitle="Narrow down the units shown in the inventory."
+      onClose={onClose}
+      info={chosen ? `${chosen} filter${chosen === 1 ? '' : 's'} chosen` : undefined}
+      footer={<>
+        <button type="button" className="un2-btn" style={UI2.btn.soft} onClick={() => setVals({})}>Reset</button>
+        <button type="button" className="un2-btn" style={UI2.btn.brand} onClick={onClose}>
+          <i className="ti ti-check" style={UI2.btnIcon} aria-hidden="true" /> Apply Filter
+        </button>
+      </>}
+    >
+      <Grid layout="two" as="div" style={MD.grid}>
+        {FILTER_FIELDS.map(f => (
+          <FormField key={f.key} label={f.label}>
+            <SelectField
+              label={f.label} placeholder={f.all} itemIcon={f.icon}
+              options={f.opts.map(o => ({ value: o, label: o }))}
+              value={vals[f.key] || ''} onChange={v => setVals(p => ({ ...p, [f.key]: v || '' }))}
+            />
+          </FormField>
+        ))}
+      </Grid>
+    </Modal>
   );
 }
 
-// ─── Bulk Add Service modal ─────────────────────────────────────────────────────
+// ─── Bulk Add Service — standard v2 Modal ───────────────────────────────────────
 // Deliberately does NOT touch PaymentCartContext/PaymentCartModal — bulk-
 // adding a service across units is assignment of something already owned at
 // the account level, not a purchase (Entitlement doc §4.2). Only "Buy
 // Service" (account-level, Settings → Services) goes through the Payment
 // Cart.
 //
-// Session 40 — wired to the real bulk endpoint. Two stages remain (pick,
-// result), but the result stage no longer shows a per-unit "flagged" list —
-// see the "all-or-nothing" note near the top of this file for why: the real endpoint is
-// atomic, so it's either full success or one error covering the whole
-// batch. The picker still warns inline that a bank-account-requiring
-// service MIGHT fail for units without one, using a real per-unit lookup
-// (ownedBankAccounts) rather than a client-side resolution guess.
+// Session 40 — wired to the real bulk endpoint (atomic: full success or one error for the whole batch — see the
+// "all-or-nothing" note near the top of this file). The picker still warns inline that a bank-account-requiring
+// service MIGHT fail. "+ Add Bank Account" navigates to Settings (BankAccountModal isn't shared yet).
 //
-// NOTE: "+ Add Bank Account" here navigates to Settings → Bank Accounts
-// rather than opening an inline modal, the same simplification made in
-// LandlordUnitDetailPage.jsx's Add Service modal (BankAccountModal isn't
-// factored out into a shared component yet).
+// v2: pick stage = Modal (photo panel) · ModalSection "Service" (SelectField) + "Units" (Select all + Checkbox rows)
+//     success = SuccessModal (receipt) · rejected batch = confirm Modal (red) with "Add Bank Account".
 function BulkAddServiceModal({ propId, propName, units, ownedServices, unitServicesMap, onClose, onComplete }) {
   const [serviceId, setServiceId] = useState(ownedServices[0]?.id ?? null);
   const [checked, setChecked] = useState({});
@@ -371,134 +314,127 @@ function BulkAddServiceModal({ propId, propName, units, ownedServices, unitServi
     setSubmitting(false);
   };
 
-  if (stage === 'result' && (result || submitError)) {
+  // ── Result: success → the standard "it worked" pop-up ──
+  if (stage === 'result' && result) {
     return (
-      <div style={S.bulkOverlay} onClick={onClose}>
-        <div style={S.bulkModal} onClick={e => e.stopPropagation()}>
-          <div style={S.bulkModalHdr}>
-            <h3 style={S.bulkModalHdrTitle}>Add Service to All Units</h3>
-            <p style={S.bulkModalHdrSub}>{propName} · {result ? result.serviceName : service?.name}</p>
-          </div>
-          <div style={S.bulkResultBody}>
-            {result && (
-              <div style={S.bulkResultBanner}>
-                <div style={S.bulkResultCheck}>✓</div>
-                <div>
-                  <div style={S.bulkResultTitle}>{result.addedCount} Added</div>
-                  <div style={S.bulkResultSub}>{result.serviceName} is now active on {result.addedCount} unit{result.addedCount === 1 ? '' : 's'}.</div>
-                </div>
-              </div>
-            )}
-            {submitError && (
-              <>
-                <div style={S.bulkFlagSectionTitle}>Nothing was added</div>
-                <div style={S.bulkFlagRow}>
-                  <div>
-                    <div style={S.bulkFlagName}>The batch was rejected</div>
-                    <div style={S.bulkFlagReason}>{submitError}</div>
-                  </div>
-                  <span style={S.bulkFlagAction} onClick={goToBankAccounts}>+ Add Bank Account</span>
-                </div>
-              </>
-            )}
-          </div>
-          <div style={S.bulkModalFooter}>
-            <button style={S.bulkBtnPrimary(false)} onClick={onClose}>Done</button>
-          </div>
-        </div>
-      </div>
+      <SuccessModal
+        title={`${result.addedCount} Added`}
+        message={`${result.serviceName} is now active on ${result.addedCount} unit${result.addedCount === 1 ? '' : 's'}.`}
+        details={[
+          { label: 'Property', value: propName },
+          { label: 'Service', value: result.serviceName },
+          { label: 'Units', value: String(result.addedCount), strong: true },
+        ]}
+        primary={{ label: 'Done', icon: 'ti-arrow-right', onClick: onClose }}
+        onClose={onClose}
+      />
     );
   }
 
+  // ── Result: the whole batch was rejected → red confirm pop-up ──
+  if (stage === 'result' && submitError) {
+    return (
+      <Modal
+        variant="confirm" icon="ti-alert-triangle" tone={TONES2.error}
+        title="Nothing was added" subtitle={`${propName} · ${service?.name || 'Service'}`}
+        onClose={onClose}
+        footer={<>
+          <button type="button" className="un2-btn" style={UI2.btn.soft} onClick={goToBankAccounts}>
+            <i className="ti ti-plus" style={UI2.btnIcon} aria-hidden="true" /> Add Bank Account
+          </button>
+          <button type="button" className="un2-btn" style={UI2.btn.brand} onClick={onClose}>Done</button>
+        </>}
+      >
+        <div style={UI2.text.label}>The batch was rejected — {submitError}</div>
+      </Modal>
+    );
+  }
+
+  const canSubmit = checkedCount > 0 && !submitting && !!service;
+
   return (
-    <div style={S.bulkOverlay} onClick={onClose}>
-      <div style={S.bulkModal} onClick={e => e.stopPropagation()}>
-        <div style={S.bulkModalHdr}>
-          <h3 style={S.bulkModalHdrTitle}>Add Service to All Units</h3>
-          <p style={S.bulkModalHdrSub}>{propName} · {units.length} unit{units.length === 1 ? '' : 's'}</p>
-        </div>
+    <Modal
+      icon="ti-briefcase" title="Add Service to All Units"
+      subtitle={`${propName} · ${units.length} unit${units.length === 1 ? '' : 's'}`}
+      onClose={onClose}
+      info={`${checkedCount} of ${eligibleUnits.length} eligible units selected`}
+      footer={<>
+        <button type="button" className="un2-btn" style={UI2.btn.soft} onClick={onClose}>Cancel</button>
+        <button type="button" className="un2-btn" style={{ ...UI2.btn.brand, ...(canSubmit ? {} : UI2.btnOff) }} disabled={!canSubmit} onClick={handleSubmit}>
+          {!submitting && <i className="ti ti-plus" style={UI2.btnIcon} aria-hidden="true" />}
+          {submitting ? 'Adding…' : `Add to ${checkedCount} Unit${checkedCount === 1 ? '' : 's'}`}
+        </button>
+      </>}
+    >
+      <ModalSection icon="ti-briefcase" title="Service" hint="Choose a service already on your account">
+        <SelectField
+          label="Service" placeholder="Select a service…" itemIcon="ti-briefcase"
+          options={ownedServices.map(s => ({
+            value: s.id,
+            label: `${s.name} — ${s.price} ${s.priceUnit}${s.requiresBankAccount ? ' · requires bank account' : ''}`,
+          }))}
+          value={serviceId ?? ''} onChange={v => setServiceId(v ?? null)}
+        />
+        {ownedServices.length === 0 && (
+          <div style={MD.hint}>No services on your account yet — buy one from Settings → Services first.</div>
+        )}
+      </ModalSection>
 
-        <div style={S.bulkSvcRow}>
-          <div style={S.bulkSvcLbl}>Service</div>
-          <CustomDropdown
-            options={ownedServices.map(s => ({
-              value: s.id,
-              label: `${s.name} — ${s.price} ${s.priceUnit}${s.requiresBankAccount ? ' · requires bank account' : ''}`,
-            }))}
-            value={serviceId}
-            onChange={setServiceId}
-            placeholder="Select a service…"
-          />
-          {ownedServices.length === 0 && (
-            <div style={{ fontSize: 11.5, color: C.txtMuted, marginTop: 4 }}>
-              No services on your account yet — buy one from Settings → Services first.
+      <ModalSection
+        icon="ti-home" title="Units" hint="Every eligible unit is selected to start"
+        action={<span style={UI2.pill(TONES2.primary)}>{checkedCount} selected</span>}
+      >
+        {units.length === 0 ? (
+          <div style={UI2.emptyInline}>No units on this property yet.</div>
+        ) : (
+          <div>
+            <div style={MD.selectAll}>
+              <Checkbox strong label="Select all" checked={allEligibleChecked} onChange={toggleAll} disabled={eligibleUnits.length === 0} />
             </div>
-          )}
-        </div>
-
-        <div style={S.bulkSelectAllRow}>
-          <label style={S.bulkSelectAllLbl}>
-            <input type="checkbox" checked={allEligibleChecked} onChange={toggleAll} disabled={eligibleUnits.length === 0} style={{ accentColor: C.blue, width: 15, height: 15 }} />
-            Select all
-          </label>
-          <span style={S.bulkSelectCount}>{checkedCount} of {eligibleUnits.length} eligible units selected</span>
-        </div>
-
-        <div style={S.bulkPickList}>
-          {alreadyUnits.map(u => (
-            <div key={u.id} style={{ ...S.bulkPickRow, opacity: 0.55 }}>
-              <input type="checkbox" disabled style={{ marginTop: 3, width: 15, height: 15, flexShrink: 0 }} />
-              <div style={{ flex: 1 }}>
-                <div style={S.bulkPickName}>{u.unit_name}</div>
-                <div style={S.bulkPickSub}>{u.tenant_name || 'Vacant'}</div>
-              </div>
-              <span style={S.bulkAlreadyTag}>Already added</span>
-            </div>
-          ))}
-          {eligibleUnits.map(u => {
-            const isChecked = !!checked[u.id];
-            return (
-              <div key={u.id} style={S.bulkPickRow}>
-                <input
-                  type="checkbox"
-                  checked={isChecked}
-                  onChange={() => toggle(u.id)}
-                  style={{ marginTop: 3, width: 15, height: 15, accentColor: C.blue, flexShrink: 0 }}
-                />
-                <div style={{ flex: 1 }}>
-                  <div style={S.bulkPickName}>{u.unit_name}</div>
-                  <div style={S.bulkPickSub}>{u.tenant_name || 'Vacant'}</div>
+            {alreadyUnits.map(u => (
+              <ListRow
+                key={u.id}
+                leading={<Checkbox checked={false} disabled onChange={() => {}} />}
+                title={u.unit_name} meta={u.tenant_name || 'Vacant'}
+                trailing={<span style={UI2.pill(TONES2.neutral)}>Already added</span>}
+                style={MD.offRow}
+              />
+            ))}
+            {eligibleUnits.map(u => {
+              const isChecked = !!checked[u.id];
+              return (
+                <div key={u.id}>
+                  <ListRow
+                    leading={<Checkbox checked={isChecked} onChange={() => toggle(u.id)} />}
+                    title={u.unit_name} meta={u.tenant_name || 'Vacant'}
+                  />
                   {isChecked && service?.requiresBankAccount && (
-                    <div style={S.bulkResolveNote(true)}>
+                    <div style={MD.bankNote}>
+                      <i className="ti ti-building-bank" aria-hidden="true" />
                       Requires a resolvable bank account — checked by the server when you submit. If any selected unit can't resolve one, the whole batch is rejected (nothing is added).
                     </div>
                   )}
                 </div>
-              </div>
-            );
-          })}
-          {eligibleUnits.length === 0 && alreadyUnits.length > 0 && (
-            <div style={{ fontSize: 12, color: C.txtMuted, fontStyle: 'italic', padding: '10px 0' }}>Every unit already has this service.</div>
-          )}
-          {units.length === 0 && (
-            <div style={{ fontSize: 12, color: C.txtMuted, padding: '14px 0' }}>No units on this property yet.</div>
-          )}
-        </div>
-
-        <div style={S.bulkModalFooter}>
-          <button style={S.bulkBtnSecondary} onClick={onClose}>Cancel</button>
-          <button
-            style={S.bulkBtnPrimary(checkedCount === 0 || submitting || !service)}
-            disabled={checkedCount === 0 || submitting || !service}
-            onClick={handleSubmit}
-          >
-            {submitting ? 'Adding…' : `Add to ${checkedCount} Unit${checkedCount === 1 ? '' : 's'}`}
-          </button>
-        </div>
-      </div>
-    </div>
+              );
+            })}
+            {eligibleUnits.length === 0 && alreadyUnits.length > 0 && (
+              <div style={UI2.emptyInline}>Every unit already has this service.</div>
+            )}
+          </div>
+        )}
+      </ModalSection>
+    </Modal>
   );
 }
+
+// Filter + Bulk Add Service modals — layout only (fields, rows, buttons are the shared v2 standards)
+const MD = {
+  grid:      { columnGap: SP2.lg, rowGap: SP2.lg },
+  hint:      { ...UI2.text.caption, marginTop: SP2.sm },
+  selectAll: { padding: pad(SP2.xs, SP2.xs, SP2.sm), borderBottom: `${SZ2.hairline}px solid ${C2.divider}` },
+  offRow:    { opacity: OP2.soft },
+  bankNote:  { ...UI2.tonePanel(TONES2.primary), ...UI2.row(SP2.sm), alignItems: 'flex-start', padding: pad(SP2.sm, SP2.md), margin: pad(0, 0, SP2.sm), fontSize: FS2.xs, color: C2.primaryDark },
+};
 
 // ─── Edit Property Modal — proper Edit functionality (text fields, address,
 // per-slot image replace/remove, and amenity add/remove) requested
@@ -900,8 +836,8 @@ const EM = {
 //   GET  /landlord/account/services/              (owned services → Bulk Add Service)
 //   GET  /properties/<id>/units/<uid>/services/   (per-unit services)
 //   PATCH /properties/<id>/                       (Add images upload)
-// The modals further up (Filter, Bulk Add Service, Edit Property, Unit Selection,
-// Gallery lightbox) are unchanged.
+// Pop-ups: Filter, Bulk Add Service (+ its SuccessModal / rejected confirm), Edit Property and Unit Selection
+// (Listing/LandlordUnitSelection.jsx) all use the standard v2 ui/Modal. Gallery lightbox unchanged.
 //
 // Layout (design: Downloads/image 41.png) — one page, no tabs:
 //   Breadcrumb · DetailHeader (title · type · Edit · address │ StatGroup)

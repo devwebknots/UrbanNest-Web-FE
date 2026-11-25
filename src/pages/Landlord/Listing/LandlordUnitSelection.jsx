@@ -58,157 +58,98 @@
 // number, so — unlike the wireframe's own draft logic, which separately
 // counted strict LIST_READY units and could under-count a warning-only
 // selection — routing here just uses the plain selected count.
+//
+// Session 2026-11-25 — Design System v2: presentation moved onto the standard ui/Modal (size lg, no photo panel
+// so the table gets the width) — readiness summary pills · DataTable (Checkbox · unit · specs · readiness
+// status button) · the opened unit's readiness breakdown as a ModalSection under the table (tinted banner +
+// rule rows) · footer info = selection summary, note = resume error, Resume Draft (soft) + List (brand).
+// Every piece of logic above / below (loading, readiness gate, draft-group resume, routing) is unchanged.
 // ─────────────────────────────────────────────────────────────────────────────
 
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { C, F } from '../landlordTokens';
+import { Modal, ModalSection, DataTable, EmptyState, Checkbox } from '../../../components/ui';
+import { C2, TONES2, ACCENT2, accentTone, FS2, FW2, SP2, SZ2, UI2, pad } from '../../../constants';
 import { getProperty, getPropertyUnits, getUnitReadiness } from './listingApi';
 import { getPropertyListing, createUnitListing, deleteUnitListing } from './propertyListingApi';
 
+// Readiness → label + tone (UI2.statusPill: dot + coloured word) + selection rules + banner text.
+// Same states / rules / texts as before; colours are the v2 status tones (warnings = violet — no amber / yellow).
 const STATUS_META = {
   LIST_READY: {
-    label: 'List Ready', dot: C.green, bg: C.greenLight, color: C.greenDark, selectable: true,
-    bannerBg: C.greenLight, bannerColor: C.greenDark,
+    label: 'List Ready', tone: TONES2.success, selectable: true,
     bannerText: 'All checks passed. This unit is ready to list.',
   },
   READY_WITH_WARNINGS: {
-    label: 'Ready · Warnings', dot: C.amber, bg: C.amberLight, color: C.amber, selectable: true,
-    bannerBg: C.amberLight, bannerColor: C.amber,
+    label: 'Ready · Warnings', tone: accentTone(ACCENT2.violet), selectable: true,
     bannerText: 'This unit can be listed now. Warnings are optional improvements, not blockers.',
   },
   NOT_READY: {
-    label: 'Not Ready', dot: C.red, bg: C.redLight, color: C.red, selectable: false,
-    bannerBg: C.redLight, bannerColor: C.red,
+    label: 'Not Ready', tone: TONES2.error, selectable: false,
     bannerText: 'One or more required checks failed. Resolve them to enable listing.',
   },
   NOT_ELIGIBLE: {
-    label: 'Not Eligible', dot: C.txtMuted, bg: C.stdBg, color: C.stdTx, selectable: false,
-    bannerBg: C.stdBg, bannerColor: C.stdTx,
+    label: 'Not Eligible', tone: TONES2.neutral, selectable: false,
     bannerText: "This unit fails an eligibility requirement and can't be listed until it's resolved.",
   },
   // Genuinely published (Listing.status === 'ACTIVE') — a real dead end from
   // this screen; managing/withdrawing a live listing is out of scope here.
   ALREADY_LISTED: {
-    label: 'Already Listed', dot: C.txtMuted, bg: C.stdBg, color: C.stdTx, selectable: false,
-    bannerBg: C.stdBg, bannerColor: C.stdTx,
+    label: 'Already Listed', tone: TONES2.neutral, selectable: false,
     bannerText: 'This unit already has an active listing — remove it from that listing first.',
   },
-  // Listing.status is DRAFT/PENDING_PAYMENT AND it's part of a multi-unit
-  // group (active_property_listing_id set) that the whole "Resume" footer
-  // button below is currently resuming. Selectable — the checkbox is how
-  // the landlord adds/removes this unit from the draft — and the badge
-  // itself does nothing (no per-row Resume; see the external Resume
-  // button in the footer instead).
+  // DRAFT/PENDING_PAYMENT AND part of the multi-unit group the footer's "Resume Draft" button resumes.
+  // Selectable — the checkbox adds/removes the unit from that draft.
   IN_DRAFT_GROUP: {
-    label: 'In Draft', dot: C.blue, bg: C.blueLight, color: C.blueDark, selectable: true,
-    bannerBg: C.blueLight, bannerColor: C.blueDark,
+    label: 'In Draft', tone: TONES2.primary, selectable: true,
     bannerText: 'Part of your in-progress draft listing below. Uncheck to remove it, or leave it checked and hit Resume Draft.',
   },
-  // Listing.status is DRAFT/PENDING_PAYMENT but NOT part of the group this
-  // screen is resuming (either an ungrouped single-unit draft, or a group
-  // draft for a *different* PropertyListing than the one being resumed
-  // here) — the landlord's own unfinished attempt, not a dead end, but not
-  // something this screen's checkboxes/Resume button can reconcile. Not
-  // selectable for a NEW pick here (it's already committed to its own
-  // draft), but clicking it resumes that other draft directly instead of
-  // just sitting there disabled — see resumeDraft() below.
+  // DRAFT/PENDING_PAYMENT but NOT in the group being resumed — not selectable for a new pick, but clicking the
+  // badge resumes that other draft directly (resumeDraft below).
   LISTING_DRAFT: {
-    label: 'Draft · In Progress', dot: C.blue, bg: C.blueLight, color: C.blueDark, selectable: false, actionable: true,
-    bannerBg: C.blueLight, bannerColor: C.blueDark,
+    label: 'Draft · In Progress', tone: TONES2.primary, selectable: false, actionable: true,
     bannerText: "You already started a listing for this unit but haven't published it yet.",
   },
-  // The readiness call itself failed (network/5xx) — fails closed rather
-  // than silently treating an unreadable result as ready.
+  // The readiness call itself failed — fails closed rather than treating an unreadable result as ready.
   UNKNOWN: {
-    label: 'Unknown', dot: C.txtMuted, bg: C.stdBg, color: C.stdTx, selectable: false,
-    bannerBg: C.stdBg, bannerColor: C.stdTx,
+    label: 'Unknown', tone: TONES2.neutral, selectable: false,
     bannerText: "This unit's readiness couldn't be checked right now — try reloading.",
   },
 };
 
+// Summary pills above the table (same four counts as before)
+const SUMMARY = [
+  { key: 'LIST_READY',          label: 'List Ready' },
+  { key: 'READY_WITH_WARNINGS', label: 'Ready w/ Warnings' },
+  { key: 'NOT_READY',           label: 'Not Ready' },
+  { key: 'NOT_ELIGIBLE',        label: 'Not Eligible' },
+];
+
+// Layout only — every look comes from UI2 / the v2 components
 const S = {
-  overlay: { position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: 20, boxSizing: 'border-box' },
-  modalBox: {
-    background: '#fff', borderRadius: 14, width: 'min(900px, 100%)', maxHeight: '85vh',
-    display: 'flex', flexDirection: 'column', overflow: 'hidden', fontFamily: F.sans,
-    boxShadow: '0 24px 60px rgba(13,27,46,0.28)',
-  },
-  modalHdr: { display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', padding: '22px 26px 16px', borderBottom: `1px solid ${C.cardBdr}`, flexShrink: 0, gap: 12 },
-  modalTitle: { fontSize: 18, fontWeight: 700, color: C.txtPrimary, margin: 0 },
-  modalSub: { fontSize: 12.5, color: C.txtSec, margin: '4px 0 0' },
-  modalClose: { background: 'none', border: 'none', fontSize: 22, color: C.txtMuted, cursor: 'pointer', lineHeight: 1, padding: 2, flexShrink: 0 },
-
-  stats: { display: 'flex', gap: 10, flexWrap: 'wrap', padding: '16px 26px 0', flexShrink: 0 },
-  statChip: { display: 'flex', alignItems: 'center', gap: 8, background: '#f8fafc', border: `1px solid ${C.cardBdr}`, borderRadius: 10, padding: '7px 12px' },
-  statDot: (color) => ({ width: 8, height: 8, borderRadius: '50%', background: color, flexShrink: 0, display: 'inline-block' }),
-  statNum: { fontSize: 13, fontWeight: 700, color: C.txtPrimary },
-  statLbl: { fontSize: 11.5, color: C.txtSec },
-
-  body: { flex: 1, overflowY: 'auto', padding: '16px 26px' },
-  centerMsg: { padding: '40px 0', textAlign: 'center', color: C.txtSec, fontSize: 13 },
-  table: { border: `1px solid ${C.cardBdr}`, borderRadius: 10, overflow: 'hidden' },
-  rowGrid: { display: 'grid', gridTemplateColumns: '40px 82px 1fr 120px 100px 130px 190px', alignItems: 'center', columnGap: 10 },
-  thRow: { padding: '10px 16px', background: '#f8fafc', borderBottom: `1px solid ${C.cardBdr}` },
-  th: { fontSize: 10, fontWeight: 700, color: C.txtSec, textTransform: 'uppercase', letterSpacing: 0.5 },
-  tr: { padding: '12px 16px', borderBottom: `1px solid ${C.stdBg}` },
-  unitNum: { fontSize: 13.5, fontWeight: 700, color: C.txtPrimary },
-  specs: { fontSize: 12.5, color: C.txtSec },
-  occ: { fontSize: 12.5, color: C.txtSec },
-  badge: (m) => ({ display: 'inline-flex', alignItems: 'center', gap: 6, background: m.bg, color: m.color, border: 'none', borderRadius: 999, padding: '5px 11px', fontSize: 11.5, fontWeight: 700, cursor: (m.selectable === undefined && !m.actionable) ? 'default' : 'pointer', width: 'fit-content', fontFamily: F.sans }),
-  checkbox: { width: 16, height: 16 },
-
-  detail: (m) => ({ background: m.bannerBg, color: m.bannerColor, borderRadius: 8, padding: '10px 14px', margin: '0 16px 12px', fontSize: 12, lineHeight: 1.5 }),
-  ruleRow: { display: 'flex', gap: 9, padding: '8px 0', borderBottom: `1px solid rgba(0,0,0,0.06)` },
-  ruleName: { fontSize: 12.5, fontWeight: 600 },
-  ruleSev: { fontSize: 9.5, fontWeight: 700, letterSpacing: 0.04, textTransform: 'uppercase', border: '1px solid currentColor', opacity: 0.6, borderRadius: 5, padding: '1px 6px', marginLeft: 7 },
-  ruleDetail: { fontSize: 11.5, marginTop: 2, opacity: 0.85 },
-  resumeLink: { fontSize: 11.5, fontWeight: 700, textDecoration: 'underline', cursor: 'pointer', marginLeft: 6 },
-
-  footer: { flexShrink: 0, borderTop: `1px solid ${C.cardBdr}`, display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '14px 26px', gap: 12 },
-  footerMsg: { fontSize: 12.5, color: C.txtSec },
-  footerBtns: { display: 'flex', alignItems: 'center', gap: 10 },
-  // Height/radius match the rest of the Listing wizard's standardized
-  // footer buttons (LS.btn in listingWizardShared.jsx — 32px / 10px radius,
-  // locked across every Individual + Multi-Unit screen), so this modal's
-  // footer doesn't look subtly off next to the screens it hands off to.
-  // Border is always a real 1px (transparent when a variant doesn't want one
-  // visible) rather than 'none' on some variants and a thicker colored one
-  // on others — there's no global box-sizing:border-box reset in this app,
-  // so a variant-only border changes that button's total rendered height
-  // (the same reason listingWizardShared.jsx's LS.btn carries a permanent
-  // `1px solid transparent`). Keeping it uniform here is what makes this
-  // modal's Resume/List buttons come out exactly 32px tall, flush with
-  // every other Listing-wizard footer button instead of a pixel taller.
-  btn: { height: 32, padding: '0 18px', borderRadius: 10, fontSize: 12.5, fontWeight: 700, fontFamily: F.sans, border: '1px solid transparent', cursor: 'pointer', whiteSpace: 'nowrap' },
-  btnPrimary: { background: C.blue, color: '#fff' },
-  btnDisabled: { background: C.cardBdr, color: '#fff', cursor: 'not-allowed' },
-  btnOutline: { background: '#fff', color: C.blueDark, border: `1px solid ${C.blue}` },
-  btnOutlineDisabled: { background: '#fff', color: C.txtMuted, border: `1px solid ${C.cardBdr}`, cursor: 'not-allowed' },
-  resumeError: { fontSize: 11.5, color: C.red, marginTop: 6 },
+  body:      { ...UI2.stack(SP2.lg) },
+  summary:   { display: 'flex', flexWrap: 'wrap', gap: SP2.sm },
+  sumPill:   (tone) => ({ ...UI2.pill(tone), gap: SP2.sm, padding: pad(SP2.xs, SP2.md) }),
+  sumCount:  { fontWeight: FW2.semibold },
+  unitNo:    { ...UI2.text.rowTitle, fontWeight: FW2.semibold },
+  // readiness status as a button (opens the breakdown / resumes a draft) — the standard status pill look
+  badge:     (m, open) => ({ ...UI2.statusPill(m.tone), border: 'none', background: 'none', padding: 0, cursor: m.actionable || m.selectable !== undefined ? 'pointer' : 'default', textDecoration: open ? 'underline' : 'none', textUnderlineOffset: SP2.xs }),
+  chevron:   (open) => ({ ...UI2.btnIcon, fontSize: FS2.xs, transform: open ? 'rotate(180deg)' : 'none' }),
+  // breakdown under the table
+  banner:    (tone) => ({ ...UI2.tonePanel(tone), padding: pad(SP2.md, SP2.lg), fontSize: FS2.sm, color: tone.fg }),
+  rule:      (first) => ({ ...UI2.kvRow(first), justifyContent: 'flex-start', alignItems: 'flex-start', gap: SP2.sm }),
+  ruleIcon:  (color) => ({ fontSize: FS2.lg, color, flexShrink: 0 }),
+  ruleName:  { ...UI2.text.rowTitle, fontWeight: FW2.medium },
+  ruleSev:   (blocking) => ({ ...UI2.tag(blocking ? TONES2.error : accentTone(ACCENT2.violet)), marginLeft: SP2.sm }),
+  ruleText:  { ...UI2.text.meta },
+  skeleton:  { ...UI2.stack(SP2.md) },
 };
 
+// Rule result glyph — passed ✓ (green, real success) · warning △ (violet) · blocking ✕ (red)
 function RuleIcon({ passed, severity }) {
-  const color = passed ? C.greenDark : severity === 'WARNING' ? C.amber : C.red;
-  if (passed) {
-    return (
-      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0, marginTop: 2 }} aria-hidden="true">
-        <circle cx="12" cy="12" r="10" /><path d="M8 12l3 3 5-6" />
-      </svg>
-    );
-  }
-  if (severity === 'WARNING') {
-    return (
-      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0, marginTop: 2 }} aria-hidden="true">
-        <path d="M12 3l9 16H3L12 3z" /><path d="M12 10v4" />
-      </svg>
-    );
-  }
-  return (
-    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2.6" strokeLinecap="round" strokeLinejoin="round" style={{ flexShrink: 0, marginTop: 2 }} aria-hidden="true">
-      <circle cx="12" cy="12" r="10" /><path d="M9 9l6 6M15 9l-6 6" />
-    </svg>
-  );
+  if (passed) return <i className="ti ti-circle-check" style={S.ruleIcon(TONES2.success.strong)} aria-hidden="true" />;
+  if (severity === 'WARNING') return <i className="ti ti-alert-triangle" style={S.ruleIcon(ACCENT2.violet.fg)} aria-hidden="true" />;
+  return <i className="ti ti-circle-x" style={S.ruleIcon(C2.errorDark)} aria-hidden="true" />;
 }
 
 export default function LandlordUnitSelection({ propId, onClose }) {
@@ -449,122 +390,107 @@ export default function LandlordUnitSelection({ propId, onClose }) {
     }
   };
 
+
+  const openUnit = rows.find(r => r.id === openUnitId);
+  const openMeta = openUnit ? (STATUS_META[openUnit.overall] || STATUS_META.UNKNOWN) : null;
+  const canList = freshSelectedCount > 0;
+
+  const COLUMNS = [
+    { key: 'pick', label: '', fit: true,
+      render: u => {
+        const meta = STATUS_META[u.overall] || STATUS_META.UNKNOWN;
+        return <Checkbox checked={!!selected[u.id]} disabled={!meta.selectable} onChange={() => toggle(u)} />;
+      } },
+    { key: 'unit', label: 'Unit', type: 'primary', fit: true, render: u => <span style={S.unitNo}>{u.unit_number}</span> },
+    { key: 'specs', label: 'Beds / Baths', type: 'secondary', fit: true, render: u => `${u.total_rooms ?? '—'} bd / ${u.total_baths ?? '—'} ba` },
+    { key: 'plan', label: 'Floor plan', type: 'secondary', fit: true, render: u => u.floor_plan_name || '—' },
+    { key: 'area', label: 'Carpet area', type: 'secondary', fit: true, render: u => (u.carpet_area ? `${u.carpet_area} sqft` : '—') },
+    { key: 'occ', label: 'Occupancy', type: 'secondary', fit: true, render: u => u.occupancy_status || u.status || '—' },
+    { key: 'ready', label: 'Readiness', type: 'status', fit: true, align: 'right',
+      render: u => {
+        const meta = STATUS_META[u.overall] || STATUS_META.UNKNOWN;
+        const open = openUnitId === u.id;
+        const expandable = !meta.actionable && u.overall !== 'ALREADY_LISTED';
+        return (
+          <button type="button" style={S.badge(meta, open)} onClick={() => handleBadgeClick(u)}
+            title={meta.actionable ? 'Resume this draft' : expandable ? 'Show the readiness checks' : meta.bannerText}>
+            <span style={UI2.statusDot(meta.tone)} />{meta.label}
+            {meta.actionable && ' · Resume →'}
+            {expandable && <i className="ti ti-chevron-down" style={S.chevron(open)} aria-hidden="true" />}
+          </button>
+        );
+      } },
+  ];
+
   return (
-    <div style={S.overlay} onClick={onClose} role="presentation">
-      <div style={S.modalBox} onClick={e => e.stopPropagation()} role="dialog" aria-modal="true" aria-labelledby="unit-selection-title">
-        <div style={S.modalHdr}>
-          <div>
-            <h2 id="unit-selection-title" style={S.modalTitle}>Units for Listing</h2>
-            <p style={S.modalSub}>Choose which units to include — only List Ready units can be selected.</p>
-          </div>
-          <button style={S.modalClose} onClick={onClose} aria-label="Close">×</button>
-        </div>
-
-        {loading && <div style={S.centerMsg}>Loading units…</div>}
-        {!loading && loadError && (
-          <div style={S.centerMsg}>{loadError}</div>
+    <Modal
+      size="lg" media={false} icon="ti-list-check"
+      title="Units for Listing"
+      subtitle="Choose which units to include — only List Ready units can be selected."
+      onClose={onClose}
+      note={resumeError || undefined}
+      info={footerMsg}
+      footer={<>
+        {resumeGroupId && (
+          <button type="button" className="un2-btn" style={{ ...UI2.btn.soft, ...(resolvingResume ? UI2.btnOff : {}) }} onClick={handleResume} disabled={resolvingResume}>
+            {resolvingResume ? 'Updating draft…' : <>Resume Draft <i className="ti ti-arrow-right" style={UI2.btnIcon} aria-hidden="true" /></>}
+          </button>
         )}
+        <button type="button" className="un2-btn" style={{ ...UI2.btn.brand, ...(canList ? {} : UI2.btnOff) }} onClick={handleListSelected} disabled={!canList}>
+          {canList ? ctaLabel.replace(/ →$/, '') : 'List Selected Units'}
+          <i className="ti ti-arrow-right" style={UI2.btnIcon} aria-hidden="true" />
+        </button>
+      </>}
+    >
+      {loading && (
+        <div style={S.skeleton}>
+          {[0, 1, 2].map(i => <div key={i} className="un2-skel" style={UI2.skeleton('100%', SZ2.field)} />)}
+        </div>
+      )}
+      {!loading && loadError && <EmptyState icon="ti-alert-circle" text={loadError} />}
 
-        {!loading && !loadError && (
-          <>
-            <div style={S.stats}>
-              <div style={S.statChip}><span style={S.statDot(C.green)} /><span style={S.statNum}>{counts.LIST_READY || 0}</span><span style={S.statLbl}>List Ready</span></div>
-              <div style={S.statChip}><span style={S.statDot(C.amber)} /><span style={S.statNum}>{counts.READY_WITH_WARNINGS || 0}</span><span style={S.statLbl}>Ready w/ Warnings</span></div>
-              <div style={S.statChip}><span style={S.statDot(C.red)} /><span style={S.statNum}>{counts.NOT_READY || 0}</span><span style={S.statLbl}>Not Ready</span></div>
-              <div style={S.statChip}><span style={S.statDot(C.txtMuted)} /><span style={S.statNum}>{counts.NOT_ELIGIBLE || 0}</span><span style={S.statLbl}>Not Eligible</span></div>
-            </div>
+      {!loading && !loadError && (
+        <div style={S.body}>
+          {/* readiness summary — same four counts as before */}
+          <div style={S.summary}>
+            {SUMMARY.map(s => {
+              const tone = STATUS_META[s.key].tone;
+              return (
+                <span key={s.key} style={S.sumPill(tone)}>
+                  <span style={UI2.statusDot(tone)} />
+                  <span style={S.sumCount}>{counts[s.key] || 0}</span>{s.label}
+                </span>
+              );
+            })}
+          </div>
 
-            <div style={S.body}>
-              <div style={S.table}>
-                <div style={{ ...S.rowGrid, ...S.thRow }}>
-                  <span />
-                  <span style={S.th}>Unit</span>
-                  <span style={S.th}>Beds / Baths</span>
-                  <span style={S.th}>Floor Plan</span>
-                  <span style={S.th}>Carpet Area</span>
-                  <span style={S.th}>Occupancy</span>
-                  <span style={S.th}>Readiness</span>
-                </div>
+          <DataTable
+            columns={COLUMNS}
+            rows={rows}
+            rowKey={u => u.id}
+            empty={<EmptyState icon="ti-home" text="This property has no units yet." />}
+          />
 
-                {rows.map(u => {
-                  const meta = STATUS_META[u.overall] || STATUS_META.UNKNOWN;
-                  const isOpen = openUnitId === u.id;
-                  return (
-                    <div key={u.id}>
-                      <div style={{ ...S.rowGrid, ...S.tr, opacity: meta.selectable ? 1 : 0.82 }}>
-                        <input
-                          type="checkbox"
-                          style={S.checkbox}
-                          checked={!!selected[u.id]}
-                          disabled={!meta.selectable}
-                          onChange={() => toggle(u)}
-                          aria-label={`Select unit ${u.unit_number}`}
-                        />
-                        <span style={S.unitNum}>{u.unit_number}</span>
-                        <span style={S.specs}>{u.total_rooms ?? '—'} bd / {u.total_baths ?? '—'} ba</span>
-                        <span style={S.specs}>{u.floor_plan_name || '—'}</span>
-                        <span style={S.specs}>{u.carpet_area ? `${u.carpet_area} sqft` : '—'}</span>
-                        <span style={S.occ}>{u.occupancy_status || u.status || '—'}</span>
-                        <button style={S.badge(meta)} onClick={() => handleBadgeClick(u)}>
-                          <span style={S.statDot(meta.dot)} />{meta.label}
-                          {meta.actionable && <span style={{ marginLeft: 2 }}>· Resume →</span>}
-                        </button>
-                      </div>
-
-                      {isOpen && (
-                        <div style={S.detail(meta)}>
-                          <div style={{ marginBottom: u.rules.length ? 8 : 0 }}>
-                            {u.readinessError ? `Couldn't load readiness: ${u.readinessError}` : meta.bannerText}
-                          </div>
-                          {u.rules.map((rule, i) => (
-                            <div key={rule.code || i} style={S.ruleRow}>
-                              <RuleIcon passed={rule.passed} severity={rule.severity} />
-                              <div style={{ flex: 1 }}>
-                                <span style={S.ruleName}>{rule.name}</span>
-                                <span style={S.ruleSev}>{rule.severity === 'BLOCKING' ? 'Blocking' : 'Warning'}</span>
-                                {rule.detail_reason && <div style={S.ruleDetail}>{rule.detail_reason}</div>}
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  );
-                })}
-
-                {rows.length === 0 && (
-                  <div style={{ padding: 20, fontSize: 12.5, color: C.txtMuted }}>This property has no units yet.</div>
-                )}
+          {/* the opened unit's readiness breakdown (was an expand-in-place row) */}
+          {openUnit && openMeta && (
+            <ModalSection icon="ti-checklist" title={`Readiness — Unit ${openUnit.unit_number}`} hint={openMeta.label}>
+              <div style={S.banner(openMeta.tone)}>
+                {openUnit.readinessError ? `Couldn't load readiness: ${openUnit.readinessError}` : openMeta.bannerText}
               </div>
-            </div>
-          </>
-        )}
-
-        <div style={S.footer}>
-          <div>
-            <span style={S.footerMsg}>{footerMsg}</span>
-            {resumeError && <div style={S.resumeError}>{resumeError}</div>}
-          </div>
-          <div style={S.footerBtns}>
-            {resumeGroupId && (
-              <button
-                style={{ ...S.btn, ...(resolvingResume ? S.btnOutlineDisabled : S.btnOutline) }}
-                onClick={handleResume}
-                disabled={resolvingResume}
-              >
-                {resolvingResume ? 'Updating draft…' : 'Resume Draft →'}
-              </button>
-            )}
-            <button
-              style={{ ...S.btn, ...(freshSelectedCount === 0 ? S.btnDisabled : S.btnPrimary) }}
-              onClick={handleListSelected}
-              disabled={freshSelectedCount === 0}
-            >
-              {freshSelectedCount === 0 ? 'List Selected Units →' : ctaLabel}
-            </button>
-          </div>
+              {openUnit.rules.map((rule, i) => (
+                <div key={rule.code || i} style={S.rule(i === 0)}>
+                  <RuleIcon passed={rule.passed} severity={rule.severity} />
+                  <div style={UI2.minWidth0}>
+                    <span style={S.ruleName}>{rule.name}</span>
+                    <span style={S.ruleSev(rule.severity === 'BLOCKING')}>{rule.severity === 'BLOCKING' ? 'Blocking' : 'Warning'}</span>
+                    {rule.detail_reason && <div style={S.ruleText}>{rule.detail_reason}</div>}
+                  </div>
+                </div>
+              ))}
+            </ModalSection>
+          )}
         </div>
-      </div>
-    </div>
+      )}
+    </Modal>
   );
 }
