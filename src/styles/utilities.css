@@ -442,6 +442,16 @@
 .un2-cols.un2-cols-2-wide-last-lg { grid-template-columns: minmax(0, 1fr) minmax(0, 2.5fr); }
 @media (max-width: 1024px) { .un2-cols.un2-cols-2-wide-last, .un2-cols.un2-cols-3-wide-last, .un2-cols.un2-cols-2-wide-last-lg { grid-template-columns: minmax(0, 1fr); } }
 
+/* ── Legend chips row (chart legends: tinted pill chips split by hairlines — PM Approvals trend).
+      <div class="un2-cq"><div class="un2-legend-chips">chip · <span class="un2-legend-sep"/> · chip…</div></div>
+      Narrow column (≤ 480px): hairlines hide (never left dangling at a wrap) and chips tighten so they
+      stay on one line; if they still wrap, they wrap as clean centred chips. ── */
+@container (max-width: 480px) {
+  .un2-legend-chips { column-gap: var(--un2-sp-xs) !important; }
+  .un2-legend-chips .un2-legend-sep { display: none !important; }
+  .un2-legend-chips .un2-legend-chip { gap: var(--un2-sp-xs) !important; padding-left: var(--un2-sp-sm) !important; font-size: var(--un2-fs-xs) !important; }
+}
+
 /* ── StatGroup: open header stats (no box), hairline dividers; 4 → 2 × 2 on phones ── */
 .un2-stat-group { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, auto); }
 .un2-stat-group > * + * { border-left: 1px solid var(--un2-border); }

@@ -41,8 +41,11 @@ const S = {
   thumb: { position: 'relative', width: '100%', height: SZ2.assetThumb.h, borderRadius: R2.lg, overflow: 'hidden', background: C2.surfaceMuted, boxShadow: SH2.md },
   img:   { position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', display: 'block' },
   body:  { ...UI2.stack(SP2.xs), minWidth: 0 },
-  title: { ...UI2.row(SP2.sm), minWidth: 0 },
-  name:  { fontSize: FS2.md, fontWeight: FW2.medium, lineHeight: LH2.heading, color: C2.textPrimary, textTransform: 'capitalize', ...UI2.truncate },
+  // name + tags: when they don't fit on one line the tags drop under the name (never squeeze the
+  // name to "Emer…" or break a tag like "ELITE LISTING" over two lines)
+  title: { ...UI2.row(SP2.sm), flexWrap: 'wrap', rowGap: SP2.xs, minWidth: 0 },
+  name:  { fontSize: FS2.md, fontWeight: FW2.medium, lineHeight: LH2.heading, color: C2.textPrimary, textTransform: 'capitalize', ...UI2.truncate, minWidth: 0, maxWidth: '100%' },
+  tagNo: { whiteSpace: 'nowrap', flexShrink: 0 },
   addr:  { ...UI2.text.meta, ...UI2.truncate, textTransform: 'capitalize' },
   stats: { display: 'flex', flexWrap: 'wrap', columnGap: SP2.lg, rowGap: SP2.xxs, fontSize: FS2.xs, lineHeight: LH2.heading, color: C2.textSecondary },
   val:   { fontWeight: FW2.semibold, color: C2.textPrimary, marginLeft: SP2.xs },
@@ -101,8 +104,8 @@ export default function AssetRow({
           <>
             <div style={S.title}>
               <span className="un2-asset-name" style={S.name} title={name}>{name}</span>
-              {status && <span style={UI2.tag(status.tone || TONES2.neutral)}>{status.label}</span>}
-              {tag && <span className="un2-hide-narrow" style={UI2.tag(tag.tone)}>{tag.label}</span>}
+              {status && <span style={{ ...UI2.tag(status.tone || TONES2.neutral), ...S.tagNo }}>{status.label}</span>}
+              {tag && <span className="un2-hide-narrow" style={{ ...UI2.tag(tag.tone), ...S.tagNo }}>{tag.label}</span>}
             </div>
             {(address || units) && (
               <div style={S.addr}>{address}{address && units ? ' · ' : ''}{units ? `${units} Units` : ''}</div>

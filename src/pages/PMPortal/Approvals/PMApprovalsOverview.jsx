@@ -141,7 +141,7 @@ const S = {
   capitalize:{ textTransform: 'capitalize' },
   equity:    { color: C2.textSecondary },                // plain text after the reference (no tag box in tables)
   dash:      { color: C2.textMuted },
-  actions:   { ...UI2.row(SP2.xs), justifyContent: 'flex-end' },
+  actions:   { ...UI2.row(SP2.xs) },   // left-aligned under the "Actions" heading, like every other column
   // row icon button = the unit page's eye button: small round, tone glyph on its soft tint · grey + not-allowed when off
   act:       (tone, on) => UI2.btn.rowIcon(tone, on),   // shared round row action (UI2.btn.rowIcon)
   // detail pop-up
@@ -635,7 +635,7 @@ export default function PMApprovalsOverview() {
     { key: 'sub', label: 'Sub category', type: 'secondary', fit: true, render: r => r.sub_category || <Dash /> },
     { key: 'submitted', label: 'Submitted', type: 'secondary', fit: true, render: r => (r.submitted_at ? fmtDate(r.submitted_at) : <Dash />) },
     { key: 'status', label: 'Status', type: 'status', fit: true, render: r => <StatusPill status={r.status} /> },
-    { key: 'actions', label: '', align: 'right', fit: true,
+    { key: 'actions', label: 'Actions', fit: true,
       render: r => {
         const on = r.status === 'SUBMITTED';   // approve / reject only once the owner has submitted
         return (
@@ -745,17 +745,19 @@ export default function PMApprovalsOverview() {
               <MultiLineChart labels={trendLabels} series={trendSeries} ariaLabel="Submitted vs approved vs rejected — last 8 weeks" />
             </div>
             {/* legend chips: tinted pill · dot · name · total over the range, hairline between chips */}
-            <div style={S.legend}>
+            <div className="un2-cq">
+            <div className="un2-legend-chips" style={S.legend}>
               {trendSeries.map((s, i) => (
                 <React.Fragment key={s.label}>
-                  {i > 0 && <span style={S.legendSep} aria-hidden="true" />}
-                  <span style={S.legendChip(s.tone)}>
+                  {i > 0 && <span className="un2-legend-sep" style={S.legendSep} aria-hidden="true" />}
+                  <span className="un2-legend-chip" style={S.legendChip(s.tone)}>
                     <span style={UI2.statusDot(s.tone)} aria-hidden="true" />
                     {s.label}
                     <span style={S.legendCount(s.tone)}>{s.values.reduce((n, v) => n + v, 0)}</span>
                   </span>
                 </React.Fragment>
               ))}
+            </div>
             </div>
           </div>
 
@@ -828,6 +830,8 @@ export default function PMApprovalsOverview() {
           </div>
         </div>
 
+        {/* white card behind the table: rows sit on white, hover shows the light-blue band */}
+        <div style={S.panel}>
         {loading ? (
           <div style={UI2.stack(SP2.md)}>
             {[0, 1, 2, 3].map(i => <div key={i} className="un2-skel" style={UI2.skeleton('100%', SZ2.field)} />)}
@@ -846,6 +850,7 @@ export default function PMApprovalsOverview() {
             )}
           />
         )}
+        </div>
       </section>
 
       <PageFooter />
