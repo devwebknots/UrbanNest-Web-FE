@@ -1,6 +1,6 @@
 import React, { useEffect, useRef } from 'react';
 import { Chart, registerables } from 'chart.js';
-import { C2, CHART2, G2, GSTOPS2, SH2, T2, F2, FS2, FW2, LH2, R2, SP2, SZ2, pad, UI2 } from '../../constants';
+import { C2, CHART2, STATUS2, G2, GSTOPS2, SH2, T2, F2, FS2, FW2, LH2, R2, SP2, SZ2, pad, UI2 } from '../../constants';
 
 Chart.register(...registerables);
 
@@ -331,6 +331,140 @@ export function Gauge({ value = 0, max = 100, caption, tone, gradient, dark = fa
         {/* Type presets (fonts.js rules): score = T2.figure (Inter 500 28, same as Portfolio Insights) · "/ max" = number 16px → Inter 600 · caption = T2.label (Inter 400 12) */}
         <div style={{ ...UI2.text.number, fontSize: FS2.lg, color: dark ? C2.onDark.textSoft : C2.textSecondary, marginTop: SP2.xs }}>/ {max}</div>
         {caption && <div style={{ ...T2.label, color: dark ? C2.onDark.textMuted : T2.label.color, marginTop: SP2.xs }}>{caption}</div>}
+      </div>
+    </div>
+  );
+}
+
+// Multi-series trend line with axes — one thin smooth line per series (e.g. Submitted · Approved · Rejected),
+// white-ringed points, soft fill under the FIRST series only, white tooltip listing every series.
+// Fills its parent (give the parent a height). Pair with a legend built from UI2.legendKey + a colour dash.
+// Props: labels, series [{ label, values, color }], emptyMax (y max when everything is 0), ariaLabel
+//   <div style={{ position: 'relative', height: SZ2.chart }}>
+//     <MultiLineChart labels={weeks} series={[{ label: 'Submitted', values: s, color: STATUS2.submitted }, …]} />
+//   </div>
+export function MultiLineChart({ labels = [], series = [], emptyMax = 4, ariaLabel = 'Trend chart' }) {
+  const ref = useChart(() => {
+    const tickFont = { size: FS2.sm, family: F2.body };
+    const maxVal = Math.max(0, ...series.flatMap(s => s.values || []));
+    return {
+      type: 'line',
+      data: {
+        labels,
+        datasets: series.map((s, i) => ({
+          label: s.label,
+          data: s.values,
+          borderColor: s.color, borderWidth: 2, tension: 0.4,
+          fill: i === 0,
+          backgroundColor: ({ chart }) => {
+            const { ctx, chartArea } = chart;
+            if (!chartArea) return CHART2.trendFillTop;
+            const g = ctx.createLinearGradient(0, chartArea.top, 0, chartArea.bottom);
+            g.addColorStop(0, CHART2.trendFillTop);
+            g.addColorStop(1, CHART2.trendFillBottom);
+            return g;
+          },
+          pointRadius: 3, pointHoverRadius: 5, pointBorderWidth: 2,
+          pointBackgroundColor: C2.white, pointBorderColor: s.color,
+        })),
+      },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        interaction: { mode: 'index', intersect: false },
+        layout: { padding: { top: SP2.sm, right: SP2.sm } },
+        plugins: {
+          legend: { display: false },
+          tooltip: {
+            backgroundColor: C2.white, titleColor: C2.navyDeep, bodyColor: C2.textSecondary,
+            titleFont: { size: FS2.sm, weight: FW2.semibold, family: F2.body }, bodyFont: { size: FS2.xs, family: F2.body },
+            padding: SP2.sm, cornerRadius: R2.md, caretSize: SP2.sm, boxPadding: SP2.xs, usePointStyle: true,
+            borderColor: C2.border, borderWidth: 1,
+          },
+        },
+        scales: {
+          x: { grid: { display: false }, border: { display: false }, ticks: { font: tickFont, color: CHART2.tick } },
+          y: {
+            beginAtZero: true, suggestedMax: maxVal > 0 ? undefined : emptyMax,
+            border: { display: false }, grid: { color: CHART2.grid },
+            ticks: { font: tickFont, color: CHART2.tick, maxTicksLimit: 5, precision: 0 },
+          },
+        },
+      },
+    };
+  }, [JSON.stringify(labels), JSON.stringify(series)]);
+  return <canvas ref={ref} role="img" aria-label={ariaLabel}>{ariaLabel}</canvas>;
+}
+
+// Colour at position t (0–1) along a ramp of hex stops — colours a SegmentDonut legend dot so it matches its
+// part of a gradient ring:  rampColor(STATUS2.ramp, 0.25)
+export function rampColor(ramp = [], t = 0) {
+  if (!ramp.length) return C2.primary;
+  if (ramp.length === 1) return ramp[0];
+  const x = Math.max(0, Math.min(1, t)) * (ramp.length - 1);
+  const i = Math.min(Math.floor(x), ramp.length - 2);
+  const f = x - i;
+  const rgb = h => [1, 3, 5].map(k => parseInt(h.slice(k, k + 2), 16));
+  const a = rgb(ramp[i]);
+  const b = rgb(ramp[i + 1]);
+  return '#' + a.map((v, k) => Math.round(v + (b[k] - v) * f).toString(16).padStart(2, '0')).join('');
+}
+
+// Where each non-zero part's middle sits along the ring (0–1), in the same order — pair with rampColor:
+//   segmentMidpoints([{ value: 4 }, { value: 2 }]) → [0.333, 0.833]
+export function segmentMidpoints(segments = []) {
+  const parts = segments.filter(s => Number(s.value) > 0);
+  const total = parts.reduce((n, s) => n + Number(s.value), 0) || 1;
+  let acc = 0;
+  return parts.map(s => { const v = Number(s.value); const mid = (acc + v / 2) / total; acc += v; return mid; });
+}
+
+// Segment donut — several parts of one whole (status breakdown), rounded segment ends with a small
+// gap, total + caption in the centre. Empty (all 0) → plain track ring with 0 in the middle.
+// Colours: each segment's own `color`, OR `ramp` (hex stops, dark → light) paints the whole ring as ONE continuous
+// gradient running clockwise from 12 o'clock (conic) — parts are told apart by the gaps; colour their legend dots
+// with rampColor(ramp, segmentMidpoints(segments)[i]).
+// Props: segments [{ label, value, color }], ramp (optional), value (centre figure, default the sum),
+//        label (centre caption), size (default SZ2.donut)
+//   <SegmentDonut label="Total" ramp={STATUS2.ramp} segments={[{ label: 'Pending', value: 3 }, …]} />
+export function SegmentDonut({ segments = [], ramp, value, label, size = SZ2.donut }) {
+  const parts = segments.filter(s => Number(s.value) > 0);
+  const total = parts.reduce((n, s) => n + Number(s.value), 0);
+  const ref = useChart(() => {
+    // One gradient around the whole ring (conic from the top); diagonal linear fallback for older browsers
+    const ringFill = ({ chart }) => {
+      const a = chart.chartArea;
+      if (!a) return ramp[0];
+      const { ctx } = chart;
+      const g = ctx.createConicGradient
+        ? ctx.createConicGradient(-Math.PI / 2, (a.left + a.right) / 2, (a.top + a.bottom) / 2)
+        : ctx.createLinearGradient(a.left, a.top, a.right, a.bottom);
+      ramp.forEach((c, i) => g.addColorStop(i / (ramp.length - 1), c));
+      return g;
+    };
+    const fills = !parts.length ? [STATUS2.track] : (ramp && ramp.length > 1 ? ringFill : parts.map(s => s.color));
+    return {
+      type: 'doughnut',
+      data: {
+        labels: parts.length ? parts.map(s => s.label) : ['—'],
+        datasets: [{
+          data: parts.length ? parts.map(s => s.value) : [1],
+          backgroundColor: fills,
+          hoverBackgroundColor: fills,
+          borderWidth: 0, borderRadius: parts.length > 1 ? R2.sm : 0, spacing: parts.length > 1 ? SP2.xxs : 0,
+        }],
+      },
+      options: {
+        responsive: false, cutout: '78%',
+        plugins: { legend: { display: false }, tooltip: { enabled: parts.length > 0 } },
+      },
+    };
+  }, [JSON.stringify(parts), JSON.stringify(ramp || null)]);
+  return (
+    <div style={{ position: 'relative', width: size, height: size }}>
+      <canvas ref={ref} width={size} height={size} role="img" aria-label={`${label || 'Total'} ${value ?? total}`}>{value ?? total}</canvas>
+      <div style={{ ...UI2.center, position: 'absolute', inset: 0, flexDirection: 'column', pointerEvents: 'none' }}>
+        <div style={T2.figure}>{value ?? total}</div>
+        {label && <div style={{ ...T2.label, marginTop: SP2.xs }}>{label}</div>}
       </div>
     </div>
   );

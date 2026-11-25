@@ -225,6 +225,20 @@ export const CHART2 = {
   gridOnDark:       C2.onDark.borderSoft,
 };
 
+// Approval / application statuses — one colour per status for charts (MultiLineChart series, SegmentDonut)
+// and their legend keys. Calm app palette only: brand blue · navy · teal · red (warnings) · grey. No yellow / green.
+export const STATUS2 = {
+  submitted: '#0659B2',          // brand blue (G2.brandButton end)
+  pending:   '#7AAAF8',          // light primary blue (ACCENT2.blue bar end)
+  approved:  '#0F9488',          // teal (ACCENT2.teal)
+  rejected:  '#D93636',          // red (GSTOPS2.error start)
+  expired:   '#CBD5E1',          // grey
+  track:     '#EEF3FB',          // donut ring behind the segments
+  // Status Breakdown ring as ONE blue gradient (SegmentDonut ramp), dark → light — existing app blues only:
+  // brand blue (G2.brandButton end) → primary → light primary (ACCENT2.blue bar end) → soft bar blue (CHART2.bar)
+  ramp:      ['#0659B2', '#2563EB', '#7AAAF8', '#BFD4FB'],
+};
+
 export const ILLUS2 = {
   personBack:     '#C7D7F5',
   personBackBody: '#DCE6F8',

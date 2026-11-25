@@ -14,4 +14,6 @@ export { default as PageFooter } from './PageFooter';
 export { default as Breadcrumb } from './Breadcrumb';
 export { default as PageWave } from './PageWave';
 export { default as ImageBackdrop } from './ImageBackdrop';
+export { default as PMPageShell, PMTopBar2 } from './PMPageShell';   // PM Portal frame: NavPM sidebar + PM top bar
+export { default as NavPM } from './NavPM';
 export { default as AuthShell, AUTH, AUTH_INTRO, introAt, formIntro, GoogleLogo, AppleLogo } from './AuthShell';   // sign-in / sign-up frame

@@ -97,6 +97,7 @@ export { default as DataTable } from './DataTable';
 export { default as ProfileHero } from './ProfileHero';
 export { default as WaveHero } from './WaveHero';
 export { default as ListingsHero } from './ListingsHero';
+export { default as HeroStats } from './HeroStats';   // Listings hero stats row (round icon · caps label · figure, hairline split) — reusable on its own
 export { default as OpenHero } from './OpenHero';
 export { default as KpiStrip } from './KpiStrip';
 export { default as AssetRow } from './AssetRow';
@@ -110,7 +111,7 @@ export { default as StatSpark } from './StatSpark';   // tiny month bars + % (St
 export { default as FactCard } from './FactCard';
 export { default as FilterMenu } from './FilterMenu';
 export { default as PhotoBento } from './PhotoBento';
-export { BarChart, DonutChart, Sparkline, LineChart, Gauge, ProgressRing, MiniBars } from './Charts';
+export { BarChart, DonutChart, Sparkline, LineChart, Gauge, ProgressRing, MiniBars, MultiLineChart, SegmentDonut, rampColor, segmentMidpoints } from './Charts';
 
 // Forms + wizards (Create Listing is the reference) — VERSION 2 FORM STANDARD documented at the top of FormField.jsx:
 //   Stepper (numbered steps) · FormField + ReadField + FIELD2 (caps label · standard field boxes) ·
