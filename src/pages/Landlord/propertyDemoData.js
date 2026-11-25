@@ -20,6 +20,11 @@ export const PROPERTY_DEMO = {
     maint_open: 2,
   },
 
+  // Header StatGroup trend bars (last 5 months, oldest → newest) — used when stats has no
+  // occupancy_trend / collection_trend; the newest month always shows the live figure.
+  occupancy_trend:  [{ label: 'Jun', value: 50 }, { label: 'Jul', value: 50 }, { label: 'Aug', value: 75 }, { label: 'Sep', value: 75 }, { label: 'Oct', value: 75 }],
+  collection_trend: [{ label: 'Jun', value: 78 }, { label: 'Jul', value: 85 }, { label: 'Aug', value: 81 }, { label: 'Sep', value: 88 }, { label: 'Oct', value: 92 }],
+
   ownerships: [
     { owner_name: 'Marcus Vance', share_pct: 100 },
   ],

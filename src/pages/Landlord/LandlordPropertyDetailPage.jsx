@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { PageShell, Grid, Breadcrumb, PageFooter } from '../../components/layout';
 import {
   SectionCard, TabBar, ListRow, EmptyState,
-  DataTable, MetricBar, BarChart, Gauge, TextLink, ActionTray, FilterMenu, DetailHeader, StatGroup, PhotoBento, AssetRow,
+  DataTable, MetricBar, BarChart, Gauge, TextLink, ActionTray, FilterMenu, DetailHeader, StatGroup, StatSpark, PhotoBento, AssetRow,
   Modal, ModalSection, FormField, SelectField, IconField, FIELD2, ChoiceTile,
 } from '../../components/ui';
 import { C2, G2, GSTOPS2, TONES2, ACCENT2, T2, FS2, FW2, SP2, SZ2, SH2, R2, BLUR2, LAYOUT2, OP2, pad, UI2 } from '../../constants';
@@ -923,6 +923,13 @@ const PRIORITY_TONE = p => (p === 'URGENT' || p === 'HIGH') ? TONES2.error : p =
 // Rent Collection — placeholder figures (same numbers as before; flagged "Sample data" in the UI)
 const RENT_MONTHS = PROPERTY_DEMO.rent.map(r => r.month);
 const RENT_SAMPLE = PROPERTY_DEMO.rent.map(r => r.amount);
+
+// Header trend bars: the API's monthly series when it sends one, else the sample — either way the
+// newest bar is pinned to the live figure so the bars and the % beside them always agree.
+const statTrend = (api, sample, current) => {
+  const t = Array.isArray(api) && api.length ? api : sample;
+  return t.map((m, i) => (i === t.length - 1 ? { ...m, value: current } : m));
+};
 const RENT_SUMMARY = [
   { lbl: 'Funding',      val: '$4,250' },
   { lbl: 'Expenses',     val: '$12,800' },
@@ -1644,8 +1651,11 @@ export default function LandlordPropertyDetailPage() {
             <StatGroup items={[
               { icon: 'ti-building', label: 'Total units', accent: ACCENT2.blue,
                 value: stats.total_units != null ? `${stats.total_units} ${stats.total_units === 1 ? 'Unit' : 'Units'}` : '—' },
-              { label: 'Occupancy', accent: ACCENT2.teal, value: `${occ}%`, pct: loading ? 0 : occ },
-              { label: 'Collection', accent: ACCENT2.violet, value: `${stats.collection_pct ?? 0}%`, pct: loading ? 0 : (stats.collection_pct ?? 0) },
+              // Occupancy / Collection: tinted icon (same as the other stats) + 5-month trend bars + % — replaces the old mini rings
+              { icon: 'ti-home-check', label: 'Occupancy', accent: ACCENT2.teal,
+                value: loading ? '—' : <StatSpark value={occ} trend={statTrend(stats.occupancy_trend, PROPERTY_DEMO.occupancy_trend, occ)} accent={ACCENT2.teal} label="Occupancy" /> },
+              { icon: 'ti-receipt', label: 'Collection', accent: ACCENT2.violet,
+                value: loading ? '—' : <StatSpark value={stats.collection_pct ?? 0} trend={statTrend(stats.collection_trend, PROPERTY_DEMO.collection_trend, stats.collection_pct ?? 0)} accent={ACCENT2.violet} label="Collection" /> },
               { icon: stats.maint_open > 0 ? 'ti-tool' : 'ti-check', label: 'Maintenance', accent: stats.maint_open > 0 ? ACCENT2.rose : ACCENT2.teal,
                 value: stats.maint_open > 0 ? `${stats.maint_open} Open` : 'Clear',
                 valueColor: stats.maint_open > 0 ? C2.errorDark : C2.successStrong },
