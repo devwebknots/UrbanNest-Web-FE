@@ -1,5 +1,5 @@
 import React from 'react';
-import { C2, TONES2, R2, SH2, F2, FS2, FW2, T2, SP2, SZ2, LAYOUT2, pad, UI2 } from '../../constants';
+import { C2, TONES2, R2, SH2, FS2, FW2, T2, SP2, SZ2, LAYOUT2, pad, UI2 } from '../../constants';
 
 // ─── TopBar (Design System v2) ───────────────────────────────────────────────
 // VERSION 2 top bar — the v1 equivalents in this folder are Header.jsx / PMTopBar.jsx (older screens).
@@ -20,7 +20,7 @@ const S = {
               borderBottomWidth: SZ2.hairline, borderBottomStyle: 'solid', borderBottomColor: C2.border },
   title:    { ...T2.pageTitle, color: C2.navyDeep, whiteSpace: 'nowrap' },
   search:   { ...UI2.searchField, width: SZ2.search, maxWidth: '36vw' },
-  input:    { flex: 1, minWidth: 0, border: 'none', outline: 'none', background: 'transparent', fontFamily: F2.body, fontSize: FS2.base, color: C2.textPrimary },
+  input:    UI2.searchInput,
   kbd:      { fontSize: FS2.xs, fontWeight: FW2.semibold, color: C2.textSecondary, background: C2.surfaceMuted, border: `1px solid ${C2.border}`, borderRadius: R2.sm, padding: pad(SP2.xxs, SP2.sm) },
   bellDot:  { ...UI2.statusDot(TONES2.error), position: 'absolute', top: SP2.sm, right: SP2.sm, border: `2px solid ${C2.pageBg}`, boxSizing: 'content-box' },
   avatar:   { ...UI2.avatar(SZ2.icon.md, { soft: C2.navyDeep, fg: C2.white }), cursor: 'pointer', boxShadow: SH2.avatarRing },

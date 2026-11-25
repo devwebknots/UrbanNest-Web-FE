@@ -101,8 +101,8 @@ const S = {
   side:      UI2.stack(LAYOUT2.gridGap),
   tools:     { ...UI2.row(LAYOUT2.inlineGap) },
   toolBtn:   (on) => ({ ...UI2.btn.iconOutline(SZ2.control.md), ...(on ? { color: C2.primary, borderColor: C2.primary } : {}) }),
-  search:    { ...UI2.searchField, width: SZ2.searchSm, maxWidth: '100%', marginTop: LAYOUT2.cardHeaderGap },
-  input:     { flex: 1, minWidth: 0, border: 'none', outline: 'none', background: 'transparent', fontFamily: F2.body, fontSize: FS2.base, color: C2.textPrimary },
+  search:    { ...UI2.toolbar.search, marginTop: LAYOUT2.cardHeaderGap },
+  input:     UI2.searchInput,
   // My Properties: open section (column so an empty state can fill + centre in the remaining height)
   open:      { display: 'flex', flexDirection: 'column', minWidth: 0 },
   openHead:  { marginBottom: LAYOUT2.cardHeaderGap },

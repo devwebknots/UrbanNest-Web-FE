@@ -107,6 +107,10 @@ export const T2 = {
   // Open page hero (OpenHero — list pages like Portfolio): big Playfair title + Inter sub line
   pageHeroTitle:  { fontFamily: F2.heading, fontSize: FS2.xxxl, fontWeight: FW2.semibold, lineHeight: LH2.tight, letterSpacing: LS2.tighter, color: C2.navyDeep },
   pageHeroSub:    { fontFamily: F2.body, fontSize: FS2.md, fontWeight: FW2.regular, lineHeight: LH2.body, color: C2.textSecondary },
+  // THE v2 page heading — single source for every light page / hero title: WaveHero (Portfolio "Property List"),
+  // ProfileHero (Dashboard), ListingsHero, DetailHeader (property / unit), Create Listing wizard, PM Approvals.
+  // Playfair 24 semibold navy. Subtitle = T2.lead (Playfair 13 grey), SP2.xs below. Spread it — never re-type these values.
+  heroHeading:    { fontFamily: F2.heading, fontSize: FS2.xxxl, fontWeight: FW2.semibold, lineHeight: LH2.snug, letterSpacing: LS2.tight, color: C2.navyDeep },
   pageTitle:     { fontFamily: F2.heading, fontSize: FS2.xl, fontWeight: FW2.semibold, lineHeight: LH2.heading, letterSpacing: LS2.snug, color: C2.textPrimary },
   sectionTitle:   { fontFamily: F2.heading, fontSize: FS2.lg, fontWeight: FW2.semibold, lineHeight: LH2.heading, letterSpacing: LS2.snug, color: C2.textPrimary },
   brandTitle:     { fontFamily: F2.heading, fontSize: FS2.xl, fontWeight: FW2.semibold, color: C2.white },

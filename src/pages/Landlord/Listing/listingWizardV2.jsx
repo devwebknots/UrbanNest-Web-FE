@@ -20,7 +20,7 @@
 import React from 'react';
 import { PageShell, Breadcrumb, ImageBackdrop } from '../../../components/layout';
 import { Stepper, FIELD2 } from '../../../components/ui';
-import { C2, TONES2, F2, FS2, FW2, LH2, LS2, SP2, SZ2, SH2, LAYOUT2, T2, UI2 } from '../../../constants';
+import { C2, TONES2, FS2, FW2, SP2, SZ2, SH2, LAYOUT2, T2, UI2 } from '../../../constants';
 import { STEPS } from './listingWizardShared';
 import backdropArt from '../../../assets/landlord/wizard-backdrop.jpg';   // Downloads/image 86.png — waves behind the header
 
@@ -45,7 +45,7 @@ export const WZ = {
   // Page header — title = the standard page/hero title (Playfair 24 semibold, same as the Dashboard / Portfolio /
   // Listings banners) · subtitle = T2.label · status pill on the right of the title line
   head:      { display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: SP2.lg, flexWrap: 'wrap' },
-  pageTitle: { fontFamily: F2.heading, fontSize: FS2.xxxl, fontWeight: FW2.semibold, lineHeight: LH2.snug, letterSpacing: LS2.tight, color: C2.navyDeep, margin: 0 },
+  pageTitle: { ...T2.heroHeading, margin: 0 },
   pageSub:   { ...UI2.text.label, marginTop: SP2.sm },
 };
 

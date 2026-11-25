@@ -336,10 +336,61 @@ export function Gauge({ value = 0, max = 100, caption, tone, gradient, dark = fa
   );
 }
 
-// Multi-series trend line with axes — one thin smooth line per series (e.g. Submitted · Approved · Rejected),
-// white-ringed points, soft fill under the FIRST series only, white tooltip listing every series.
-// Fills its parent (give the parent a height). Pair with a legend built from UI2.legendKey + a colour dash.
-// Props: labels, series [{ label, values, color }], emptyMax (y max when everything is 0), ariaLabel
+// hex colour → rgba() with alpha (fills / halos tinted in a series' own colour)
+const hexA = (hex, a) => {
+  const [r, g, b] = [1, 3, 5].map(k => parseInt(String(hex).slice(k, k + 2), 16));
+  return `rgba(${r}, ${g}, ${b}, ${a})`;
+};
+
+// Peak marker: the highest point (latest one on a tie) gets a soft halo in its series colour and a tinted
+// "Series: value" pill above it — always visible, so the key number reads without hovering.
+const peakPlugin = {
+  id: 'un2Peak',
+  afterDatasetsDraw(chart) {
+    let best = null;
+    chart.data.datasets.forEach((ds, di) => {
+      if (chart.getDatasetMeta(di).hidden) return;
+      ds.data.forEach((raw, ix) => {
+        const v = Number(raw) || 0;
+        if (v > 0 && (!best || v > best.v || (v === best.v && ix > best.ix))) best = { v, ix, di };
+      });
+    });
+    if (!best) return;
+    const ds = chart.data.datasets[best.di];
+    const pt = chart.getDatasetMeta(best.di).data[best.ix];
+    if (!pt) return;
+    const { ctx, chartArea } = chart;
+    const color = ds.borderColor;
+    const text = `${ds.label}: ${best.v}`;
+    ctx.save();
+    // halo round the point
+    ctx.beginPath();
+    ctx.arc(pt.x, pt.y, SP2.md, 0, Math.PI * 2);
+    ctx.fillStyle = hexA(color, 0.18);
+    ctx.fill();
+    // label pill above it (kept inside the chart's width)
+    ctx.font = `${FW2.semibold} ${FS2.sm}px ${F2.body}`;
+    const w = ctx.measureText(text).width + SP2.md * 2;
+    const h = FS2.sm + SP2.md;
+    const x = Math.max(chartArea.left, Math.min(pt.x - w / 2, chart.width - w));
+    const y = Math.max(SP2.xxs, pt.y - SP2.md - SP2.xs - h);   // never above the canvas top
+    ctx.beginPath();
+    if (ctx.roundRect) ctx.roundRect(x, y, w, h, h / 2); else ctx.rect(x, y, w, h);
+    ctx.fillStyle = hexA(color, 0.16);
+    ctx.fill();
+    ctx.fillStyle = C2.textPrimary;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(text, x + w / 2, y + h / 2);
+    ctx.restore();
+  },
+};
+
+// Multi-series trend line with axes — one smooth line per series (e.g. Submitted · Approved · Rejected):
+// white-ringed points, a soft fade under EACH line in its own colour, dashed horizontal grid, flat (unrotated)
+// x labels, the peak point ringed + labelled ("Approved: 3"), white tooltip listing every series.
+// Fills its parent (give the parent a height). Pair with legend chips (dot · name · count) on the page.
+// Props: labels, series [{ label, values, color (hex) }], emptyMax (y max when everything is 0), ariaLabel
 //   <div style={{ position: 'relative', height: SZ2.chart }}>
 //     <MultiLineChart labels={weeks} series={[{ label: 'Submitted', values: s, color: STATUS2.submitted }, …]} />
 //   </div>
@@ -349,29 +400,30 @@ export function MultiLineChart({ labels = [], series = [], emptyMax = 4, ariaLab
     const maxVal = Math.max(0, ...series.flatMap(s => s.values || []));
     return {
       type: 'line',
+      plugins: [peakPlugin],
       data: {
         labels,
-        datasets: series.map((s, i) => ({
+        datasets: series.map(s => ({
           label: s.label,
           data: s.values,
-          borderColor: s.color, borderWidth: 2, tension: 0.4,
-          fill: i === 0,
+          borderColor: s.color, borderWidth: 2.5, tension: 0.4,
+          fill: 'origin',
           backgroundColor: ({ chart }) => {
             const { ctx, chartArea } = chart;
-            if (!chartArea) return CHART2.trendFillTop;
+            if (!chartArea) return hexA(s.color, 0.12);
             const g = ctx.createLinearGradient(0, chartArea.top, 0, chartArea.bottom);
-            g.addColorStop(0, CHART2.trendFillTop);
-            g.addColorStop(1, CHART2.trendFillBottom);
+            g.addColorStop(0, hexA(s.color, 0.24));
+            g.addColorStop(1, hexA(s.color, 0));
             return g;
           },
-          pointRadius: 3, pointHoverRadius: 5, pointBorderWidth: 2,
+          pointRadius: 4, pointHoverRadius: 6, pointBorderWidth: 2,
           pointBackgroundColor: C2.white, pointBorderColor: s.color,
         })),
       },
       options: {
         responsive: true, maintainAspectRatio: false,
         interaction: { mode: 'index', intersect: false },
-        layout: { padding: { top: SP2.sm, right: SP2.sm } },
+        layout: { padding: { top: SP2.huge + SP2.xs, right: SP2.md } },   // room for the peak label (halo + gap + pill)
         plugins: {
           legend: { display: false },
           tooltip: {
@@ -382,10 +434,13 @@ export function MultiLineChart({ labels = [], series = [], emptyMax = 4, ariaLab
           },
         },
         scales: {
-          x: { grid: { display: false }, border: { display: false }, ticks: { font: tickFont, color: CHART2.tick } },
+          x: {
+            grid: { display: false }, border: { display: true, color: C2.border },
+            ticks: { font: tickFont, color: CHART2.tick, maxRotation: 0, minRotation: 0, autoSkip: true, autoSkipPadding: SP2.sm },
+          },
           y: {
             beginAtZero: true, suggestedMax: maxVal > 0 ? undefined : emptyMax,
-            border: { display: false }, grid: { color: CHART2.grid },
+            border: { display: false, dash: [SP2.xs, SP2.xs] }, grid: { color: C2.border },   // dashed horizontal guides
             ticks: { font: tickFont, color: CHART2.tick, maxTicksLimit: 5, precision: 0 },
           },
         },

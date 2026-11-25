@@ -37,7 +37,7 @@ const S = {
   overlay: (solid) => ({ position: 'absolute', top: 0, left: 0, right: 0, zIndex: 5, transition: 'background 0.2s ease, border-color 0.2s ease',
              background: solid ? C2.backgroundGlass : 'transparent', borderBottomColor: solid ? C2.border : 'transparent' }),
   search:  { ...UI2.searchField, width: SZ2.search, maxWidth: '40vw' },
-  input:   { flex: 1, minWidth: 0, border: 'none', outline: 'none', background: 'transparent', fontFamily: F2.body, fontSize: FS2.base, color: C2.textPrimary },
+  input:   UI2.searchInput,
   kbd:     { fontSize: FS2.xs, fontWeight: FW2.semibold, color: C2.textSecondary, background: C2.surfaceMuted, border: `1px solid ${C2.border}`, borderRadius: R2.sm, padding: pad(SP2.xxs, SP2.sm) },
   bellDot: { ...UI2.statusDot(TONES2.error), position: 'absolute', top: SP2.sm, right: SP2.sm, border: `2px solid ${C2.pageBg}`, boxSizing: 'content-box' },
   sep:     { width: SZ2.hairline, height: SZ2.icon.sm, background: C2.border },

@@ -226,11 +226,11 @@ export const CHART2 = {
 };
 
 // Approval / application statuses — one colour per status for charts (MultiLineChart series, SegmentDonut)
-// and their legend keys. Calm app palette only: brand blue · navy · teal · red (warnings) · grey. No yellow / green.
+// and their legend keys. Calm app palette: brand blue · navy · green for real success (approved) · red (warnings) · grey. No yellow.
 export const STATUS2 = {
   submitted: '#0659B2',          // brand blue (G2.brandButton end)
   pending:   '#7AAAF8',          // light primary blue (ACCENT2.blue bar end)
-  approved:  '#0F9488',          // teal (ACCENT2.teal)
+  approved:  '#16A34A',          // success green (C2.successStrong) — approved is a real success state
   rejected:  '#D93636',          // red (GSTOPS2.error start)
   expired:   '#CBD5E1',          // grey
   track:     '#EEF3FB',          // donut ring behind the segments

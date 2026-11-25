@@ -52,7 +52,7 @@ const S = {
   //  it — and a glow box showed its top/bottom edges against the gradient.)
 
   eyebrow: { ...T2.eyebrow, display: 'inline-block', color: C2.primaryDark, background: C2.primaryTint, border: `1px solid ${C2.chipBlue}`, padding: pad(SP2.xs, SP2.md), borderRadius: R2.pill, lineHeight: LH2.heading },
-  title:   { fontFamily: F2.heading, fontSize: FS2.xxxl, fontWeight: FW2.semibold, lineHeight: LH2.snug, letterSpacing: LS2.tight, color: C2.navyDeep, margin: pad(SP2.lg, 0, SP2.xs) },
+  title:   { ...T2.heroHeading, margin: pad(SP2.lg, 0, SP2.xs) },
   sub:     { ...T2.lead },
 
   stats:   { marginTop: SP2.xxl },

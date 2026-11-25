@@ -430,6 +430,10 @@
   .un2-cols > * { padding: 0; }
   .un2-cols > * + * { border-left: none; border-top: 1px solid var(--un2-border); padding-top: var(--un2-sp-xl); margin-top: var(--un2-sp-xl); }
 }
+/* Modifier: 3 divided columns with a WIDER middle one (a chart between two lists — PM Approvals insights panel).
+   <div class="un2-cols un2-cols-wide-mid">  · same hairlines / padding as .un2-cols · stacks ≤ 1024px like it. */
+.un2-cols.un2-cols-wide-mid { grid-template-columns: minmax(0, 1fr) minmax(0, var(--un2-col-mid, 1.3fr)) minmax(0, 1fr); }
+@media (max-width: 1024px) { .un2-cols.un2-cols-wide-mid { grid-template-columns: minmax(0, 1fr); } }
 
 /* ── StatGroup: open header stats (no box), hairline dividers; 4 → 2 × 2 on phones ── */
 .un2-stat-group { display: grid; grid-auto-flow: column; grid-auto-columns: minmax(0, auto); }

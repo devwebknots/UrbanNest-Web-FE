@@ -16,11 +16,11 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { PMPageShell, Breadcrumb, PageFooter, ImageBackdrop } from '../../../components/layout';
 import {
-  TabBar, HeroStats, CountUp, DataTable, EmptyState, FilterMenu, MultiLineChart, SegmentDonut, rampColor, segmentMidpoints,
+  TabBar, HeroStats, CountUp, DataTable, EmptyState, FilterMenu, ActionTray, MultiLineChart, SegmentDonut, rampColor, segmentMidpoints,
   Modal, ModalSection, SuccessModal, FormField, FIELD2,
 } from '../../../components/ui';
 import {
-  C2, TONES2, ACCENT2, STATUS2, accentTone, F2, FS2, FW2, R2, SP2, SZ2, LAYOUT2, T2, UI2, pad,
+  C2, TONES2, ACCENT2, STATUS2, accentTone, FS2, FW2, R2, SP2, SZ2, LAYOUT2, T2, UI2, pad,
 } from '../../../constants';
 import backdropArt from '../../../assets/landlord/wizard-backdrop.jpg';   // soft blue wave lines (same art as Create Listing)
 // TEMP SAMPLE profile pictures (UI preview only) — square placeholder headshots (randomuser.me, saved locally in
@@ -80,20 +80,20 @@ const SORT_OPTIONS = [
   { value: 'oldest', label: 'Oldest first' },
 ];
 
-const TREND_SERIES = [
-  { key: 'Submitted', color: STATUS2.submitted },
-  { key: 'Approved',  color: STATUS2.approved },
-  { key: 'Rejected',  color: STATUS2.rejected },
+const TREND_SERIES = [   // line colour (chart) + tone (legend chip)
+  { key: 'Submitted', color: STATUS2.submitted, tone: TONES2.primary },
+  { key: 'Approved',  color: STATUS2.approved,  tone: TONES2.success },
+  { key: 'Rejected',  color: STATUS2.rejected,  tone: TONES2.error },
 ];
 
 // ── Page-specific layout only (shared patterns come from UI2 / v2 components) ──
 const S = {
   headBlock: { paddingBottom: SP2.sm },                 // a little extra air before the insights panel
-  head:      { ...UI2.stack(SP2.sm) },
+  head:      { ...UI2.stack(SP2.xs) },                 // title → subtitle SP2.xs apart (= Portfolio WaveHero)
   tabs:      { marginTop: SP2.xl },                     // top tabs, clear of the subtitle
   stats:     { marginTop: SP2.xxl },                    // = ListingsHero spacing: stats row under the tabs
-  title:     { ...T2.pageHeroTitle, margin: 0 },
-  sub:       { ...T2.pageHeroSub, margin: 0 },
+  title:     { ...T2.heroHeading, margin: 0 },        // same heading as Portfolio "Property List" (WaveHero title)
+  sub:       { ...T2.lead, margin: 0 },               // same subtitle as Portfolio (Playfair 13, grey)
   // insights panel
   panel:     { ...UI2.card },
   col:       { ...UI2.stack(SP2.lg), minWidth: 0 },
@@ -101,8 +101,15 @@ const S = {
   colTitle:  { ...UI2.cardTitle, ...UI2.truncate },
   rangePill: { ...UI2.pill(TONES2.neutral), color: C2.textSecondary, background: C2.surfaceMuted },
   chartBox:  { position: 'relative', height: SZ2.chart },
-  legend:    { ...UI2.row(SP2.lg), justifyContent: 'center', flexWrap: 'wrap' },
-  legendDash:(color) => ({ width: SP2.md, height: SZ2.progress - SP2.xxs, borderRadius: R2.pill, background: color, flexShrink: 0 }),
+  // Approval Trend header (CardHeader pieces: tinted icon box · title · subtitle — no divider) + range pill
+  trendTop:  { display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: SP2.sm, flexWrap: 'wrap' },
+  trendHead: { ...UI2.row(SP2.md), alignItems: 'flex-start', minWidth: 0, flex: 1 },
+  trendIcon: { ...UI2.iconBox(SZ2.icon.md, TONES2.primary) },
+  // legend chips — tinted pill · status dot · name · count, hairline between chips
+  legend:    { ...UI2.row(SP2.sm), justifyContent: 'center', flexWrap: 'wrap', rowGap: SP2.sm },
+  legendChip:(tone) => ({ ...UI2.row(SP2.sm), padding: pad(SP2.xs, SP2.xs, SP2.xs, SP2.md), borderRadius: R2.pill, background: tone.tint, fontSize: FS2.sm, color: C2.textPrimary, whiteSpace: 'nowrap' }),
+  legendCount:(tone) => ({ minWidth: SZ2.icon.xs, padding: pad(0, SP2.sm), borderRadius: R2.pill, background: tone.soft, color: tone.fg, fontSize: FS2.xs, fontWeight: FW2.semibold, lineHeight: `${SZ2.icon.xs}px`, textAlign: 'center' }),
+  legendSep: { width: SZ2.hairline, height: SZ2.icon.xs, background: C2.border },
   legendDot: (color) => ({ ...UI2.dot(color) }),
   donutWrap: { ...UI2.center, paddingTop: SP2.xs },
   // priority snapshot
@@ -119,12 +126,12 @@ const S = {
   section:   { ...UI2.stack(LAYOUT2.sectionGap), minWidth: 0, paddingTop: SP2.sm },
   secHead:   { ...UI2.rowBetween(SP2.md), flexWrap: 'wrap' },
   secTitle:  { ...T2.sectionTitle, fontSize: FS2.xl, margin: 0 },
-  tools:     { ...UI2.row(LAYOUT2.inlineGap), flexWrap: 'wrap', justifyContent: 'flex-end' },
-  search:    { ...UI2.searchField, width: SZ2.search, maxWidth: '100%' },
-  searchIcon:{ fontSize: FS2.lg, color: C2.textSecondary },
-  input:     { flex: 1, minWidth: 0, border: 'none', outline: 'none', background: 'transparent', fontFamily: F2.body, fontSize: FS2.base, color: C2.textPrimary },
-  menuWrap:  { flexShrink: 0 },
-  toolBtn:   { ...UI2.btn.soft },
+  tools:     UI2.toolbar.tools,
+  search:    UI2.toolbar.search,       // shared list-toolbar pieces (UI2.toolbar — Listings is the reference)
+  searchIcon:UI2.toolbar.searchIcon,
+  input:     UI2.searchInput,
+  menuWrap:  UI2.toolbar.menuWrap,
+  toolBtn:   UI2.toolbar.button,
   applicant: { ...UI2.row(SP2.md), minWidth: 0 },
   // profile picture in the same round avatar (size / ring unchanged) — photo fills it, cropped to the face
   photo:     (url, size = 'cover', pos = 'center') => ({ ...UI2.avatar(SZ2.icon.md, TONES2.neutral), backgroundImage: `url(${url})`, backgroundSize: size, backgroundPosition: pos, backgroundRepeat: 'no-repeat' }),
@@ -566,7 +573,7 @@ export default function PMApprovalsOverview() {
     { week: 'Wk 4', Submitted: 0, Approved: 0, Rejected: 0 },
   ];
   const trendLabels = chartTrend.map(t => t.week);
-  const trendSeries = TREND_SERIES.map(s => ({ label: s.key, color: s.color, values: chartTrend.map(t => Number(t[s.key]) || 0) }));
+  const trendSeries = TREND_SERIES.map(s => ({ label: s.key, color: s.color, tone: s.tone, values: chartTrend.map(t => Number(t[s.key]) || 0) }));
 
   const tabCounts = {
     all:       approvals.length,
@@ -700,7 +707,7 @@ export default function PMApprovalsOverview() {
 
       {/* ── Priority Snapshot │ Approval Trend │ Status Breakdown — one panel, divided columns ── */}
       <section style={S.panel}>
-        <div className="un2-cols" style={{ '--un2-cols': 3 }}>
+        <div className="un2-cols un2-cols-wide-mid">   {/* wider middle column for the trend chart */}
           <div style={S.col}>
             <div style={S.colTop}>
               <div style={UI2.colHead}>
@@ -723,21 +730,31 @@ export default function PMApprovalsOverview() {
           </div>
 
           <div style={S.col}>
-            <div style={S.colTop}>
-              <div style={UI2.colHead}>
-                <i className="ti ti-chart-line" style={UI2.colIcon} aria-hidden="true" />
-                <span style={S.colTitle}>Approval Trend</span>
+            {/* header: tinted icon box · title · subtitle (the CardHeader pieces, without its divider line) │ range */}
+            <div style={S.trendTop}>
+              <div style={S.trendHead}>
+                <span style={S.trendIcon}><i className="ti ti-trending-up" aria-hidden="true" /></span>
+                <div style={UI2.minWidth0}>
+                  <div style={S.colTitle}>Approval Trend</div>
+                  <div style={UI2.cardSubtitle}>Submitted, approved and rejected requests over time.</div>
+                </div>
               </div>
               <span style={S.rangePill}><i className="ti ti-calendar" aria-hidden="true" /> Last 8 weeks</span>
             </div>
             <div style={S.chartBox}>
               <MultiLineChart labels={trendLabels} series={trendSeries} ariaLabel="Submitted vs approved vs rejected — last 8 weeks" />
             </div>
+            {/* legend chips: tinted pill · dot · name · total over the range, hairline between chips */}
             <div style={S.legend}>
-              {TREND_SERIES.map(s => (
-                <span key={s.key} style={{ ...UI2.legendKey, ...UI2.legendRow, justifyContent: 'flex-start' }}>
-                  <span style={S.legendDash(s.color)} aria-hidden="true" />{s.key}
-                </span>
+              {trendSeries.map((s, i) => (
+                <React.Fragment key={s.label}>
+                  {i > 0 && <span style={S.legendSep} aria-hidden="true" />}
+                  <span style={S.legendChip(s.tone)}>
+                    <span style={UI2.statusDot(s.tone)} aria-hidden="true" />
+                    {s.label}
+                    <span style={S.legendCount(s.tone)}>{s.values.reduce((n, v) => n + v, 0)}</span>
+                  </span>
+                </React.Fragment>
               ))}
             </div>
           </div>
@@ -770,8 +787,11 @@ export default function PMApprovalsOverview() {
       <section className="un2-cq" style={S.section}>
         <div style={S.secHead}>
           <h2 style={S.secTitle}>All Pending Approvals</h2>
-          <div style={S.tools}>
-            <label className="un2-focus-ring" style={S.search}>
+          {/* Search box, then the "Options" toggle on its right — Status / Property / Sort slide out between them.
+              Same ActionTray setup as Listings (compact = soft toggle on a light surface); un2-tray-tools /
+              un2-tray-search: the search field slides away while Options is open. */}
+          <div className="un2-tray-tools" style={S.tools}>
+            <label className="un2-focus-ring un2-tray-search" style={S.search}>
               <i className="ti ti-search" style={S.searchIcon} aria-hidden="true" />
               <input
                 style={S.input}
@@ -782,6 +802,7 @@ export default function PMApprovalsOverview() {
                 aria-label="Search approvals"
               />
             </label>
+            <ActionTray compact label="Options">
             <div style={S.menuWrap}>
               <FilterMenu
                 title="Status" allLabel="All statuses" ariaLabel="Filter by status" itemIcon="ti-circle-dot" allIcon="ti-list"
@@ -803,6 +824,7 @@ export default function PMApprovalsOverview() {
                 triggerStyle={S.toolBtn} trigger={menuTrigger('ti-arrows-sort', sortLabel, false)}
               />
             </div>
+            </ActionTray>
           </div>
         </div>
 

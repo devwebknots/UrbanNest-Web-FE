@@ -45,7 +45,7 @@ const S = {
   status:  { ...UI2.row(SP2.sm), fontSize: FS2.sm, fontWeight: FW2.medium, color: C2.textBody },
   dot:     { ...UI2.dot(C2.success) },
 
-  title:   { fontFamily: F2.heading, fontSize: FS2.xxxl, fontWeight: FW2.semibold, lineHeight: LH2.snug, letterSpacing: LS2.tight, color: C2.navyDeep, margin: pad(SP2.lg, 0, SP2.xs) },
+  title:   { ...T2.heroHeading, margin: pad(SP2.lg, 0, SP2.xs) },
   sub:     { ...T2.lead },
 
   stats:   { marginTop: SP2.xxl },

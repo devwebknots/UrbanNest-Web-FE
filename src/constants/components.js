@@ -20,6 +20,7 @@ const CHIP_ICON_ACCENTS = [ACCENT2.blue, ACCENT2.teal, ACCENT2.violet, ACCENT2.r
 
 const center = { display: 'flex', alignItems: 'center', justifyContent: 'center' };
 const rowBetween = (gap = SP2.md) => ({ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap });
+const row = (gap = SP2.sm) => ({ display: 'flex', alignItems: 'center', gap });
 const hairline = `1px solid ${C2.borderLight}`;
 // Small caps label used as a card's heading when it has no icon header ("RENT COLLECTION")
 const capsLabel = { ...T2.eyebrow, fontSize: FS2.xs, color: C2.textSecondary, letterSpacing: LS2.wide };
@@ -42,14 +43,24 @@ const btnBase = {
   cursor: 'pointer',
   transition: `filter ${MOTION2.fast}, background ${MOTION2.fast}`,
 };
+// Soft (secondary) button — light blue fill, navy text. Defined once: UI2.btn.soft + UI2.toolbar.button
+const btnSoft = { ...btnBase, background: C2.chipBlue, color: C2.navy };
+
+// Pill search field wrapper — defined once here so UI2.searchField and UI2.toolbar.search share it
+const searchField = {
+  display: 'flex', alignItems: 'center', gap: SP2.sm, height: SZ2.control.md, padding: pad(0, SP2.sm, 0, SP2.lg),
+  background: C2.white, border: `1px solid ${C2.cardBorder}`, borderRadius: R2.pill, boxShadow: SH2.control,
+};
+// The bare text input inside a search field (top bars, list toolbars)
+const searchInput = { flex: 1, minWidth: 0, border: 'none', outline: 'none', background: 'transparent', fontFamily: F2.body, fontSize: FS2.base, color: C2.textPrimary };
 
 // Icon glyph size that fits a given box size
-const glyphFor = (size) => (size >= SZ2.icon.lg ? FS2.xxl : size >= SZ2.icon.md ? FS2.xl : size >= SZ2.icon.sm ? FS2.lg : FS2.base);
+const glyphFor =(size) => (size >= SZ2.icon.lg ? FS2.xxl : size >= SZ2.icon.md ? FS2.xl : size >= SZ2.icon.sm ? FS2.lg : FS2.base);
 
 export const UI2 = {
   // ── Layout helpers ─────────────────────────────────────────────────────────
   center,
-  row:        (gap = SP2.sm) => ({ display: 'flex', alignItems: 'center', gap }),
+  row,
   rowBetween,
   stack:      (gap = SP2.sm) => ({ display: 'flex', flexDirection: 'column', gap }),
   truncate:   { whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' },
@@ -215,7 +226,7 @@ export const UI2 = {
   btn: {
     base:    btnBase,
     brand:   { ...btnBase, background: G2.brandButton, color: C2.white, boxShadow: SH2.brandButton },
-    soft:    { ...btnBase, background: C2.chipBlue, color: C2.navy },
+    soft:    btnSoft,
     light:   { ...btnBase, background: C2.white, color: C2.navy, boxShadow: SH2.lightButton },
     textLink: {
       display: 'inline-flex', alignItems: 'center', gap: SP2.xs, padding: 0, background: 'none', border: 'none', cursor: 'pointer',
@@ -270,9 +281,25 @@ export const UI2 = {
 
   // ── Inputs ─────────────────────────────────────────────────────────────────
   // Pill search field wrapper (pair with className="un2-focus-ring")
-  searchField: {
-    display: 'flex', alignItems: 'center', gap: SP2.sm, height: SZ2.control.md, padding: pad(0, SP2.sm, 0, SP2.lg),
-    background: C2.white, border: `1px solid ${C2.cardBorder}`, borderRadius: R2.pill, boxShadow: SH2.control,
+  searchField,
+  // Its text input (no box of its own) — every search box: top bars + list toolbars
+  searchInput,
+
+  // ── List toolbar (Listings is the reference) — single source for every "search · Options ▸ filters" toolbar ──
+  //   <div className="un2-tray-tools" style={UI2.toolbar.tools}>
+  //     <label className="un2-focus-ring un2-tray-search" style={UI2.toolbar.search}>
+  //       <i className="ti ti-search" style={UI2.toolbar.searchIcon} /> <input style={UI2.searchInput} … />
+  //     </label>
+  //     <ActionTray compact label="Options">
+  //       <div style={UI2.toolbar.menuWrap}><FilterMenu triggerStyle={UI2.toolbar.button} … /></div> …
+  //     </ActionTray>
+  //   </div>
+  toolbar: {
+    tools:      { ...row(LAYOUT2.inlineGap), marginLeft: 'auto', justifyContent: 'flex-end', flexWrap: 'wrap' },   // stays on the right, also when it wraps
+    search:     { ...searchField, width: SZ2.searchSm, maxWidth: '100%' },   // compact search box
+    searchIcon: { fontSize: FS2.lg, color: C2.textSecondary },
+    menuWrap:   { flexShrink: 0 },   // FilterMenu with a custom trigger spans its parent — this keeps it button-sized
+    button:     btnSoft,   // the soft (secondary) button — Filter / Sort triggers on a light surface
   },
 
   // ── Misc ───────────────────────────────────────────────────────────────────

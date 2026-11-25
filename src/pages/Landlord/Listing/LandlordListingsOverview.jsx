@@ -124,7 +124,7 @@ import {
   ListingsHero, TabBar, ActionTray, DataTable, FilterMenu, EmptyState, CountUp,
 } from '../../../components/ui';
 import {
-  C2, TONES2, ACCENT2, accentTone, F2, FS2, SP2, SZ2, LAYOUT2, UI2,
+  C2, TONES2, ACCENT2, accentTone, FS2, SP2, SZ2, LAYOUT2, UI2,
 } from '../../../constants';
 import { C, F } from '../landlordTokens';
 import { getPMListingsOverview } from './listingApi';
@@ -440,14 +440,14 @@ const S = {
   // Tabs left · search / filter / sort right, on one line (wraps under on narrow widths)
   toolbar:   { display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: SP2.md, flexWrap: 'wrap', marginBottom: LAYOUT2.cardHeaderGap },
   tabsWrap:  { flex: '1 1 auto', minWidth: 0 },
-  search:    { ...UI2.searchField, width: SZ2.searchSm, maxWidth: '100%' },
-  searchIcon:{ fontSize: FS2.lg, color: C2.textSecondary },
-  input:     { flex: 1, minWidth: 0, border: 'none', outline: 'none', background: 'transparent', fontFamily: F2.body, fontSize: FS2.base, color: C2.textPrimary },
-  toolBtn:   { ...UI2.btn.soft },
+  search:    UI2.toolbar.search,       // shared list-toolbar pieces (UI2.toolbar — Listings is the reference)
+  searchIcon:UI2.toolbar.searchIcon,
+  input:     UI2.searchInput,
+  toolBtn:   UI2.toolbar.button,
   tableWrap: { minWidth: 0 },   // open section: no card background / shadow around the table
   rowBtn:    { ...UI2.btn.brand, ...UI2.btnSmStd },   // row action — standard small primary button (same width in every row)
-  tools:     { ...UI2.row(LAYOUT2.inlineGap), marginLeft: 'auto', justifyContent: 'flex-end', flexWrap: 'wrap' },   // stays on the right, also when it wraps under the tabs
-  menuWrap:  { flexShrink: 0 },      // FilterMenu with a custom trigger spans its parent — this keeps it button-sized   // Filter / Sort — secondary (soft) buttons on a light surface
+  tools:     UI2.toolbar.tools,
+  menuWrap:  UI2.toolbar.menuWrap,
   // Property / unit cell: photo · name + type │ "Unit" + number
   unitCell:  { ...UI2.row(SP2.md), minWidth: 0 },
   thumb:     { ...UI2.thumb, width: SZ2.assetThumb.w, height: SZ2.assetThumb.h, flexShrink: 0 },

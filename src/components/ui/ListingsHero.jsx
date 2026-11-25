@@ -1,5 +1,5 @@
 import React from 'react';
-import { C2, R2, SH2, F2, FS2, FW2, LH2, LS2, T2, SP2, SZ2, pad } from '../../constants';
+import { C2, R2, SH2, F2, LH2, T2, SP2, SZ2, pad } from '../../constants';
 import HeroStats from './HeroStats';
 
 // ─── ListingsHero (Design System v2) ─────────────────────────────────────────
@@ -29,7 +29,7 @@ const S = {
 
   // ↓ identical to ProfileHero / WaveHero
   eyebrow: { ...T2.eyebrow, display: 'inline-block', color: C2.primaryDark, background: C2.primaryTint, border: `1px solid ${C2.chipBlue}`, padding: pad(SP2.xs, SP2.md), borderRadius: R2.pill, lineHeight: LH2.heading },
-  title:   { fontFamily: F2.heading, fontSize: FS2.xxxl, fontWeight: FW2.semibold, lineHeight: LH2.snug, letterSpacing: LS2.tight, color: C2.navyDeep, margin: pad(SP2.lg, 0, SP2.xs) },
+  title:   { ...T2.heroHeading, margin: pad(SP2.lg, 0, SP2.xs) },
   sub:     { ...T2.lead },
 
   stats:   { marginTop: SP2.xxl },   // row itself = HeroStats
