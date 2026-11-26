@@ -20,11 +20,11 @@ import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { PMPageShell, Grid, PageFooter, ImageBackdrop } from '../../../components/layout';
 import {
-  TabBar, StepList, FormField, ReadField, SelectField, FIELD2, Checkbox, ChoiceTile, Modal, ModalSection,
+  StepList, FormField, ReadField, SelectField, FIELD2, Checkbox, ChoiceTile, Modal, ModalSection,
 } from '../../../components/ui';
 import { C2, TONES2, SH2, FS2, SP2, SZ2, T2, UI2 } from '../../../constants';
 import { WZ, ChipInput } from '../../Landlord/Listing/listingWizardV2';   // shared v2 form-layout styles + chip field
-import { ACCOUNT_SETTINGS_TABS } from './AccountSettingsSubnav';
+import AccountSettingsTabs from './AccountSettingsTabs';   // shared v2 Account Settings tab strip
 import backdropArt from '../../../assets/landlord/wizard-backdrop.jpg';   // soft blue wave lines (same art as Approvals / Create Listing)
 
 const API_BASE = (process.env.REACT_APP_API_BASE_URL || 'http://localhost:8001/api').replace(/\/api\/?$/, '');
@@ -46,12 +46,6 @@ const STEPS = [
 const STEP_HEADS = {
   2: { icon: 'ti-id-badge-2', title: 'Service Area & License', sub: 'Define your service coverage and professional credentials.' },
   3: { icon: 'ti-coins',      title: 'Fees & Identity',        sub: 'Set your management fees and verify your identity to complete your profile.' },
-};
-
-// Account Settings tabs — same routes as AccountSettingsSubnav, with the v2 icons (NavPM uses the same icons)
-const TAB_ICONS = {
-  profile: 'ti-user', bank: 'ti-building-bank', subscription: 'ti-credit-card',
-  services: 'ti-settings', transactions: 'ti-file-invoice', integrations: 'ti-puzzle',
 };
 
 // Type of business — ChoiceTile icons
@@ -817,13 +811,7 @@ export default function PMProfileView() {
         <h1 style={S.title}>Independent Property Manager</h1>
         <p style={S.sub}>Register and set up your profile to manage your properties with ease.</p>
         <div style={S.tabs}>
-          <TabBar
-            variant="underline"
-            ariaLabel="Account settings"
-            value="profile"
-            onChange={id => { const t = ACCOUNT_SETTINGS_TABS.find(x => x.id === id); if (t && id !== 'profile') navigate(t.route); }}
-            tabs={ACCOUNT_SETTINGS_TABS.map(t => ({ id: t.id, label: t.label, icon: TAB_ICONS[t.id] }))}
-          />
+          <AccountSettingsTabs active="profile" />
         </div>
       </section>
 

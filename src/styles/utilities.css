@@ -439,6 +439,9 @@
 /* Modifiers: divided columns whose LAST column is wider (a table / chart beside a narrower summary — PM Listings).
    un2-cols-2-wide-last → 1 : 1.8 (2 cols) · un2-cols-3-wide-last → 1 : 1 : 1.5 (3 cols) · stack ≤ 1024px like .un2-cols */
 .un2-cols.un2-cols-2-wide-last { grid-template-columns: minmax(0, 1fr) minmax(0, 1.8fr); }
+/* un2-cols-2-wide-first → 1.8 : 1 (2 cols) — main list beside a narrower details column (PM Bank Accounts) */
+.un2-cols.un2-cols-2-wide-first { grid-template-columns: minmax(0, 1.8fr) minmax(0, 1fr); }
+@media (max-width: 1024px) { .un2-cols.un2-cols-2-wide-first { grid-template-columns: minmax(0, 1fr); } }
 .un2-cols.un2-cols-3-wide-last { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1.5fr); }
 /* un2-cols-2-wide-last-lg → 1 : 2.5 — a full table beside a short list (PM Listings: Needs Attention │ Active Listings) */
 .un2-cols.un2-cols-2-wide-last-lg { grid-template-columns: minmax(0, 1fr) minmax(0, 2.5fr); }
