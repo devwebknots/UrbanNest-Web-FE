@@ -28,6 +28,7 @@
   --un2-col-split: 1.25fr;  /* wider column in un2-grid-split */
   --un2-col-main: 2.2fr;    /* main column in un2-grid-main-side (page body + side column) */
   --un2-aside-w: 168px;     /* fixed side column in un2-grid-aside */
+  --un2-steps-w: 240px;     /* fixed left step-list column in un2-grid-steps (vertical StepList + form) */
 
   /* Radii */
   --un2-r-xs: 4px; --un2-r-sm: 6px; --un2-r-md: 8px; --un2-r-lg: 12px; --un2-r-xl: 16px; --un2-r-xxl: 20px;

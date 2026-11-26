@@ -12,6 +12,7 @@ export const pad = (...v) => v.map(n => (typeof n === 'number' ? `${n}px` : n)).
 // Component sizes (px)
 export const SZ2 = {
   icon:    { xs: 20, sm: 28, md: 32, lg: 40 },   // square icon boxes / avatars (compact)
+  profilePhoto: 64,                              // round profile-photo preview beside its upload button (PM My Profile)
   control: { sm: 28, md: 34, lg: 40 },           // buttons, inputs, nav items (compact)
   field:   36,                                   // standard form field height (FIELD2.input · ReadField · SelectField · chip inputs)
   btnSm:   { w: 72 },                            // standard small button width — fits the longest row label "View Unit" (≈56px at 12px Medium) + 8px padding each side; (UI2.btnSmStd) — same width for every row action (View / List / View Unit / Resume)
@@ -185,6 +186,7 @@ export const GRID2 = {
   wideRight: 'un2-grid-wide-right',
   aside:     'un2-grid-aside',
   mainSide:  'un2-grid-main-side',
+  steps:     'un2-grid-steps',      // fixed step list (StepList) left + form right
 };
 
 export const MOTION2 = {

@@ -1,65 +1,31 @@
 /**
- * PMProfileView.jsx — PM Portal: My Profile → Persona
+ * PMProfileView.jsx — PM Portal: Account Settings → My Profile (Design System v2)
  * ─────────────────────────────────────────────────────────────────────────────
- * Route:   /pm-portal/profile/persona
- * Nav:     Nav B — My Profile → Persona active
- * Layout:  3-col shell (NavB 185px + Stepper 200px + Form scrollable)
- * Modes:   VIEW (all fields locked) / EDIT (fields unlocked except name)
- * Steps:   1 → 2 → 3 (same content as onboarding, view/edit aware)
- * Session: 6 — built May 28, 2026
+ * Route:   /pm-portal/account/profile                 Layout: Downloads/image 171.png
+ *
+ *   NavPM sidebar │ PM top bar                                          (PMPageShell)
+ *                 │ wave backdrop · "Independent Property Manager" header (T2.heroHeading + T2.lead)
+ *                 │ Account Settings tabs (TabBar underline + icons — same routes as AccountSettingsSubnav)
+ *                 │ <Grid layout="steps">  StepList (vertical) │ form: title · fields (FIELD2 standard)
+ *                 │                                            │ footer: View only / note · Back (soft) · Next (brand)
+ *                 │ PageFooter
+ *
+ * Modes:   VIEW (fields shown read-only, ReadField) / EDIT (fields unlocked except name) — pencil icon toggles.
+ * Steps:   1 → 2 → 3 (same content + API calls as the v1 page; only the presentation is v2).
+ * Pop-ups: standard v2 Modal (variant confirm) — delete profile, unsaved changes.
  * ─────────────────────────────────────────────────────────────────────────────
  */
 
 import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { CustomDropdown } from '../../../components/ui';
-import NavB from '../../../components/layout/NavB';
-import AccountSettingsSubnav from './AccountSettingsSubnav';
-
-// ─── Tabler Icons CDN ──────────────────────────────────────────────────────────
-if (typeof document !== 'undefined' && !document.getElementById('tabler-icons-cdn')) {
-  const l = document.createElement('link');
-  l.id = 'tabler-icons-cdn'; l.rel = 'stylesheet';
-  l.href = 'https://cdn.jsdelivr.net/npm/@tabler/icons-webfont@latest/dist/tabler-icons.min.css';
-  document.head.appendChild(l);
-}
-
-// ─── Design tokens ─────────────────────────────────────────────────────────────
-const C = {
-  primary:       '#002D5B',
-  primaryHover:  '#003d7a',
-  navBg:         '#111827',
-  pageBg:        '#F8FAFC',
-  border:        '#E2E8F0',
-  borderMedium:  '#CBD5E1',
-  textPrimary:   '#0F172A',
-  textSecondary: '#64748B',
-  textTertiary:  '#94A3B8',
-  white:         '#FFFFFF',
-  neutral:       '#F8FAFC',
-  danger:        '#E53E3E',
-  dangerBg:      '#FEE2E2',
-  dangerBorder:  '#FECACA',
-  green:         '#16A34A',
-  dropdownBg:    '#E4ECFC',
-  contextBg:     '#EEF2FF',
-  contextBorder: '#C7D2FE',
-  successBg:     '#ECFDF5',
-  successBorder: '#6EE7B7',
-  successText:   '#065F46',
-  infoBg:        '#EFF6FF',
-  infoBorder:    '#BFDBFE',
-  infoText:      '#3d8ef0',
-  amberBg:       '#FEF3C7',
-  amberBorder:   '#FCD34D',
-  amberText:     '#92400E',
-  activeNavBg:   'rgba(255,255,255,0.10)',
-  activeNavBdr:  'rgba(255,255,255,0.15)',
-};
-const F = {
-  headline: "'Noto Serif', serif",
-  body:     "'Nunito Sans', sans-serif",
-};
+import { PMPageShell, Grid, PageFooter, ImageBackdrop } from '../../../components/layout';
+import {
+  TabBar, StepList, FormField, ReadField, SelectField, FIELD2, Checkbox, ChoiceTile, Modal, ModalSection,
+} from '../../../components/ui';
+import { C2, TONES2, SH2, FS2, SP2, SZ2, T2, UI2 } from '../../../constants';
+import { WZ, ChipInput } from '../../Landlord/Listing/listingWizardV2';   // shared v2 form-layout styles + chip field
+import { ACCOUNT_SETTINGS_TABS } from './AccountSettingsSubnav';
+import backdropArt from '../../../assets/landlord/wizard-backdrop.jpg';   // soft blue wave lines (same art as Approvals / Create Listing)
 
 const API_BASE = (process.env.REACT_APP_API_BASE_URL || 'http://localhost:8001/api').replace(/\/api\/?$/, '');
 
@@ -76,172 +42,160 @@ const STEPS = [
   { n: 3, label: 'Fees & Identity',        sub: 'Your fee structure & ID verification' },
 ];
 
+// Form header per step (icon box · title · subtitle). Steps without an entry keep "Independent PM registration".
+const STEP_HEADS = {
+  2: { icon: 'ti-id-badge-2', title: 'Service Area & License', sub: 'Define your service coverage and professional credentials.' },
+};
+
+// Account Settings tabs — same routes as AccountSettingsSubnav, with the v2 icons (NavPM uses the same icons)
+const TAB_ICONS = {
+  profile: 'ti-user', bank: 'ti-building-bank', subscription: 'ti-credit-card',
+  services: 'ti-settings', transactions: 'ti-file-invoice', integrations: 'ti-puzzle',
+};
+
+// Type of business — ChoiceTile icons
+const BUSINESS = [
+  ['property_management', 'Property Management', 'ti-home-cog'],
+  ['tenant_placement',    'Tenant Placement',    'ti-users'],
+  ['buy',                 'Buy',                 'ti-shopping-cart'],
+  ['sell',                'Sell',                'ti-tag'],
+];
+const PROPERTY_TYPES = [['residential','Residential'],['commercial','Commercial'],['student_housing','Student Housing'],['short_term','Short-term'],['mixed','Mixed']];
+
 // ─── US States ─────────────────────────────────────────────────────────────────
 const US_STATES = ['Alabama','Alaska','Arizona','Arkansas','California','Colorado','Connecticut','Delaware','Florida','Georgia','Hawaii','Idaho','Illinois','Indiana','Iowa','Kansas','Kentucky','Louisiana','Maine','Maryland','Massachusetts','Michigan','Minnesota','Mississippi','Missouri','Montana','Nebraska','Nevada','New Hampshire','New Jersey','New Mexico','New York','North Carolina','North Dakota','Ohio','Oklahoma','Oregon','Pennsylvania','Rhode Island','South Carolina','South Dakota','Tennessee','Texas','Utah','Vermont','Virginia','Washington','West Virginia','Wisconsin','Wyoming'];
 
-// ─── Field styles (identical to onboarding screens) ───────────────────────────
-const FL = {
-  display: 'block', fontFamily: F.body, fontSize: '10px', fontWeight: 700,
-  color: C.textSecondary, textTransform: 'uppercase', letterSpacing: '0.08em', marginBottom: '6px',
+// ── Page-specific layout only (every look comes from v2 tokens / components) ──
+const S = {
+  headBlock: UI2.pageHead.block,                       // shared header-block spacing (Approvals / Listings)
+  title:     { ...T2.heroHeading, margin: 0 },
+  sub:       { ...T2.lead, margin: `${SP2.xs}px 0 0` },
+  tabs:      UI2.pageHead.next,
+  form:      { ...UI2.stack(SP2.xl), minWidth: 0 },
+  formHead:  { ...UI2.rowBetween(SP2.md), alignItems: 'flex-start' },
+  formTitle: { ...T2.pageTitle, margin: 0 },
+  formSub:   { ...T2.label, margin: `${SP2.xs}px 0 0` },
+  headActs:  { ...UI2.row(SP2.sm), flexShrink: 0 },
+  // header actions on the light-blue wave = the Listings header pair: white light (secondary) + brand (main)
+  editBtn:   UI2.btn.brand,                                             // main action (Edit)
+  deleteBtn: UI2.btn.light,                                             // secondary action on the wave (Delete)
+  locked:    { ...T2.caption, textTransform: 'none', letterSpacing: 0 },   // "(Locked)" after a caps label
+  group:     UI2.stack(SP2.sm),                       // caps label · control row · hint
+  subhead:   { ...UI2.capsLabel, display: 'block' },  // caps sub-section title (Service Area / License …)
+  hintRow:   UI2.rowBetween(SP2.md),
+  // profile photo — round preview + soft upload button + hint
+  photoRow:  UI2.row(SP2.lg),
+  photo:     { ...UI2.avatar(SZ2.profilePhoto, { soft: C2.chipBlue, fg: C2.navy }), boxShadow: SH2.avatarRing, overflow: 'hidden', fontSize: FS2.xxl },
+  photoImg:  { width: '100%', height: '100%', objectFit: 'cover' },
+  btnIcon:   UI2.btnIcon,
+  // file field (license document) — the standard field box with a trailing paperclip
+  fileBtn:   { ...FIELD2.input, ...UI2.rowBetween(SP2.sm), cursor: 'pointer', textAlign: 'left' },
+  filePh:    { color: C2.textMuted },
+  fileRead:  { background: C2.fieldReadOnly, cursor: 'default' },   // view mode = ReadField background
+  // step header (steps 2+): round tinted icon box beside the step title
+  stepHead:  { ...UI2.row(SP2.lg), minWidth: 0 },
+  stepIcon:  { ...UI2.iconBox(SZ2.icon.lg, TONES2.primary, { round: true }), fontSize: FS2.xl },
+  sections:  { minWidth: 0 },   // ModalSection groups (divider between them via .un2-modal-sec)
+  // ID documents upload slot
+  upload:    { ...UI2.addTile(false), height: SZ2.thumbXl.h },
+  uploadOff: UI2.btnOff,
+  // info / success notes
+  note:      (tone) => ({ ...UI2.tintRow, background: tone.tint, color: tone.fg, ...T2.label }),
+  noteIcon:  { fontSize: FS2.lg, flexShrink: 0 },
+  // fee type + value side by side
+  feeRow:    { display: 'flex', gap: SP2.sm, minWidth: 0 },
+  feeVal:    { ...FIELD2.input, width: SZ2.btnSm.w, flexShrink: 0, textAlign: 'center' },
+  // footer
+  foot:      { ...UI2.rowBetween(SP2.md), flexWrap: 'wrap', paddingTop: SP2.lg, borderTop: `${SZ2.hairline}px solid ${C2.border}` },
+  footNote:  { ...UI2.btn.link, cursor: 'default' },
+  footActs:  { ...UI2.row(SP2.sm), marginLeft: 'auto' },
+  modalText: { ...T2.body, margin: 0 },
 };
-const inputS = (disabled = false, error = false) => ({
-  width: '100%', height: '40px', boxSizing: 'border-box',
-  background: disabled ? C.neutral : C.white,
-  border: '1px solid ' + (error ? C.danger : disabled ? C.border : C.borderMedium),
-  borderRadius: '8px', padding: '0 12px',
-  fontFamily: F.body, fontSize: '13px',
-  color: disabled ? C.textTertiary : C.textPrimary,
-  cursor: disabled ? 'not-allowed' : 'text', outline: 'none',
-});
-const hintS = (error = false) => ({
-  fontFamily: F.body, fontSize: '11px',
-  color: error ? C.danger : C.textTertiary, marginTop: '4px',
-});
-const dividerS = { borderTop: '1px solid ' + C.border, margin: '20px 0' };
 
-// ─── Header — Standard per DesignSystem §8 ─────────────────────────────────────
-function Header({ userName, userRole }) {
+// ─── Small v2 field helpers (view mode → ReadField, edit mode → standard field) ──
+function TextField({ view, value, onChange, invalid, placeholder, type = 'text', ...rest }) {
+  if (view) return <ReadField value={value} />;
   return (
-    <div style={{ height: '60px', flexShrink: 0, background: C.white, borderBottom: '1px solid ' + C.border, display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 clamp(20px,3vw,36px)' }}>
-      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', background: C.neutral, borderRadius: '8px', padding: '0 14px', height: '36px', width: '280px' }}>
-        <i className="ti ti-search" style={{ fontSize: '14px', color: C.textTertiary }} />
-        <input type="text" placeholder="Search portfolios, settings, or help…" style={{ background: 'none', border: 'none', outline: 'none', fontFamily: F.body, fontSize: '12px', color: C.textSecondary, width: '100%' }} />
-      </div>
-      <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-        <i className="ti ti-bell" style={{ fontSize: '18px', color: C.textSecondary, cursor: 'pointer' }} />
-        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', paddingLeft: '12px', borderLeft: '1px solid ' + C.border }}>
-          <div style={{ textAlign: 'right' }}>
-            <p style={{ margin: 0, fontFamily: F.body, fontSize: '13px', fontWeight: 600, color: C.textPrimary }}>{userName}</p>
-            <p style={{ margin: 0, fontFamily: F.body, fontSize: '9px', color: C.textTertiary, textTransform: 'uppercase', letterSpacing: '0.06em' }}>{userRole}</p>
-          </div>
-          <div style={{ width: '34px', height: '34px', borderRadius: '50%', background: C.primary, display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-            <i className="ti ti-user" style={{ fontSize: '16px', color: C.white }} />
-          </div>
-        </div>
-      </div>
-    </div>
+    <input
+      className="un2-focus-ring" type={type} placeholder={placeholder} value={value} onChange={onChange}
+      style={{ ...FIELD2.input, ...(invalid ? FIELD2.invalid : {}) }} {...rest}
+    />
   );
 }
 
-// ─── Vertical Stepper (identical to onboarding) ────────────────────────────────
-function VerticalStepper({ current }) {
-  return (
-    <div style={{ width: '200px', minWidth: '200px', flexShrink: 0, background: C.pageBg, borderRight: '1px solid ' + C.border, padding: 'clamp(16px,2vw,24px) 16px 24px clamp(20px,3vw,48px)', display: 'flex', flexDirection: 'column', overflowY: 'hidden' }}>
-      {STEPS.map((step, idx) => {
-        const done = step.n < current, active = step.n === current;
-        return (
-          <div key={step.n} style={{ display: 'flex', gap: '12px' }}>
-            <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', flexShrink: 0 }}>
-              <div style={{ width: '10px', height: '10px', borderRadius: '50%', marginTop: '3px', flexShrink: 0, background: active || done ? C.primary : 'transparent', border: '2px solid ' + (active || done ? C.primary : C.borderMedium) }} />
-              {idx < STEPS.length - 1 && <div style={{ width: '1.5px', flex: 1, minHeight: '44px', background: done ? C.primary : C.borderMedium, margin: '4px 0', opacity: done ? 1 : 0.35 }} />}
-            </div>
-            <div style={{ paddingBottom: idx < STEPS.length - 1 ? '16px' : 0 }}>
-              <p style={{ margin: '0 0 3px', fontFamily: F.headline, fontSize: '13px', fontWeight: active ? 700 : 500, color: active ? C.textPrimary : done ? C.textSecondary : C.textTertiary, lineHeight: 1.3 }}>{step.label}</p>
-              <p style={{ margin: 0, fontFamily: F.body, fontSize: '11px', color: active ? C.textSecondary : C.textTertiary, lineHeight: 1.45 }}>{step.sub}</p>
-            </div>
-          </div>
-        );
-      })}
-    </div>
-  );
+function PickField({ view, value, options, onChange, placeholder = 'Select…', label }) {
+  const cur = options.find(o => o.value === value);
+  if (view) return <ReadField value={cur ? cur.label : ''} icon="ti-chevron-down" />;
+  return <SelectField value={value} options={options} onChange={onChange} placeholder={placeholder} label={label} />;
 }
 
-// ─── Checkbox (identical to onboarding) ───────────────────────────────────────
-function Checkbox({ label, checked, onChange, disabled }) {
-  return (
-    <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: disabled ? 'not-allowed' : 'pointer', userSelect: 'none', opacity: disabled ? 0.6 : 1 }}>
-      <div onClick={disabled ? undefined : onChange}
-        style={{ width: '16px', height: '16px', borderRadius: '4px', flexShrink: 0, border: checked ? ('2px solid ' + C.primary) : ('1.5px solid ' + C.borderMedium), background: checked ? C.primary : C.white, display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.12s', cursor: disabled ? 'not-allowed' : 'pointer' }}
-      >
-        {checked && <i className="ti ti-check" style={{ fontSize: '10px', color: C.white }} />}
-      </div>
-      <span style={{ fontFamily: F.body, fontSize: '13px', color: C.textPrimary }}>{label}</span>
-    </label>
-  );
+function Hint({ error, children }) {
+  return error ? <span style={FIELD2.error}>{error}</span> : children ? <span style={WZ.hint}>{children}</span> : null;
 }
 
-// ─── Photo Upload (identical to onboarding) ────────────────────────────────────
+// ─── Photo upload — round preview + soft button ──────────────────────────────
 function PhotoUpload({ preview, onChange, disabled }) {
   const ref = useRef();
   return (
-    <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-      <div style={{ width: '52px', height: '52px', borderRadius: '50%', flexShrink: 0, background: C.neutral, border: '1.5px solid ' + C.borderMedium, overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        {preview ? <img src={preview} alt="Profile" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <i className="ti ti-user" style={{ fontSize: '20px', color: C.textTertiary }} />}
+    <div style={S.photoRow}>
+      <div style={S.photo}>
+        {preview ? <img src={preview} alt="Profile" style={S.photoImg} /> : <i className="ti ti-user" aria-hidden="true" />}
       </div>
-      <div>
-        <input ref={ref} type="file" accept="image/jpeg,image/png" style={{ display: 'none' }} onChange={onChange} disabled={disabled} />
-        <button type="button" onClick={() => !disabled && ref.current?.click()}
-          style={{ display: 'flex', alignItems: 'center', gap: '6px', height: '34px', padding: '0 14px', background: C.white, border: '1.5px solid ' + C.borderMedium, borderRadius: '7px', fontFamily: F.body, fontSize: '12px', fontWeight: 600, color: disabled ? C.textTertiary : C.textPrimary, cursor: disabled ? 'not-allowed' : 'pointer', opacity: disabled ? 0.6 : 1 }}
-        >
-          <i className="ti ti-upload" style={{ fontSize: '12px' }} />
+      <div style={UI2.stack(SP2.xs)}>
+        <input ref={ref} type="file" accept="image/jpeg,image/png" hidden onChange={onChange} disabled={disabled} />
+        <button type="button" className="un2-btn" style={{ ...UI2.btn.soft, ...(disabled ? { cursor: 'default' } : {}) }} onClick={() => !disabled && ref.current?.click()}>
+          <i className="ti ti-cloud-upload" style={S.btnIcon} aria-hidden="true" />
           {disabled ? 'Photo on file' : 'Upload photo'}
         </button>
-        <p style={{ ...hintS(), margin: '5px 0 0' }}>JPG or PNG, max 5MB. Optional.</p>
+        <span style={WZ.hint}>JPG or PNG, max 5MB. Optional.</span>
       </div>
     </div>
   );
 }
 
-// ─── City Tag Input (identical to onboarding) ──────────────────────────────────
-function CityTagInput({ tags, onAdd, onRemove, error, disabled }) {
-  const [val, setVal] = useState('');
+// ─── File attach — standard field box (FIELD2.input + IconField slots) ───────
+//   empty → placeholder + paperclip · picked → file icon · name · × to clear (edit mode only)
+function FileAttach({ label, onChange, onClear, fileName, disabled, invalid }) {
   const ref = useRef();
-  const handleKey = e => {
-    if ((e.key === 'Enter' || e.key === ',') && val.trim()) { e.preventDefault(); onAdd(val.trim()); setVal(''); }
-    if (e.key === 'Backspace' && !val && tags.length) onRemove(tags[tags.length - 1]);
-  };
+  if (disabled && !fileName) return <ReadField placeholder={label} icon="ti-paperclip" />;
   return (
-    <div onClick={() => !disabled && ref.current?.focus()}
-      style={{ minHeight: '40px', background: disabled ? C.neutral : C.white, border: '1px solid ' + (error ? C.danger : disabled ? C.border : C.borderMedium), borderRadius: '8px', padding: '5px 10px', display: 'flex', flexWrap: 'wrap', gap: '5px', alignItems: 'center', cursor: disabled ? 'not-allowed' : 'text', boxSizing: 'border-box' }}
-    >
-      {tags.map(t => (
-        <span key={t} style={{ display: 'inline-flex', alignItems: 'center', gap: '4px', background: C.dropdownBg, border: '1px solid #BFDBFE', borderRadius: '5px', padding: '2px 7px', fontFamily: F.body, fontSize: '12px', fontWeight: 500, color: C.textPrimary }}>
-          {t}
-          {!disabled && <button type="button" onClick={e => { e.stopPropagation(); onRemove(t); }} style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0, color: C.textSecondary, fontSize: '12px', lineHeight: 1 }}>×</button>}
-        </span>
-      ))}
-      {!disabled && <input ref={ref} value={val} onChange={e => setVal(e.target.value)} onKeyDown={handleKey} placeholder={tags.length ? 'Add city…' : 'Type a city and press Enter'} style={{ flex: 1, minWidth: '120px', background: 'none', border: 'none', outline: 'none', fontFamily: F.body, fontSize: '13px', color: C.textPrimary }} />}
+    <div style={FIELD2.iconWrap}>
+      <input ref={ref} type="file" hidden onChange={onChange} accept=".pdf,.jpg,.png" />
+      <button type="button" className={disabled ? undefined : 'un2-focus-ring'} disabled={disabled}
+        style={{ ...S.fileBtn, ...(fileName ? FIELD2.withIcon : {}), ...FIELD2.withTrail, ...(disabled ? S.fileRead : {}), ...(invalid ? FIELD2.invalid : {}) }}
+        onClick={() => ref.current?.click()}>
+        <span style={{ ...UI2.truncate, ...(fileName ? {} : S.filePh) }}>{fileName || label}</span>
+      </button>
+      {fileName && <i className="ti ti-file-text" style={{ ...FIELD2.iconSlot('left'), color: C2.primary, pointerEvents: 'none' }} aria-hidden="true" />}
+      {fileName && !disabled && onClear
+        ? <button type="button" style={{ ...FIELD2.iconSlot('right'), cursor: 'pointer' }} onClick={onClear} aria-label="Remove file" title="Remove file"><i className="ti ti-x" aria-hidden="true" /></button>
+        : <i className="ti ti-paperclip" style={{ ...FIELD2.iconSlot('right'), pointerEvents: 'none' }} aria-hidden="true" />}
     </div>
   );
 }
 
-// ─── File Attach (identical to onboarding) ─────────────────────────────────────
-function FileAttach({ label, onChange, fileName, disabled }) {
-  const ref = useRef();
-  return (
-    <div onClick={() => !disabled && ref.current?.click()}
-      style={{ height: '40px', background: disabled ? C.neutral : C.white, border: '1px solid ' + (disabled ? C.border : C.borderMedium), borderRadius: '8px', display: 'flex', alignItems: 'center', justifyContent: 'space-between', padding: '0 12px', cursor: disabled ? 'not-allowed' : 'pointer', fontFamily: F.body, fontSize: '13px', color: fileName ? C.textPrimary : C.textTertiary, boxSizing: 'border-box' }}
-    >
-      <input ref={ref} type="file" style={{ display: 'none' }} onChange={onChange} accept=".pdf,.jpg,.png" disabled={disabled} />
-      <span>{fileName || label}</span>
-      <i className="ti ti-paperclip" style={{ fontSize: '15px', color: C.textTertiary }} />
-    </div>
-  );
-}
-
-// ─── Doc Upload Zone (identical to onboarding) ────────────────────────────────
+// ─── ID documents — dashed upload slot (UI2.addTile) + file chips ────────────
 function DocUploadZone({ files, onAdd, onRemove, disabled }) {
   const ref = useRef();
   const MAX = 3;
+  const full = files.length >= MAX;
   return (
-    <div>
-      <div onClick={() => !disabled && files.length < MAX && ref.current?.click()}
-        style={{ border: '1.5px dashed ' + C.borderMedium, borderRadius: '10px', padding: '24px 20px', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '7px', cursor: disabled ? 'not-allowed' : files.length < MAX ? 'pointer' : 'default', background: disabled ? C.neutral : C.white, opacity: disabled ? 0.7 : 1 }}
-        onMouseEnter={e => { if (!disabled && files.length < MAX) e.currentTarget.style.borderColor = C.primary; }}
-        onMouseLeave={e => { e.currentTarget.style.borderColor = C.borderMedium; }}
-      >
-        <input ref={ref} type="file" multiple accept=".jpg,.jpeg,.png,.pdf" style={{ display: 'none' }} onChange={e => { onAdd(Array.from(e.target.files).slice(0, MAX - files.length)); e.target.value = ''; }} disabled={disabled} />
-        <i className="ti ti-upload" style={{ fontSize: '20px', color: C.textTertiary }} />
-        <p style={{ margin: 0, fontFamily: F.body, fontSize: '13px', fontWeight: 600, color: C.textPrimary }}>{disabled ? 'ID document(s) on file' : 'Upload ID document(s)'}</p>
-        <p style={{ margin: 0, fontFamily: F.body, fontSize: '11px', color: C.textTertiary }}>Up to 3 files — JPG, PNG, or PDF. Max 10MB each.</p>
-      </div>
+    <div style={UI2.stack(SP2.sm)}>
+      <input ref={ref} type="file" multiple accept=".jpg,.jpeg,.png,.pdf" hidden disabled={disabled}
+        onChange={e => { onAdd(Array.from(e.target.files).slice(0, MAX - files.length)); e.target.value = ''; }} />
+      <button type="button" className={disabled || full ? undefined : 'un2-raise'} disabled={disabled || full}
+        style={{ ...S.upload, ...(disabled || full ? S.uploadOff : {}) }} onClick={() => ref.current?.click()}>
+        <i className="ti ti-cloud-upload" style={UI2.addTileIcon} aria-hidden="true" />
+        {disabled ? 'ID document(s) on file' : 'Upload ID document(s)'}
+        <span style={WZ.hint}>Up to 3 files — JPG, PNG, or PDF. Max 10MB each.</span>
+      </button>
       {files.length > 0 && (
-        <div style={{ marginTop: '8px', display: 'flex', flexWrap: 'wrap', gap: '7px' }}>
+        <div style={FIELD2.chipList}>
           {files.map((f, i) => (
-            <div key={i} style={{ display: 'inline-flex', alignItems: 'center', gap: '5px', background: C.neutral, border: '1px solid ' + C.borderMedium, borderRadius: '5px', padding: '3px 9px', fontFamily: F.body, fontSize: '11px', color: C.textPrimary }}>
-              <i className="ti ti-file" style={{ fontSize: '11px', color: C.textSecondary }} />{typeof f === 'string' ? f : f.name}
-              {!disabled && <button type="button" onClick={() => onRemove(i)} style={{ background: 'none', border: 'none', cursor: 'pointer', color: C.textSecondary, fontSize: '13px', padding: '0', lineHeight: 1 }}>×</button>}
-            </div>
+            <span key={i} style={FIELD2.chip}>
+              <i className="ti ti-file" aria-hidden="true" />{typeof f === 'string' ? f : f.name}
+              {!disabled && <button type="button" style={FIELD2.chipX} onClick={() => onRemove(i)} aria-label="Remove file"><i className="ti ti-x" aria-hidden="true" /></button>}
+            </span>
           ))}
         </div>
       )}
@@ -249,58 +203,12 @@ function DocUploadZone({ files, onAdd, onRemove, disabled }) {
   );
 }
 
-// ─── Delete Confirmation Modal ─────────────────────────────────────────────────
-function DeleteConfirmModal({ open, onCancel, onConfirm, deleting }) {
-  if (!open) return null;
+// ─── Tinted note (info / success) ────────────────────────────────────────────
+function Note({ tone, icon, children }) {
   return (
-    <div style={{ position: 'fixed', inset: 0, zIndex: 400, background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-      <div style={{ background: C.white, borderRadius: '14px', padding: '28px 32px', maxWidth: '420px', width: '90%', boxShadow: '0 24px 64px rgba(0,0,0,0.18)', animation: 'fadein 0.2s ease both' }}>
-        {/* Icon */}
-        <div style={{ width: '44px', height: '44px', borderRadius: '50%', background: C.dangerBg, border: '1px solid ' + C.dangerBorder, display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '16px' }}>
-          <i className="ti ti-trash" style={{ fontSize: '20px', color: C.danger }} />
-        </div>
-        <h2 style={{ margin: '0 0 8px', fontFamily: F.headline, fontSize: '18px', fontWeight: 700, color: C.textPrimary }}>Delete Profile?</h2>
-        <p style={{ margin: '0 0 24px', fontFamily: F.body, fontSize: '13px', color: C.textSecondary, lineHeight: 1.6 }}>
-          This will deactivate your Independent PM profile and remove your access to the PM portal. Your data will be retained for auditing purposes. This action can be reversed by contacting support.
-        </p>
-        <div style={{ display: 'flex', gap: '10px' }}>
-          <button onClick={onCancel}
-            style={{ flex: 1, height: '42px', background: C.white, border: '1.5px solid ' + C.borderMedium, borderRadius: '9px', fontFamily: F.body, fontSize: '13px', fontWeight: 600, color: C.textSecondary, cursor: 'pointer' }}
-          >
-            Cancel
-          </button>
-          <button onClick={onConfirm} disabled={deleting}
-            style={{ flex: 1, height: '42px', background: deleting ? C.borderMedium : C.danger, border: 'none', borderRadius: '9px', fontFamily: F.body, fontSize: '13px', fontWeight: 700, color: C.white, cursor: deleting ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px' }}
-          >
-            {deleting
-              ? <><div style={{ width: 14, height: 14, borderRadius: '50%', border: '2px solid rgba(255,255,255,0.3)', borderTopColor: C.white, animation: 'spin 0.7s linear infinite' }} />Deleting…</>
-              : <><i className="ti ti-trash" style={{ fontSize: '14px' }} />Yes, Delete</>
-            }
-          </button>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// ─── Unsaved Changes Warning ───────────────────────────────────────────────────
-function UnsavedWarning({ open, onStay, onLeave }) {
-  if (!open) return null;
-  return (
-    <div style={{ position: 'fixed', inset: 0, zIndex: 400, background: 'rgba(0,0,0,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-      <div style={{ background: C.white, borderRadius: '14px', padding: '28px 32px', maxWidth: '380px', width: '90%', boxShadow: '0 24px 64px rgba(0,0,0,0.18)', animation: 'fadein 0.2s ease both' }}>
-        <div style={{ width: '44px', height: '44px', borderRadius: '50%', background: C.amberBg, border: '1px solid ' + C.amberBorder, display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '16px' }}>
-          <i className="ti ti-alert-triangle" style={{ fontSize: '20px', color: C.amber }} />
-        </div>
-        <h2 style={{ margin: '0 0 8px', fontFamily: F.headline, fontSize: '18px', fontWeight: 700, color: C.textPrimary }}>Unsaved Changes</h2>
-        <p style={{ margin: '0 0 24px', fontFamily: F.body, fontSize: '13px', color: C.textSecondary, lineHeight: 1.6 }}>
-          You have unsaved changes on this step. If you go back now, your changes will be lost.
-        </p>
-        <div style={{ display: 'flex', gap: '10px' }}>
-          <button onClick={onStay} style={{ flex: 1, height: '42px', background: C.white, border: '1.5px solid ' + C.borderMedium, borderRadius: '9px', fontFamily: F.body, fontSize: '13px', fontWeight: 600, color: C.textSecondary, cursor: 'pointer' }}>Stay</button>
-          <button onClick={onLeave} style={{ flex: 1, height: '42px', background: C.primary, border: 'none', borderRadius: '9px', fontFamily: F.body, fontSize: '13px', fontWeight: 700, color: C.white, cursor: 'pointer' }}>Leave anyway</button>
-        </div>
-      </div>
+    <div style={S.note(tone)}>
+      <i className={`ti ${icon}`} style={S.noteIcon} aria-hidden="true" />
+      <span>{children}</span>
     </div>
   );
 }
@@ -311,10 +219,10 @@ export default function PMProfileView() {
   const location = useLocation();
 
   // ── User ──────────────────────────────────────────────────────────────────
-  const [userName,  setUserName]  = useState('');
+  const [, setUserName]  = useState('');
   const [firstName, setFirstName] = useState('');
   const [lastName,  setLastName]  = useState('');
-  const [userRole,  setUserRole]  = useState('Independent PM');
+  const [, setUserRole]  = useState('Independent PM');
 
   // ── Navigation state ──────────────────────────────────────────────────────
   const [currentStep,    setCurrentStep]    = useState(1);
@@ -638,483 +546,354 @@ export default function PMProfileView() {
   // License # drives mandatory fields in Step 2
   const licenseRequired = licenseNum.trim().length > 0;
 
-  // ── Footer buttons ────────────────────────────────────────────────────────
+  // SelectField lists real choices only (its placeholder shows when nothing is picked)
+  const opts = list => list.filter(o => o.value !== '');
+  const clearErr = k => setErrors(p => ({ ...p, [k]: '' }));
+  const [cityDraft, setCityDraft] = useState('');
+  const stepHead = STEP_HEADS[currentStep];
+
+  // ── Footer: note on the left · Back (soft) + main action (brand) ──────────
   const renderFooter = () => {
-    const backBtn = (
-      <button onClick={handleBack}
-        style={{ display: 'flex', alignItems: 'center', gap: '7px', height: '44px', padding: '0 22px', background: C.white, color: C.textPrimary, border: '1.5px solid ' + C.borderMedium, borderRadius: '9px', fontFamily: F.body, fontSize: '13px', fontWeight: 600, cursor: 'pointer' }}
-      >
-        <i className="ti ti-arrow-left" style={{ fontSize: '14px' }} /> Back
-      </button>
-    );
-
+    const spinner = <i className="ti ti-loader-2 un2-spin" style={S.btnIcon} aria-hidden="true" />;
+    let note, main;
     if (V) {
-      // View mode: Back + Next (no save)
-      return (
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-            <i className="ti ti-eye" style={{ fontSize: '13px', color: C.textTertiary }} />
-            <span style={{ fontFamily: F.body, fontSize: '11px', color: C.textTertiary }}>View only</span>
-          </div>
-          <div style={{ display: 'flex', gap: '10px' }}>
-            {backBtn}
-            {currentStep < 3 && (
-              <button onClick={handleNext}
-                style={{ display: 'flex', alignItems: 'center', gap: '8px', height: '44px', padding: '0 28px', background: C.primary, color: C.white, border: 'none', borderRadius: '9px', fontFamily: F.body, fontSize: '13px', fontWeight: 700, cursor: 'pointer' }}
-                onMouseEnter={e => e.currentTarget.style.background = C.primaryHover}
-                onMouseLeave={e => e.currentTarget.style.background = C.primary}
-              >
-                Next <i className="ti ti-arrow-right" style={{ fontSize: '14px' }} />
-              </button>
-            )}
-          </div>
-        </div>
+      note = <><i className="ti ti-eye" style={S.btnIcon} aria-hidden="true" />View only</>;
+      main = currentStep < 3 && (
+        <button type="button" className="un2-btn" style={UI2.btn.brand} onClick={handleNext}>
+          Next <i className="ti ti-arrow-right" style={S.btnIcon} aria-hidden="true" />
+        </button>
+      );
+    } else if (currentStep === 3) {
+      note = <><i className="ti ti-device-floppy" style={S.btnIcon} aria-hidden="true" />{isReactivation ? 'Review all steps then reactivate' : 'Changes saved on submit'}</>;
+      main = (
+        <button type="button" className="un2-btn" style={{ ...UI2.btn.brand, ...(saving ? UI2.btnOff : {}) }} onClick={handleSubmit} disabled={saving}>
+          {saving ? <>{spinner}Saving…</>
+            : isReactivation ? <><i className="ti ti-refresh" style={S.btnIcon} aria-hidden="true" />Reactivate Account</>
+            : <><i className="ti ti-device-floppy" style={S.btnIcon} aria-hidden="true" />Submit</>}
+        </button>
+      );
+    } else {
+      note = <><i className="ti ti-device-floppy" style={S.btnIcon} aria-hidden="true" />Progress auto-saved</>;
+      main = (
+        <button type="button" className="un2-btn" style={{ ...UI2.btn.brand, ...(saving ? UI2.btnOff : {}) }} onClick={handleContinue} disabled={saving}>
+          {saving ? <>{spinner}Saving…</> : <>Continue <i className="ti ti-arrow-right" style={S.btnIcon} aria-hidden="true" /></>}
+        </button>
       );
     }
-
-    // Edit mode
-    if (currentStep === 3) {
-      // Step 3: Back + Submit / Reactivate Account
-      return (
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-            <i className="ti ti-device-floppy" style={{ fontSize: '13px', color: C.textTertiary }} />
-            <span style={{ fontFamily: F.body, fontSize: '11px', color: C.textTertiary }}>
-              {isReactivation ? 'Review all steps then reactivate' : 'Changes saved on submit'}
-            </span>
-          </div>
-          <div style={{ display: 'flex', gap: '10px' }}>
-            {backBtn}
-            <button onClick={handleSubmit} disabled={saving}
-              style={{ display: 'flex', alignItems: 'center', gap: '8px', height: '44px', padding: '0 28px', background: saving ? C.borderMedium : C.primary, color: C.white, border: 'none', borderRadius: '9px', fontFamily: F.body, fontSize: '13px', fontWeight: 700, cursor: saving ? 'not-allowed' : 'pointer' }}
-              onMouseEnter={e => { if (!saving) e.currentTarget.style.background = C.primaryHover; }}
-              onMouseLeave={e => { if (!saving) e.currentTarget.style.background = C.primary; }}
-            >
-              {saving
-                ? <><div style={{ width: 14, height: 14, borderRadius: '50%', border: '2px solid rgba(255,255,255,0.3)', borderTopColor: C.white, animation: 'spin 0.7s linear infinite' }} />Saving…</>
-                : isReactivation
-                  ? <><i className="ti ti-refresh" style={{ fontSize: '14px' }} />Reactivate Account</>
-                  : <><i className="ti ti-device-floppy" style={{ fontSize: '14px' }} />Submit</>
-              }
-            </button>
-          </div>
-        </div>
-      );
-    }
-
-    // Steps 1 & 2: Back + Continue (auto-saves)
     return (
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-          <i className="ti ti-device-floppy" style={{ fontSize: '13px', color: C.textTertiary }} />
-          <span style={{ fontFamily: F.body, fontSize: '11px', color: C.textTertiary }}>Progress auto-saved</span>
-        </div>
-        <div style={{ display: 'flex', gap: '10px' }}>
-          {backBtn}
-          <button onClick={handleContinue} disabled={saving}
-            style={{ display: 'flex', alignItems: 'center', gap: '8px', height: '44px', padding: '0 28px', background: saving ? C.borderMedium : C.primary, color: C.white, border: 'none', borderRadius: '9px', fontFamily: F.body, fontSize: '13px', fontWeight: 700, cursor: saving ? 'not-allowed' : 'pointer' }}
-            onMouseEnter={e => { if (!saving) e.currentTarget.style.background = C.primaryHover; }}
-            onMouseLeave={e => { if (!saving) e.currentTarget.style.background = C.primary; }}
-          >
-            {saving ? <><div style={{ width: 14, height: 14, borderRadius: '50%', border: '2px solid rgba(255,255,255,0.3)', borderTopColor: C.white, animation: 'spin 0.7s linear infinite' }} />Saving…</> : <>Continue <i className="ti ti-arrow-right" style={{ fontSize: '14px' }} /></>}
+      <div style={S.foot}>
+        <span style={S.footNote}>{note}</span>
+        <div style={S.footActs}>
+          <button type="button" className="un2-btn" style={UI2.btn.soft} onClick={handleBack}>
+            <i className="ti ti-arrow-left" style={S.btnIcon} aria-hidden="true" /> Back
           </button>
+          {main}
         </div>
       </div>
     );
   };
 
+  const lockedLabel = text => <>{text} <span style={S.locked}>(Locked)</span></>;
+
   // ── Form content per step ─────────────────────────────────────────────────
   const renderFormContent = () => {
     if (currentStep === 1) return (
       <>
-        <div style={dividerS} />
-        {/* Name row — always locked */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '18px' }}>
-          <div>
-            <span style={FL}>First Name <span style={{ fontWeight: 400, textTransform: 'none', letterSpacing: 0, color: C.textTertiary }}>(Locked)</span></span>
-            <input style={inputS(true)} value={firstName} readOnly />
-          </div>
-          <div>
-            <span style={FL}>Last Name <span style={{ fontWeight: 400, textTransform: 'none', letterSpacing: 0, color: C.textTertiary }}>(Locked)</span></span>
-            <input style={inputS(true)} value={lastName} readOnly />
-          </div>
-        </div>
-        <div style={dividerS} />
-
-        {/* Profile photo */}
-        <div style={{ marginBottom: '18px' }}>
-          <span style={FL}>Profile Photo</span>
-          <PhotoUpload preview={photoPreview} onChange={e => { const f = e.target.files[0]; if (f) { setPhotoPreview(URL.createObjectURL(f)); markDirty(); } }} disabled={V} />
-        </div>
-        <div style={dividerS} />
-
-        {/* Experience + Max units */}
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '18px' }}>
-          <div>
-            <span style={FL}>Years of Experience *</span>
-            <CustomDropdown options={EXP_OPTIONS} value={yearsExp} placeholder="Select range…" disabled={V} error={!!errors.yearsExp} onChange={v => { setYearsExp(v); markDirty(); setErrors(p => ({ ...p, yearsExp: '' })); }} />
-            {errors.yearsExp && <p style={hintS(true)}>{errors.yearsExp}</p>}
-          </div>
-          <div>
-            <span style={FL}>Max Units Capacity *</span>
-            <input type="number" min="1" placeholder="e.g. 25" style={inputS(V, !!errors.maxUnits)} value={maxUnits} readOnly={V} onChange={e => { setMaxUnits(e.target.value); markDirty(); setErrors(p => ({ ...p, maxUnits: '' })); }} />
-            {errors.maxUnits ? <p style={hintS(true)}>{errors.maxUnits}</p> : <p style={hintS()}>How many units can you manage?</p>}
-          </div>
+        {/* Name — always locked */}
+        <div style={FIELD2.grid}>
+          <FormField label={lockedLabel('First Name')}><ReadField value={firstName} /></FormField>
+          <FormField label={lockedLabel('Last Name')}><ReadField value={lastName} /></FormField>
         </div>
 
-        {/* Bio */}
-        <div style={{ marginBottom: '18px' }}>
-          <span style={FL}>Bio / About Me *</span>
-          <textarea placeholder="Describe your experience…" readOnly={V}
-            style={{ width: '100%', minHeight: '100px', background: V ? C.neutral : C.white, border: '1px solid ' + (errors.bio ? C.danger : V ? C.border : C.borderMedium), borderRadius: '8px', padding: '10px 12px', fontFamily: F.body, fontSize: '13px', color: V ? C.textSecondary : C.textPrimary, resize: V ? 'none' : 'vertical', outline: 'none', lineHeight: 1.55, boxSizing: 'border-box', cursor: V ? 'default' : 'text' }}
-            value={bio} onChange={e => { setBio(e.target.value); markDirty(); setErrors(p => ({ ...p, bio: '' })); }}
-          />
-          <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-            <p style={{ ...hintS(!!errors.bio), margin: 0 }}>{errors.bio || 'Shown publicly on your profile. Min 50 characters.'}</p>
-            <p style={{ ...hintS(bio.length < 50 && bio.length > 0), margin: 0 }}>{bio.length}/50</p>
-          </div>
-        </div>
-        <div style={dividerS} />
+        <FormField label="Profile Photo">
+          <PhotoUpload preview={photoPreview} disabled={V}
+            onChange={e => { const f = e.target.files[0]; if (f) { setPhotoPreview(URL.createObjectURL(f)); markDirty(); } }} />
+        </FormField>
 
-        {/* Type of Business */}
-        <div style={{ marginBottom: '18px' }}>
-          <span style={FL}>Type of Business</span>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px 20px', marginTop: '8px' }}>
-            {[['property_management','Property Management'],['tenant_placement','Tenant Placement'],['buy','Buy'],['sell','Sell']].map(([k,l]) => (
-              <Checkbox key={k} label={l} checked={businessTypes[k]} disabled={V} onChange={() => { setBusinessTypes(p => ({ ...p, [k]: !p[k] })); markDirty(); }} />
+        <div style={FIELD2.grid}>
+          <FormField label="Years of Experience *">
+            <PickField view={V} value={yearsExp} options={opts(EXP_OPTIONS)} placeholder="Select range…" label="Years of experience"
+              onChange={v => { setYearsExp(v); markDirty(); clearErr('yearsExp'); }} />
+            <Hint error={errors.yearsExp} />
+          </FormField>
+          <FormField label="Max Units Capacity *">
+            <TextField view={V} type="number" min="1" placeholder="e.g. 25" value={maxUnits} invalid={!!errors.maxUnits}
+              onChange={e => { setMaxUnits(e.target.value); markDirty(); clearErr('maxUnits'); }} />
+            <Hint error={errors.maxUnits}>How many units can you manage?</Hint>
+          </FormField>
+        </div>
+
+        <FormField label="Bio / About Me *">
+          <textarea className="un2-focus-ring" placeholder="Describe your experience…" readOnly={V}
+            style={{ ...FIELD2.textarea, ...(V ? { background: C2.fieldReadOnly, resize: 'none' } : {}), ...(errors.bio ? FIELD2.invalid : {}) }}
+            value={bio} onChange={e => { setBio(e.target.value); markDirty(); clearErr('bio'); }} />
+          <div style={S.hintRow}>
+            <Hint error={errors.bio}>Shown publicly on your profile. Min 50 characters.</Hint>
+            <span style={bio.length > 0 && bio.length < 50 ? FIELD2.error : WZ.hint}>{bio.length}/50</span>
+          </div>
+        </FormField>
+
+        <div style={S.group}>
+          <span style={S.subhead}>Type of Business</span>
+          <Grid layout="four" as="div" style={WZ.tiles}>
+            {BUSINESS.map(([k, l, icon]) => (
+              <ChoiceTile key={k} icon={icon} label={l} selected={businessTypes[k]}
+                onClick={() => { if (V) return; setBusinessTypes(p => ({ ...p, [k]: !p[k] })); markDirty(); }} />
+            ))}
+          </Grid>
+          <span style={WZ.hint}>Select all that apply</span>
+        </div>
+
+        <div style={S.group}>
+          <span style={S.subhead}>Property Types Managed</span>
+          <div style={WZ.checks}>
+            {PROPERTY_TYPES.map(([k, l]) => (
+              <Checkbox key={k} label={l} checked={propertyTypes[k]} disabled={V}
+                onChange={() => { setPropertyTypes(p => ({ ...p, [k]: !p[k] })); markDirty(); clearErr('propertyTypes'); }} />
             ))}
           </div>
-          <p style={hintS()}>Select all that apply</p>
+          <Hint error={errors.propertyTypes}>Select all that apply</Hint>
         </div>
-
-        {/* Property Types */}
-        <div style={{ marginBottom: '24px' }}>
-          <span style={FL}>Property Types Managed</span>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px 20px', marginTop: '8px' }}>
-            {[['residential','Residential'],['commercial','Commercial'],['student_housing','Student Housing'],['short_term','Short-term'],['mixed','Mixed']].map(([k,l]) => (
-              <Checkbox key={k} label={l} checked={propertyTypes[k]} disabled={V} onChange={() => { setPropertyTypes(p => ({ ...p, [k]: !p[k] })); markDirty(); setErrors(p => ({ ...p, propertyTypes: '' })); }} />
-            ))}
-          </div>
-          {errors.propertyTypes ? <p style={hintS(true)}>{errors.propertyTypes}</p> : <p style={hintS()}>Select all that apply</p>}
-        </div>
-        <div style={dividerS} />
-        {renderFooter()}
       </>
     );
 
+    // Step 2 — three titled groups (ModalSection: icon box · title · faint divider between groups)
     if (currentStep === 2) return (
-      <>
-        <div style={dividerS} />
-        <p style={{ margin: '0 0 14px', fontFamily: F.body, fontSize: '10px', fontWeight: 700, color: C.textSecondary, textTransform: 'uppercase', letterSpacing: '0.08em' }}>Service Area</p>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '16px' }}>
-          <div>
-            <span style={FL}>Country (Auto-detected)</span>
-            <CustomDropdown options={[{value:'US',label:'United States'}]} value="US" placeholder="United States" disabled />
-          </div>
-          <div>
-            <span style={FL}>State / Region *</span>
-            <CustomDropdown options={STATE_OPTIONS} value={state} placeholder="Select state…" disabled={V} error={!!errors.state} onChange={v => { setState(v); markDirty(); setErrors(p => ({ ...p, state: '' })); }} />
-            {errors.state ? <p style={hintS(true)}>{errors.state}</p> : <p style={hintS()}>Determines license requirements</p>}
-          </div>
+      <div style={S.sections}>
+        <ModalSection icon="ti-map-pin" title="Service Area">
+        <div style={FIELD2.grid}>
+          <FormField label="Country (Auto-detected)"><ReadField value="United States" icon="ti-chevron-down" /></FormField>
+          <FormField label="State / Region *">
+            <PickField view={V} value={state} options={opts(STATE_OPTIONS)} placeholder="Select state…" label="State / Region"
+              onChange={v => { setState(v); markDirty(); clearErr('state'); }} />
+            <Hint error={errors.state}>Determines license requirements</Hint>
+          </FormField>
+          <FormField label="Cities Served *" full>
+            {V ? <ReadField value={cities.join(', ')} /> : (
+              <ChipInput items={cities} draft={cityDraft} onDraft={setCityDraft} label="Cities served"
+                placeholder={cities.length ? 'Add city…' : 'Type a city and press Enter'}
+                onAdd={() => { const c = cityDraft.trim(); if (c && !cities.includes(c)) { setCities(p => [...p, c]); markDirty(); clearErr('cities'); } setCityDraft(''); }}
+                onRemove={i => { setCities(p => p.filter((_, idx) => idx !== i)); markDirty(); }} />
+            )}
+            <Hint error={errors.cities}>{V ? null : 'Type a city name and press Enter'}</Hint>
+          </FormField>
         </div>
-        <div style={{ marginBottom: '4px' }}>
-          <span style={FL}>Cities Served *</span>
-          <CityTagInput tags={cities} onAdd={c => { setCities(p => [...p, c]); markDirty(); }} onRemove={c => { setCities(p => p.filter(x => x !== c)); markDirty(); }} error={!!errors.cities} disabled={V} />
-          {errors.cities ? <p style={hintS(true)}>{errors.cities}</p> : <p style={hintS()}>Type a city name and press Enter</p>}
-        </div>
-        <div style={dividerS} />
+        </ModalSection>
 
-        <p style={{ margin: '0 0 14px', fontFamily: F.body, fontSize: '10px', fontWeight: 700, color: C.textSecondary, textTransform: 'uppercase', letterSpacing: '0.08em' }}>Professional License</p>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '16px' }}>
-          <div>
-            <span style={FL}>License Number</span>
-            <input style={inputS(V)} placeholder="e.g. PM-12345" value={licenseNum} readOnly={V}
+        <ModalSection icon="ti-shield-check" title="Professional License">
+        <div style={FIELD2.grid}>
+          <FormField label="License Number">
+            <TextField view={V} placeholder="e.g. PM-12345" value={licenseNum}
               onChange={e => {
                 const val = e.target.value;
                 setLicenseNum(val);
                 markDirty();
                 // When license # cleared, also clear dependent fields
-                if (!val.trim()) {
-                  setIssuingState('');
-                  setExpiryDate('');
-                  setLicenseFile(null);
-                  setLicenseFileName('');
-                }
-              }}
-            />
-          </div>
-          <div>
-            <span style={FL}>Issuing State {licenseRequired && !V ? '*' : ''}</span>
-            <CustomDropdown
-              options={ISSUING_OPTIONS}
-              value={issuingState}
-              placeholder="Select state…"
-              disabled={V || !licenseRequired}
-              error={!!errors.issuingState}
-              onChange={v => { setIssuingState(v); markDirty(); setErrors(p => ({ ...p, issuingState: '' })); }}
-            />
-            {errors.issuingState && <p style={hintS(true)}>{errors.issuingState}</p>}
-          </div>
-        </div>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '16px' }}>
-          <div>
-            <span style={FL}>License Expiry Date {licenseRequired && !V ? '*' : ''}</span>
-            <div style={{ position: 'relative' }}>
-              <input type="date" min={new Date().toISOString().split('T')[0]}
-                readOnly={V || !licenseRequired}
-                style={{ ...inputS(V || !licenseRequired, !!errors.expiryDate), paddingRight: '36px', color: expiryDate ? C.textPrimary : C.textTertiary, cursor: (V || !licenseRequired) ? 'default' : 'pointer', colorScheme: 'light' }}
-                value={expiryDate}
-                onChange={e => { setExpiryDate(e.target.value); markDirty(); setErrors(p => ({ ...p, expiryDate: '' })); }}
-              />
-              <i className="ti ti-calendar" style={{ position: 'absolute', right: '11px', top: '50%', transform: 'translateY(-50%)', fontSize: '14px', color: C.textTertiary, pointerEvents: 'none' }} />
-            </div>
-            {errors.expiryDate && <p style={hintS(true)}>{errors.expiryDate}</p>}
-          </div>
-          <div>
-            <span style={FL}>License Document {licenseRequired && !V ? '*' : '(Optional)'}</span>
-            <FileAttach
-              label="Upload file…"
+                if (!val.trim()) { setIssuingState(''); setExpiryDate(''); setLicenseFile(null); setLicenseFileName(''); }
+              }} />
+          </FormField>
+          <FormField label={`Issuing State ${licenseRequired && !V ? '*' : ''}`}>
+            <PickField view={V || !licenseRequired} value={issuingState} options={opts(ISSUING_OPTIONS)} placeholder="Select state…" label="Issuing state"
+              onChange={v => { setIssuingState(v); markDirty(); clearErr('issuingState'); }} />
+            <Hint error={errors.issuingState} />
+          </FormField>
+          <FormField label={`License Expiry Date ${licenseRequired && !V ? '*' : ''}`}>
+            <TextField view={V || !licenseRequired} type="date" min={new Date().toISOString().split('T')[0]} value={expiryDate} invalid={!!errors.expiryDate}
+              onChange={e => { setExpiryDate(e.target.value); markDirty(); clearErr('expiryDate'); }} />
+            <Hint error={errors.expiryDate} />
+          </FormField>
+          <FormField label={`License Document ${licenseRequired && !V ? '*' : '(Optional)'}`}>
+            <FileAttach label="Upload file…" disabled={V || !licenseRequired} invalid={!!errors.licenseFile}
               fileName={licenseFile instanceof File ? licenseFile.name : licenseFileName}
-              disabled={V || !licenseRequired}
-              onChange={e => { setLicenseFile(e.target.files[0]); setLicenseFileName(''); markDirty(); setErrors(p => ({ ...p, licenseFile: '' })); }}
-            />
-            {errors.licenseFile && <p style={hintS(true)}>{errors.licenseFile}</p>}
-          </div>
+              onChange={e => { setLicenseFile(e.target.files[0]); setLicenseFileName(''); markDirty(); clearErr('licenseFile'); }}
+              onClear={() => { setLicenseFile(null); setLicenseFileName(''); markDirty(); }} />
+            <Hint error={errors.licenseFile} />
+          </FormField>
         </div>
+        {!V && <Note tone={TONES2.primary} icon="ti-info-circle">Changes to your license details will be sent for re-verification.</Note>}
+        </ModalSection>
 
-        {!V && (
-          <div style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', background: C.infoBg, border: '1px solid ' + C.infoBorder, borderRadius: '8px', padding: '11px 14px', marginBottom: '8px' }}>
-            <i className="ti ti-info-circle" style={{ fontSize: '15px', color: C.infoText, flexShrink: 0, marginTop: '1px' }} />
-            <p style={{ margin: 0, fontFamily: F.body, fontSize: '12px', color: C.infoText, lineHeight: 1.55 }}>Changes to your license details will be sent for re-verification.</p>
-          </div>
-        )}
-        <div style={dividerS} />
-
-        <p style={{ margin: '0 0 14px', fontFamily: F.body, fontSize: '10px', fontWeight: 700, color: C.textSecondary, textTransform: 'uppercase', letterSpacing: '0.08em' }}>Brokerage Information</p>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '24px' }}>
-          <div>
-            <span style={FL}>Brokerage Name</span>
-            <input style={inputS(V)} placeholder="Enter brokerage name" value={brokerageName} readOnly={V} onChange={e => { setBrokerageName(e.target.value); markDirty(); }} />
-          </div>
-          <div>
-            <span style={FL}>Brokerage License #</span>
-            <input style={inputS(V)} placeholder="Enter license number" value={brokerageLic} readOnly={V} onChange={e => { setBrokerageLic(e.target.value); markDirty(); }} />
-          </div>
+        <ModalSection icon="ti-building" title="Brokerage Information">
+        <div style={FIELD2.grid}>
+          <FormField label="Brokerage Name">
+            <TextField view={V} placeholder="Enter brokerage name" value={brokerageName} onChange={e => { setBrokerageName(e.target.value); markDirty(); }} />
+          </FormField>
+          <FormField label="Brokerage License #">
+            <TextField view={V} placeholder="Enter license number" value={brokerageLic} onChange={e => { setBrokerageLic(e.target.value); markDirty(); }} />
+          </FormField>
         </div>
-        <div style={dividerS} />
-        {renderFooter()}
-      </>
+        </ModalSection>
+      </div>
     );
 
     if (currentStep === 3) return (
       <>
-        <div style={dividerS} />
-        <p style={{ margin: '0 0 4px', fontFamily: F.body, fontSize: '10px', fontWeight: 700, color: C.textSecondary, textTransform: 'uppercase', letterSpacing: '0.08em' }}>Fee Structure</p>
-        <p style={{ margin: '0 0 16px', fontFamily: F.body, fontSize: '11px', color: C.textTertiary }}>Visible on your public profile</p>
-
-        <div style={{ marginBottom: '16px' }}>
-          <span style={FL}>Management Fee Type *</span>
-          <div style={{ display: 'grid', gridTemplateColumns: mgmtShowVal ? '1fr 80px' : '1fr', gap: '10px' }}>
-            <CustomDropdown options={MGMT_OPTS} value={mgmtType} placeholder="Select…" disabled={V} error={!!errors.mgmtType} onChange={v => { setMgmtType(v); markDirty(); setErrors(p => ({ ...p, mgmtType: '' })); }} />
-            {mgmtShowVal && <input type="text" style={{ ...inputS(V), textAlign: 'center' }} value={mgmtValue} readOnly={V} onChange={e => { setMgmtValue(e.target.value); markDirty(); }} placeholder="0" />}
-          </div>
-          {errors.mgmtType ? <p style={hintS(true)}>{errors.mgmtType}</p> : <p style={hintS()}>% of monthly rent / Flat monthly / Negotiable</p>}
+        <div style={UI2.stack(SP2.xs)}>
+          <span style={S.subhead}>Fee Structure</span>
+          <span style={WZ.hint}>Visible on your public profile</span>
         </div>
-
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '4px' }}>
-          <div>
-            <span style={FL}>Lease-up / Onboarding Fee</span>
-            <div style={{ display: 'flex', gap: '8px' }}>
-              <CustomDropdown options={LEASE_OPTS} value={leaseType} placeholder="Select…" disabled={V} onChange={v => { setLeaseType(v); markDirty(); }} />
-              {leaseShowVal && <input type="text" style={{ ...inputS(V), width: '68px', textAlign: 'center', flexShrink: 0 }} value={leaseValue} readOnly={V} onChange={e => { setLeaseValue(e.target.value); markDirty(); }} placeholder="$0" />}
+        <FormField label="Management Fee Type *">
+          <div style={S.feeRow}>
+            <div style={{ flex: 1, minWidth: 0 }}>
+              <PickField view={V} value={mgmtType} options={opts(MGMT_OPTS)} label="Management fee type"
+                onChange={v => { setMgmtType(v); markDirty(); clearErr('mgmtType'); }} />
             </div>
-            <p style={hintS()}>One month's rent / Flat / None / Negotiable</p>
+            {mgmtShowVal && <input className="un2-focus-ring" style={S.feeVal} value={mgmtValue} readOnly={V} placeholder="0" onChange={e => { setMgmtValue(e.target.value); markDirty(); }} />}
           </div>
-          <div>
-            <span style={FL}>Lease Renewal Fee</span>
-            <div style={{ display: 'flex', gap: '8px' }}>
-              <CustomDropdown options={RENEWAL_OPTS} value={renewalType} placeholder="Select…" disabled={V} onChange={v => { setRenewalType(v); markDirty(); }} />
-              {renewShowVal && <input type="text" style={{ ...inputS(V), width: '68px', textAlign: 'center', flexShrink: 0 }} value={renewalValue} readOnly={V} onChange={e => { setRenewalValue(e.target.value); markDirty(); }} placeholder="0%" />}
+          <Hint error={errors.mgmtType}>% of monthly rent / Flat monthly / Negotiable</Hint>
+        </FormField>
+        <div style={FIELD2.grid}>
+          <FormField label="Lease-up / Onboarding Fee">
+            <div style={S.feeRow}>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <PickField view={V} value={leaseType} options={opts(LEASE_OPTS)} label="Lease-up fee" onChange={v => { setLeaseType(v); markDirty(); }} />
+              </div>
+              {leaseShowVal && <input className="un2-focus-ring" style={S.feeVal} value={leaseValue} readOnly={V} placeholder="$0" onChange={e => { setLeaseValue(e.target.value); markDirty(); }} />}
             </div>
-            <p style={hintS()}>% / Flat / None / Negotiable</p>
-          </div>
+            <Hint>One month's rent / Flat / None / Negotiable</Hint>
+          </FormField>
+          <FormField label="Lease Renewal Fee">
+            <div style={S.feeRow}>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <PickField view={V} value={renewalType} options={opts(RENEWAL_OPTS)} label="Renewal fee" onChange={v => { setRenewalType(v); markDirty(); }} />
+              </div>
+              {renewShowVal && <input className="un2-focus-ring" style={S.feeVal} value={renewalValue} readOnly={V} placeholder="0%" onChange={e => { setRenewalValue(e.target.value); markDirty(); }} />}
+            </div>
+            <Hint>% / Flat / None / Negotiable</Hint>
+          </FormField>
         </div>
-        <div style={dividerS} />
 
-        <p style={{ margin: '0 0 14px', fontFamily: F.body, fontSize: '10px', fontWeight: 700, color: C.textSecondary, textTransform: 'uppercase', letterSpacing: '0.08em' }}>Identity Verification</p>
-        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '14px' }}>
-          <div>
-            <span style={FL}>ID Type *</span>
-            <CustomDropdown options={ID_OPTS} value={idType} placeholder="Select…" disabled={V} error={!!errors.idType} onChange={v => { setIdType(v); markDirty(); setErrors(p => ({ ...p, idType: '' })); }} />
-            {errors.idType ? <p style={hintS(true)}>{errors.idType}</p> : <p style={hintS()}>Filtered by country</p>}
-          </div>
-          <div>
-            <span style={FL}>ID Number *</span>
-            <input style={inputS(V, !!errors.idNumber)} placeholder="Enter ID number" value={idNumber} readOnly={V} onChange={e => { setIdNumber(e.target.value); markDirty(); setErrors(p => ({ ...p, idNumber: '' })); }} />
-            {errors.idNumber && <p style={hintS(true)}>{errors.idNumber}</p>}
-          </div>
+        <div style={WZ.rule} />
+        <span style={S.subhead}>Identity Verification</span>
+        <div style={FIELD2.grid}>
+          <FormField label="ID Type *">
+            <PickField view={V} value={idType} options={opts(ID_OPTS)} label="ID type" onChange={v => { setIdType(v); markDirty(); clearErr('idType'); }} />
+            <Hint error={errors.idType}>Filtered by country</Hint>
+          </FormField>
+          <FormField label="ID Number *">
+            <TextField view={V} placeholder="Enter ID number" value={idNumber} invalid={!!errors.idNumber}
+              onChange={e => { setIdNumber(e.target.value); markDirty(); clearErr('idNumber'); }} />
+            <Hint error={errors.idNumber} />
+          </FormField>
         </div>
-        <div style={{ marginBottom: '8px' }}>
-          <DocUploadZone files={idFiles} onAdd={f => { setIdFiles(p => [...p, ...f].slice(0, 3)); markDirty(); setErrors(p => ({ ...p, idFiles: '' })); }} onRemove={i => { setIdFiles(p => p.filter((_, idx) => idx !== i)); markDirty(); }} disabled={V} />
-          {errors.idFiles && <p style={hintS(true)}>{errors.idFiles}</p>}
+        <div style={UI2.stack(SP2.xs)}>
+          <DocUploadZone files={idFiles} disabled={V}
+            onAdd={f => { setIdFiles(p => [...p, ...f].slice(0, 3)); markDirty(); clearErr('idFiles'); }}
+            onRemove={i => { setIdFiles(p => p.filter((_, idx) => idx !== i)); markDirty(); }} />
+          <Hint error={errors.idFiles} />
         </div>
 
         {!V && (
           <>
-            <div style={dividerS} />
-            <p style={{ margin: '0 0 12px', fontFamily: F.body, fontSize: '10px', fontWeight: 700, color: C.textSecondary, textTransform: 'uppercase', letterSpacing: '0.08em' }}>Terms &amp; Subscription</p>
-            <div style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', background: C.successBg, border: '1px solid ' + C.successBorder, borderRadius: '8px', padding: '11px 14px', marginBottom: '14px' }}>
-              <i className="ti ti-gift" style={{ fontSize: '15px', color: C.successText, flexShrink: 0, marginTop: '1px' }} />
-              <p style={{ margin: 0, fontFamily: F.body, fontSize: '12px', color: C.successText, lineHeight: 1.55 }}>Your 30-day free trial is active. Changes take effect immediately.</p>
+            <div style={WZ.rule} />
+            <span style={S.subhead}>Terms &amp; Subscription</span>
+            <Note tone={TONES2.success} icon="ti-gift">Your 30-day free trial is active. Changes take effect immediately.</Note>
+            <div style={UI2.stack(SP2.xs)}>
+              <Checkbox checked={agreed} strong
+                label="I confirm these changes are accurate and agree to the Terms of Service"
+                onChange={() => { setAgreed(p => !p); markDirty(); clearErr('agreed'); }} />
+              <Hint error={errors.agreed} />
             </div>
-            <div style={{ display: 'flex', alignItems: 'flex-start', gap: '10px', cursor: 'pointer', userSelect: 'none', marginBottom: '4px' }}
-              onClick={() => { setAgreed(p => !p); markDirty(); setErrors(p => ({ ...p, agreed: '' })); }}
-            >
-              <div style={{ width: '16px', height: '16px', borderRadius: '4px', flexShrink: 0, marginTop: '2px', border: errors.agreed ? ('2px solid ' + C.danger) : agreed ? ('2px solid ' + C.primary) : ('1.5px solid ' + C.borderMedium), background: agreed ? C.primary : C.white, display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all 0.12s', cursor: 'pointer' }}>
-                {agreed && <i className="ti ti-check" style={{ fontSize: '10px', color: C.white }} />}
-              </div>
-              <span style={{ fontFamily: F.body, fontSize: '13px', color: C.textPrimary, lineHeight: 1.55 }}>
-                I confirm these changes are accurate and agree to the{' '}
-                <a href="#" style={{ color: C.primary, fontWeight: 600, textDecoration: 'underline' }}>Terms of Service</a>
-              </span>
-            </div>
-            {errors.agreed && <p style={{ ...hintS(true), marginBottom: '8px' }}>{errors.agreed}</p>}
           </>
         )}
-        <div style={dividerS} />
-        {renderFooter()}
       </>
     );
   };
 
   // ─── Render ────────────────────────────────────────────────────────────────
   return (
-    <>
-      <style>{`
-        * { box-sizing: border-box; }
-        html, body, #root { height: 100%; overflow: hidden; margin: 0; padding: 0; }
-        @keyframes fadein { from { opacity:0; transform:translateY(6px); } to { opacity:1; transform:none; } }
-        @keyframes spin    { to   { transform: rotate(360deg); } }
-        .pm-form-scroll::-webkit-scrollbar { width: 5px; }
-        .pm-form-scroll::-webkit-scrollbar-track { background: transparent; }
-        .pm-form-scroll::-webkit-scrollbar-thumb { background: #CBD5E1; border-radius: 99px; }
-      `}</style>
+    <PMPageShell activeId="account-profile" animate backdrop={<ImageBackdrop image={backdropArt} />} searchPlaceholder="Search portfolios, settings, or help…">
 
-      <div style={{ display: 'flex', height: '100vh', overflow: 'hidden', background: C.pageBg, fontFamily: F.body }}>
+      {/* ── Header: rule · title · subtitle → Account Settings tabs ── */}
+      <section style={S.headBlock}>
+        <h1 style={S.title}>Independent Property Manager</h1>
+        <p style={S.sub}>Register and set up your profile to manage your properties with ease.</p>
+        <div style={S.tabs}>
+          <TabBar
+            variant="underline"
+            ariaLabel="Account settings"
+            value="profile"
+            onChange={id => { const t = ACCOUNT_SETTINGS_TABS.find(x => x.id === id); if (t && id !== 'profile') navigate(t.route); }}
+            tabs={ACCOUNT_SETTINGS_TABS.map(t => ({ id: t.id, label: t.label, icon: TAB_ICONS[t.id] }))}
+          />
+        </div>
+      </section>
 
-        {/* ── Col 1: Nav B ── */}
-        <NavB activeId="account-profile" />
+      {/* ── Step list │ form ── */}
+      <Grid layout="steps" as="div">
+        <StepList steps={STEPS} current={currentStep} />
 
-        {/* ── Col 2+3: right side ── */}
-        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0, overflow: 'hidden' }}>
-
-          {/* Header */}
-          <Header userName={userName} userRole={userRole} />
-
-          {/* ── Full-width title block ── */}
-          <div style={{ flexShrink: 0, padding: 'clamp(20px,2.5vw,32px) clamp(20px,3vw,48px) 0', background: C.pageBg }}>
-            <h1 style={{ margin: '0 0 4px', fontFamily: F.headline, fontSize: 'clamp(22px,2.2vw,28px)', fontWeight: 700, color: C.textPrimary, lineHeight: 1.2 }}>
-              Independent Property Manager
-            </h1>
-
-            {/* Green subtitle + mode badge + icons — all in one row */}
-            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '8px' }}>
-              <p style={{ margin: 0, fontFamily: F.headline, fontSize: 'clamp(13px,1.2vw,15px)', fontWeight: 600, color: C.green }}>
-                Registration &amp; Profile Setup
-              </p>
-              {/* Trash + Pencil icons */}
-              <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-                {/* Mode badge */}
-                <span style={{ fontFamily: F.body, fontSize: '9px', fontWeight: 700, letterSpacing: '0.08em', borderRadius: '4px', padding: '3px 8px', background: editMode ? C.amberBg : C.contextBg, color: editMode ? C.amberText : C.primary, border: '1px solid ' + (editMode ? C.amberBorder : C.contextBorder) }}>
-                  {editMode ? 'EDIT MODE' : 'VIEW MODE'}
-                </span>
-                {/* Trash icon */}
-                <div onClick={() => setShowDeleteModal(true)}
-                  style={{ width: '32px', height: '32px', borderRadius: '7px', border: '1px solid ' + C.dangerBorder, background: C.dangerBg, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', transition: 'all 0.12s' }}
-                  onMouseEnter={e => { e.currentTarget.style.background = '#FECACA'; }}
-                  onMouseLeave={e => { e.currentTarget.style.background = C.dangerBg; }}
-                  title="Delete profile"
-                >
-                  <i className="ti ti-trash" style={{ fontSize: '15px', color: C.danger }} />
-                </div>
-                {/* Pencil icon — toggles edit/view */}
-                <div onClick={toggleEdit}
-                  style={{ width: '32px', height: '32px', borderRadius: '7px', border: '1px solid ' + (editMode ? C.primary : C.contextBorder), background: editMode ? C.primary : C.contextBg, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', transition: 'all 0.15s' }}
-                  title={editMode ? 'Exit edit mode' : 'Edit profile'}
-                >
-                  <i className="ti ti-pencil" style={{ fontSize: '15px', color: editMode ? C.white : C.primary }} />
+        <div style={S.form}>
+          <div style={S.formHead}>
+            {stepHead ? (
+              <div style={S.stepHead}>
+                <span style={S.stepIcon} aria-hidden="true"><i className={`ti ${stepHead.icon}`} /></span>
+                <div style={UI2.minWidth0}>
+                  <h2 style={S.formTitle}>{stepHead.title}</h2>
+                  <p style={S.formSub}>{stepHead.sub}</p>
                 </div>
               </div>
-            </div>
-
-            <p style={{ margin: 0, fontFamily: F.body, fontSize: '13px', color: C.textSecondary, lineHeight: 1.6, maxWidth: '580px' }}>
-              {editMode
-                ? 'Edit your profile details below. First name and last name cannot be changed here.'
-                : 'Your professional profile as seen by landlords. Click the pencil icon to edit.'}
-            </p>
-          </div>
-
-          {/* ── Account Settings tab strip (Session 49 nav consolidation) ──
-              This page used to be its own top-level "My Profile → Persona"
-              nav destination; it's now the "My Profile" tab inside the
-              consolidated Account Settings section — see NavB.jsx and
-              AccountSettingsSubnav.jsx for the rest of the consolidation. */}
-          <div style={{ flexShrink: 0, padding: '0 clamp(20px,3vw,48px)', background: C.pageBg }}>
-            <AccountSettingsSubnav activeTab="profile" />
-          </div>
-
-          {/* Body row: stepper + form */}
-          <div style={{ flex: 1, display: 'flex', minHeight: 0, overflow: 'hidden' }}>
-
-            {/* Stepper */}
-            <VerticalStepper current={currentStep} />
-
-            {/* Form scroll area */}
-            <div className="pm-form-scroll" style={{ flex: 1, overflowY: 'auto', padding: 'clamp(16px,2vw,24px) clamp(20px,3vw,48px) clamp(20px,2.5vw,36px)', minWidth: 0 }}>
-              <div style={{ background: C.white, border: '1px solid ' + C.border, borderRadius: '12px', padding: 'clamp(20px,2.5vw,32px) clamp(20px,3vw,40px)', maxWidth: '780px', width: '100%', animation: 'fadein 0.3s ease both' }}>
-
-                {/* Card header */}
-                <h2 style={{ margin: '0 0 4px', fontFamily: F.headline, fontSize: '18px', fontWeight: 700, color: C.textPrimary }}>
-                  Independent PM registration
-                </h2>
-                <p style={{ margin: '0 0 4px', fontFamily: F.body, fontSize: '12px', color: C.textTertiary }}>
+            ) : (
+              <div style={UI2.minWidth0}>
+                <h2 style={S.formTitle}>Independent PM registration</h2>
+                <p style={S.formSub}>
                   {editMode ? 'Make your changes below. Click Continue to save.' : 'Pre-filled from your account — click the pencil icon to edit.'}
                 </p>
-
-                {/* API error */}
-                {errors.api && (
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', background: '#FEF2F2', border: '1px solid #FECACA', borderRadius: '8px', padding: '10px 14px', marginTop: '12px' }}>
-                    <i className="ti ti-alert-circle" style={{ fontSize: '15px', color: '#DC2626', flexShrink: 0 }} />
-                    <span style={{ fontFamily: F.body, fontSize: '12px', color: '#DC2626' }}>{errors.api}</span>
-                  </div>
-                )}
-
-                {renderFormContent()}
               </div>
-
-              {/* Page footer */}
-              <p style={{ textAlign: 'center', fontFamily: F.body, fontSize: '10px', color: C.textTertiary, margin: '24px 0 16px', letterSpacing: '0.04em' }}>
-                © 2024 URBANNEST EDITORIAL SYSTEMS. ALL RIGHTS RESERVED.
-              </p>
+            )}
+            <div style={S.headActs}>
+              {/* same pair as the PM Listings header on the wave: white light button, then the brand button */}
+              <button type="button" className="un2-btn" style={S.deleteBtn} onClick={() => setShowDeleteModal(true)}>
+                <i className="ti ti-trash" style={S.btnIcon} aria-hidden="true" /> Delete
+              </button>
+              <button type="button" className="un2-btn" style={S.editBtn} onClick={toggleEdit}>
+                <i className={`ti ${editMode ? 'ti-x' : 'ti-pencil'}`} style={S.btnIcon} aria-hidden="true" /> {editMode ? 'Cancel edit' : 'Edit'}
+              </button>
             </div>
           </div>
-        </div>
-      </div>
 
-      {/* Delete confirmation modal */}
-      <DeleteConfirmModal
-        open={showDeleteModal}
-        onCancel={() => setShowDeleteModal(false)}
-        onConfirm={handleDelete}
-        deleting={deleting}
-      />
+          {errors.api && (
+            <div style={UI2.errorBanner} role="alert">
+              <i className="ti ti-alert-circle" aria-hidden="true" /><span>{errors.api}</span>
+            </div>
+          )}
+
+          {renderFormContent()}
+          {renderFooter()}
+        </div>
+      </Grid>
+
+      <PageFooter />
+
+      {/* Delete confirmation */}
+      {showDeleteModal && (
+        <Modal variant="confirm" icon="ti-trash" tone={TONES2.error} title="Delete Profile?" size="sm"
+          onClose={() => !deleting && setShowDeleteModal(false)}
+          footer={<>
+            <button type="button" className="un2-btn" style={UI2.btn.soft} onClick={() => setShowDeleteModal(false)} disabled={deleting}>Cancel</button>
+            <button type="button" className="un2-btn" style={{ ...UI2.btn.danger, ...(deleting ? UI2.btnOff : {}) }} onClick={handleDelete} disabled={deleting}>
+              <i className={`ti ${deleting ? 'ti-loader-2 un2-spin' : 'ti-trash'}`} style={S.btnIcon} aria-hidden="true" />
+              {deleting ? 'Deleting…' : 'Yes, Delete'}
+            </button>
+          </>}>
+          <p style={S.modalText}>
+            This will deactivate your Independent PM profile and remove your access to the PM portal. Your data will be retained for auditing purposes. This action can be reversed by contacting support.
+          </p>
+        </Modal>
+      )}
 
       {/* Unsaved changes warning */}
-      <UnsavedWarning
-        open={showUnsavedWarning}
-        onStay={() => setShowUnsavedWarning(false)}
-        onLeave={() => { setShowUnsavedWarning(false); setCurrentStep(pendingBackStep); setIsDirty(false); }}
-      />
-    </>
+      {showUnsavedWarning && (
+        <Modal variant="confirm" icon="ti-alert-triangle" tone={TONES2.error} title="Unsaved Changes" size="sm"
+          onClose={() => setShowUnsavedWarning(false)}
+          footer={<>
+            <button type="button" className="un2-btn" style={UI2.btn.soft} onClick={() => setShowUnsavedWarning(false)}>Stay</button>
+            <button type="button" className="un2-btn" style={UI2.btn.brand}
+              onClick={() => { setShowUnsavedWarning(false); setCurrentStep(pendingBackStep); setIsDirty(false); }}>Leave anyway</button>
+          </>}>
+          <p style={S.modalText}>You have unsaved changes on this step. If you go back now, your changes will be lost.</p>
+        </Modal>
+      )}
+    </PMPageShell>
   );
 }

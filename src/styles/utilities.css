@@ -58,9 +58,10 @@
      un2-grid-wide-right narrower left + wide right  (≈ 40 / 60)
      un2-grid-aside      content + fixed 168px side column (inside a card)
      un2-grid-main-side  page body + narrow side column (≈ 69 / 31) — detail pages
+     un2-grid-steps      fixed 240px step list (StepList) on the left + form on the right — profile / registration
    ─────────────────────────────────────────────────────────────────────────── */
 .un2-grid-2, .un2-grid-3, .un2-grid-4, .un2-grid-6,
-.un2-grid-wide-left, .un2-grid-split, .un2-grid-wide-right, .un2-grid-aside, .un2-grid-main-side {
+.un2-grid-wide-left, .un2-grid-split, .un2-grid-wide-right, .un2-grid-aside, .un2-grid-main-side, .un2-grid-steps {
   display: grid;
   gap: var(--un2-grid-gap);
 }
@@ -73,6 +74,7 @@
 .un2-grid-wide-right { grid-template-columns: minmax(0, 1fr) minmax(0, var(--un2-col-wide)); }
 .un2-grid-aside      { grid-template-columns: minmax(0, 1fr) var(--un2-aside-w); gap: var(--un2-section-gap); }
 .un2-grid-main-side  { grid-template-columns: minmax(0, var(--un2-col-main)) minmax(0, 1fr); }
+.un2-grid-steps      { grid-template-columns: var(--un2-steps-w) minmax(0, 1fr); gap: var(--un2-section-gap); }
 
 /* Vertical stack of sections (PageShell content uses this) */
 .un2-stack-sections { display: flex; flex-direction: column; gap: var(--un2-section-gap); }
@@ -88,7 +90,7 @@
   .un2-grid-wide-left, .un2-grid-split, .un2-grid-wide-right, .un2-grid-main-side { grid-template-columns: minmax(0, 1fr); }
 }
 @media (max-width: 860px) {
-  .un2-grid-2, .un2-grid-3, .un2-grid-aside { grid-template-columns: minmax(0, 1fr); }
+  .un2-grid-2, .un2-grid-3, .un2-grid-aside, .un2-grid-steps { grid-template-columns: minmax(0, 1fr); }
   .un2-grid-3 > :last-child:nth-child(odd) { grid-column: auto; }
   .un2-hide-md { display: none !important; }
 }
