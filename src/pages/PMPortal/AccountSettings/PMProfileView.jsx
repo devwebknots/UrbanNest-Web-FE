@@ -45,6 +45,7 @@ const STEPS = [
 // Form header per step (icon box · title · subtitle). Steps without an entry keep "Independent PM registration".
 const STEP_HEADS = {
   2: { icon: 'ti-id-badge-2', title: 'Service Area & License', sub: 'Define your service coverage and professional credentials.' },
+  3: { icon: 'ti-coins',      title: 'Fees & Identity',        sub: 'Set your management fees and verify your identity to complete your profile.' },
 };
 
 // Account Settings tabs — same routes as AccountSettingsSubnav, with the v2 icons (NavPM uses the same icons)
@@ -104,7 +105,8 @@ const S = {
   noteIcon:  { fontSize: FS2.lg, flexShrink: 0 },
   // fee type + value side by side
   feeRow:    { display: 'flex', gap: SP2.sm, minWidth: 0 },
-  feeVal:    { ...FIELD2.input, width: SZ2.btnSm.w, flexShrink: 0, textAlign: 'center' },
+  feeType:   { flex: 1, minWidth: 0 },
+  feeAmt:    { width: SZ2.btnSm.w * 1.5, flexShrink: 0 },   // small amount field beside a fee type (≈ 108)
   // footer
   foot:      { ...UI2.rowBetween(SP2.md), flexWrap: 'wrap', paddingTop: SP2.lg, borderTop: `${SZ2.hairline}px solid ${C2.border}` },
   footNote:  { ...UI2.btn.link, cursor: 'default' },
@@ -726,78 +728,84 @@ export default function PMProfileView() {
       </div>
     );
 
-    if (currentStep === 3) return (
-      <>
-        <div style={UI2.stack(SP2.xs)}>
-          <span style={S.subhead}>Fee Structure</span>
-          <span style={WZ.hint}>Visible on your public profile</span>
-        </div>
-        <FormField label="Management Fee Type *">
-          <div style={S.feeRow}>
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <PickField view={V} value={mgmtType} options={opts(MGMT_OPTS)} label="Management fee type"
-                onChange={v => { setMgmtType(v); markDirty(); clearErr('mgmtType'); }} />
+    // Step 3 — titled groups (ModalSection: icon box · title · faint divider between groups), same as Step 2
+    if (currentStep === 3) {
+      const feeValue = (value, set, placeholder, label) => (
+        <TextField view={V} value={value} placeholder={placeholder} aria-label={label} onChange={e => { set(e.target.value); markDirty(); }} />
+      );
+      return (
+        <div style={S.sections}>
+          <ModalSection icon="ti-coins" title="Fee Structure" hint="Visible on your public profile">
+            <FormField label="Management Fee Type *">
+              {/* fee type + amount: ≈ 60 / 40 (Grid wideLeft); the amount only shows for % / flat types */}
+              {mgmtShowVal ? (
+                <Grid layout="wideLeft" as="div" style={WZ.fields}>
+                  <PickField view={V} value={mgmtType} options={opts(MGMT_OPTS)} label="Management fee type"
+                    onChange={v => { setMgmtType(v); markDirty(); clearErr('mgmtType'); }} />
+                  {feeValue(mgmtValue, setMgmtValue, '0.00', 'Management fee amount')}
+                </Grid>
+              ) : (
+                <PickField view={V} value={mgmtType} options={opts(MGMT_OPTS)} label="Management fee type"
+                  onChange={v => { setMgmtType(v); markDirty(); clearErr('mgmtType'); }} />
+              )}
+              <Hint error={errors.mgmtType}>% of monthly rent / Flat monthly / Negotiable</Hint>
+            </FormField>
+            <div style={FIELD2.grid}>
+              <FormField label="Lease-up / Onboarding Fee">
+                <div style={S.feeRow}>
+                  <div style={S.feeType}>
+                    <PickField view={V} value={leaseType} options={opts(LEASE_OPTS)} label="Lease-up fee" onChange={v => { setLeaseType(v); markDirty(); }} />
+                  </div>
+                  {leaseShowVal && <div style={S.feeAmt}>{feeValue(leaseValue, setLeaseValue, '$0', 'Lease-up fee amount')}</div>}
+                </div>
+                <Hint>One month's rent / Flat / None / Negotiable</Hint>
+              </FormField>
+              <FormField label="Lease Renewal Fee">
+                <div style={S.feeRow}>
+                  <div style={S.feeType}>
+                    <PickField view={V} value={renewalType} options={opts(RENEWAL_OPTS)} label="Renewal fee" onChange={v => { setRenewalType(v); markDirty(); }} />
+                  </div>
+                  {renewShowVal && <div style={S.feeAmt}>{feeValue(renewalValue, setRenewalValue, '0%', 'Renewal fee amount')}</div>}
+                </div>
+                <Hint>% / Flat / None / Negotiable</Hint>
+              </FormField>
             </div>
-            {mgmtShowVal && <input className="un2-focus-ring" style={S.feeVal} value={mgmtValue} readOnly={V} placeholder="0" onChange={e => { setMgmtValue(e.target.value); markDirty(); }} />}
-          </div>
-          <Hint error={errors.mgmtType}>% of monthly rent / Flat monthly / Negotiable</Hint>
-        </FormField>
-        <div style={FIELD2.grid}>
-          <FormField label="Lease-up / Onboarding Fee">
-            <div style={S.feeRow}>
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <PickField view={V} value={leaseType} options={opts(LEASE_OPTS)} label="Lease-up fee" onChange={v => { setLeaseType(v); markDirty(); }} />
-              </div>
-              {leaseShowVal && <input className="un2-focus-ring" style={S.feeVal} value={leaseValue} readOnly={V} placeholder="$0" onChange={e => { setLeaseValue(e.target.value); markDirty(); }} />}
-            </div>
-            <Hint>One month's rent / Flat / None / Negotiable</Hint>
-          </FormField>
-          <FormField label="Lease Renewal Fee">
-            <div style={S.feeRow}>
-              <div style={{ flex: 1, minWidth: 0 }}>
-                <PickField view={V} value={renewalType} options={opts(RENEWAL_OPTS)} label="Renewal fee" onChange={v => { setRenewalType(v); markDirty(); }} />
-              </div>
-              {renewShowVal && <input className="un2-focus-ring" style={S.feeVal} value={renewalValue} readOnly={V} placeholder="0%" onChange={e => { setRenewalValue(e.target.value); markDirty(); }} />}
-            </div>
-            <Hint>% / Flat / None / Negotiable</Hint>
-          </FormField>
-        </div>
+          </ModalSection>
 
-        <div style={WZ.rule} />
-        <span style={S.subhead}>Identity Verification</span>
-        <div style={FIELD2.grid}>
-          <FormField label="ID Type *">
-            <PickField view={V} value={idType} options={opts(ID_OPTS)} label="ID type" onChange={v => { setIdType(v); markDirty(); clearErr('idType'); }} />
-            <Hint error={errors.idType}>Filtered by country</Hint>
-          </FormField>
-          <FormField label="ID Number *">
-            <TextField view={V} placeholder="Enter ID number" value={idNumber} invalid={!!errors.idNumber}
-              onChange={e => { setIdNumber(e.target.value); markDirty(); clearErr('idNumber'); }} />
-            <Hint error={errors.idNumber} />
-          </FormField>
-        </div>
-        <div style={UI2.stack(SP2.xs)}>
-          <DocUploadZone files={idFiles} disabled={V}
-            onAdd={f => { setIdFiles(p => [...p, ...f].slice(0, 3)); markDirty(); clearErr('idFiles'); }}
-            onRemove={i => { setIdFiles(p => p.filter((_, idx) => idx !== i)); markDirty(); }} />
-          <Hint error={errors.idFiles} />
-        </div>
-
-        {!V && (
-          <>
-            <div style={WZ.rule} />
-            <span style={S.subhead}>Terms &amp; Subscription</span>
-            <Note tone={TONES2.success} icon="ti-gift">Your 30-day free trial is active. Changes take effect immediately.</Note>
+          <ModalSection icon="ti-id" title="Identity Verification">
+            <div style={FIELD2.grid}>
+              <FormField label="ID Type *">
+                <PickField view={V} value={idType} options={opts(ID_OPTS)} label="ID type" onChange={v => { setIdType(v); markDirty(); clearErr('idType'); }} />
+                <Hint error={errors.idType}>Filtered by country</Hint>
+              </FormField>
+              <FormField label="ID Number *">
+                <TextField view={V} placeholder="Enter ID number" value={idNumber} invalid={!!errors.idNumber}
+                  onChange={e => { setIdNumber(e.target.value); markDirty(); clearErr('idNumber'); }} />
+                <Hint error={errors.idNumber} />
+              </FormField>
+            </div>
             <div style={UI2.stack(SP2.xs)}>
-              <Checkbox checked={agreed} strong
-                label="I confirm these changes are accurate and agree to the Terms of Service"
-                onChange={() => { setAgreed(p => !p); markDirty(); clearErr('agreed'); }} />
-              <Hint error={errors.agreed} />
+              <DocUploadZone files={idFiles} disabled={V}
+                onAdd={f => { setIdFiles(p => [...p, ...f].slice(0, 3)); markDirty(); clearErr('idFiles'); }}
+                onRemove={i => { setIdFiles(p => p.filter((_, idx) => idx !== i)); markDirty(); }} />
+              <Hint error={errors.idFiles} />
             </div>
-          </>
-        )}
-      </>
-    );
+          </ModalSection>
+
+          {!V && (
+            <ModalSection icon="ti-file-certificate" title="Terms & Subscription">
+              <Note tone={TONES2.success} icon="ti-gift">Your 30-day free trial is active. Changes take effect immediately.</Note>
+              <div style={UI2.stack(SP2.xs)}>
+                <Checkbox checked={agreed} strong
+                  label="I confirm these changes are accurate and agree to the Terms of Service"
+                  onChange={() => { setAgreed(p => !p); markDirty(); clearErr('agreed'); }} />
+                <Hint error={errors.agreed} />
+              </div>
+            </ModalSection>
+          )}
+        </div>
+      );
+    }
   };
 
   // ─── Render ────────────────────────────────────────────────────────────────
