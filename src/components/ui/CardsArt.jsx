@@ -11,9 +11,10 @@ import { C2, SZ2 } from '../../constants';
 //
 //   <EmptyState illustration={<CardsArt />} />
 //
-// Props: width (default SZ2.cardsArt)
+// Props: width (default SZ2.cardsArt; "100%" = fill its column, height follows) · glass (true → frosted white cards with a house mark, for navy cards —
+//        PM Subscription "Activate a Plan" banner)
 
-export default function CardsArt({ width = SZ2.cardsArt }) {
+export default function CardsArt({ width = SZ2.cardsArt, glass = false }) {
   const id = useId().replace(/:/g, '');
   const g = name => `${name}-${id}`;
   const url = name => `url(#${g(name)})`;
@@ -21,6 +22,15 @@ export default function CardsArt({ width = SZ2.cardsArt }) {
     <svg width={width} viewBox="0 0 240 170" role="img" aria-hidden="true" shapeRendering="geometricPrecision"
       style={{ display: 'block', overflow: 'visible' }}>
       <defs>
+        {/* glass variant (on navy): translucent white faces */}
+        <linearGradient id={g('glassBack')} x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0" stopColor={C2.white} stopOpacity="0.32" />
+          <stop offset="1" stopColor={C2.white} stopOpacity="0.12" />
+        </linearGradient>
+        <linearGradient id={g('glassFront')} x1="0" y1="0" x2="1" y2="1">
+          <stop offset="0" stopColor={C2.white} stopOpacity="0.55" />
+          <stop offset="1" stopColor={C2.white} stopOpacity="0.2" />
+        </linearGradient>
         <linearGradient id={g('back')} x1="0" y1="0" x2="1" y2="1">
           <stop offset="0" stopColor={C2.chipBlue} />
           <stop offset="1" stopColor={C2.heroWaveBase} />
@@ -45,24 +55,36 @@ export default function CardsArt({ width = SZ2.cardsArt }) {
       </defs>
 
       {/* ground shadow */}
-      <ellipse cx="124" cy="150" rx="84" ry="9" fill={url('ground')} />
+      {!glass && <ellipse cx="124" cy="150" rx="84" ry="9" fill={url('ground')} />}
 
       {/* back card — tilted more, deeper blue */}
       <g transform="rotate(-12 100 80)">
-        <rect x="34" y="34" width="130" height="84" rx="10" fill={url('back')} />
+        <rect x="34" y="34" width="130" height="84" rx="10" fill={url(glass ? 'glassBack' : 'back')} />
         <rect x="34.75" y="34.75" width="128.5" height="82.5" rx="9.25" fill="none" stroke={url('rim')} strokeWidth="1.5" />
       </g>
 
       {/* front card — lighter, chip + two text lines */}
       <g transform="rotate(-6 136 98)">
-        <rect x="68" y="54" width="136" height="88" rx="10" fill={url('front')} />
+        <rect x="68" y="54" width="136" height="88" rx="10" fill={url(glass ? 'glassFront' : 'front')} />
         <rect x="68.75" y="54.75" width="134.5" height="86.5" rx="9.25" fill="none" stroke={url('rim')} strokeWidth="1.5" />
+        {glass && (
+          /* house mark + lines (glass variant) */
+          <g fill={C2.white}>
+            <path d="M84 92 L99 79 L114 92 V108 H84 Z" opacity="0.95" />
+            <rect x="95" y="97" width="8" height="11" fill={C2.primary} opacity="0.55" />
+            <rect x="124" y="84" width="58" height="6" rx="3" opacity="0.9" />
+            <rect x="124" y="97" width="44" height="6" rx="3" opacity="0.7" />
+            <rect x="124" y="110" width="52" height="6" rx="3" opacity="0.55" />
+          </g>
+        )}
+        {!glass && <>
         {/* chip */}
         <rect x="84" y="72" width="22" height="17" rx="3.5" fill={url('chip')} />
         <path d="M84 80.5h22M95 72v17M89 72v4M101 85v4" stroke={C2.white} strokeOpacity="0.85" strokeWidth="1.2" />
         {/* text lines */}
         <rect x="84" y="108" width="96" height="5" rx="2.5" fill={C2.heroWaveBase} />
         <rect x="84" y="118" width="62" height="5" rx="2.5" fill={C2.heroWaveBase} opacity="0.75" />
+        </>}
       </g>
     </svg>
   );

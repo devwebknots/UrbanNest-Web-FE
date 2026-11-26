@@ -127,6 +127,13 @@ import { usePaymentCart } from '../../Payment/PaymentCartContext';
 import PaymentCartTrigger from '../../Payment/PaymentCartTrigger';
 import PaymentCartModal from '../../Payment/PaymentCartModal';
 import { CustomDropdown } from '../../../components/ui';
+// Subscription & Billing tab = Design System v2 (image 181): v2 frame + PMSubscriptionBilling body.
+// The Services tab (same component, /services route) keeps its v1 layout below until it is redesigned.
+import { PMPageShell, Breadcrumb, PageFooter, ImageBackdrop } from '../../../components/layout';
+import { UI2 as V2UI, SP2 as V2SP, SZ2 as V2SZ, T2 as V2T } from '../../../constants';
+import AccountSettingsTabs from './AccountSettingsTabs';
+import PMSubscriptionBilling from './PMSubscriptionBilling';
+import backdropArt from '../../../assets/landlord/wizard-backdrop.jpg';
 // Services tab (Fourth pass) reuses Landlord's own bundled Figma photo set
 // directly rather than duplicating the binary files — this file sits at the
 // identical relative depth from src/pages/ as LandlordSettingsPage.jsx
@@ -926,6 +933,77 @@ export default function PMSubscriptionPage() {
       .catch(e => setPromoCatalogError(e.message || 'Could not complete this purchase.'))
       .finally(() => setPromoPurchasingId(null));
   };
+
+  // ─── Subscription & Billing — VERSION 2 (image 181) ─────────────────────────
+  if (activeTab === 'subscription') {
+    const V2 = {
+      head:   { ...V2UI.rowBetween(V2SP.lg), alignItems: 'flex-start', flexWrap: 'wrap' },
+      title:  { ...V2T.heroHeading, margin: 0 },
+      sub:    { ...V2T.lead, margin: `${V2SP.xs}px 0 0` },
+      cart:   V2UI.btn.light,                                  // header button on the light-blue wave (= Listings header pair)
+      badge:  { ...V2UI.countBadge, background: V2UI.btn.brand.background, color: V2UI.btn.brand.color },
+    };
+    return (
+      <PMPageShell activeId="account-subscription" animate backdrop={<ImageBackdrop image={backdropArt} />} searchPlaceholder="Search portfolios, settings, or help…">
+        <Breadcrumb items={[{ label: 'Account Settings', href: '/pm-portal/account/profile' }, { label: 'Subscription & Billing' }]} />
+        <section style={V2UI.pageHead.block}>
+          <div style={V2.head}>
+            <div style={V2UI.minWidth0}>
+              <h1 style={V2.title}>Subscription &amp; Billing</h1>
+              <p style={V2.sub}>Manage your Independent PM plan, buy add-on services, and promote your listings.</p>
+            </div>
+            <button type="button" className="un2-btn" style={V2.cart} onClick={() => setCartOpen(true)}>
+              <i className="ti ti-shopping-cart" style={V2UI.btnIcon} aria-hidden="true" /> Cart
+              {cartItems.length > 0 && <span style={V2.badge}>{cartItems.length}</span>}
+            </button>
+          </div>
+          <div style={V2UI.pageHead.next}><AccountSettingsTabs active="subscription" /></div>
+        </section>
+
+        {loading ? (
+          <div style={V2UI.stack(V2SP.md)}>{[0, 1, 2].map(i => <div key={i} className="un2-skel" style={V2UI.skeleton('100%', V2SZ.field * 3)} />)}</div>
+        ) : error ? (
+          <div style={V2UI.errorBanner} role="alert">
+            <i className="ti ti-alert-circle" aria-hidden="true" /> {error} —{' '}
+            <button type="button" style={V2UI.btn.link} onClick={fetchSubscriptionData}>Retry</button>
+          </div>
+        ) : (
+          <PMSubscriptionBilling
+            plans={plans} sub={sub}
+            monthlyPrice={monthlyPrice} addonsList={addonsList} addonsTotal={addonsTotal} totalMonthlySpend={totalMonthlySpend}
+            progressPct={progressPct} daysRemaining={daysRemaining} periodStart={periodStart}
+            unitsUsed={unitsUsed} totalProperties={totalProperties} capMax={capMax} capPct={capPct}
+            subIncludedCount={subIncludedCount} subAddonCount={subAddonCount}
+            activePromoSub={activePromoSub} onOpenPromo={openPromoCatalog}
+            cartItems={cartItems} onSubscribe={handlePlanAddToCart}
+            userLabel={userLabel} email={currentUser?.email}
+          />
+        )}
+
+        <PageFooter />
+
+        {cartOpen && (
+          <PaymentCartModal
+            onClose={() => setCartOpen(false)}
+            onConfirm={handleConfirmPurchase}
+            theme={{
+              navBg: C.primary, cardBg: C.white, cardBdr: C.borderMedium,
+              txtPrimary: C.textPrimary, txtSec: C.textSecondary, txtMuted: C.textTertiary,
+              blue: C.primary, blueLight: C.blueBg, blueDark: C.primary,
+              greenLight: C.greenBg, greenDark: C.green, red: '#DC2626',
+              font: F.body,
+            }}
+          />
+        )}
+        {promoCatalogOpen && (
+          <PromotionCatalogModal
+            plans={promoCatalog} loading={promoCatalogLoading} error={promoCatalogError} purchasingId={promoPurchasingId}
+            onClose={() => setPromoCatalogOpen(false)} onPurchase={handlePurchasePromoPlan}
+          />
+        )}
+      </PMPageShell>
+    );
+  }
 
   return (
     <div style={S.shell}>

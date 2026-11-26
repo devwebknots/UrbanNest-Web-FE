@@ -119,7 +119,9 @@ export { BarChart, DonutChart, Sparkline, LineChart, Gauge, ProgressRing, MiniBa
 export { default as Stepper } from './Stepper';
 export { default as StepList } from './StepList';   // VERTICAL step list beside a form (PM My Profile) — <Grid layout="steps">
 export { default as BankArt } from './BankArt';     // bank empty-state illustration (blob · bank · "+" badge) — PM Bank Accounts
-export { default as CardsArt } from './CardsArt';   // two tilted bank cards — "select an account" empty state (PM Bank Accounts)
+export { default as CardsArt } from './CardsArt';
+export { default as NavyGlow } from './NavyGlow';
+export { default as LayersArt } from './LayersArt';   // glassy stack-of-layers mark for navy plan-card heads (PM Subscription)   // navy feature-card background (glow + wave band + sweep lines) — PM Subscription banner   // two tilted bank cards — "select an account" empty state (PM Bank Accounts)
 
 export { default as FormField, ReadField, SelectField, IconField, FIELD2 } from './FormField';
 export { Switch, Checkbox, RadioPill, ChoiceTile } from './FormControls';
