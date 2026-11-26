@@ -300,6 +300,9 @@
 }
 .un2-phero-stats { display: flex; flex-wrap: wrap; row-gap: var(--un2-sp-lg); }
 .un2-phero-stats > * + * { border-left: 1px solid var(--un2-border); }
+/* opt-in modifier: every stat takes an equal share of ONE row and its label wraps (5+ stats — PM Services) */
+.un2-phero-stats.un2-phero-stats-fill { flex-wrap: nowrap; }
+.un2-phero-stats.un2-phero-stats-fill > * { flex: 1 1 0; min-width: 0; }
 @media (max-width: 860px) {
   .un2-phero { display: flex; flex-direction: column; }
   .un2-phero-glow { display: none; }

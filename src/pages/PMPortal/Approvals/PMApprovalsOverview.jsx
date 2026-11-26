@@ -20,7 +20,7 @@ import {
   Modal, ModalSection, SuccessModal, FormField, FIELD2,
 } from '../../../components/ui';
 import {
-  C2, TONES2, ACCENT2, STATUS2, accentTone, FS2, FW2, R2, SP2, SZ2, LAYOUT2, T2, UI2, pad,
+  C2, TONES2, ACCENT2, STATUS2, accentTone, FS2, FW2, R2, SP2, SZ2, T2, UI2, pad,
 } from '../../../constants';
 import backdropArt from '../../../assets/landlord/wizard-backdrop.jpg';   // soft blue wave lines (same art as Create Listing)
 // TEMP SAMPLE profile pictures (UI preview only) — square placeholder headshots (randomuser.me, saved locally in
@@ -123,7 +123,7 @@ const S = {
   prioTag:   (tone) => ({ ...UI2.pill(tone), flexShrink: 0 }),
   // table section
   // heading row → table, LAYOUT2.sectionGap apart; SP2.sm extra air above the heading (after the panel)
-  section:   { ...UI2.stack(LAYOUT2.sectionGap), minWidth: 0, paddingTop: SP2.sm },
+  section:   UI2.pageSection,          // shared page-section rhythm (UI2.pageSection)
   secHead:   { ...UI2.rowBetween(SP2.md), flexWrap: 'wrap' },
   secTitle:  { ...T2.sectionTitle, fontSize: FS2.xl, margin: 0 },
   tools:     UI2.toolbar.tools,

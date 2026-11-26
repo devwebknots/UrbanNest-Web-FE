@@ -304,6 +304,10 @@ export const UI2 = {
     next:  { marginTop: SP2.xl },
     stats: { marginTop: SP2.xxl },
   },
+  // ── Page section (PM Approvals / Listings are the reference) — every section under the header block:
+  //   heading → content LAYOUT2.sectionGap (16) apart, plus SP2.sm extra air above the section (on top of the
+  //   shell's section gap) so each section reads as its own block.  <section style={UI2.pageSection}>…</section>
+  pageSection: { display: 'flex', flexDirection: 'column', gap: LAYOUT2.sectionGap, minWidth: 0, paddingTop: SP2.sm },
 
   // ── List toolbar (Listings is the reference) — single source for every "search · Options ▸ filters" toolbar ──
   //   <div className="un2-tray-tools" style={UI2.toolbar.tools}>
@@ -420,6 +424,11 @@ export const UI2 = {
   // Small round "×" on a photo (remove) — light button rule: white fill on photos
   photoRemove: { ...center, position: 'absolute', top: SP2.xs, right: SP2.xs, width: SZ2.icon.xs, height: SZ2.icon.xs, padding: 0, border: 'none', borderRadius: R2.round, background: C2.white, color: C2.navyDeep, boxShadow: SH2.lightButton, fontSize: FS2.sm, cursor: 'pointer' },
   // Round light arrow on a photo (gallery ‹ ›): position left / right with UI2.photoArrow('left')
+  // STANDARD carousel / sideways-row arrow — round white button, navy chevron, soft lift; both arrows always look the
+  // same (user rule) — at the end of the row the arrow is just inactive (not-allowed cursor), never faded / flattened.
+  // Use the Carousel component (components/ui/Carousel.jsx) for a whole scrolling row; this style alone for a
+  // hand-placed arrow:  <button style={UI2.carouselArrow(atStart)}><i className="ti ti-chevron-left" /></button>
+  carouselArrow: (disabled = false) => ({ ...center, flexShrink: 0, width: SZ2.control.md, height: SZ2.control.md, padding: 0, border: 'none', borderRadius: R2.round, background: C2.white, color: C2.navyDeep, boxShadow: SH2.lightButton, fontSize: FS2.lg, cursor: 'pointer', ...(disabled ? { cursor: 'not-allowed' } : {}) }),   // disabled keeps the SAME look (white · shadow · navy chevron) — only the cursor changes
   photoArrow: (side = 'left') => ({ ...center, position: 'absolute', top: '50%', [side]: SP2.md, transform: 'translateY(-50%)', width: SZ2.control.md, height: SZ2.control.md, padding: 0, border: 'none', borderRadius: R2.round, background: C2.white, color: C2.navyDeep, boxShadow: SH2.lightButton, fontSize: FS2.lg, cursor: 'pointer' }),
 
   // ── Tables (DataTable) — one style per column TYPE, used by every table ────

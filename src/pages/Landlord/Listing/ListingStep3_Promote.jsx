@@ -71,7 +71,7 @@ const S = {
   // padding gives the cards' shadows room (a scrolling row clips anything outside it); the negative margin keeps
   // the cards lined up with the rest of the card body
   planScroll: { display: 'flex', gap: SP2.md, overflowX: 'auto', scrollSnapType: 'x mandatory', scrollBehavior: 'smooth', flex: 1, minWidth: 0, padding: SP2.md, margin: -SP2.md },
-  arrow:      (on) => ({ ...UI2.btn.icon(SZ2.control.md), alignSelf: 'center', background: C2.white, boxShadow: SH2.control, opacity: on ? 1 : 0.4, cursor: on ? 'pointer' : 'default' }),
+  arrow:      (on) => ({ ...UI2.carouselArrow(!on), alignSelf: 'center' }),   // standard carousel arrow (UI2.carouselArrow)
   plan:       {
     position: 'relative', overflow: 'hidden', flex: `0 0 ${SZ2.planCard.basis}`, minWidth: SZ2.planCard.w, maxWidth: '100%', scrollSnapAlign: 'start',   // ≈ ⅔ of the container, never under planCard.w
     padding: SP2.xl, borderRadius: R2.xl, background: C2.white, cursor: 'pointer',

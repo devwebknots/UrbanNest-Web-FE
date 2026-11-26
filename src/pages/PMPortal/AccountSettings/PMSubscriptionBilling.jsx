@@ -11,10 +11,10 @@
 // same as the v1 page); every action without a backend is disabled with a tooltip saying why.
 // Linked Bank Accounts reads the PM's real accounts (GET /api/pm/bank-accounts/).
 
-import React, { useEffect, useRef, useState, useCallback } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Grid } from '../../../components/layout';
-import { DataTable, CardsArt, NavyGlow, LayersArt, ProgressRing, Switch, TextLink } from '../../../components/ui';
+import { DataTable, CardsArt, NavyGlow, LayersArt, ProgressRing, Switch, TextLink, Carousel } from '../../../components/ui';
 import { C2, G2, GSTOPS2, TONES2, ACCENT2, SH2, FS2, FW2, LH2, LS2, R2, SP2, SZ2, T2, UI2, pad } from '../../../constants';
 
 const API_BASE = process.env.REACT_APP_API_BASE_URL || 'http://localhost:8001/api';
@@ -69,10 +69,7 @@ const S = {
   secSub:     { ...T2.label, margin: `${SP2.xs}px 0 0` },
   section:    UI2.stack(SP2.lg),
   // ── plans carousel ──
-  carousel:   { position: 'relative', padding: pad(0, SP2.huge) },
-  track:      { display: 'flex', gap: SP2.lg, overflowX: 'auto', scrollSnapType: 'x mandatory', padding: pad(SP2.xs, SP2.xs, SP2.lg) },
-  arrow:      (side, off) => ({ ...UI2.photoArrow(side), [side]: 0, ...(off ? UI2.btnOff : {}) }),
-  plan:       { ...UI2.card, padding: 0, overflow: 'hidden', flex: `0 0 calc((100% - 3 * ${SP2.lg}px) / 4)`, minWidth: SZ2.thumbFeature.w, scrollSnapAlign: 'start', display: 'flex', flexDirection: 'column' },
+  plan:       { ...UI2.card, padding: 0, overflow: 'hidden', width: '100%', display: 'flex', flexDirection: 'column' },   // width comes from the Carousel slot
   // plan-card head (design: navy glow + waves · small green "Active" pill · bold sans name · glassy layers mark)
   planHead:   { position: 'relative', overflow: 'hidden', padding: pad(SP2.md, SP2.lg), display: 'flex', alignItems: 'center', gap: SP2.md },   // compact: content height only
   planHeadIn: { position: 'relative', flex: 1, minWidth: 0, ...UI2.stack(SP2.xs) },
@@ -184,15 +181,6 @@ export default function PMSubscriptionBilling({
 }) {
   const navigate = useNavigate();
   const plansRef = useRef(null);
-  const trackRef = useRef(null);
-  const [edges, setEdges] = useState({ atStart: true, atEnd: true });
-  const updateEdges = useCallback(() => {
-    const el = trackRef.current;
-    if (!el) return;
-    setEdges({ atStart: el.scrollLeft <= 2, atEnd: el.scrollLeft + el.clientWidth >= el.scrollWidth - 2 });
-  }, []);
-  useEffect(() => { updateEdges(); }, [plans, updateEdges]);
-  const scrollPlans = dir => { const el = trackRef.current; if (el) el.scrollBy({ left: dir * el.clientWidth * 0.9, behavior: 'smooth' }); };
   const toPlans = () => plansRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
 
   // Linked Bank Accounts — the PM's real payout accounts
@@ -333,11 +321,7 @@ export default function PMSubscriptionBilling({
           </div>
           <span style={T2.label}>{plans.length} plan(s) available for Independent PM</span>
         </div>
-        <div style={S.carousel}>
-          <button type="button" style={S.arrow('left', edges.atStart)} onClick={() => scrollPlans(-1)} disabled={edges.atStart} aria-label="Scroll plans left">
-            <i className="ti ti-chevron-left" aria-hidden="true" />
-          </button>
-          <div ref={trackRef} className="un2-scroll-hidden" style={S.track} onScroll={updateEdges}>
+        <Carousel label="plans" itemWidth={Carousel.cols(4)} minItemWidth={SZ2.thumbFeature.w}>
             {plans.map((p, idx) => {
               const isCurrent = sub && sub.plan === p.id;
               const inCart = cartItems.some(i => i.id === `plan-${p.id}`);
@@ -348,7 +332,7 @@ export default function PMSubscriptionBilling({
               return (
                 <article key={p.id} style={S.plan}>
                   <div style={S.planHead}>
-                    <NavyGlow variant={idx} />   {/* each card its own pattern (cycles 4 variants) */}
+                    <NavyGlow variant={idx % 4} />   {/* each card its own pattern (cycles 4 variants) */}
                     <div style={S.planHeadIn}>
                       {custom
                         ? <span style={S.planCrown} aria-hidden="true"><i className="ti ti-crown" /></span>
@@ -383,11 +367,7 @@ export default function PMSubscriptionBilling({
                 </article>
               );
             })}
-          </div>
-          <button type="button" style={S.arrow('right', edges.atEnd)} onClick={() => scrollPlans(1)} disabled={edges.atEnd} aria-label="Scroll plans right">
-            <i className="ti ti-chevron-right" aria-hidden="true" />
-          </button>
-        </div>
+        </Carousel>
       </section>
 
       {/* ── Payment Methods & Details ── */}

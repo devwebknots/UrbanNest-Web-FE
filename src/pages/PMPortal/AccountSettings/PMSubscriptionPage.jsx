@@ -119,20 +119,16 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import React, { useState } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
-import NavB from '../../../components/layout/NavB';
-import PMTopBar from '../../../components/layout/PMTopBar';
-import AccountSettingsSubnav from './AccountSettingsSubnav';
+import { useLocation } from 'react-router-dom';
 import { usePaymentCart } from '../../Payment/PaymentCartContext';
-import PaymentCartTrigger from '../../Payment/PaymentCartTrigger';
 import PaymentCartModal from '../../Payment/PaymentCartModal';
-import { CustomDropdown } from '../../../components/ui';
 // Subscription & Billing tab = Design System v2 (image 181): v2 frame + PMSubscriptionBilling body.
 // The Services tab (same component, /services route) keeps its v1 layout below until it is redesigned.
 import { PMPageShell, Breadcrumb, PageFooter, ImageBackdrop } from '../../../components/layout';
 import { UI2 as V2UI, SP2 as V2SP, SZ2 as V2SZ, T2 as V2T } from '../../../constants';
 import AccountSettingsTabs from './AccountSettingsTabs';
 import PMSubscriptionBilling from './PMSubscriptionBilling';
+import PMServices from './PMServices';
 import backdropArt from '../../../assets/landlord/wizard-backdrop.jpg';
 // Services tab (Fourth pass) reuses Landlord's own bundled Figma photo set
 // directly rather than duplicating the binary files — this file sits at the
@@ -147,7 +143,6 @@ import imgAiMaintenance from '../../../assets/landlord/services/ai-maintenance.j
 import imgRentersInsurance from '../../../assets/landlord/services/renters-insurance.jpg';
 import imgGroceryDelivery from '../../../assets/landlord/services/grocery-delivery.jpg';
 import imgTransportMoving from '../../../assets/landlord/services/transportation-moving.jpg';
-import imgPromoBannerBg from '../../../assets/landlord/services/promo-banner-bg.jpg';
 
 const C = {
   primary:      '#002D5B',
@@ -241,164 +236,11 @@ const EXTERNAL_PROGRAMS = [
   { key: 'transportation', icon: 'ti-car', image: imgTransportMoving, title: 'Transportation & Moving', tag: 'Logistics Concierge', desc: 'Discounted moving-day transportation for tenants relocating into one of your units.' },
 ];
 
-function ordinalDay(d) {
-  const v = d % 100;
-  if (v >= 11 && v <= 13) return `${d}th`;
-  switch (d % 10) {
-    case 1: return `${d}st`;
-    case 2: return `${d}nd`;
-    case 3: return `${d}rd`;
-    default: return `${d}th`;
-  }
-}
-
-// Horizontal scroll + arrow-nav edge tracking for the Services tab's three
-// carousels — ported from Landlord's own useHScrollEdges hook verbatim.
-function useHScrollEdges(ref, deps) {
-  const [edges, setEdges] = useState({ atStart: true, atEnd: true });
-  const update = () => {
-    const el = ref.current;
-    if (!el) return;
-    setEdges({
-      atStart: el.scrollLeft <= 2,
-      atEnd: el.scrollLeft + el.clientWidth >= el.scrollWidth - 2,
-    });
-  };
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  React.useEffect(update, deps);
-  return [edges, update];
-}
-
+// v1 styles still used by the two older pop-ups below (ServiceDetailModal · PromotionCatalogModal)
 const S = {
-  shell: { display: 'flex', height: '100vh', overflow: 'hidden', background: C.pageBg, fontFamily: F.body },
-  main:  { flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0, minHeight: 0 },
-  content: { flex: 1, minHeight: 0, padding: '28px 32px', overflowY: 'auto' },
-  crumb: { fontSize: 12, color: C.textTertiary, marginBottom: 6, display: 'flex', alignItems: 'center', gap: 5 },
-  hdrRow: { display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' },
-  h1: { fontFamily: F.headline, fontSize: 26, fontWeight: 500, color: C.primary, margin: '0 0 3px' },
-  sub: { fontFamily: F.body, fontSize: 13, color: C.textSecondary, margin: '0 0 22px', maxWidth: 820 },
-
-  sectionHdr: { display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', margin: '22px 0 14px' },
-  sectionH2: { fontSize: 15, fontWeight: 700, color: C.textPrimary, margin: 0 },
-  sectionCount: { fontSize: 12.5, color: C.textTertiary },
-
-  banner: { background: C.blueBg, border: `1px solid ${C.blueBorder}`, borderRadius: 10, padding: '14px 16px', marginBottom: 20, fontSize: 12.5, color: C.textPrimary, lineHeight: 1.5 },
-  gateBanner: { background: C.blueBg, border: `1px solid ${C.blueBorder}`, borderRadius: 10, padding: '14px 16px', marginBottom: 20, display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' },
-  gateBannerText: { fontSize: 12.5, color: C.textPrimary, lineHeight: 1.5 },
-  currentSubCard: { background: C.greenBg, border: `1px solid ${C.greenBorder}`, borderRadius: 10, padding: '14px 16px', marginBottom: 20 },
-
-  planGrid: { display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(240px, 1fr))', gap: 16 },
-  planCard: (current) => ({ background: C.white, border: `1.5px solid ${current ? C.green : C.borderMedium}`, borderRadius: 12, padding: '16px 18px', display: 'flex', flexDirection: 'column', gap: 8 }),
-  planCardName: { fontSize: 15, fontWeight: 700, color: C.textPrimary },
-  planCardPrice: { fontSize: 20, fontWeight: 700, color: C.textPrimary },
-  planCardPriceUnit: { fontSize: 11.5, fontWeight: 600, color: C.textTertiary },
-  planCardDesc: { fontSize: 12, color: C.textSecondary, lineHeight: 1.5, flex: 1 },
-  planCardIncluded: { fontSize: 11, color: C.textSecondary, lineHeight: 1.6 },
-
   btnPrimary: { background: C.primary, color: '#fff', border: 'none', padding: '9px 16px', borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: F.body },
   btnSecondary: { background: C.white, color: C.textPrimary, border: `1px solid ${C.borderMedium}`, padding: '9px 16px', borderRadius: 8, fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: F.body },
   pill: { background: C.greenBg, color: C.green, fontSize: 10, fontWeight: 700, padding: '2px 8px', borderRadius: 20, marginLeft: 8 },
-  samplePill: { background: C.neutral, color: C.textTertiary, fontSize: 9, fontWeight: 700, letterSpacing: 0.4, textTransform: 'uppercase', padding: '2px 7px', borderRadius: 20, marginLeft: 8 },
-
-  svcBadge: { alignSelf: 'flex-start', fontSize: 10.5, fontWeight: 700, padding: '3px 9px', borderRadius: 20, background: C.greenBg, color: C.green },
-
-  // ─── Services tab (Fourth pass) — ported from Landlord's Services tab
-  // 1:1 (structure/polish), PM's own F.headline/F.body + C.* tokens in
-  // place of Landlord's Georgia serif and navy/Inter design tokens.
-
-  // 5-tile stat row.
-  statRow: { display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 14, marginBottom: 22 },
-  statTile: (accent, light) => ({ background: light ? `linear-gradient(135deg, ${C.white} 55%, ${light} 160%)` : C.white, border: `1px solid ${C.border}`, borderLeft: `3px solid ${accent}`, borderRadius: 12, padding: '8px 14px', display: 'flex', flexDirection: 'column', gap: 3 }),
-  statTileTop: { display: 'flex', alignItems: 'center', justifyContent: 'space-between' },
-  statLabel: { fontSize: 10.5, fontWeight: 700, letterSpacing: 0.4, textTransform: 'uppercase', color: C.textTertiary },
-  statIconTint: (bg, fg) => ({ width: 24, height: 24, borderRadius: 7, background: bg, color: fg, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12, flexShrink: 0 }),
-  statValue: { fontFamily: F.headline, fontSize: 25, fontWeight: 700, color: C.textPrimary },
-  statSub: { fontSize: 11.5, color: C.textTertiary, lineHeight: 1.5, display: '-webkit-box', WebkitLineClamp: 1, WebkitBoxOrient: 'vertical', overflow: 'hidden', textOverflow: 'ellipsis' },
-
-  // Section headers shared by the Included/Add-Ons/More-From-UrbanNest carousels.
-  svcSectionHdr: { marginBottom: 16 },
-  svcSectionTop: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' },
-  svcSectionTitleRow: { display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' },
-  svcSectionH2: { fontFamily: F.headline, fontSize: 18, fontWeight: 600, color: C.textPrimary, margin: 0 },
-  svcSectionPill: { background: C.greenBg, color: C.green, fontSize: 11.5, fontWeight: 600, padding: '4px 13px', borderRadius: 20, whiteSpace: 'nowrap' },
-  svcSectionLink: { fontSize: 12.5, fontWeight: 700, color: C.primary, cursor: 'pointer', whiteSpace: 'nowrap', background: 'none', border: 'none', fontFamily: F.body, display: 'flex', alignItems: 'center', gap: 5 },
-  svcSectionCaption: { fontSize: 10.5, fontWeight: 700, letterSpacing: 0.5, textTransform: 'uppercase', color: C.textTertiary, whiteSpace: 'nowrap' },
-  svcSectionSub: { fontSize: 13, color: C.textSecondary, margin: '5px 0 0' },
-  svcSampleNote: { fontSize: 11.5, color: C.textTertiary, margin: '-4px 0 12px', fontStyle: 'italic' },
-
-  // Horizontal-scroll carousel shell — percentage-width cards in a padded
-  // scroll track, arrows absolutely positioned in that padding gutter (not
-  // flex siblings), so the track's own width never has to fight a fixed
-  // card width the way the Available Plans carousel's fixed-220px cards did.
-  svcScrollOuter: { position: 'relative', padding: '0 42px' },
-  svcScrollRow: { display: 'flex', gap: 16, overflowX: 'auto', scrollBehavior: 'smooth', scrollSnapType: 'x proximity', paddingBottom: 2 },
-  svcCardW3: { flex: '0 0 calc((100% - 32px) / 3)', scrollSnapAlign: 'start' },
-  svcArrowBtn: { position: 'absolute', top: '50%', transform: 'translateY(-50%)', width: 34, height: 34, borderRadius: '50%', background: '#fff', border: `1px solid ${C.border}`, boxShadow: '0 2px 10px rgba(15,23,42,0.16)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', zIndex: 2, color: C.textPrimary, fontSize: 15 },
-  svcArrowLeft:  { left: 0 },
-  svcArrowRight: { right: 0 },
-  svcArrowDisabled: { opacity: 0.3, cursor: 'default', boxShadow: 'none' },
-
-  // Included / Add-On card anatomy.
-  svcCard:  { background: C.white, border: `1px solid ${C.border}`, borderRadius: 12, overflow: 'hidden', display: 'flex', flexDirection: 'column', cursor: 'pointer' },
-  svcMedia: { position: 'relative', height: 130, backgroundSize: 'cover', backgroundPosition: 'center' },
-  svcMediaStatusPill: { position: 'absolute', bottom: 10, left: 10, fontSize: 10.5, fontWeight: 700, padding: '5px 11px', borderRadius: 20, background: 'rgba(0,45,91,0.72)', color: '#fff', display: 'flex', alignItems: 'center', gap: 4 },
-  svcMediaRibbon: { position: 'absolute', top: 10, right: 10, fontSize: 10, fontWeight: 700, padding: '5px 12px', borderRadius: 20, background: 'rgba(255,255,255,0.92)', color: C.textPrimary, letterSpacing: 0.2 },
-  svcMediaRibbonAccent: { background: C.greenBg, color: C.green },
-  svcSamplePill: { fontSize: 9, fontWeight: 700, letterSpacing: 0.4, textTransform: 'uppercase', padding: '2px 8px', borderRadius: 20, background: C.neutral, color: C.textTertiary, whiteSpace: 'nowrap', flexShrink: 0 },
-  svcBody:  { padding: '14px 16px 16px', display: 'flex', flexDirection: 'column', gap: 6, flex: 1 },
-  svcTitleSerif: { fontFamily: F.headline, fontSize: 15, fontWeight: 600, color: C.textPrimary, lineHeight: 1.25 },
-  svcTitleClamp: { whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' },
-  svcDesc:  { fontSize: 12.5, color: C.textSecondary, lineHeight: 1.5, flex: 1 },
-  svcDivider: { borderTop: `1px solid ${C.border}`, margin: '2px 0' },
-  svcPriceRow: { display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 8, flexWrap: 'wrap' },
-  svcPriceBig: { fontFamily: F.headline, fontSize: 21, fontWeight: 600, color: C.textPrimary },
-  svcPriceUnit: { fontSize: 11.5, fontWeight: 600, color: C.textTertiary, marginLeft: 4 },
-  svcPriceCaption: { fontSize: 10.5, fontWeight: 600, color: C.green, whiteSpace: 'nowrap' },
-  svcBtnRow: { display: 'flex', gap: 8, marginTop: 2 },
-  svcBtn:   { marginTop: 10, textAlign: 'center', padding: '8px 0', borderRadius: 6, fontSize: 11.5, fontWeight: 500, fontFamily: F.body, cursor: 'pointer' },
-  svcBtnBlue: { background: C.blue, color: '#fff', border: 'none' },
-  svcBtnBlueBordered: { background: C.blue, color: '#fff', border: `1px solid ${C.border}` },
-  svcBtnBlueDisabled: { background: C.blue, color: '#fff', border: 'none', cursor: 'not-allowed' },
-  svcBtnBlueBorderedDisabled: { background: C.blue, color: '#fff', border: `1px solid ${C.border}`, cursor: 'not-allowed' },
-  svcBtnViewDisabled: { background: '#fff', border: `1px solid ${C.border}`, color: C.textPrimary, cursor: 'not-allowed' },
-  // svcBtnInCart is already defined below (Available Plans carousel styles) — same { background: C.greenBg, color: C.green } shape, reused as-is.
-  svcBtnDisabled: { background: C.neutral, color: C.textTertiary, cursor: 'not-allowed' },
-
-  // Listing Promotion "advertisement" banner — same dark hero treatment as
-  // Landlord's own version (a marketing banner, not a PM-vs-Landlord brand
-  // surface), over Landlord's own bundled (blurred) marketplace photo.
-  promoAdSection: {
-    position: 'relative', borderRadius: 18, padding: '34px 40px', color: '#fff', overflow: 'hidden',
-    display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 36, flexWrap: 'wrap',
-    backgroundImage: `linear-gradient(120deg, rgba(10,22,40,0.90) 0%, rgba(16,30,50,0.88) 55%, rgba(22,40,64,0.86) 100%), url(${imgPromoBannerBg})`,
-    backgroundSize: 'cover', backgroundPosition: 'center',
-  },
-  promoAdLeft: { flex: '1 1 420px', minWidth: 0 },
-  promoAdBadge: { fontSize: 10.5, fontWeight: 700, letterSpacing: 0.8, textTransform: 'uppercase', color: '#4ecba0', background: '#1a4a3a', padding: '5px 14px', borderRadius: 20, display: 'inline-block' },
-  promoAdHeadline: { fontFamily: F.headline, fontSize: 28, fontWeight: 700, lineHeight: 1.25, maxWidth: 560, margin: '14px 0 10px' },
-  promoAdSub: { fontSize: 13, color: 'rgba(255,255,255,0.74)', lineHeight: 1.6, maxWidth: 540, marginBottom: 16 },
-  promoAdDivider: { borderTop: '1px solid rgba(255,255,255,0.18)', marginBottom: 16, maxWidth: 560 },
-  promoAdStatsRow: { display: 'flex', gap: 34 },
-  promoAdStat: { textAlign: 'left' },
-  promoAdStatValue: { fontFamily: F.headline, fontSize: 25, fontWeight: 700 },
-  promoAdStatLabel: { fontSize: 9.5, fontWeight: 700, letterSpacing: 0.4, textTransform: 'uppercase', color: 'rgba(255,255,255,0.52)', marginTop: 3 },
-  promoAdRight: { display: 'flex', flexDirection: 'column', gap: 10, flexShrink: 0, width: 250 },
-  promoAdCta: { background: '#fff', color: C.primary, border: 'none', padding: '13px 18px', borderRadius: 10, fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: F.body, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 },
-  promoAdCtaSecondary: { background: 'rgba(255,255,255,0.10)', color: '#fff', border: '1px solid rgba(255,255,255,0.24)', padding: '13px 18px', borderRadius: 10, fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: F.body, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8 },
-  promoAdActiveNote: { fontSize: 11.5, color: 'rgba(255,255,255,0.8)', marginTop: 2 },
-
-  // "More From UrbanNest" Coming Soon teaser cards.
-  extCardW3: { flex: '0 0 calc((100% - 32px) / 3)', scrollSnapAlign: 'start' },
-  extCard: { background: C.white, border: `1px solid ${C.border}`, borderRadius: 14, overflow: 'hidden', display: 'flex', flexDirection: 'column' },
-  extMedia: { position: 'relative', height: 122, backgroundSize: 'cover', backgroundPosition: 'center' },
-  extComingSoonPill: { position: 'absolute', top: 10, right: 10, fontSize: 9, fontWeight: 700, letterSpacing: 0.4, textTransform: 'uppercase', padding: '5px 11px', borderRadius: 20, background: 'rgba(255,255,255,0.92)', color: C.textPrimary, whiteSpace: 'nowrap' },
-  extBody: { padding: '14px 16px 16px', display: 'flex', flexDirection: 'column', gap: 6, flex: 1 },
-  extIconWrap: { width: 38, height: 38, borderRadius: 9, background: C.blueBg, color: C.primary, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 16, flexShrink: 0 },
-  extTitleRow: { display: 'flex', alignItems: 'center', gap: 10, marginTop: 2 },
-  extTitle: { fontFamily: F.headline, fontSize: 15.5, fontWeight: 700, color: C.textPrimary, lineHeight: 1.25 },
-  extTag: { fontSize: 10.5, fontWeight: 600, color: C.textTertiary, margin: '1px 0 0 48px' },
-  extDesc: { fontSize: 12, color: C.textSecondary, lineHeight: 1.5, flex: 1, marginTop: 2 },
-  extBtn: { marginTop: 8, background: 'none', border: `1px solid ${C.border}`, color: C.textTertiary, padding: '9px 0', borderRadius: 8, fontSize: 11, fontWeight: 700, letterSpacing: 0.3, textTransform: 'uppercase', cursor: 'not-allowed', fontFamily: F.body, width: '100%' },
 
   emptyState: { background: C.white, border: `1px dashed ${C.borderMedium}`, borderRadius: 10, padding: '32px 24px', textAlign: 'center' },
   emptyP: { fontSize: 12.5, color: C.textSecondary, maxWidth: 360, margin: '0 auto 14px', lineHeight: 1.6 },
@@ -417,210 +259,6 @@ const S = {
   promoCatDesc: { fontSize: 11.5, color: C.textSecondary, lineHeight: 1.5, flex: 1 },
   promoCatPrice: { fontSize: 16, fontWeight: 700, color: C.textPrimary },
 
-  // ─── Subscription & Billing hero layout (ported from Landlord's S.subGrid
-  // et al., same structure, PM's own tokens) ───────────────────────────────
-  subGrid: { display: 'grid', gridTemplateColumns: '1.4fr 1fr 1fr', gap: 16, alignItems: 'stretch', marginBottom: 8 },
-  subLeftCol: { display: 'flex', flexDirection: 'column', minWidth: 0 },
-  subMidCol: { display: 'flex', flexDirection: 'column', gap: 16, minWidth: 0 },
-  subRightCol: { display: 'flex', flexDirection: 'column', gap: 16, minWidth: 0 },
-  // Spans the FULL grid width (all 3 columns), not just column 1 like
-  // Landlord's own static-grid version (which could afford to stay at 40%
-  // width since its cards just wrapped to more rows in that space). As a
-  // horizontal carousel, this section needs the full page width so more
-  // cards are visible before the arrows are needed — confining it to 40%
-  // left most of the page empty and cut the second card off mid-way.
-  subAvailablePlansBlock: { gridColumn: '1 / -1', marginTop: 8, minWidth: 0 },
-
-  curPlanCard: { background: C.white, border: `1px solid ${C.borderMedium}`, borderRadius: 14, overflow: 'hidden', display: 'flex', flexDirection: 'column', height: '100%' },
-  curPlanImgBanner: { position: 'relative', height: 90, background: `linear-gradient(135deg, ${C.primary} 0%, #0a4a8a 100%)`, flexShrink: 0 },
-  curPlanImgBannerImg: { width: '100%', height: '100%', objectFit: 'cover' },
-  curPlanImgBannerPlaceholder: { width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'rgba(255,255,255,0.5)', fontSize: 30 },
-  curPlanImgBannerFade: { position: 'absolute', inset: 0, background: 'linear-gradient(180deg, rgba(0,0,0,0) 40%, rgba(0,0,0,0.35) 100%)' },
-  curPlanCardBody: { background: `linear-gradient(160deg, ${C.white} 0%, ${C.blueBg}45 55%, ${C.greenBg}45 100%)`, padding: '16px 20px 20px', display: 'flex', flexDirection: 'column', flex: 1 },
-  curPlanTopRow: { display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12 },
-  curPlanTierRow: { display: 'flex', alignItems: 'center', gap: 7, marginBottom: 4, flexWrap: 'wrap' },
-  curPlanTierLabel: { fontSize: 10, fontWeight: 700, color: C.textTertiary, textTransform: 'uppercase', letterSpacing: 0.4 },
-  pillActive: { fontSize: 10, fontWeight: 700, color: C.green, background: C.greenBg, padding: '2px 8px', borderRadius: 20 },
-  curPlanPersonaPill: { fontSize: 10, fontWeight: 700, color: C.primary, background: C.blueBg, padding: '2px 8px', borderRadius: 20 },
-  curPlanTitle: { fontFamily: F.headline, fontSize: 19, fontWeight: 600, color: C.textPrimary },
-  curPlanDateRange: { fontSize: 11, color: C.textTertiary, display: 'flex', alignItems: 'center', gap: 5, marginTop: 3 },
-  curPlanPriceBig: { fontFamily: F.headline, fontSize: 24, fontWeight: 700, color: C.textPrimary, textAlign: 'right' },
-  curPlanPriceSub: { fontSize: 11, color: C.textTertiary, textAlign: 'right', marginTop: 2 },
-  curPlanDesc: { fontSize: 12, color: C.textSecondary, lineHeight: 1.6, marginTop: 10 },
-  curPlanDivider: { borderBottom: `1px solid ${C.border}`, margin: '14px 0' },
-  curPlanTilesRow: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 },
-  curPlanTile: { display: 'flex', gap: 9, background: C.pageBg, border: `1px solid ${C.border}`, borderRadius: 10, padding: '10px 12px' },
-  curPlanTileIcon: { width: 28, height: 28, borderRadius: 8, background: C.blueBg, color: C.primary, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, flexShrink: 0 },
-  curPlanTileLabel: { fontSize: 9.5, fontWeight: 700, color: C.textTertiary, textTransform: 'uppercase', letterSpacing: 0.3 },
-  curPlanTileValue: { fontSize: 12.5, fontWeight: 700, color: C.textPrimary, marginTop: 1 },
-  curPlanTileSub: { fontSize: 10, color: C.textTertiary, marginTop: 1 },
-  curPlanProgressWrap: { marginTop: 14 },
-  curPlanProgressLabelRow: { display: 'flex', justifyContent: 'space-between', fontSize: 10.5, marginBottom: 5 },
-  curPlanProgressLabel: { color: C.textTertiary, fontWeight: 700, textTransform: 'uppercase', letterSpacing: 0.3, fontSize: 9.5 },
-  curPlanProgressRemaining: { color: C.textSecondary },
-  curPlanProgressOuter: { height: 6, borderRadius: 20, background: C.neutral, overflow: 'hidden' },
-  curPlanProgressInner: (pct) => ({ width: `${pct}%`, height: '100%', background: C.primary, borderRadius: 20 }),
-  curPlanProgressDates: { display: 'flex', justifyContent: 'space-between', fontSize: 10, color: C.textTertiary, marginTop: 4 },
-  curPlanActionsRow: { display: 'flex', gap: 8, marginTop: 16, flexWrap: 'wrap' },
-  curPlanBtnCancel: { background: 'none', border: 'none', color: C.textTertiary, fontSize: 12, fontWeight: 600, cursor: 'not-allowed', display: 'flex', alignItems: 'center', gap: 5, marginLeft: 'auto', padding: '9px 4px' },
-  curPlanEmpty: { textAlign: 'center', padding: '28px 10px' },
-
-  bbCard: { background: `linear-gradient(160deg, ${C.white} 0%, ${C.blueBg}45 55%, ${C.greenBg}45 100%)`, border: `1px solid ${C.borderMedium}`, borderRadius: 14, padding: '16px 18px' },
-  bbHeaderRow: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 },
-  bbTitle: { fontSize: 13, fontWeight: 700, color: C.textPrimary, fontFamily: F.headline },
-  bbIcon: { width: 26, height: 26, borderRadius: 8, background: C.blueBg, color: C.primary, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12 },
-  bbRows: { display: 'flex', flexDirection: 'column', gap: 10 },
-  bbRow: { display: 'flex', alignItems: 'center', justifyContent: 'space-between' },
-  bbRowLabel: { fontSize: 12, fontWeight: 600, color: C.textPrimary },
-  bbRowSub: { fontSize: 10.5, color: C.textTertiary, marginTop: 1 },
-  bbRowValue: { fontSize: 13, fontWeight: 700, color: C.textPrimary },
-  bbDivider: { borderBottom: `1px dashed ${C.border}`, margin: '4px 0' },
-  bbTotalRow: { display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' },
-  bbTotalLabel: { fontSize: 12.5, fontWeight: 700, color: C.textPrimary },
-  bbTotalValue: { fontFamily: F.headline, fontSize: 18, fontWeight: 700, color: C.primary },
-  bbTotalSub: { fontSize: 10, color: C.textTertiary, marginTop: 2 },
-
-  eeCard: { background: `linear-gradient(135deg, ${C.blueBg} 0%, ${C.white} 100%)`, border: `1px solid ${C.borderMedium}`, borderRadius: 14, padding: '16px 18px' },
-  eeLabel: { fontSize: 9.5, fontWeight: 700, color: C.primary, textTransform: 'uppercase', letterSpacing: 0.4, marginBottom: 4 },
-  eeTitle: { fontSize: 13.5, fontWeight: 700, color: C.textPrimary, fontFamily: F.headline, marginBottom: 6 },
-  eeBody: { fontSize: 11.5, color: C.textSecondary, lineHeight: 1.5, marginBottom: 12 },
-  eeCta: { background: 'none', border: 'none', color: C.primary, fontSize: 12, fontWeight: 700, cursor: 'pointer', padding: 0, display: 'flex', alignItems: 'center', gap: 5 },
-
-  acCard: { background: `linear-gradient(160deg, ${C.white} 0%, ${C.blueBg}45 55%, ${C.greenBg}45 100%)`, border: `1px solid ${C.borderMedium}`, borderRadius: 14, padding: '16px 18px' },
-  acHeaderRow: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 },
-  acTitle: { fontSize: 13, fontWeight: 700, color: C.textPrimary, fontFamily: F.headline },
-  acIcon: { width: 26, height: 26, borderRadius: 8, background: C.blueBg, color: C.primary, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12 },
-  acRingRow: { display: 'flex', alignItems: 'center', gap: 14 },
-  acRingWrap: { position: 'relative', width: 84, height: 84, flexShrink: 0 },
-  acRingCenter: { position: 'absolute', inset: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' },
-  acRingValue: { fontFamily: F.headline, fontSize: 19, fontWeight: 700, color: C.textPrimary },
-  acRingOf: { fontSize: 8.5, fontWeight: 700, color: C.textTertiary },
-  acRingLabel: { fontSize: 12, fontWeight: 700, color: C.textPrimary },
-  acRingSub: { fontSize: 10.5, color: C.textTertiary, marginTop: 3, lineHeight: 1.4 },
-  acRingPct: { fontSize: 10, color: C.green, fontWeight: 600, marginTop: 3 },
-  acDivider: { borderBottom: `1px solid ${C.border}`, margin: '14px 0 10px' },
-  acMetricRow: { display: 'flex', justifyContent: 'space-between', fontSize: 11.5, padding: '4px 0' },
-  acMetricLabel: { color: C.textTertiary },
-  acMetricValue: { color: C.textPrimary, fontWeight: 700 },
-
-  lpSummaryCard: { background: `linear-gradient(160deg, ${C.white} 0%, ${C.blueBg}45 55%, ${C.greenBg}45 100%)`, border: `1px solid ${C.borderMedium}`, borderRadius: 14, padding: '16px 18px' },
-  lpSummaryHeaderRow: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 },
-  lpSummaryTitle: { fontSize: 13, fontWeight: 700, color: C.textPrimary, fontFamily: F.headline },
-  lpSummaryIcon: { width: 26, height: 26, borderRadius: 8, background: C.blueBg, color: C.primary, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12 },
-  lpSummaryPlanName: { fontSize: 13, fontWeight: 700, color: C.textPrimary, marginBottom: 6 },
-  lpSummaryMetricRow: { display: 'flex', justifyContent: 'space-between', fontSize: 11, padding: '3px 0' },
-  lpSummaryMetricLabel: { color: C.textTertiary },
-  lpSummaryMetricValue: { color: C.textPrimary, fontWeight: 700 },
-  lpSummaryEmpty: { fontSize: 11.5, color: C.textSecondary, lineHeight: 1.5, marginBottom: 10 },
-
-  // Card proportions below now match Landlord's planCardV2 family exactly
-  // (image banner height, body padding, type scale, pill padding, line-
-  // clamped description, full-width pill button) — only the colors are
-  // PM's own tokens, per the reviewer's "card size should be the same as
-  // Landlord's" instruction. width/flexShrink added so the card works as a
-  // fixed-size carousel item (see planCarousel* below) instead of a grid
-  // cell.
-  planCardV2: (current) => ({ background: C.white, border: `1.5px solid ${current ? C.green : C.borderMedium}`, borderRadius: 14, overflow: 'hidden', display: 'flex', flexDirection: 'column', width: 220, flexShrink: 0 }),
-  planCardImgWrap: { position: 'relative', height: 97, background: `linear-gradient(135deg, ${C.primary} 0%, #0a4a8a 100%)`, flexShrink: 0 },
-  planCardImg: { position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover' },
-  planCardImgPlaceholder: { position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'rgba(255,255,255,0.35)', fontSize: 20 },
-  planCardGradient: { position: 'absolute', inset: 0, background: 'linear-gradient(to top, rgba(0,45,91,0.85), rgba(0,45,91,0.05) 60%)' },
-  planCardStatusPill: { position: 'absolute', top: 8, left: 8, fontSize: 9, fontWeight: 700, color: C.green, background: C.greenBg, padding: '3px 8px', borderRadius: 20 },
-  planCardCurrencyPill: { position: 'absolute', top: 8, right: 8, fontSize: 9, fontWeight: 700, color: C.textPrimary, background: 'rgba(255,255,255,0.85)', padding: '3px 8px', borderRadius: 20 },
-  planCardImgName: { position: 'absolute', left: 10, bottom: 7, right: 10, fontSize: 13, fontWeight: 700, color: '#fff', fontFamily: F.headline, textShadow: '0 1px 6px rgba(0,0,0,0.4)' },
-  planCardBodyV2: { padding: '10px 13px 11px', display: 'flex', flexDirection: 'column', gap: 6, flex: 1 },
-  planCardUnitChip: { alignSelf: 'flex-start', fontSize: 9.5, fontWeight: 600, color: C.textSecondary, background: C.neutral, padding: '3px 8px', borderRadius: 20 },
-  planCardPriceV2: { fontSize: 16, fontWeight: 700, color: C.textPrimary },
-  planCardAnnual: { fontSize: 10.5, fontWeight: 600, color: C.textTertiary, marginTop: -3 },
-  planCardDescV2: { fontSize: 11, color: C.textSecondary, lineHeight: 1.45, flex: 1, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' },
-  planCardMetaLine: { fontSize: 10.5, display: 'flex', alignItems: 'center', gap: 6 },
-  planCardMetaIncluded: { color: C.green, fontWeight: 600 },
-  planCardMetaAddon: { color: C.textTertiary, fontWeight: 600 },
-  planCardBtnPill: { marginTop: 3, width: '100%', textAlign: 'center', padding: '7px 0', borderRadius: 30, fontSize: 11, fontWeight: 700, letterSpacing: 0.5, textTransform: 'uppercase', cursor: 'pointer', fontFamily: F.body, border: 'none' },
-  planCardBtnPillSolid: { background: C.primary, color: '#fff' },
-  planCardBtnPillOutline: { background: C.white, color: C.textPrimary, border: `1.5px solid ${C.borderMedium}` },
-  svcBtnInCart: { background: C.greenBg, color: C.green },
-
-  // Available Plans carousel (reviewer ask): cards stack horizontally and
-  // scroll via left/right arrow buttons instead of wrapping in a grid.
-  // Arrows sit in their own flex cells outside the scrolling track — never
-  // absolutely positioned over the cards — so they can never overlap a
-  // card. The track itself clips its native scrollbar (see the inline
-  // <style> next to its one usage below) since the arrows are the only
-  // intended way to navigate.
-  planCarouselWrap: { display: 'flex', alignItems: 'center', gap: 10, minWidth: 0, width: '100%' },
-  planCarouselArrow: { flexShrink: 0, width: 36, height: 36, borderRadius: '50%', border: `1px solid ${C.borderMedium}`, background: C.white, color: C.textPrimary, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 15, cursor: 'pointer', boxShadow: '0 1px 4px rgba(0,0,0,0.08)' },
-  planCarouselArrowDisabled: { opacity: 0.35, cursor: 'not-allowed', boxShadow: 'none' },
-  planCarouselTrack: { display: 'flex', gap: 14, overflowX: 'auto', scrollBehavior: 'smooth', paddingBottom: 2, flex: 1, minWidth: 0, scrollbarWidth: 'none' },
-
-  // ── PAYMENT METHODS & DETAILS / BILLING HISTORY & INVOICES — ported 1:1
-  // from Landlord's own Figma-matched structure (card visual, entity-info
-  // panel, tax banner, invoice table), per the reviewer's "implement exactly
-  // as Landlord, even with sample data" instruction. No payment gateway or
-  // invoice-read endpoint exists for either portal, so the card/EIN/invoice
-  // fields below are sample data, same category already disclosed on
-  // Landlord's own page — every action that isn't wired to a real backend
-  // stays disabled with a tooltip explaining why. Card Holder and Invoicing
-  // Email use the signed-in PM's real name/email wherever this page has it
-  // (via the new currentUser fetch below), same as Landlord's userLabel/
-  // currentUser?.email.
-  figmaCard: { background: C.white, border: `1px solid ${C.borderMedium}`, borderRadius: 12, padding: '22px 24px', marginBottom: 22 },
-  figmaCardHdr: { display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' },
-  figmaCardTitle: { fontFamily: F.headline, fontSize: 16, fontWeight: 700, color: C.textPrimary, margin: 0 },
-  figmaCardSub: { fontSize: 12, color: C.textTertiary, marginTop: 4 },
-  figmaDivider: { borderTop: `1px dashed ${C.borderMedium}`, margin: '18px 0 20px' },
-  figmaOutlineBtn: { display: 'inline-flex', alignItems: 'center', gap: 6, background: C.white, color: C.primary, border: `1px solid ${C.borderMedium}`, padding: '8px 14px', borderRadius: 8, fontSize: 11.5, fontWeight: 700, letterSpacing: 0.3, textTransform: 'uppercase', cursor: 'pointer', fontFamily: F.body, whiteSpace: 'nowrap' },
-  figmaLinkBtn: { background: 'none', border: 'none', padding: 0, color: C.blue, fontSize: 11.5, fontWeight: 700, letterSpacing: 0.2, textTransform: 'uppercase', cursor: 'pointer', fontFamily: F.body, display: 'inline-flex', alignItems: 'center', gap: 5 },
-  pillDefault: { fontSize: 10, fontWeight: 700, color: C.green, background: C.greenBg, padding: '2px 8px', borderRadius: 20 },
-
-  pmThreeCol: { display: 'grid', gridTemplateColumns: '4fr 3fr 3fr', gap: 24, alignItems: 'flex-start' },
-  pmCol: { minWidth: 0 },
-  pmColLabelRow: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12, gap: 8 },
-  pmColLabel: { fontSize: 10.5, fontWeight: 700, letterSpacing: 0.5, textTransform: 'uppercase', color: C.textTertiary, minWidth: 0, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' },
-
-  pmCreditCard: { position: 'relative', background: `linear-gradient(135deg, ${C.primary} 0%, #0a4a8a 100%)`, borderRadius: 14, padding: '20px 22px', color: '#fff', minHeight: 150, display: 'flex', flexDirection: 'column', justifyContent: 'space-between', boxShadow: '0 10px 24px rgba(0,45,91,0.25)' },
-  pmCardType: { fontSize: 10, fontWeight: 700, letterSpacing: 0.8, textTransform: 'uppercase', color: 'rgba(255,255,255,0.55)' },
-  pmCardLogoWrap: { position: 'absolute', top: 18, right: 20, textAlign: 'right' },
-  pmCardLogoCircles: { display: 'flex', justifyContent: 'flex-end', marginBottom: 4 },
-  pmCardCircleRed: { width: 22, height: 22, borderRadius: '50%', background: '#eb001b', marginRight: -9 },
-  pmCardCircleOrange: { width: 22, height: 22, borderRadius: '50%', background: '#f79e1b', opacity: 0.9 },
-  pmCardBrand: { fontSize: 13, fontWeight: 700, color: '#fff', fontStyle: 'italic' },
-  pmCardNumber: { fontSize: 19, fontWeight: 600, letterSpacing: 2.5, color: '#fff', fontFamily: 'monospace' },
-  pmCardMetaRow: { display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between' },
-  pmCardMetaLabel: { fontSize: 9, fontWeight: 700, letterSpacing: 0.5, textTransform: 'uppercase', color: 'rgba(255,255,255,0.55)' },
-  pmCardMetaValue: { fontSize: 12.5, fontWeight: 600, color: '#fff', marginTop: 3 },
-
-  pmBelowCard: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginTop: 14, flexWrap: 'wrap' },
-  pmAutoDebit: { fontSize: 12, color: C.textSecondary, display: 'flex', alignItems: 'center', gap: 7 },
-
-  pmEntityBox: { background: '#f8f9fb', borderRadius: 10, padding: '16px 18px' },
-  pmEntityHead: { display: 'flex', alignItems: 'flex-start', gap: 10 },
-  pmEntityIcon: { width: 28, height: 28, borderRadius: 7, background: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, color: C.textSecondary, flexShrink: 0 },
-  pmEntityName: { fontSize: 13.5, fontWeight: 700, color: C.textPrimary },
-  pmEntityAddr: { fontSize: 12, color: C.textSecondary, marginTop: 4, lineHeight: 1.6 },
-  pmEntityDivider: { borderTop: `1px solid ${C.borderMedium}`, margin: '14px 0' },
-  pmEntityRow: { display: 'flex', alignItems: 'center', gap: 10, marginTop: 12 },
-  pmEntityRowLabel: { fontSize: 9.5, fontWeight: 700, letterSpacing: 0.4, textTransform: 'uppercase', color: C.textTertiary },
-  pmEntityRowValue: { fontSize: 12.5, fontWeight: 700, color: C.textPrimary, marginTop: 2 },
-
-  pmTaxBanner: { display: 'flex', alignItems: 'center', gap: 10, background: C.greenBg, color: C.green, borderRadius: 10, padding: '12px 16px', fontSize: 12, lineHeight: 1.5, marginTop: 20 },
-
-  bhToolbarRow: { display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' },
-  bhSearchWrap: { position: 'relative' },
-  bhSearchInput: { padding: '8px 12px 8px 32px', border: `1px solid ${C.borderMedium}`, borderRadius: 8, fontSize: 12.5, fontFamily: F.body, color: C.textPrimary, width: 210 },
-  bhSearchIcon: { position: 'absolute', left: 11, top: '50%', transform: 'translateY(-50%)', fontSize: 13, color: C.textTertiary },
-  bhYearDropdownWrap: { width: 100, flexShrink: 0 },
-
-  bhTable: { width: '100%', borderCollapse: 'collapse', marginTop: 4 },
-  bhTh: { textAlign: 'left', fontSize: 10.5, fontWeight: 700, letterSpacing: 0.4, textTransform: 'uppercase', color: C.textTertiary, padding: '10px 10px', borderBottom: `1px solid ${C.borderMedium}` },
-  bhTd: { fontSize: 12.5, color: C.textPrimary, padding: '13px 10px', borderBottom: `1px solid ${C.borderMedium}`, verticalAlign: 'middle' },
-  bhPaidPill: { display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 10.5, fontWeight: 700, padding: '3px 10px', borderRadius: 20, background: C.greenBg, color: C.green, whiteSpace: 'nowrap' },
-  bhDownloadBtn: { background: 'none', border: 'none', padding: 0, color: C.blue, fontSize: 12, fontWeight: 700, cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 6, fontFamily: F.body },
-
-  bhFooterRow: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, marginTop: 16, paddingTop: 14, borderTop: `1px solid ${C.borderMedium}`, fontSize: 12, color: C.textTertiary, flexWrap: 'wrap' },
-  bhPagination: { display: 'flex', alignItems: 'center', gap: 6 },
-  bhPageBtn: { width: 28, height: 28, borderRadius: 6, border: `1px solid ${C.borderMedium}`, background: '#fff', fontSize: 12, color: C.textSecondary, display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'not-allowed', fontFamily: F.body },
-  bhPageBtnActive: { background: C.primary, color: '#fff', borderColor: C.primary, cursor: 'default' },
 };
 
 function ServiceDetailModal({ service, inCart, onClose, onAddToCart }) {
@@ -685,7 +323,6 @@ function PromotionCatalogModal({ plans, loading, error, purchasingId, onClose, o
 
 export default function PMSubscriptionPage() {
   const location = useLocation();
-  const navigate = useNavigate();
   const activeTab = location.pathname.endsWith('/services') ? 'services' : 'subscription';
 
   const [plans, setPlans] = useState([]);
@@ -716,30 +353,6 @@ export default function PMSubscriptionPage() {
       .then(list => setProperties(Array.isArray(list) ? list : (list.results || [])))
       .catch(() => {});
   }, []);
-  const availablePlansRef = React.useRef(null);
-
-  // Available Plans carousel scroll control — arrows scroll the track by
-  // ~2 card-widths and the arrows disable themselves at each end (reviewer
-  // ask: horizontal stack with left/right nav arrows, not a wrapping grid).
-  const planTrackRef = React.useRef(null);
-  const [planScrollState, setPlanScrollState] = useState({ atStart: true, atEnd: true });
-  const updatePlanScrollState = React.useCallback(() => {
-    const el = planTrackRef.current;
-    if (!el) return;
-    setPlanScrollState({
-      atStart: el.scrollLeft <= 2,
-      atEnd: el.scrollLeft + el.clientWidth >= el.scrollWidth - 2,
-    });
-  }, []);
-  React.useEffect(() => { updatePlanScrollState(); }, [plans, updatePlanScrollState]);
-  const scrollPlans = (dir) => {
-    const el = planTrackRef.current;
-    if (!el) return;
-    const cardEl = el.querySelector('[data-plan-card]');
-    const step = (cardEl ? cardEl.offsetWidth : 220) + 14;
-    el.scrollBy({ left: dir * step * 2, behavior: 'smooth' });
-    setTimeout(updatePlanScrollState, 350);
-  };
 
   // Card Holder / Invoicing Email on the new Payment Methods & Details card
   // below use this PM's real name/email wherever we have it (same as
@@ -805,13 +418,12 @@ export default function PMSubscriptionPage() {
     daysRemaining = Math.max(0, Math.ceil(diffMs / 86400000));
   }
   const cycleDays = (sub?.billing_cycle || '').toUpperCase().startsWith('ANN') ? 365 : 30;
-  let periodStart = null, progressPct = null, billingDayLabel = null;
+  let periodStart = null, progressPct = null;
   if (sub?.next_billing_date) {
     const nextDate = new Date(sub.next_billing_date);
     periodStart = new Date(nextDate.getTime() - cycleDays * 86400000);
     const elapsedMs = Date.now() - periodStart.getTime();
     progressPct = Math.min(100, Math.max(0, (elapsedMs / (cycleDays * 86400000)) * 100));
-    billingDayLabel = ordinalDay(nextDate.getDate());
   }
 
   // ─── Allocated Capacity — real counts from GET /api/properties/, not
@@ -822,9 +434,6 @@ export default function PMSubscriptionPage() {
   const unitsUsed = properties.reduce((sum, p) => sum + (Number(p.unit_count) || 0), 0);
   const capMax = currentPlanObj?.unit_limit_max ?? null;
   const capPct = (capMax && totalProperties > 0) ? Math.min(100, (unitsUsed / capMax) * 100) : null;
-  const ringR = 38;
-  const ringC = 2 * Math.PI * ringR;
-  const ringOffset = capPct != null ? ringC * (1 - capPct / 100) : ringC;
 
   const includedIds = new Set((subscription?.included_services || []).map(s => s.service_id));
   const ownedServices = services.filter(s => s.owned);
@@ -844,19 +453,6 @@ export default function PMSubscriptionPage() {
   // real list for that section is empty.
   const displayIncludedServices = includedPlanServices.length > 0 ? includedPlanServices : SAMPLE_INCLUDED_SERVICES;
   const displayAddonServices = planAddonServices.length > 0 ? planAddonServices : SAMPLE_ADDON_SERVICES;
-  // Horizontal scroll + arrow nav — one ref + edge-state pair per carousel,
-  // re-checked whenever that carousel's card count changes.
-  const inclScrollRef = React.useRef(null);
-  const addonScrollRef = React.useRef(null);
-  const extScrollRef = React.useRef(null);
-  const [inclScrollEdges, updateInclScroll] = useHScrollEdges(inclScrollRef, [displayIncludedServices.length]);
-  const [addonScrollEdges, updateAddonScroll] = useHScrollEdges(addonScrollRef, [displayAddonServices.length]);
-  const [extScrollEdges, updateExtScroll] = useHScrollEdges(extScrollRef, [EXTERNAL_PROGRAMS.length]);
-  const scrollCardsBy = (ref, direction) => {
-    const el = ref.current;
-    if (!el) return;
-    el.scrollBy({ left: el.clientWidth * 0.9 * direction, behavior: 'smooth' });
-  };
   // "Active Campaigns" stat tile — count of this PM's active
   // ListingPromotionSubscription rows (same real field as the Listing
   // Promotion summary card on the Subscription & Billing tab).
@@ -934,970 +530,79 @@ export default function PMSubscriptionPage() {
       .finally(() => setPromoPurchasingId(null));
   };
 
-  // ─── Subscription & Billing — VERSION 2 (image 181) ─────────────────────────
-  if (activeTab === 'subscription') {
-    const V2 = {
-      head:   { ...V2UI.rowBetween(V2SP.lg), alignItems: 'flex-start', flexWrap: 'wrap' },
-      title:  { ...V2T.heroHeading, margin: 0 },
-      sub:    { ...V2T.lead, margin: `${V2SP.xs}px 0 0` },
-      cart:   V2UI.btn.light,                                  // header button on the light-blue wave (= Listings header pair)
-      badge:  { ...V2UI.countBadge, background: V2UI.btn.brand.background, color: V2UI.btn.brand.color },
-    };
-    return (
-      <PMPageShell activeId="account-subscription" animate backdrop={<ImageBackdrop image={backdropArt} />} searchPlaceholder="Search portfolios, settings, or help…">
-        <Breadcrumb items={[{ label: 'Account Settings', href: '/pm-portal/account/profile' }, { label: 'Subscription & Billing' }]} />
-        <section style={V2UI.pageHead.block}>
-          <div style={V2.head}>
-            <div style={V2UI.minWidth0}>
-              <h1 style={V2.title}>Subscription &amp; Billing</h1>
-              <p style={V2.sub}>Manage your Independent PM plan, buy add-on services, and promote your listings.</p>
-            </div>
-            <button type="button" className="un2-btn" style={V2.cart} onClick={() => setCartOpen(true)}>
-              <i className="ti ti-shopping-cart" style={V2UI.btnIcon} aria-hidden="true" /> Cart
-              {cartItems.length > 0 && <span style={V2.badge}>{cartItems.length}</span>}
-            </button>
-          </div>
-          <div style={V2UI.pageHead.next}><AccountSettingsTabs active="subscription" /></div>
-        </section>
+  // ─── VERSION 2 frame for both tabs (Subscription & Billing — image 181 · Services — image 185) ─────────
+  const isServices = activeTab === 'services';
+  const pageTitle = isServices ? 'Services' : 'Subscription & Billing';
+  const V2 = {
+    head:   { ...V2UI.rowBetween(V2SP.lg), alignItems: 'flex-start', flexWrap: 'wrap' },
+    title:  { ...V2T.heroHeading, margin: 0 },
+    sub:    { ...V2T.lead, margin: `${V2SP.xs}px 0 0` },
+    cart:   V2UI.btn.light,                                  // header button on the light-blue wave (= Listings header pair)
+    badge:  { ...V2UI.countBadge, background: V2UI.btn.brand.background, color: V2UI.btn.brand.color },
+  };
+  const skeleton = <div style={V2UI.stack(V2SP.md)}>{[0, 1, 2].map(i => <div key={i} className="un2-skel" style={V2UI.skeleton('100%', V2SZ.field * 3)} />)}</div>;
+  const errorBar = (msg, retry) => (
+    <div style={V2UI.errorBanner} role="alert">
+      <i className="ti ti-alert-circle" aria-hidden="true" /> {msg} —{' '}
+      <button type="button" style={V2UI.btn.link} onClick={retry}>Retry</button>
+    </div>
+  );
 
-        {loading ? (
-          <div style={V2UI.stack(V2SP.md)}>{[0, 1, 2].map(i => <div key={i} className="un2-skel" style={V2UI.skeleton('100%', V2SZ.field * 3)} />)}</div>
-        ) : error ? (
-          <div style={V2UI.errorBanner} role="alert">
-            <i className="ti ti-alert-circle" aria-hidden="true" /> {error} —{' '}
-            <button type="button" style={V2UI.btn.link} onClick={fetchSubscriptionData}>Retry</button>
-          </div>
-        ) : (
-          <PMSubscriptionBilling
-            plans={plans} sub={sub}
-            monthlyPrice={monthlyPrice} addonsList={addonsList} addonsTotal={addonsTotal} totalMonthlySpend={totalMonthlySpend}
-            progressPct={progressPct} daysRemaining={daysRemaining} periodStart={periodStart}
-            unitsUsed={unitsUsed} totalProperties={totalProperties} capMax={capMax} capPct={capPct}
-            subIncludedCount={subIncludedCount} subAddonCount={subAddonCount}
-            activePromoSub={activePromoSub} onOpenPromo={openPromoCatalog}
-            cartItems={cartItems} onSubscribe={handlePlanAddToCart}
-            userLabel={userLabel} email={currentUser?.email}
-          />
-        )}
-
-        <PageFooter />
-
-        {cartOpen && (
-          <PaymentCartModal
-            onClose={() => setCartOpen(false)}
-            onConfirm={handleConfirmPurchase}
-            theme={{
-              navBg: C.primary, cardBg: C.white, cardBdr: C.borderMedium,
-              txtPrimary: C.textPrimary, txtSec: C.textSecondary, txtMuted: C.textTertiary,
-              blue: C.primary, blueLight: C.blueBg, blueDark: C.primary,
-              greenLight: C.greenBg, greenDark: C.green, red: '#DC2626',
-              font: F.body,
-            }}
-          />
-        )}
-        {promoCatalogOpen && (
-          <PromotionCatalogModal
-            plans={promoCatalog} loading={promoCatalogLoading} error={promoCatalogError} purchasingId={promoPurchasingId}
-            onClose={() => setPromoCatalogOpen(false)} onPurchase={handlePurchasePromoPlan}
-          />
-        )}
-      </PMPageShell>
+  let body;
+  if (isServices) {
+    body = servicesLoading ? skeleton : servicesError ? errorBar(servicesError, fetchCatalog) : (
+      <PMServices
+        buyGateClosed={buyGateClosed} subscription={subscription} sub={sub}
+        ownedCount={ownedServices.length} subIncludedCount={subIncludedCount} subAddonCount={subAddonCount}
+        availableAddons={planAddonServices.filter(s => !s.owned).length} activeCampaignsCount={activeCampaignsCount}
+        includedReal={includedPlanServices.length} displayIncluded={displayIncludedServices} displayAddons={displayAddonServices}
+        addonsAvailable={planAddonServices.filter(s => !s.owned).length} addonsAdded={planAddonServices.filter(s => s.owned).length}
+        externalPrograms={EXTERNAL_PROGRAMS}
+        visualIncluded={i => visualFor(INCLUDED_VISUALS, i)} visualAddon={i => visualFor(ADDON_VISUALS, i)}
+        flavorFor={flavorFor} priceUnitLabels={PRICE_UNIT_LABELS}
+        isInCart={isInCart} onOpenService={setOpenService} onAddToCart={addServiceToCart}
+        onOpenPromo={openPromoCatalog} activePromoSub={activePromoSub} minPromoPrice={minPromoPrice} promoTierCount={promoCatalog.length}
+      />
+    );
+  } else {
+    body = loading ? skeleton : error ? errorBar(error, fetchSubscriptionData) : (
+      <PMSubscriptionBilling
+        plans={plans} sub={sub}
+        monthlyPrice={monthlyPrice} addonsList={addonsList} addonsTotal={addonsTotal} totalMonthlySpend={totalMonthlySpend}
+        progressPct={progressPct} daysRemaining={daysRemaining} periodStart={periodStart}
+        unitsUsed={unitsUsed} totalProperties={totalProperties} capMax={capMax} capPct={capPct}
+        subIncludedCount={subIncludedCount} subAddonCount={subAddonCount}
+        activePromoSub={activePromoSub} onOpenPromo={openPromoCatalog}
+        cartItems={cartItems} onSubscribe={handlePlanAddToCart}
+        userLabel={userLabel} email={currentUser?.email}
+      />
     );
   }
 
   return (
-    <div style={S.shell}>
-      <NavB activeId={activeTab === 'services' ? 'account-services' : 'account-subscription'} />
-      <div style={S.main}>
-        <PMTopBar />
-        <div style={S.content}>
-          <div style={S.crumb}>
-            Account Settings <i className="ti ti-chevron-right" style={{ fontSize: 12 }} aria-hidden="true" />
-            <span style={{ color: C.textSecondary }}>{activeTab === 'services' ? 'Services' : 'Subscription & Billing'}</span>
+    <PMPageShell activeId={isServices ? 'account-services' : 'account-subscription'} animate backdrop={<ImageBackdrop image={backdropArt} />} searchPlaceholder="Search portfolios, settings, or help…">
+      <Breadcrumb items={[{ label: 'Account Settings', href: '/pm-portal/account/profile' }, { label: pageTitle }]} />
+      <section style={V2UI.pageHead.block}>
+        <div style={V2.head}>
+          <div style={V2UI.minWidth0}>
+            <h1 style={V2.title}>{pageTitle}</h1>
+            <p style={V2.sub}>Manage your Independent PM plan, buy add-on services, and promote your listings.</p>
           </div>
-          <div style={S.hdrRow}>
-            <div>
-              <h1 style={S.h1}>{activeTab === 'services' ? 'Services' : 'Subscription & Billing'}</h1>
-              <p style={S.sub}>Manage your Independent PM plan, buy add-on services, and promote your listings.</p>
-            </div>
-            <PaymentCartTrigger onClick={() => setCartOpen(true)} theme={{ txtPrimary: C.textPrimary, cardBdr: C.borderMedium, font: F.body }} />
-          </div>
-
-          <AccountSettingsSubnav activeTab={activeTab} />
-
-          {activeTab === 'subscription' && (
-            <>
-              {loading && <div style={{ fontSize: 12.5, color: C.textTertiary, padding: '24px 0' }}>Loading your subscription…</div>}
-              {!loading && error && (
-                <div style={{ ...S.emptyState, marginBottom: 20 }}>
-                  <p style={S.emptyP}>{error}</p>
-                  <button style={S.btnPrimary} onClick={fetchSubscriptionData}>Retry</button>
-                </div>
-              )}
-              {!loading && !error && (
-                <>
-                  <div style={S.subGrid}>
-                    <div style={S.subLeftCol}>
-                      {sub ? (
-                        <div style={S.curPlanCard}>
-                          <div style={S.curPlanImgBanner}>
-                            {currentPlanObj?.image_url ? (
-                              <img src={currentPlanObj.image_url} alt={sub.plan_name} style={S.curPlanImgBannerImg} />
-                            ) : (
-                              <div style={S.curPlanImgBannerPlaceholder}><i className="ti ti-stack-2" aria-hidden="true" /></div>
-                            )}
-                            <div style={S.curPlanImgBannerFade} />
-                          </div>
-                          <div style={S.curPlanCardBody}>
-                            <div style={S.curPlanTopRow}>
-                              <div>
-                                <div style={S.curPlanTierRow}>
-                                  <span style={S.curPlanTierLabel}>Active Tier</span>
-                                  <span style={S.pillActive}>● {sub.status || 'Active'}</span>
-                                  <span style={S.curPlanPersonaPill}>Independent PM</span>
-                                </div>
-                                <div style={S.curPlanTitle}>{sub.plan_name}</div>
-                                {sub.created_at && (
-                                  <div style={S.curPlanDateRange}>
-                                    <i className="ti ti-calendar-event" aria-hidden="true" />
-                                    Active {new Date(sub.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
-                                    {sub.next_billing_date ? ` – ${new Date(sub.next_billing_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}` : ' – ongoing'}
-                                  </div>
-                                )}
-                              </div>
-                              <div>
-                                <div style={S.curPlanPriceBig}>${monthlyPrice.toFixed(2)}</div>
-                                <div style={S.curPlanPriceSub}>
-                                  {sub.billing_cycle || 'Monthly'}{billingDayLabel ? ` (billed on the ${billingDayLabel})` : ''}
-                                </div>
-                              </div>
-                            </div>
-
-                            {currentPlanObj?.long_description && (
-                              <p style={S.curPlanDesc}>{currentPlanObj.long_description}</p>
-                            )}
-
-                            <div style={S.curPlanDivider} />
-
-                            <div style={S.curPlanTilesRow}>
-                              <div style={S.curPlanTile}>
-                                <span style={S.curPlanTileIcon}><i className="ti ti-shield-check" aria-hidden="true" /></span>
-                                <div>
-                                  <div style={S.curPlanTileLabel}>Entitlement</div>
-                                  <div style={S.curPlanTileValue}>{subIncludedCount} included · {subAddonCount} add-on{subAddonCount === 1 ? '' : 's'}</div>
-                                  <div style={S.curPlanTileSub}>Billed {sub.billing_cycle || 'monthly'} · {sub.country}</div>
-                                </div>
-                              </div>
-                              <div style={S.curPlanTile}>
-                                <span style={S.curPlanTileIcon}><i className="ti ti-calendar-event" aria-hidden="true" /></span>
-                                <div>
-                                  <div style={S.curPlanTileLabel}>Next Charge Scheduled</div>
-                                  <div style={S.curPlanTileValue}>
-                                    {sub.next_billing_date ? new Date(sub.next_billing_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'Not scheduled'}
-                                  </div>
-                                  <div style={S.curPlanTileSub}>Automatic charge of ${monthlyPrice.toFixed(2)}</div>
-                                </div>
-                              </div>
-                            </div>
-
-                            {progressPct !== null && (
-                              <div style={S.curPlanProgressWrap}>
-                                <div style={S.curPlanProgressLabelRow}>
-                                  <span style={S.curPlanProgressLabel}>Billing Period Progress</span>
-                                  <span style={S.curPlanProgressRemaining}>{daysRemaining !== null ? `${daysRemaining} days remaining` : ''}</span>
-                                </div>
-                                <div style={S.curPlanProgressOuter}><div style={S.curPlanProgressInner(progressPct)} /></div>
-                                <div style={S.curPlanProgressDates}>
-                                  <span>{periodStart.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
-                                  <span>{new Date(sub.next_billing_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
-                                </div>
-                              </div>
-                            )}
-
-                            {(subscription.included_services?.length > 0 || subscription.addons?.length > 0) && (
-                              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 5, marginTop: 10 }}>
-                                {subscription.included_services?.map(s => (
-                                  <span key={`inc-${s.id || s.service_name}`} style={{ ...S.svcBadge, background: C.greenBg, color: C.green }}>✓ {s.service_name}</span>
-                                ))}
-                                {subscription.addons?.map(a => (
-                                  <span key={`add-${a.id || a.service_name}`} style={{ ...S.svcBadge, background: C.blueBg, color: C.primary }}>+ {a.service_name} (add-on)</span>
-                                ))}
-                              </div>
-                            )}
-
-                            <div style={S.curPlanActionsRow}>
-                              <button style={S.btnPrimary} onClick={() => availablePlansRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })}>
-                                Upgrade Plan
-                              </button>
-                              <button style={S.btnSecondary} onClick={() => availablePlansRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })}>
-                                Change Plan
-                              </button>
-                              <button style={S.curPlanBtnCancel} disabled title="Cancellation isn't wired up yet">
-                                <i className="ti ti-x" aria-hidden="true" /> Cancel Subscription
-                              </button>
-                            </div>
-                          </div>
-                        </div>
-                      ) : (
-                        <div style={S.curPlanCard}>
-                          <div style={S.curPlanCardBody}>
-                            <div style={S.curPlanEmpty}>
-                              <p style={{ fontSize: 13, color: C.textSecondary, marginBottom: 14 }}>
-                                You don't have an active plan yet. Subscribe to a plan below to unlock Buy Service for add-on services.
-                              </p>
-                              <button style={S.btnPrimary} onClick={() => availablePlansRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })}>
-                                Browse Available Plans
-                              </button>
-                            </div>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-
-                    <div style={S.subMidCol}>
-                      <div style={S.bbCard}>
-                        <div style={S.bbHeaderRow}>
-                          <div style={S.bbTitle}>Billing Breakdown</div>
-                          <span style={S.bbIcon}><i className="ti ti-receipt" aria-hidden="true" /></span>
-                        </div>
-                        {sub ? (
-                          <div style={S.bbRows}>
-                            <div style={S.bbRow}>
-                              <div>
-                                <div style={S.bbRowLabel}>Base Plan</div>
-                                <div style={S.bbRowSub}>{sub.plan_name}</div>
-                              </div>
-                              <span style={S.bbRowValue}>${monthlyPrice.toFixed(2)}</span>
-                            </div>
-                            <div style={S.bbRow}>
-                              <div>
-                                <div style={S.bbRowLabel}>Add-ons</div>
-                                <div style={S.bbRowSub}>{addonsList.length} active</div>
-                              </div>
-                              <span style={S.bbRowValue}>${addonsTotal.toFixed(2)}</span>
-                            </div>
-                            <div style={S.bbDivider} />
-                            <div style={S.bbTotalRow}>
-                              <span style={S.bbTotalLabel}>Total Monthly</span>
-                              <span style={S.bbTotalValue}>${totalMonthlySpend.toFixed(2)}</span>
-                            </div>
-                            <div style={S.bbTotalSub}>{sub.currency || 'USD'} · billed {sub.billing_cycle || 'monthly'}</div>
-                          </div>
-                        ) : (
-                          <div style={{ fontSize: 11.5, color: C.textTertiary }}>Subscribe to a plan to see your monthly billing breakdown here.</div>
-                        )}
-                      </div>
-
-                      <div style={S.eeCard}>
-                        <div style={S.eeLabel}>Expand Your Plan</div>
-                        <div style={S.eeTitle}>
-                          {capMax != null ? `Managing more than ${capMax} units?` : 'Growing your portfolio?'}
-                        </div>
-                        <div style={S.eeBody}>
-                          Higher-tier plans widen your unit range and bundle more included services — browse the full catalog below.
-                        </div>
-                        <button style={S.eeCta} onClick={() => availablePlansRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })}>
-                          Explore Higher-Tier Plans <i className="ti ti-arrow-right" aria-hidden="true" />
-                        </button>
-                      </div>
-                    </div>
-
-                    <div style={S.subRightCol}>
-                      <div style={S.acCard}>
-                        <div style={S.acHeaderRow}>
-                          <div style={S.acTitle}>Allocated Capacity</div>
-                          <span style={S.acIcon}><i className="ti ti-chart-donut" aria-hidden="true" /></span>
-                        </div>
-                        <div style={S.acRingRow}>
-                          <div style={S.acRingWrap}>
-                            <svg viewBox="0 0 84 84" width="84" height="84">
-                              <circle cx="42" cy="42" r={ringR} fill="none" stroke={C.neutral} strokeWidth="8" />
-                              {capPct !== null && (
-                                <circle
-                                  cx="42" cy="42" r={ringR} fill="none" stroke={C.green} strokeWidth="8"
-                                  strokeDasharray={ringC} strokeDashoffset={ringOffset} strokeLinecap="round"
-                                  transform="rotate(-90 42 42)"
-                                />
-                              )}
-                            </svg>
-                            <div style={S.acRingCenter}>
-                              <span style={S.acRingValue}>{unitsUsed || '—'}</span>
-                              {capMax != null && <span style={S.acRingOf}>OF {capMax}</span>}
-                            </div>
-                          </div>
-                          <div>
-                            <div style={S.acRingLabel}>Active Units Managed</div>
-                            <div style={S.acRingSub}>
-                              {capPct !== null
-                                ? `${Math.round(capPct)}% of plan's unit range utilized`
-                                : (totalProperties > 0 ? 'No unit cap on current plan' : 'No properties yet')}
-                            </div>
-                            {capMax != null && totalProperties > 0 && (
-                              <div style={S.acRingPct}>{Math.max(0, capMax - unitsUsed)} units remaining in range</div>
-                            )}
-                          </div>
-                        </div>
-                        <div style={S.acDivider} />
-                        <div style={S.acMetricRow}>
-                          <span style={S.acMetricLabel}>Properties Managed</span>
-                          <span style={S.acMetricValue}>{totalProperties}</span>
-                        </div>
-                        <div style={S.acMetricRow}>
-                          <span style={S.acMetricLabel}>Total Units</span>
-                          <span style={S.acMetricValue}>{unitsUsed}</span>
-                        </div>
-                        <div style={S.acMetricRow}>
-                          <span style={S.acMetricLabel}>Services Active</span>
-                          <span style={S.acMetricValue}>{subIncludedCount + subAddonCount}</span>
-                        </div>
-                      </div>
-
-                      <div style={S.lpSummaryCard}>
-                        <div style={S.lpSummaryHeaderRow}>
-                          <div style={S.lpSummaryTitle}>Listing Promotion</div>
-                          <span style={S.lpSummaryIcon}><i className="ti ti-ad-2" aria-hidden="true" /></span>
-                        </div>
-                        {activePromoSub ? (
-                          <>
-                            <div style={S.lpSummaryPlanName}>{activePromoSub.plan_detail?.name || activePromoSub.plan_name || 'Plan'}</div>
-                            <div style={{ marginBottom: 8 }}><span style={S.pillActive}>● Active</span></div>
-                            <div style={S.lpSummaryMetricRow}>
-                              <span style={S.lpSummaryMetricLabel}>Price Paid</span>
-                              <span style={S.lpSummaryMetricValue}>${Number(activePromoSub.price_paid || 0).toFixed(2)}</span>
-                            </div>
-                            {activePromoSub.expires_at && (
-                              <div style={S.lpSummaryMetricRow}>
-                                <span style={S.lpSummaryMetricLabel}>Valid Through</span>
-                                <span style={S.lpSummaryMetricValue}>{new Date(activePromoSub.expires_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</span>
-                              </div>
-                            )}
-                          </>
-                        ) : (
-                          <>
-                            <div style={S.lpSummaryEmpty}>No standing Listing Promotion plan purchased yet — pre-buy one to skip paying again at your next listing's Step 3.</div>
-                            <button style={S.eeCta} onClick={openPromoCatalog}>
-                              Explore Plans <i className="ti ti-arrow-right" aria-hidden="true" />
-                            </button>
-                          </>
-                        )}
-                      </div>
-                    </div>
-
-                    <div style={S.subAvailablePlansBlock}>
-                      <div ref={availablePlansRef} style={S.sectionHdr}>
-                        <div style={S.sectionH2}>Available Plans</div>
-                        <span style={S.sectionCount}>{plans.length} plan(s) available for Independent PM</span>
-                      </div>
-                      <div style={S.planCarouselWrap}>
-                        <button
-                          style={{ ...S.planCarouselArrow, ...(planScrollState.atStart ? S.planCarouselArrowDisabled : {}) }}
-                          onClick={() => scrollPlans(-1)}
-                          disabled={planScrollState.atStart}
-                          aria-label="Scroll plans left"
-                        >
-                          <i className="ti ti-chevron-left" aria-hidden="true" />
-                        </button>
-
-                        <style>{`.pm-plan-carousel-track::-webkit-scrollbar { display: none; }`}</style>
-                        <div
-                          ref={planTrackRef}
-                          className="pm-plan-carousel-track"
-                          style={S.planCarouselTrack}
-                          onScroll={updatePlanScrollState}
-                        >
-                          {plans.map(p => {
-                            const isCurrent = sub && sub.plan === p.id;
-                            const inCart = cartItems.some(i => i.id === `plan-${p.id}`);
-                            const monthly = Number(p.monthly_price) || 0;
-                            const annual = p.annual_price != null ? Number(p.annual_price) : null;
-                            const unitLabel = p.unit_limit_max != null ? `${p.unit_limit_min}–${p.unit_limit_max} units` : `${p.unit_limit_min}+ units`;
-                            const includedCount2 = p.included_services?.length || 0;
-                            const addonCount2 = p.addon_services?.length || 0;
-                            return (
-                              <div key={p.id} data-plan-card style={S.planCardV2(isCurrent)}>
-                                <div style={S.planCardImgWrap}>
-                                  {p.image_url ? (
-                                    <img src={p.image_url} alt={p.name} style={S.planCardImg} />
-                                  ) : (
-                                    <div style={S.planCardImgPlaceholder}><i className="ti ti-stack-2" aria-hidden="true" /></div>
-                                  )}
-                                  <div style={S.planCardGradient} />
-                                  <span style={S.planCardStatusPill}>{isCurrent ? '● Active' : 'Active'}</span>
-                                  <span style={S.planCardCurrencyPill}>{p.monthly_price_currency}</span>
-                                  <div style={S.planCardImgName}>{p.name}</div>
-                                </div>
-                                <div style={S.planCardBodyV2}>
-                                  <span style={S.planCardUnitChip}>{unitLabel}</span>
-                                  <div>
-                                    <span style={S.planCardPriceV2}>${monthly.toFixed(0)}</span>
-                                    <span style={S.planCardPriceUnit}> / mo</span>
-                                  </div>
-                                  {annual !== null && <div style={S.planCardAnnual}>(${annual.toLocaleString()} / yr)</div>}
-                                  <p style={S.planCardDescV2}>{p.short_description}</p>
-                                  {includedCount2 > 0 && (
-                                    <div style={{ ...S.planCardMetaLine, ...S.planCardMetaIncluded }}>
-                                      <i className="ti ti-check" aria-hidden="true" /> {includedCount2} service{includedCount2 === 1 ? '' : 's'} included
-                                    </div>
-                                  )}
-                                  {addonCount2 > 0 && (
-                                    <div style={{ ...S.planCardMetaLine, ...S.planCardMetaAddon }}>
-                                      <i className="ti ti-plus" aria-hidden="true" /> {addonCount2} add-on{addonCount2 === 1 ? '' : 's'} available
-                                    </div>
-                                  )}
-                                  <button
-                                    style={{
-                                      ...S.planCardBtnPill,
-                                      ...(isCurrent ? S.planCardBtnPillOutline : inCart ? S.svcBtnInCart : S.planCardBtnPillSolid),
-                                    }}
-                                    disabled={isCurrent}
-                                    onClick={() => handlePlanAddToCart(p)}
-                                    title={inCart ? 'In your cart — click the cart to review and confirm' : undefined}
-                                  >
-                                    {isCurrent ? 'Current Plan' : inCart ? '✓ In Cart — Review' : 'Subscribe'}
-                                  </button>
-                                </div>
-                              </div>
-                            );
-                          })}
-                        </div>
-
-                        <button
-                          style={{ ...S.planCarouselArrow, ...(planScrollState.atEnd ? S.planCarouselArrowDisabled : {}) }}
-                          onClick={() => scrollPlans(1)}
-                          disabled={planScrollState.atEnd}
-                          aria-label="Scroll plans right"
-                        >
-                          <i className="ti ti-chevron-right" aria-hidden="true" />
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* Payment Methods & Details — ported 1:1 from Landlord's own
-                      structure/layout (per the reviewer's "implement exactly as
-                      Landlord, even with sample data" instruction). No payment
-                      gateway exists on either portal, so the card number/EIN/
-                      entity fields below are sample data, same as Landlord's own
-                      page — every disabled action says why. Card Holder and
-                      Invoicing Email use this PM's real name/email wherever
-                      currentUser has it. Linked Bank Accounts stays sample here
-                      too (PM's real Bank Accounts tab is its own separate page/
-                      fetch, not shared state with this one). */}
-                  <div style={S.figmaCard}>
-                    <div style={S.figmaCardHdr}>
-                      <div>
-                        <div style={S.figmaCardTitle}>Payment Methods &amp; Details</div>
-                        <div style={S.figmaCardSub}>Primary settlement instruments, commercial billing entity identification, and linked settlement accounts.</div>
-                      </div>
-                      <button style={S.figmaOutlineBtn} disabled title="Payment gateway not yet integrated">
-                        <i className="ti ti-plus" aria-hidden="true" /> Add New Card
-                      </button>
-                    </div>
-                    <div style={S.figmaDivider} />
-
-                    <div style={S.pmThreeCol}>
-                      <div style={S.pmCol}>
-                        <div style={S.pmColLabelRow}>
-                          <span style={S.pmColLabel}>Active Payment Instrument</span>
-                          <span style={S.pillDefault}>Default</span>
-                        </div>
-                        <div style={S.pmCreditCard}>
-                          <div style={S.pmCardLogoWrap}>
-                            <div style={S.pmCardLogoCircles}>
-                              <span style={S.pmCardCircleRed} />
-                              <span style={S.pmCardCircleOrange} />
-                            </div>
-                            <div style={S.pmCardBrand}>Mastercard</div>
-                          </div>
-                          <div style={S.pmCardType}>Corporate Card</div>
-                          <div style={S.pmCardNumber}>•••• •••• •••• 4242</div>
-                          <div style={S.pmCardMetaRow}>
-                            <div>
-                              <div style={S.pmCardMetaLabel}>Card Holder</div>
-                              <div style={S.pmCardMetaValue}>{userLabel.toUpperCase()}</div>
-                            </div>
-                            <div>
-                              <div style={S.pmCardMetaLabel}>Expires</div>
-                              <div style={S.pmCardMetaValue}>08/28</div>
-                            </div>
-                          </div>
-                        </div>
-                        <div style={S.pmBelowCard}>
-                          <span style={S.pmAutoDebit}><i className="ti ti-refresh" aria-hidden="true" /> Auto-debit enabled for scheduled billings</span>
-                          <button style={S.figmaLinkBtn} disabled title="Payment gateway not yet integrated">Change Default</button>
-                        </div>
-                      </div>
-
-                      <div style={S.pmCol}>
-                        <div style={S.pmColLabelRow}>
-                          <span style={S.pmColLabel}>Commercial Entity Information</span>
-                          <button style={S.figmaLinkBtn} disabled title="Billing entity management isn't wired up yet">
-                            <i className="ti ti-pencil" aria-hidden="true" /> Edit Billing Info
-                          </button>
-                        </div>
-                        <div style={S.pmEntityBox}>
-                          <div style={S.pmEntityHead}>
-                            <span style={S.pmEntityIcon}><i className="ti ti-building" aria-hidden="true" /></span>
-                            <div>
-                              <div style={S.pmEntityName}>{userLabel !== 'Independent PM Account' ? `${userLabel} — Independent PM` : 'Independent PM Account'}</div>
-                              <div style={S.pmEntityAddr}>45 Spring Borough Ct<br />O'Fallon, Missouri, 63368<br />US</div>
-                            </div>
-                          </div>
-                          <div style={S.pmEntityDivider} />
-                          <div style={S.pmEntityRow}>
-                            <span style={S.pmEntityIcon}><i className="ti ti-briefcase" aria-hidden="true" /></span>
-                            <div>
-                              <div style={S.pmEntityRowLabel}>Federal Tax ID / EIN</div>
-                              <div style={S.pmEntityRowValue}>US-EIN-98-7654321</div>
-                            </div>
-                          </div>
-                          <div style={S.pmEntityRow}>
-                            <span style={S.pmEntityIcon}><i className="ti ti-mail" aria-hidden="true" /></span>
-                            <div>
-                              <div style={S.pmEntityRowLabel}>Invoicing Email</div>
-                              <div style={S.pmEntityRowValue}>{currentUser?.email || 'billing@independentpm.com'}</div>
-                            </div>
-                          </div>
-                        </div>
-                      </div>
-
-                      <div style={S.pmCol}>
-                        <div style={S.pmColLabelRow}>
-                          <span style={S.pmColLabel}>Linked Bank Accounts</span>
-                        </div>
-                        <div style={S.pmEntityBox}>
-                          <div style={S.pmEntityHead}>
-                            <span style={S.pmEntityIcon}><i className="ti ti-building-bank" aria-hidden="true" /></span>
-                            <div>
-                              <div style={S.pmEntityName}>Chase Bank</div>
-                              <div style={S.pmEntityAddr}>•••• 1212 · USD · Default</div>
-                            </div>
-                          </div>
-                          <div style={S.pmEntityDivider} />
-                          <div style={S.pmEntityRow}>
-                            <span style={S.pmEntityIcon}><i className="ti ti-list" aria-hidden="true" /></span>
-                            <div>
-                              <div style={S.pmEntityRowLabel}>Total Linked Accounts</div>
-                              <div style={S.pmEntityRowValue}>3</div>
-                            </div>
-                          </div>
-                        </div>
-                        <div style={S.pmBelowCard}>
-                          <span style={{ fontSize: 11, color: C.textTertiary }}>Used for rent &amp; service payouts</span>
-                          <button style={S.figmaLinkBtn} onClick={() => navigate('/pm-portal/account/bank-accounts')}>
-                            Manage <i className="ti ti-arrow-right" aria-hidden="true" />
-                          </button>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div style={S.pmTaxBanner}>
-                      <i className="ti ti-shield-check" style={{ fontSize: 16, flexShrink: 0 }} aria-hidden="true" />
-                      Entity registered for tax exemption under NY State Commercial Realty Statute.
-                    </div>
-                  </div>
-
-                  {/* Billing History & Invoices — same rebuild rationale as above.
-                      No invoice-read endpoint exists for PM yet, so the rows are
-                      sample data; search/export/pagination are disabled with
-                      tooltips, same as Landlord's own version of this card. */}
-                  <div style={S.figmaCard}>
-                    <div style={S.figmaCardHdr}>
-                      <div>
-                        <div style={S.figmaCardTitle}>Billing History &amp; Invoices</div>
-                        <div style={S.figmaCardSub}>Historical statements, reconciliation vouchers, and official tax receipts.</div>
-                      </div>
-                      <div style={S.bhToolbarRow}>
-                        <div style={S.bhSearchWrap}>
-                          <i className="ti ti-search" style={S.bhSearchIcon} aria-hidden="true" />
-                          <input style={S.bhSearchInput} placeholder="Search by invoice ID..." disabled title="Invoice search isn't wired up yet" />
-                        </div>
-                        <div style={S.bhYearDropdownWrap} title="Invoice filtering isn't wired up yet">
-                          <CustomDropdown options={[{ value: '2026', label: '2026' }]} value="2026" onChange={() => {}} placeholder="2026" disabled />
-                        </div>
-                      </div>
-                    </div>
-                    <div style={S.figmaDivider} />
-
-                    <button style={{ ...S.figmaOutlineBtn, marginBottom: 14 }} disabled title="Invoice export isn't wired up yet">
-                      <i className="ti ti-download" aria-hidden="true" /> Export CSV
-                    </button>
-
-                    <table style={S.bhTable}>
-                      <thead>
-                        <tr>
-                          <th style={S.bhTh}>Invoice Number</th>
-                          <th style={S.bhTh}>Billing Date</th>
-                          <th style={S.bhTh}>Description</th>
-                          <th style={S.bhTh}>Amount</th>
-                          <th style={S.bhTh}>Status</th>
-                          <th style={S.bhTh}>Action</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {[
-                          { inv: 'INV-2026-009', date: 'Sep 30, 2026' },
-                          { inv: 'INV-2026-008', date: 'Aug 31, 2026' },
-                          { inv: 'INV-2026-007', date: 'Jul 31, 2026' },
-                          { inv: 'INV-2026-006', date: 'Jun 30, 2026' },
-                        ].map(row => (
-                          <tr key={row.inv}>
-                            <td style={S.bhTd}>{row.inv}</td>
-                            <td style={S.bhTd}>{row.date}</td>
-                            <td style={S.bhTd}>{sub?.plan_name || 'Independent PM Plan'} — Monthly Subscription</td>
-                            <td style={S.bhTd}>${monthlyPrice.toFixed(2)} {sub?.currency || 'USD'}</td>
-                            <td style={S.bhTd}><span style={S.bhPaidPill}>● Paid</span></td>
-                            <td style={S.bhTd}>
-                              <button style={S.bhDownloadBtn} disabled title="Invoice downloads aren't wired up yet">
-                                <i className="ti ti-download" aria-hidden="true" /> Download PDF
-                              </button>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-
-                    <div style={S.bhFooterRow}>
-                      <span>Showing 4 of 4 generated receipts for current fiscal period</span>
-                      <div style={S.bhPagination}>
-                        <button style={S.bhPageBtn} disabled title="Pagination isn't wired up yet"><i className="ti ti-chevron-left" aria-hidden="true" /></button>
-                        <button style={{ ...S.bhPageBtn, ...S.bhPageBtnActive }} disabled>1</button>
-                        <button style={S.bhPageBtn} disabled title="Pagination isn't wired up yet"><i className="ti ti-chevron-right" aria-hidden="true" /></button>
-                      </div>
-                    </div>
-                  </div>
-                </>
-              )}
-            </>
-          )}
-
-          {activeTab === 'services' && (
-            <>
-              {servicesLoading && <div style={{ fontSize: 12.5, color: C.textTertiary, padding: '24px 0' }}>Loading services…</div>}
-              {!servicesLoading && servicesError && (
-                <div style={{ ...S.emptyState, marginBottom: 20 }}>
-                  <p style={S.emptyP}>{servicesError}</p>
-                  <button style={S.btnPrimary} onClick={fetchCatalog}>Retry</button>
-                </div>
-              )}
-              {!servicesLoading && !servicesError && (
-                <>
-                  {buyGateClosed && (
-                    <div style={S.gateBanner}>
-                      <div style={S.gateBannerText}><strong>Subscribe to a Plan first</strong> — buying an add-on service requires an active subscription.</div>
-                      <button style={S.btnPrimary} onClick={() => navigate('/pm-portal/account/subscription')}>Go to Subscription & Billing</button>
-                    </div>
-                  )}
-
-                  {/* Stat tiles — 5 tiles, real counts only. */}
-                  <div style={S.statRow}>
-                    <div style={S.statTile(C.primary, C.blueBg)}>
-                      <div style={S.statTileTop}>
-                        <span style={S.statLabel}>Total Active Services</span>
-                        <span style={S.statIconTint(C.blueBg, C.primary)}><i className="ti ti-apps" aria-hidden="true" /></span>
-                      </div>
-                      <div style={S.statValue}>{ownedServices.length}</div>
-                      <div style={S.statSub}>
-                        {subscription ? `${subIncludedCount} included, ${subAddonCount} add-on${subAddonCount === 1 ? '' : 's'} purchased` : 'No active services yet'}
-                      </div>
-                    </div>
-                    <div style={S.statTile(C.primary, C.blueBg)}>
-                      <div style={S.statTileTop}>
-                        <span style={S.statLabel}>Included With Plan</span>
-                        <span style={S.statIconTint(C.blueBg, C.primary)}><i className="ti ti-package" aria-hidden="true" /></span>
-                      </div>
-                      <div style={S.statValue}>{subIncludedCount}</div>
-                      <div style={S.statSub}>{subscription ? `Covered by ${sub?.plan_name || 'your plan'}` : 'Subscribe to a plan to unlock included services'}</div>
-                    </div>
-                    <div style={S.statTile(C.blue, C.blueBg)}>
-                      <div style={S.statTileTop}>
-                        <span style={S.statLabel}>Active Add-On's</span>
-                        <span style={S.statIconTint(C.blueBg, C.blue)}><i className="ti ti-circle-check" aria-hidden="true" /></span>
-                      </div>
-                      <div style={S.statValue}>{subAddonCount}</div>
-                      <div style={S.statSub}>Purchased beyond your plan</div>
-                    </div>
-                    <div style={S.statTile(C.green, C.greenBg)}>
-                      <div style={S.statTileTop}>
-                        <span style={S.statLabel}>Available Add-On's</span>
-                        <span style={S.statIconTint(C.greenBg, C.green)}><i className="ti ti-plus" aria-hidden="true" /></span>
-                      </div>
-                      <div style={S.statValue}>{planAddonServices.filter(s => !s.owned).length}</div>
-                      <div style={S.statSub}>{buyGateClosed ? 'Subscribe to a plan first' : 'Ready to purchase for your plan'}</div>
-                    </div>
-                    <div style={S.statTile(C.amber, C.amberBg)}>
-                      <div style={S.statTileTop}>
-                        <span style={S.statLabel}>Active Campaigns</span>
-                        <span style={S.statIconTint(C.amberBg, C.amber)}><i className="ti ti-rocket" aria-hidden="true" /></span>
-                      </div>
-                      <div style={S.statValue}>{activeCampaignsCount}</div>
-                      <div style={S.statSub}>Listing Promotion subscriptions</div>
-                    </div>
-                  </div>
-
-                  {/* "Included with Your Plan" — real entitled services,
-                      no Buy Service button since there's nothing to buy. */}
-                  <div style={S.svcSectionHdr}>
-                    <div style={S.svcSectionTop}>
-                      <div style={S.svcSectionTitleRow}>
-                        <div style={S.svcSectionH2}>Included with Your Plan</div>
-                        <span style={S.svcSectionPill}>{includedPlanServices.length} Active Service{includedPlanServices.length === 1 ? '' : 's'}{subscription ? ` • ${sub?.plan_name || ''}` : ''}</span>
-                      </div>
-                      <button style={S.svcSectionLink} onClick={() => navigate('/pm-portal/account/subscription')}>Manage Plan Limits <i className="ti ti-arrow-right" aria-hidden="true" /></button>
-                    </div>
-                  </div>
-                  {includedPlanServices.length === 0 && (
-                    <p style={S.svcSampleNote}>
-                      {subscription ? 'Your current plan has no services included by default.' : 'Subscribe to a plan to see what’s included.'} Showing sample cards below for preview.
-                    </p>
-                  )}
-                  <div style={{ ...S.svcScrollOuter, marginBottom: 28 }}>
-                    <div style={S.svcScrollRow} ref={inclScrollRef} onScroll={updateInclScroll}>
-                      {displayIncludedServices.map((s, i) => {
-                        const isSample = !!s.isSample;
-                        return (
-                          <div key={`inc-${s.id}`} style={{ ...S.svcCard, ...S.svcCardW3 }} onClick={() => { if (!isSample) setOpenService(s); }}>
-                            <div style={{ ...S.svcMedia, backgroundImage: `url(${s.image || visualFor(INCLUDED_VISUALS, i)})` }}>
-                              {isSample ? (
-                                <span style={S.svcSamplePill}>Sample</span>
-                              ) : (
-                                <span style={S.svcMediaStatusPill}><i className="ti ti-circle-check" aria-hidden="true" /> Active</span>
-                              )}
-                            </div>
-                            <div style={S.svcBody}>
-                              <div style={{ ...S.svcTitleSerif, ...S.svcTitleClamp }}>{s.name}</div>
-                              <p style={S.svcDesc}>{s.short_description}</p>
-                              <div style={S.svcDivider} />
-                              <div style={S.svcBtnRow}>
-                                <button
-                                  style={{ ...S.svcBtn, ...S.svcBtnViewDisabled, flex: 1, marginTop: 0 }}
-                                  disabled
-                                  title={isSample ? 'Sample service — not part of your real plan' : "Service configuration isn't built yet"}
-                                  onClick={e => e.stopPropagation()}
-                                >
-                                  Configure
-                                </button>
-                                <button
-                                  style={{ ...S.svcBtn, ...(isSample ? S.svcBtnBlueDisabled : S.svcBtnBlue), flex: 1, marginTop: 0 }}
-                                  disabled={isSample}
-                                  title={isSample ? 'Sample service — not part of your real plan' : undefined}
-                                  onClick={e => { e.stopPropagation(); if (!isSample) setOpenService(s); }}
-                                >
-                                  View Details
-                                </button>
-                              </div>
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                    <button
-                      style={{ ...S.svcArrowBtn, ...S.svcArrowLeft, ...(inclScrollEdges.atStart ? S.svcArrowDisabled : {}) }}
-                      onClick={() => scrollCardsBy(inclScrollRef, -1)}
-                      disabled={inclScrollEdges.atStart}
-                      aria-label="Scroll included services left"
-                    ><i className="ti ti-chevron-left" aria-hidden="true" /></button>
-                    <button
-                      style={{ ...S.svcArrowBtn, ...S.svcArrowRight, ...(inclScrollEdges.atEnd ? S.svcArrowDisabled : {}) }}
-                      onClick={() => scrollCardsBy(inclScrollRef, 1)}
-                      disabled={inclScrollEdges.atEnd}
-                      aria-label="Scroll included services right"
-                    ><i className="ti ti-chevron-right" aria-hidden="true" /></button>
-                  </div>
-
-                  {/* "Add-Ons for Your Plan" — every catalog service not
-                      already included; not-yet-purchased ones get a real
-                      Buy flow, already-purchased ones get an "✓ Added"
-                      ribbon and a disabled "Configure Service" action. */}
-                  <div style={S.svcSectionHdr}>
-                    <div style={S.svcSectionTop}>
-                      <div style={S.svcSectionTitleRow}>
-                        <div style={S.svcSectionH2}>Add-Ons for Your Plan</div>
-                        <span style={S.svcSectionPill}>{planAddonServices.filter(s => !s.owned).length} Available • {planAddonServices.filter(s => s.owned).length} Added</span>
-                      </div>
-                    </div>
-                    <p style={S.svcSectionSub}>Extend your plan with optional add-on services — activate instantly, cancel anytime.</p>
-                  </div>
-                  {planAddonServices.length === 0 && (
-                    <p style={S.svcSampleNote}>
-                      {subscription ? 'Your current plan has no add-on services configured.' : 'Subscribe to a plan to see its available add-ons.'} Showing sample cards below for preview.
-                    </p>
-                  )}
-                  <div style={{ ...S.svcScrollOuter, marginBottom: 28 }}>
-                    <div style={S.svcScrollRow} ref={addonScrollRef} onScroll={updateAddonScroll}>
-                      {displayAddonServices.map((s, i) => {
-                        const isSample = !!s.isSample;
-                        const inCart = !isSample && isInCart(s.id);
-                        const flavor = flavorFor(i);
-                        const priceBig = isSample ? s.priceDisplay : `$${(Number(s.price) || 0).toFixed(2)}`;
-                        const priceUnit = isSample ? s.priceUnitDisplay : (PRICE_UNIT_LABELS[s.price_unit] || '');
-                        return (
-                          <div key={`addon-${s.id}`} style={{ ...S.svcCard, ...S.svcCardW3 }} onClick={() => { if (!isSample) setOpenService(s); }}>
-                            <div style={{ ...S.svcMedia, backgroundImage: `url(${s.image || visualFor(ADDON_VISUALS, i)})` }}>
-                              {isSample ? (
-                                <span style={S.svcSamplePill}>Sample</span>
-                              ) : (
-                                <span style={{ ...S.svcMediaRibbon, ...(s.owned ? S.svcMediaRibbonAccent : {}) }}>
-                                  {s.owned ? '✓ Added' : flavor.ribbon}
-                                </span>
-                              )}
-                            </div>
-                            <div style={S.svcBody}>
-                              <div style={{ ...S.svcTitleSerif, ...S.svcTitleClamp }}>{s.name}</div>
-                              <p style={S.svcDesc}>{s.short_description}</p>
-                              <div style={S.svcDivider} />
-                              <div style={S.svcPriceRow}>
-                                <div>
-                                  <span style={S.svcPriceBig}>{priceBig}</span>
-                                  <span style={S.svcPriceUnit}>{priceUnit}</span>
-                                </div>
-                                <span style={S.svcPriceCaption}>{flavor.caption}</span>
-                              </div>
-                              {isSample ? (
-                                <button
-                                  style={{ ...S.svcBtn, ...S.svcBtnBlueBorderedDisabled }}
-                                  disabled
-                                  title="Sample service — not part of your real plan"
-                                  onClick={e => e.stopPropagation()}
-                                >
-                                  + Add to Plan
-                                </button>
-                              ) : s.owned ? (
-                                <button
-                                  style={{ ...S.svcBtn, ...S.svcBtnViewDisabled }}
-                                  disabled
-                                  title="Service configuration isn't built yet"
-                                  onClick={e => e.stopPropagation()}
-                                >
-                                  Configure Service
-                                </button>
-                              ) : (
-                                <button
-                                  style={{ ...S.svcBtn, ...(inCart ? S.svcBtnInCart : buyGateClosed ? S.svcBtnDisabled : S.svcBtnBlueBordered) }}
-                                  disabled={buyGateClosed && !inCart}
-                                  title={buyGateClosed ? 'Subscribe to a plan first to buy add-on services' : undefined}
-                                  onClick={e => { e.stopPropagation(); if (!inCart && !buyGateClosed) addServiceToCart(s); }}
-                                >
-                                  {inCart ? '✓ In Cart' : buyGateClosed ? 'Subscribe First' : '+ Add to Plan'}
-                                </button>
-                              )}
-                            </div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                    <button
-                      style={{ ...S.svcArrowBtn, ...S.svcArrowLeft, ...(addonScrollEdges.atStart ? S.svcArrowDisabled : {}) }}
-                      onClick={() => scrollCardsBy(addonScrollRef, -1)}
-                      disabled={addonScrollEdges.atStart}
-                      aria-label="Scroll add-on services left"
-                    ><i className="ti ti-chevron-left" aria-hidden="true" /></button>
-                    <button
-                      style={{ ...S.svcArrowBtn, ...S.svcArrowRight, ...(addonScrollEdges.atEnd ? S.svcArrowDisabled : {}) }}
-                      onClick={() => scrollCardsBy(addonScrollRef, 1)}
-                      disabled={addonScrollEdges.atEnd}
-                      aria-label="Scroll add-on services right"
-                    ><i className="ti ti-chevron-right" aria-hidden="true" /></button>
-                  </div>
-
-                  {/* Listing Promotion — "advertisement" section. "Browse
-                      Active Inventory" is real navigation to this portal's
-                      actual Listings Overview route. */}
-                  <div style={{ marginBottom: 28 }}>
-                    <div style={S.promoAdSection}>
-                      <div style={S.promoAdLeft}>
-                        <span style={S.promoAdBadge}><i className="ti ti-building-skyscraper" aria-hidden="true" /> UrbanNest Marketplace</span>
-                        <div style={S.promoAdHeadline}>Get your listings seen first.</div>
-                        <div style={S.promoAdSub}>
-                          Buy a Listing Promotion plan once, then apply it free on any eligible listing later — no extra charge at publish time ("Already Paid").
-                        </div>
-                        <div style={S.promoAdDivider} />
-                        <div style={S.promoAdStatsRow}>
-                          <div style={S.promoAdStat}>
-                            <div style={S.promoAdStatValue}>{activeCampaignsCount}</div>
-                            <div style={S.promoAdStatLabel}>Active Slots</div>
-                          </div>
-                          <div style={S.promoAdStat}>
-                            <div style={S.promoAdStatValue}>{minPromoPrice !== null ? `$${minPromoPrice.toFixed(0)}` : '—'}</div>
-                            <div style={S.promoAdStatLabel}>Starting At</div>
-                          </div>
-                          <div style={S.promoAdStat}>
-                            <div style={S.promoAdStatValue}>{promoCatalog.length}</div>
-                            <div style={S.promoAdStatLabel}>Plan Tiers</div>
-                          </div>
-                        </div>
-                      </div>
-                      <div style={S.promoAdRight}>
-                        <button style={S.promoAdCta} onClick={openPromoCatalog}>
-                          {activePromoSub ? 'Explore More Plans' : 'Explore Promotion Plans'} <i className="ti ti-arrow-right" aria-hidden="true" />
-                        </button>
-                        <button style={S.promoAdCtaSecondary} onClick={() => navigate('/pm-portal/marketing/listings')}>
-                          <i className="ti ti-eye" aria-hidden="true" /> Browse Active Inventory
-                        </button>
-                        {activePromoSub && (
-                          <div style={S.promoAdActiveNote}>
-                            ✓ Already Paid — {activePromoSub.plan_detail?.name || activePromoSub.plan_name || 'Plan'} · valid through {new Date(activePromoSub.expires_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* External marketing teaser — nothing here has a real
-                      backend anywhere in this codebase; every card is
-                      explicitly sample/"Coming Soon", not purchasable. */}
-                  <div style={S.svcSectionHdr}>
-                    <div style={S.svcSectionTop}>
-                      <div style={S.svcSectionTitleRow}>
-                        <div style={S.svcSectionH2}>More From UrbanNest</div>
-                      </div>
-                      <span style={S.svcSectionCaption}>Early Access Pipeline</span>
-                    </div>
-                    <p style={S.svcSectionSub}>Exclusive resident perks and auxiliary revenue opportunities designed for your portfolio.</p>
-                  </div>
-                  <div style={S.svcScrollOuter}>
-                    <div style={S.svcScrollRow} ref={extScrollRef} onScroll={updateExtScroll}>
-                      {EXTERNAL_PROGRAMS.map(p => (
-                        <div key={p.key} style={{ ...S.extCard, ...S.extCardW3 }}>
-                          <div style={{ ...S.extMedia, backgroundImage: `url(${p.image})` }}>
-                            <span style={S.extComingSoonPill}>Coming Soon</span>
-                          </div>
-                          <div style={S.extBody}>
-                            <div style={S.extTitleRow}>
-                              <span style={S.extIconWrap}><i className={`ti ${p.icon}`} aria-hidden="true" /></span>
-                              <span style={S.extTitle}>{p.title}</span>
-                            </div>
-                            <div style={S.extTag}>{p.tag}</div>
-                            <p style={S.extDesc}>{p.desc}</p>
-                            <button style={S.extBtn} disabled title="Not available yet"><i className="ti ti-bell" aria-hidden="true" /> Notify Me</button>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                    <button
-                      style={{ ...S.svcArrowBtn, ...S.svcArrowLeft, ...(extScrollEdges.atStart ? S.svcArrowDisabled : {}) }}
-                      onClick={() => scrollCardsBy(extScrollRef, -1)}
-                      disabled={extScrollEdges.atStart}
-                      aria-label="Scroll more from UrbanNest left"
-                    ><i className="ti ti-chevron-left" aria-hidden="true" /></button>
-                    <button
-                      style={{ ...S.svcArrowBtn, ...S.svcArrowRight, ...(extScrollEdges.atEnd ? S.svcArrowDisabled : {}) }}
-                      onClick={() => scrollCardsBy(extScrollRef, 1)}
-                      disabled={extScrollEdges.atEnd}
-                      aria-label="Scroll more from UrbanNest right"
-                    ><i className="ti ti-chevron-right" aria-hidden="true" /></button>
-                  </div>
-                </>
-              )}
-            </>
-          )}
+          <button type="button" className="un2-btn" style={V2.cart} onClick={() => setCartOpen(true)}>
+            <i className="ti ti-shopping-cart" style={V2UI.btnIcon} aria-hidden="true" /> Cart
+            {cartItems.length > 0 && <span style={V2.badge}>{cartItems.length}</span>}
+          </button>
         </div>
-      </div>
+        <div style={V2UI.pageHead.next}><AccountSettingsTabs active={isServices ? 'services' : 'subscription'} /></div>
+      </section>
+
+      {body}
+
+      <PageFooter />
 
       {openService && (
         <ServiceDetailModal service={openService} inCart={!openService.isSample && isInCart(openService.id)} onClose={() => setOpenService(null)} onAddToCart={addServiceToCart} />
       )}
-
       {cartOpen && (
         <PaymentCartModal
           onClose={() => setCartOpen(false)}
@@ -1911,17 +616,12 @@ export default function PMSubscriptionPage() {
           }}
         />
       )}
-
       {promoCatalogOpen && (
         <PromotionCatalogModal
-          plans={promoCatalog}
-          loading={promoCatalogLoading}
-          error={promoCatalogError}
-          purchasingId={promoPurchasingId}
-          onClose={() => setPromoCatalogOpen(false)}
-          onPurchase={handlePurchasePromoPlan}
+          plans={promoCatalog} loading={promoCatalogLoading} error={promoCatalogError} purchasingId={promoPurchasingId}
+          onClose={() => setPromoCatalogOpen(false)} onPurchase={handlePurchasePromoPlan}
         />
       )}
-    </div>
+    </PMPageShell>
   );
 }

@@ -14,7 +14,8 @@ import { C2, TONES2, FS2, FW2, LH2, LS2, T2, SP2, SZ2, pad, UI2 } from '../../co
 //
 // Props: stats [{ icon, tone (TONES2 / accentTone), label, value (node), note, noteTone }],
 //        style (extra style on the row, e.g. ListingsHero's top margin under its subtitle)
-//        className (responsive row class — default un2-phero-stats; WaveHero passes un2-whero-stats)
+//        className (responsive row class — default un2-phero-stats; WaveHero passes un2-whero-stats;
+//                   'un2-phero-stats un2-phero-stats-fill' = all stats in ONE row, equal widths, labels wrap — PM Services)
 // Responsive (utilities.css .un2-phero-stats): wraps; ≤ 600px 2 per row without dividers.
 
 const S = {

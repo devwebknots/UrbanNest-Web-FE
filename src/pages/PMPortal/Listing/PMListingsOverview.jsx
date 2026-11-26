@@ -160,7 +160,7 @@ import {
   LineChart, SegmentDonut, rampColor, segmentMidpoints, Modal, ModalSection,
 } from '../../../components/ui';
 import {
-  C2, TONES2, ACCENT2, STATUS2, accentTone, FS2, SP2, SZ2, LAYOUT2, T2, UI2, pad,
+  C2, TONES2, ACCENT2, STATUS2, accentTone, FS2, SP2, SZ2, T2, UI2, pad,
 } from '../../../constants';
 import { getPMListingsOverview } from '../../Landlord/Listing/listingApi';
 import backdropArt from '../../../assets/landlord/wizard-backdrop.jpg';   // soft blue wave lines (same art as Approvals / Create Listing)
@@ -406,7 +406,7 @@ const S = {
   metaLine:  { display: 'inline-flex', alignItems: 'center', gap: SP2.sm, flexWrap: 'wrap' },   // description · Sample pill on one line
   stepLine:  { display: 'inline-flex', alignItems: 'center', gap: SP2.sm, flexWrap: 'wrap' },   // ●●○○ Step 2 of 4 — …
   // Ready to List — open section (= Approvals "All Pending Approvals")
-  section:   { ...UI2.stack(LAYOUT2.sectionGap), minWidth: 0, paddingTop: SP2.sm },
+  section:   UI2.pageSection,          // shared page-section rhythm (UI2.pageSection)
   secHead:   { ...UI2.rowBetween(SP2.md), flexWrap: 'wrap' },
   secTitleRow: { ...UI2.row(SP2.sm), minWidth: 0 },
   secTitle:  { ...T2.sectionTitle, fontSize: FS2.xl, margin: 0 },
