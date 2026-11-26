@@ -2,13 +2,13 @@
 // Route: /pm-portal/account/transactions · Layout: Downloads/image 186.png
 //
 // Same page rhythm as PM Approvals (the reference):
-//   header block (UI2.pageHead) — title · subtitle │ Cart → AccountSettingsTabs → intro │ Scope → HeroStats
+//   header block (UI2.pageHead) — title · subtitle → AccountSettingsTabs → intro │ Scope → HeroStats
 //   page section (UI2.pageSection) — "Billing Activity" heading → toolbar row, left-aligned (search · service · date range · Export CSV)
-//     <Grid wideLeft>  table panel (DataTable · pager)  │  selected charge card (details · line items · total · actions)
+//     <Grid mainSide>  table panel (DataTable · pager)  │  selected charge card (details · line items · total · actions)
 //   PageFooter
 //
 // Every look comes from v2 tokens / components (HeroStats · FilterMenu + filterTrigger · DataTable · UI2.pager ·
-// UI2.kvRow / subhead / cardFoot) — only page layout lives here.
+// icon · caps label · value detail rows / UI2.subhead / cardFoot) — only page layout lives here.
 //
 // Data: no payment-ledger model or PM-facing invoice endpoint exists yet (UNInvoice in core/models.py has no
 // PM route), so every row is SAMPLE content — same as the v1 page and Landlord's own Transactions tab. Search,
@@ -21,7 +21,6 @@ import { PMPageShell, Breadcrumb, PageFooter, ImageBackdrop, Grid } from '../../
 import { HeroStats, DataTable, EmptyState, FilterMenu, filterTrigger, ActionTray, TextLink } from '../../../components/ui';
 import { C2, TONES2, ACCENT2, accentTone, FS2, SP2, SZ2, T2, UI2 } from '../../../constants';
 import AccountSettingsTabs from './AccountSettingsTabs';
-import AccountCartButton from './AccountCartButton';
 import backdropArt from '../../../assets/landlord/wizard-backdrop.jpg';
 
 const SERVICE_OPTIONS = [
@@ -82,9 +81,9 @@ const S = {
   softBtn:   UI2.btn.soft,
   btnIcon:   UI2.btnIcon,
   // table panel
-  panel:     { ...UI2.card, ...UI2.stack(SP2.lg), minWidth: 0 },
+  panel:     { ...UI2.card, ...UI2.stack(SP2.lg), minWidth: 0, paddingLeft: SP2.sm, paddingRight: SP2.sm },   // this page only: slimmer sides so the 7-column table fits without sideways scroll
   // selected charge card
-  detail:    { ...UI2.card, ...UI2.stack(SP2.lg), alignSelf: 'start', minWidth: 0 },
+  detail:    { ...UI2.card, ...UI2.stack(SP2.xl), alignSelf: 'start', minWidth: 0 },   // a little more air between the card's blocks (narrow column)
   detTop:    { ...UI2.rowBetween(SP2.md), alignItems: 'flex-start' },
   detHead:   { ...UI2.stack(SP2.xs), minWidth: 0 },
   detEyebrow:(tone) => ({ ...T2.eyebrow, ...UI2.row(SP2.xs), color: tone.fg }),
@@ -93,10 +92,16 @@ const S = {
   detRef:    T2.label,
   divider:   UI2.divider,
   detIcon:   UI2.iconBox(SZ2.icon.md, TONES2.neutral),
-  kvKey:     UI2.legendKey,
-  kvIcon:    { fontSize: FS2.lg, color: C2.primary },
+  // detail rows — label ABOVE value (= PM Integrations details / Subscription "Commercial Entity Info"):
+  // round icon box · caps label · value, so nothing squeezes in the narrow side column
+  infos:     UI2.stack(SP2.lg),
+  info:      { ...UI2.row(SP2.md), minWidth: 0 },
+  infoIcon:  UI2.iconBox(SZ2.icon.md, TONES2.primary, { round: true }),
+  infoBody:  { ...UI2.stack(SP2.xs), flex: 1, minWidth: 0 },
+  infoCaps:  { ...UI2.capsLabel, ...UI2.truncate },
+  infoValue: UI2.text.title,
   lineHead:  { ...UI2.subhead, margin: 0 },
-  lines:     UI2.stack(SP2.sm),
+  lines:     UI2.stack(SP2.md),
   totalRow:  { ...UI2.cardFoot, marginTop: 0 },
   totalLbl:  UI2.text.titleLg,
   total:     (neg) => ({ ...T2.kpiValue, ...(neg ? UI2.signColor(false) : {}) }),
@@ -162,14 +167,13 @@ export default function PMTransactionsTab() {
     <PMPageShell activeId="account-transactions" animate backdrop={<ImageBackdrop image={backdropArt} />} searchPlaceholder="Search portfolios, settings, or help…">
       <Breadcrumb items={[{ label: 'Account Settings', href: '/pm-portal/account/profile' }, { label: 'Transactions' }]} />
 
-      {/* ── Header: title · subtitle │ Cart → Account Settings tabs ── */}
+      {/* ── Header: title · subtitle → Account Settings tabs ── */}
       <section style={S.headBlock}>
         <div style={S.head}>
           <div style={UI2.minWidth0}>
             <h1 style={S.title}>Transactions</h1>
             <p style={S.sub}>A combined ledger of subscription charges, screening charges, and marketplace/promotion charges.</p>
           </div>
-          <AccountCartButton onClick={() => navigate('/pm-portal/account/subscription', { state: { openCart: true } })} />
         </div>
         <div style={S.tabs}><AccountSettingsTabs active="transactions" /></div>
         <div style={S.intro}>
@@ -225,7 +229,7 @@ export default function PMTransactionsTab() {
           </ActionTray>
         </div>
 
-        <Grid layout="wideLeft" as="div">
+        <Grid layout="mainSide" as="div">   {/* ≈ 69 / 31 — the 7-column table fits without sideways scroll */}
           {/* table panel */}
           <div style={S.panel}>
             <DataTable columns={columns} rows={rows} rowKey={t => t.id}
@@ -258,15 +262,20 @@ export default function PMTransactionsTab() {
                   <span style={S.detIcon} aria-hidden="true"><i className={`ti ${refunded ? 'ti-receipt-refund' : 'ti-file-invoice'}`} /></span>
                 </div>
 
-                <div>
+                <hr style={S.divider} />
+
+                <div style={S.infos}>
                   {[
                     ['ti-credit-card', 'Payment Method', detail.paymentMethod],
                     ['ti-calendar', 'Timestamp', detail.timestamp],
                     ['ti-stack-2', 'Billing Type', detail.billingType],
                   ].map(([icon, k, v]) => (
-                    <div key={k} style={UI2.kvRow(false)}>
-                      <span style={S.kvKey}><i className={`ti ${icon}`} style={S.kvIcon} aria-hidden="true" />{k}</span>
-                      <span style={UI2.kvVal}>{v}</span>
+                    <div key={k} style={S.info}>
+                      <span style={S.infoIcon} aria-hidden="true"><i className={`ti ${icon}`} /></span>
+                      <div style={S.infoBody}>
+                        <span style={S.infoCaps}>{k}</span>
+                        <span style={S.infoValue}>{v}</span>
+                      </div>
                     </div>
                   ))}
                 </div>

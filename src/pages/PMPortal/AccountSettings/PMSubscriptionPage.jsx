@@ -119,7 +119,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import React, { useState } from 'react';
-import { useLocation, useNavigate } from 'react-router-dom';
+import { useLocation } from 'react-router-dom';
 import { usePaymentCart } from '../../Payment/PaymentCartContext';
 import PaymentCartModal from '../../Payment/PaymentCartModal';
 // Subscription & Billing tab = Design System v2 (image 181): v2 frame + PMSubscriptionBilling body.
@@ -462,13 +462,7 @@ export default function PMSubscriptionPage() {
   // ─── PAYMENT CART INTEGRATION — mirrors LandlordSettingsPage.jsx's own
   // subscribeToPlan/handlePlanAddToCart/handleConfirmPurchase trio.
   const { items: cartItems, addItem, removeItem, isInCart } = usePaymentCart();
-  // Other Account Settings pages (Transactions) open the cart here: navigate(…, { state: { openCart: true } }).
-  // The flag is cleared from history right away so a refresh / back doesn't reopen it.
-  const navigate = useNavigate();
-  const [cartOpen, setCartOpen] = useState(() => !!location.state?.openCart);
-  React.useEffect(() => {
-    if (location.state?.openCart) navigate(location.pathname, { replace: true, state: null });
-  }, [location.state, location.pathname, navigate]);
+  const [cartOpen, setCartOpen] = useState(false);
 
   const serviceToCartItem = service => {
     const numericPrice = Number(service.price) || 0;

@@ -2,7 +2,7 @@
 //
 // White button on the light-blue header wave (UI2.btn.light — same pair as the PM Listings header) with the
 // shared payment cart's item count as a brand badge. Single source for every Account Settings header that shows
-// the cart (Subscription & Billing · Services · Transactions).
+// the cart (Subscription & Billing · Services).
 //
 //   <AccountCartButton onClick={() => setCartOpen(true)} />
 
