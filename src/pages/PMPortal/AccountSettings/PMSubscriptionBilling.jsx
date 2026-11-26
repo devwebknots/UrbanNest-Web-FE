@@ -126,10 +126,10 @@ const S = {
   yearBtn:    { ...UI2.toolbar.button, ...UI2.btnOff },
   softOff:    { ...UI2.btn.soft, ...UI2.btnOff, alignSelf: 'flex-start' },
   paid:       UI2.statusPill(TONES2.success),
-  foot:       { ...UI2.rowBetween(SP2.md), flexWrap: 'wrap', ...T2.caption },
-  pager:      UI2.row(SP2.xs),
-  pageBtn:    { ...UI2.btn.iconOutline(SZ2.control.md), ...UI2.btnOff },
-  pageOn:     { ...UI2.btn.brand, width: SZ2.control.md, minHeight: SZ2.control.md, padding: 0, justifyContent: 'center', cursor: 'default' },
+  foot:       UI2.pager.foot,     // shared table pager (UI2.pager)
+  pager:      UI2.pager.row,
+  pageBtn:    UI2.pager.btn,
+  pageOn:     UI2.pager.current,
   btnIcon:    UI2.btnIcon,
 };
 

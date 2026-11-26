@@ -119,7 +119,7 @@
 // ─────────────────────────────────────────────────────────────────────────────
 
 import React, { useState } from 'react';
-import { useLocation } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import { usePaymentCart } from '../../Payment/PaymentCartContext';
 import PaymentCartModal from '../../Payment/PaymentCartModal';
 // Subscription & Billing tab = Design System v2 (image 181): v2 frame + PMSubscriptionBilling body.
@@ -127,6 +127,7 @@ import PaymentCartModal from '../../Payment/PaymentCartModal';
 import { PMPageShell, Breadcrumb, PageFooter, ImageBackdrop } from '../../../components/layout';
 import { UI2 as V2UI, SP2 as V2SP, SZ2 as V2SZ, T2 as V2T } from '../../../constants';
 import AccountSettingsTabs from './AccountSettingsTabs';
+import AccountCartButton from './AccountCartButton';
 import PMSubscriptionBilling from './PMSubscriptionBilling';
 import PMServices from './PMServices';
 import backdropArt from '../../../assets/landlord/wizard-backdrop.jpg';
@@ -461,7 +462,13 @@ export default function PMSubscriptionPage() {
   // ─── PAYMENT CART INTEGRATION — mirrors LandlordSettingsPage.jsx's own
   // subscribeToPlan/handlePlanAddToCart/handleConfirmPurchase trio.
   const { items: cartItems, addItem, removeItem, isInCart } = usePaymentCart();
-  const [cartOpen, setCartOpen] = useState(false);
+  // Other Account Settings pages (Transactions) open the cart here: navigate(…, { state: { openCart: true } }).
+  // The flag is cleared from history right away so a refresh / back doesn't reopen it.
+  const navigate = useNavigate();
+  const [cartOpen, setCartOpen] = useState(() => !!location.state?.openCart);
+  React.useEffect(() => {
+    if (location.state?.openCart) navigate(location.pathname, { replace: true, state: null });
+  }, [location.state, location.pathname, navigate]);
 
   const serviceToCartItem = service => {
     const numericPrice = Number(service.price) || 0;
@@ -537,8 +544,6 @@ export default function PMSubscriptionPage() {
     head:   { ...V2UI.rowBetween(V2SP.lg), alignItems: 'flex-start', flexWrap: 'wrap' },
     title:  { ...V2T.heroHeading, margin: 0 },
     sub:    { ...V2T.lead, margin: `${V2SP.xs}px 0 0` },
-    cart:   V2UI.btn.light,                                  // header button on the light-blue wave (= Listings header pair)
-    badge:  { ...V2UI.countBadge, background: V2UI.btn.brand.background, color: V2UI.btn.brand.color },
   };
   const skeleton = <div style={V2UI.stack(V2SP.md)}>{[0, 1, 2].map(i => <div key={i} className="un2-skel" style={V2UI.skeleton('100%', V2SZ.field * 3)} />)}</div>;
   const errorBar = (msg, retry) => (
@@ -588,10 +593,7 @@ export default function PMSubscriptionPage() {
             <h1 style={V2.title}>{pageTitle}</h1>
             <p style={V2.sub}>Manage your Independent PM plan, buy add-on services, and promote your listings.</p>
           </div>
-          <button type="button" className="un2-btn" style={V2.cart} onClick={() => setCartOpen(true)}>
-            <i className="ti ti-shopping-cart" style={V2UI.btnIcon} aria-hidden="true" /> Cart
-            {cartItems.length > 0 && <span style={V2.badge}>{cartItems.length}</span>}
-          </button>
+          <AccountCartButton onClick={() => setCartOpen(true)} />
         </div>
         <div style={V2UI.pageHead.next}><AccountSettingsTabs active={isServices ? 'services' : 'subscription'} /></div>
       </section>

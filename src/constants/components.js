@@ -503,3 +503,14 @@ export const UI2 = {
   // Borderless tinted row at the bottom of a card (feature teaser / shortcut)
   tintRow:   { display: 'flex', alignItems: 'center', gap: SP2.md, padding: SP2.md, borderRadius: R2.lg, background: C2.primaryWash },
 };
+
+// ── Table pager (footer under a DataTable: "Showing x of y" · ‹ 1 › ) — single source for every v2 table footer ──
+//   <div style={UI2.pager.foot}><span>Showing 4 of 4 …</span>
+//     <div style={UI2.pager.row}><button style={UI2.pager.btn} disabled>‹</button><span style={UI2.pager.current}>1</span>…</div></div>
+// (PM Subscription & Billing · PM Transactions)
+UI2.pager = {
+  foot:    { ...UI2.rowBetween(SP2.md), flexWrap: 'wrap', ...T2.caption },
+  row:     UI2.row(SP2.xs),
+  btn:     { ...UI2.btn.iconOutline(SZ2.control.md), ...UI2.btnOff },   // prev / next (disabled while there is one page)
+  current: { ...UI2.btn.brand, width: SZ2.control.md, minHeight: SZ2.control.md, padding: 0, justifyContent: 'center', cursor: 'default' },
+};

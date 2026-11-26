@@ -16,7 +16,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { PMPageShell, Breadcrumb, PageFooter, ImageBackdrop } from '../../../components/layout';
 import {
-  TabBar, HeroStats, CountUp, DataTable, EmptyState, FilterMenu, ActionTray, MultiLineChart, SegmentDonut, rampColor, segmentMidpoints,
+  TabBar, HeroStats, CountUp, DataTable, EmptyState, FilterMenu, filterTrigger, ActionTray, MultiLineChart, SegmentDonut, rampColor, segmentMidpoints,
   Modal, ModalSection, SuccessModal, FormField, FIELD2,
 } from '../../../components/ui';
 import {
@@ -662,14 +662,6 @@ export default function PMApprovalsOverview() {
   const sortLabel     = SORT_OPTIONS.find(o => o.value === sortOrder)?.label || 'Newest first';
   const filtered = !!searchText || !!statusFilter || !!propertyFilter || activeTab !== 'all';
 
-  const menuTrigger = (icon, text, active) => (open) => (
-    <>
-      <i className={`ti ${icon}`} style={UI2.btnIcon} aria-hidden="true" />
-      <span className="un2-hide-narrow">{text}</span>
-      {active && <span style={UI2.statusDot(TONES2.primary)} aria-hidden="true" />}
-      <i className="ti ti-chevron-down" style={{ ...UI2.btnIcon, transform: open ? 'rotate(180deg)' : 'none' }} aria-hidden="true" />
-    </>
-  );
 
   return (
     <PMPageShell activeId="approvals-overview" animate backdrop={<ImageBackdrop image={backdropArt} />}>
@@ -809,21 +801,21 @@ export default function PMApprovalsOverview() {
               <FilterMenu
                 title="Status" allLabel="All statuses" ariaLabel="Filter by status" itemIcon="ti-circle-dot" allIcon="ti-list"
                 options={STATUS_OPTIONS} value={statusFilter || null} onChange={v => setStatusFilter(v || '')}
-                triggerStyle={S.toolBtn} trigger={menuTrigger('ti-filter', statusLabel, !!statusFilter)}
+                triggerStyle={S.toolBtn} trigger={filterTrigger('ti-filter', statusLabel, !!statusFilter)}
               />
             </div>
             <div style={S.menuWrap}>
               <FilterMenu
                 title="Property" allLabel="All properties" ariaLabel="Filter by property" itemIcon="ti-building" allIcon="ti-buildings"
                 options={propertyOptions} value={propertyFilter || null} onChange={v => setPropertyFilter(v || '')}
-                triggerStyle={S.toolBtn} trigger={menuTrigger('ti-building', propertyLabel, !!propertyFilter)}
+                triggerStyle={S.toolBtn} trigger={filterTrigger('ti-building', propertyLabel, !!propertyFilter)}
               />
             </div>
             <div style={S.menuWrap}>
               <FilterMenu
                 title="Sort" ariaLabel="Sort approvals" showAll={false}
                 options={SORT_OPTIONS} value={sortOrder} onChange={v => setSortOrder(v || 'newest')}
-                triggerStyle={S.toolBtn} trigger={menuTrigger('ti-arrows-sort', sortLabel, false)}
+                triggerStyle={S.toolBtn} trigger={filterTrigger('ti-arrows-sort', sortLabel, false)}
               />
             </div>
             </ActionTray>

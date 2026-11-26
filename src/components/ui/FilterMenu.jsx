@@ -59,6 +59,18 @@ const S = {
   empty:  { ...UI2.text.caption, padding: pad(SP2.sm, SP2.sm) },
 };
 
+// STANDARD TOOLBAR TRIGGER — the custom `trigger` for a FilterMenu in a list toolbar (Listings · Approvals ·
+// PM Transactions): icon · label (hidden when narrow) · blue dot when a filter is active · chevron that flips open.
+//   <FilterMenu … triggerStyle={UI2.toolbar.button} trigger={filterTrigger('ti-filter', 'All statuses', !!status)} />
+export const filterTrigger = (icon, text, active = false) => (open) => (
+  <>
+    <i className={`ti ${icon}`} style={UI2.btnIcon} aria-hidden="true" />
+    <span className="un2-hide-narrow">{text}</span>
+    {active && <span style={UI2.statusDot(TONES2.primary)} aria-hidden="true" />}
+    <i className="ti ti-chevron-down" style={{ ...UI2.btnIcon, transform: open ? 'rotate(180deg)' : 'none' }} aria-hidden="true" />
+  </>
+);
+
 export default function FilterMenu({
   options = [], value = null, onChange, title = 'Filter', allLabel = 'All', icon = 'ti-adjustments-horizontal', ariaLabel,
   trigger, triggerStyle, showAll = true, matchWidth = false, itemIcon, allIcon,

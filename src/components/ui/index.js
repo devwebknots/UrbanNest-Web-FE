@@ -109,7 +109,7 @@ export { default as DetailHeader } from './DetailHeader';
 export { default as StatGroup } from './StatGroup';
 export { default as StatSpark } from './StatSpark';   // tiny month bars + % (StatGroup value)
 export { default as FactCard } from './FactCard';
-export { default as FilterMenu } from './FilterMenu';
+export { default as FilterMenu, filterTrigger } from './FilterMenu';
 export { default as PhotoBento } from './PhotoBento';
 export { BarChart, DonutChart, Sparkline, LineChart, Gauge, ProgressRing, MiniBars, MultiLineChart, SegmentDonut, rampColor, segmentMidpoints } from './Charts';
 

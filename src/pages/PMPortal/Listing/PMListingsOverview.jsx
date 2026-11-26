@@ -156,7 +156,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { PMPageShell, Breadcrumb, PageFooter, ImageBackdrop } from '../../../components/layout';
 import {
-  HeroStats, StatGroup, DataTable, ListRow, EmptyState, TextLink, FilterMenu, ActionTray, Checkbox,
+  HeroStats, StatGroup, DataTable, ListRow, EmptyState, TextLink, FilterMenu, filterTrigger, ActionTray, Checkbox,
   LineChart, SegmentDonut, rampColor, segmentMidpoints, Modal, ModalSection,
 } from '../../../components/ui';
 import {
@@ -882,20 +882,12 @@ export default function PMListingsOverview() {
   const TYPE_OPTIONS = [{ value: 'individual', label: 'Individual' }, { value: 'multi', label: 'Multi-Unit' }];
   const CHANNEL_OPTIONS = CHANNELS.map(c => ({ value: c, label: c }));
   const labelOf = (opts, v, all) => opts.find(o => o.value === v)?.label || all;
-  const menuTrigger = (icon, text, active) => (open) => (
-    <>
-      <i className={`ti ${icon}`} style={UI2.btnIcon} aria-hidden="true" />
-      <span className="un2-hide-narrow">{text}</span>
-      {active && <span style={UI2.statusDot(TONES2.primary)} aria-hidden="true" />}
-      <i className="ti ti-chevron-down" style={{ ...UI2.btnIcon, transform: open ? 'rotate(180deg)' : 'none' }} aria-hidden="true" />
-    </>
-  );
   const filterMenu = (title, all, icon, options, value, set) => (
     <div style={S.menuWrap}>
       <FilterMenu
         title={title} allLabel={all} ariaLabel={`Filter by ${title.toLowerCase()}`} itemIcon={icon} allIcon="ti-list"
         options={options} value={value || null} onChange={v => set(v || '')}
-        triggerStyle={S.toolBtn} trigger={menuTrigger(icon, labelOf(options, value, all), !!value)}
+        triggerStyle={S.toolBtn} trigger={filterTrigger(icon, labelOf(options, value, all), !!value)}
       />
     </div>
   );
