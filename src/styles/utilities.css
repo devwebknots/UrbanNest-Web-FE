@@ -277,6 +277,13 @@
 .un2-tray-toggle:focus-visible, .un2-tray-item > button:focus-visible { box-shadow: var(--un2-shadow-focus) !important; }
 .un2-tray-toggle.is-open .un2-tray-icon { transform: rotate(90deg); }
 .un2-tray-toggle.is-open .un2-tray-chevron { transform: rotate(180deg); }
+/* Opt-in: a LEFT-aligned toolbar (the tray grows towards the right, pushing the toggle along) — add
+   class="un2-tray-expand-right" on the toolbar wrapper. Chevron points › when closed, ‹ when open, and the actions
+   slide in from the left. Default trays (right-aligned toolbars) are unaffected. (PM Transactions) */
+.un2-tray-expand-right .un2-tray-chevron { transform: rotate(180deg); }
+.un2-tray-expand-right .un2-tray-toggle.is-open .un2-tray-chevron { transform: none; }
+.un2-tray-expand-right .un2-tray-capsule { transform: translateX(calc(var(--un2-sp-xl) * -1)); }
+.un2-tray-expand-right .un2-tray-item { transform: translateX(calc(var(--un2-sp-lg) * -1)) scale(0.94); }
 
 @media (prefers-reduced-motion: reduce) {
   .un2-tray, .un2-tray-capsule, .un2-tray-item, .un2-tray-item > button, .un2-tray-icon, .un2-tray-chevron, .un2-tray-toggle { transition: none !important; }

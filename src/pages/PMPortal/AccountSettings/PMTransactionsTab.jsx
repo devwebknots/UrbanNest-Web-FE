@@ -189,7 +189,7 @@ export default function PMTransactionsTab() {
         <HeroStats className="un2-phero-stats un2-phero-stats-fill" style={S.stats} stats={[
           { icon: 'ti-coins',              tone: TONES2.primary,             label: 'Total Paid This Month',     value: '$352.00', note: 'Includes PMS, screenings & promotions' },
           { icon: 'ti-rosette-discount-check', tone: TONES2.success,         label: 'Last Payment',              value: '$302.00', note: 'Oct 04, 2026 · Processed automatically' },
-          { icon: 'ti-credit-card',        tone: accentTone(ACCENT2.blue),   label: 'Active Auto-Debit Account', value: 'Visa •••• 7731',
+          { icon: 'ti-credit-card',        tone: accentTone(ACCENT2.blue),   label: 'Active Auto-Debit Account', value: <span style={{ fontSize: FS2.lg }}>Visa •••• 7731</span>,   /* this value only: 16px (FS2.lg) instead of the 20px stat figure */
             note: <span style={UI2.row(SP2.md)}>Expires 11/28 <TextLink onClick={() => navigate('/pm-portal/account/subscription')}>Manage</TextLink></span> },
         ]} />
       </section>
@@ -202,7 +202,7 @@ export default function PMTransactionsTab() {
         </div>
         {/* search, then the "Options" toggle — Service / Date range / Export CSV slide out from it (same ActionTray
             setup as Approvals / Listings). On this page the search stays visible while the tray is open (no un2-tray-search). */}
-        <div className="un2-tray-tools" style={S.tools}>
+        <div className="un2-tray-tools un2-tray-expand-right" style={S.tools}>
           <label className="un2-focus-ring" style={S.search}>
             <i className="ti ti-search" style={S.searchIcon} aria-hidden="true" />
             <input style={S.input} type="search" placeholder="Search description or reference ID…"
