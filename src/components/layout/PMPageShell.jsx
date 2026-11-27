@@ -15,6 +15,9 @@ import { C2, TONES2, R2, SH2, F2, FS2, FW2, T2, SP2, SZ2, LAYOUT2, pad, UI2 } fr
 // VERSION 2 — the v1 equivalents are NavB.jsx + PMTopBar.jsx (older PM screens). The top bar reads the
 // signed-in user from AuthContext (same name / persona labels as PMTopBar) — no props needed.
 // Props: activeId (→ NavPM) · animate · backdrop · searchPlaceholder · onSearch · notificationDot · children
+//        contained (opt-in) — the page itself does NOT scroll: content fills the viewport and the screen scrolls its own
+//        panel (give that panel flex: 1 + minHeight: 0 + overflowY: auto). PM My Profile = the v1 layout: header +
+//        step list stay put, only the form column scrolls.
 
 const PERSONA_LABELS = {
   ORGANIZATIONAL_PM: 'Org PMS Admin',
@@ -30,6 +33,7 @@ const S = {
   shell:   { display: 'flex', height: '100vh', overflow: 'hidden', fontFamily: F2.body, background: C2.pageBg, color: C2.textPrimary },
   main:    { flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden', minWidth: 0, position: 'relative' },
   content: { flex: 1, overflowY: 'auto', padding: pad(LAYOUT2.pageTop, LAYOUT2.pageX, LAYOUT2.pageBottom) },
+  contained: { overflowY: 'hidden', paddingBottom: 0 },
   withBackdrop: { position: 'relative', zIndex: 0, paddingTop: SZ2.topbar + LAYOUT2.pageTop },
   // top bar — same glass bar as TopBar (Landlord)
   bar:     { ...UI2.rowBetween(SP2.xl), height: SZ2.topbar, flexShrink: 0, padding: pad(0, LAYOUT2.pageX), background: C2.backgroundGlass,
@@ -89,7 +93,7 @@ export function PMTopBar2({ searchPlaceholder = 'Search properties, applications
   );
 }
 
-export default function PMPageShell({ activeId, animate = false, backdrop, children, ...topBarProps }) {
+export default function PMPageShell({ activeId, animate = false, backdrop, contained = false, children, ...topBarProps }) {
   const [scrolled, setScrolled] = useState(false);
   const floating = !!backdrop;
   const onScroll = floating
@@ -100,7 +104,7 @@ export default function PMPageShell({ activeId, animate = false, backdrop, child
       <NavPM activeId={activeId} />
       <div style={S.main}>
         <PMTopBar2 {...topBarProps} overlay={floating} solid={scrolled} />
-        <main className={animate ? 'un2-stack-sections un2-enter-stagger' : 'un2-stack-sections'} style={backdrop ? { ...S.content, ...S.withBackdrop } : S.content} onScroll={onScroll}>
+        <main className={animate ? 'un2-stack-sections un2-enter-stagger' : 'un2-stack-sections'} style={{ ...S.content, ...(backdrop ? S.withBackdrop : {}), ...(contained ? S.contained : {}) }} onScroll={onScroll}>
           {backdrop}
           {children}
         </main>

@@ -6,7 +6,7 @@
  *   NavPM sidebar │ PM top bar                                          (PMPageShell)
  *                 │ wave backdrop · "Independent Property Manager" header (T2.heroHeading + T2.lead)
  *                 │ Account Settings tabs (TabBar underline + icons — same routes as AccountSettingsSubnav)
- *                 │ <Grid layout="steps">  StepList (vertical) │ form: title · fields (FIELD2 standard)
+ *                 │ <Grid layout="steps">  StepList (vertical, hairline rail) │ form in ONE white card (v1 layout): title · fields
  *                 │                                            │ footer: View only / note · Back (soft) · Next (brand)
  *                 │ PageFooter
  *
@@ -20,9 +20,9 @@ import React, { useState, useRef, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { PMPageShell, Grid, PageFooter, ImageBackdrop } from '../../../components/layout';
 import {
-  StepList, FormField, ReadField, SelectField, FIELD2, Checkbox, ChoiceTile, Modal, ModalSection,
+  StepList, FormField, ReadField, SelectField, FIELD2, Checkbox, Modal, ModalSection,
 } from '../../../components/ui';
-import { C2, TONES2, SH2, FS2, SP2, SZ2, T2, UI2 } from '../../../constants';
+import { C2, TONES2, SH2, FS2, SP2, SZ2, T2, UI2, LAYOUT2, pad } from '../../../constants';
 import { WZ, ChipInput } from '../../Landlord/Listing/listingWizardV2';   // shared v2 form-layout styles + chip field
 // import AccountSettingsTabs from './AccountSettingsTabs';   // tab strip commented out for now (see the header block)
 import backdropArt from '../../../assets/landlord/wizard-backdrop.jpg';   // soft blue wave lines (same art as Approvals / Create Listing)
@@ -66,14 +66,20 @@ const S = {
   title:     { ...T2.heroHeading, margin: 0 },
   sub:       { ...T2.lead, margin: `${SP2.xs}px 0 0` },
   tabs:      UI2.pageHead.next,
-  form:      { ...UI2.stack(SP2.xl), minWidth: 0 },
+  // v1 layout (user 2026-11-27): step column with a hairline rail on its right │ the form in ONE white card (max 760)
+  steps:     { alignSelf: 'stretch', paddingRight: SP2.xl, borderRight: `${SZ2.hairline}px solid ${C2.border}` },
+  // v1 scrolling (user 2026-11-27): the page doesn't scroll (PMPageShell contained) — header + step column stay put,
+  // ONLY the form column scrolls (with the page footer inside it, like v1)
+  body:      { flex: '1 1 0', minHeight: 0, alignItems: 'stretch' },
+  formScroll:{ minHeight: 0, overflowY: 'auto', padding: pad(SP2.xs, SP2.xs, LAYOUT2.pageBottom) },   // xs inset → card shadow isn't clipped
+  form:      { ...UI2.card, ...UI2.stack(SP2.xl), padding: pad(SP2.xxl, SP2.xxl),   /* 24 all round = Landlord Property Details info panel */ maxWidth: SZ2.modal.lg, width: '100%', boxSizing: 'border-box', minWidth: 0 },
   formHead:  { ...UI2.rowBetween(SP2.md), alignItems: 'flex-start' },
   formTitle: { ...T2.pageTitle, margin: 0 },
   formSub:   { ...T2.label, margin: `${SP2.xs}px 0 0` },
   headActs:  { ...UI2.row(SP2.sm), flexShrink: 0 },
   // header actions on the light-blue wave = the Listings header pair: white light (secondary) + brand (main)
   editBtn:   UI2.btn.brand,                                             // main action (Edit)
-  deleteBtn: UI2.btn.light,                                             // secondary action on the wave (Delete)
+  deleteBtn: UI2.btn.soft,                                              // secondary on the white card = soft (white only on dark)
   locked:    { ...T2.caption, textTransform: 'none', letterSpacing: 0 },   // "(Locked)" after a caps label
   group:     UI2.stack(SP2.sm),                       // caps label · control row · hint
   subhead:   { ...UI2.capsLabel, display: 'block' },  // caps sub-section title (Service Area / License …)
@@ -222,6 +228,10 @@ export default function PMProfileView() {
 
   // ── Navigation state ──────────────────────────────────────────────────────
   const [currentStep,    setCurrentStep]    = useState(1);
+  // the form column is the scroll area (PMPageShell contained) — every step change (Next / Continue / Back) starts
+  // the new step at its top (user 2026-11-27)
+  const formScrollRef = useRef(null);
+  useEffect(() => { if (formScrollRef.current) formScrollRef.current.scrollTo({ top: 0, behavior: 'smooth' }); }, [currentStep]);
   const [editMode,       setEditMode]       = useState(false);
   const [isDirty,        setIsDirty]        = useState(false);
   const [isReactivation, setIsReactivation] = useState(false);
@@ -600,11 +610,13 @@ export default function PMProfileView() {
           <FormField label={lockedLabel('First Name')}><ReadField value={firstName} /></FormField>
           <FormField label={lockedLabel('Last Name')}><ReadField value={lastName} /></FormField>
         </div>
+        <div style={UI2.divider} />
 
         <FormField label="Profile Photo">
           <PhotoUpload preview={photoPreview} disabled={V}
             onChange={e => { const f = e.target.files[0]; if (f) { setPhotoPreview(URL.createObjectURL(f)); markDirty(); } }} />
         </FormField>
+        <div style={UI2.divider} />
 
         <div style={FIELD2.grid}>
           <FormField label="Years of Experience *">
@@ -628,15 +640,17 @@ export default function PMProfileView() {
             <span style={bio.length > 0 && bio.length < 50 ? FIELD2.error : WZ.hint}>{bio.length}/50</span>
           </div>
         </FormField>
+        <div style={UI2.divider} />
 
         <div style={S.group}>
           <span style={S.subhead}>Type of Business</span>
-          <Grid layout="four" as="div" style={WZ.tiles}>
-            {BUSINESS.map(([k, l, icon]) => (
-              <ChoiceTile key={k} icon={icon} label={l} selected={businessTypes[k]}
-                onClick={() => { if (V) return; setBusinessTypes(p => ({ ...p, [k]: !p[k] })); markDirty(); }} />
+          {/* checkbox row (= v1 and Property Types below), not tiles */}
+          <div style={WZ.checks}>
+            {BUSINESS.map(([k, l]) => (
+              <Checkbox key={k} label={l} checked={businessTypes[k]} disabled={V}
+                onChange={() => { setBusinessTypes(p => ({ ...p, [k]: !p[k] })); markDirty(); }} />
             ))}
-          </Grid>
+          </div>
           <span style={WZ.hint}>Select all that apply</span>
         </div>
 
@@ -804,7 +818,7 @@ export default function PMProfileView() {
 
   // ─── Render ────────────────────────────────────────────────────────────────
   return (
-    <PMPageShell activeId="account-profile" animate backdrop={<ImageBackdrop image={backdropArt} />} searchPlaceholder="Search portfolios, settings, or help…">
+    <PMPageShell activeId="account-profile" contained animate backdrop={<ImageBackdrop image={backdropArt} />} searchPlaceholder="Search portfolios, settings, or help…">
 
       {/* ── Header: rule · title · subtitle → Account Settings tabs ── */}
       <section style={S.headBlock}>
@@ -817,9 +831,10 @@ export default function PMProfileView() {
       </section>
 
       {/* ── Step list │ form ── */}
-      <Grid layout="steps" as="div">
-        <StepList steps={STEPS} current={currentStep} />
+      <Grid layout="steps" as="div" style={S.body}>
+        <div style={S.steps}><StepList steps={STEPS} current={currentStep} /></div>
 
+        <div ref={formScrollRef} style={S.formScroll}>
         <div style={S.form}>
           <div style={S.formHead}>
             {stepHead ? (
@@ -858,9 +873,9 @@ export default function PMProfileView() {
           {renderFormContent()}
           {renderFooter()}
         </div>
+        <PageFooter />
+        </div>
       </Grid>
-
-      <PageFooter />
 
       {/* Delete confirmation */}
       {showDeleteModal && (
