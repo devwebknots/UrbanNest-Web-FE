@@ -228,6 +228,14 @@ export default function OrgPMS_Step6_Payment() {
 
       if (!res.ok) {
         const data = await res.json().catch(() => ({}));
+        // Phase 3 Stage 3.2 (Freeze P1): when online payments aren't
+        // available in this environment the server answers 503
+        // PAYMENT_GATEWAY_UNAVAILABLE and doesn't require a card, so
+        // onboarding continues to Review & Submit.
+        if (res.status === 503 && data.code === 'PAYMENT_GATEWAY_UNAVAILABLE') {
+          navigate('/org-onboarding/step-7');
+          return;
+        }
         setErrors({ api: data.detail || 'Could not save payment method. Please try again.' });
         setSaving(false);
         return;

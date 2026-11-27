@@ -405,7 +405,9 @@ export default function OrgPMS_Step7_ReviewSubmit() {
 
                     {(checks || checkLoading) && (
                       <div style={{ marginBottom:'14px' }}>
-                        {Object.entries(CHECK_LABELS).map(([key, label]) => (
+                        {/* Phase 3 Stage 3.2: render only the checks the server returned
+                            (payment_method_on_file is omitted when payments are unavailable). */}
+                        {Object.entries(CHECK_LABELS).filter(([key]) => !checks || key in checks).map(([key, label]) => (
                           <CheckRow key={key} label={label} passed={checks?.[key]} loading={checkLoading} />
                         ))}
                         {allChecksPassed && (
