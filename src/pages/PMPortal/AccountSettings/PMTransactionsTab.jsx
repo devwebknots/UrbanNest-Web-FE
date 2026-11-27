@@ -20,7 +20,7 @@ import { useNavigate } from 'react-router-dom';
 import { PMPageShell, Breadcrumb, PageFooter, ImageBackdrop, Grid } from '../../../components/layout';
 import { HeroStats, DataTable, EmptyState, FilterMenu, filterTrigger, ActionTray, TextLink } from '../../../components/ui';
 import { C2, TONES2, ACCENT2, accentTone, FS2, SP2, SZ2, T2, UI2 } from '../../../constants';
-import AccountSettingsTabs from './AccountSettingsTabs';
+// import AccountSettingsTabs from './AccountSettingsTabs';   // tab strip commented out for now (see the header block)
 import backdropArt from '../../../assets/landlord/wizard-backdrop.jpg';
 
 const SERVICE_OPTIONS = [
@@ -175,7 +175,8 @@ export default function PMTransactionsTab() {
             <p style={S.sub}>A combined ledger of subscription charges, screening charges, and marketplace/promotion charges.</p>
           </div>
         </div>
-        <div style={S.tabs}><AccountSettingsTabs active="transactions" /></div>
+        {/* Account Settings tab strip commented out for now (user 2026-11-27) — the sidebar already lists every Account Settings page; uncomment to restore
+        <div style={S.tabs}><AccountSettingsTabs active="transactions" /></div> */}
         <div style={S.intro}>
           <p style={S.introText}>Historical record of payments made to UrbanNest and direct service charges.</p>
           <div style={S.menuWrap}>

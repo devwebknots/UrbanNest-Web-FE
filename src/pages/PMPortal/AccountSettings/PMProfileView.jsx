@@ -24,7 +24,7 @@ import {
 } from '../../../components/ui';
 import { C2, TONES2, SH2, FS2, SP2, SZ2, T2, UI2 } from '../../../constants';
 import { WZ, ChipInput } from '../../Landlord/Listing/listingWizardV2';   // shared v2 form-layout styles + chip field
-import AccountSettingsTabs from './AccountSettingsTabs';   // shared v2 Account Settings tab strip
+// import AccountSettingsTabs from './AccountSettingsTabs';   // tab strip commented out for now (see the header block)
 import backdropArt from '../../../assets/landlord/wizard-backdrop.jpg';   // soft blue wave lines (same art as Approvals / Create Listing)
 
 const API_BASE = (process.env.REACT_APP_API_BASE_URL || 'http://localhost:8001/api').replace(/\/api\/?$/, '');
@@ -810,9 +810,10 @@ export default function PMProfileView() {
       <section style={S.headBlock}>
         <h1 style={S.title}>Independent Property Manager</h1>
         <p style={S.sub}>Register and set up your profile to manage your properties with ease.</p>
+        {/* Account Settings tab strip commented out for now (user 2026-11-27) — the sidebar already lists every Account Settings page; uncomment to restore
         <div style={S.tabs}>
           <AccountSettingsTabs active="profile" />
-        </div>
+        </div> */}
       </section>
 
       {/* ── Step list │ form ── */}

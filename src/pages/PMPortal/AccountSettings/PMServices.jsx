@@ -20,7 +20,7 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Grid } from '../../../components/layout';
-import { HeroStats, NavyGlow, TextLink, Carousel, MediaCard } from '../../../components/ui';
+import { HeroStats, NavyGlow, TextLink, Carousel, MediaCard, PhotoCard } from '../../../components/ui';
 import { C2, TONES2, ACCENT2, accentTone, FS2, R2, SP2, SZ2, T2, UI2, pad } from '../../../constants';
 
 const ON = C2.onDark;
@@ -57,15 +57,7 @@ const S = {
   // ── Add-on cards — built on the Portfolio PropertyCard recipe (the confirmed v2 photo card):
   //   photo inset SP2.xs with top-only radius · glass tag on the photo (UI2.photoTagGlass) · body pad(md, lg, lg) with
   //   SP2.lg between zones · title + description (list-row pair) · price footer above a hairline with the btnXs action
-  card:       { ...UI2.card, padding: SP2.xs, width: '100%', height: '100%', boxSizing: 'border-box', display: 'flex', flexDirection: 'column' },
-  cardPhoto:  { ...UI2.photoTile, height: SZ2.propertyCardPhoto, boxShadow: 'none', borderRadius: pad(R2.lg, R2.lg, 0, 0) },
-  photoTags:  { position: 'absolute', top: SP2.sm, left: SP2.sm, right: SP2.sm, display: 'flex', flexWrap: 'wrap', gap: SP2.xs },
-  cardBody:   { ...UI2.stack(SP2.lg), flex: 1, padding: pad(SP2.md, SP2.lg, SP2.lg) },
-  cardHead:   UI2.stack(SP2.xs),
-  cardTitle:  { ...UI2.text.rowTitle, margin: 0, ...UI2.truncate },
-  cardDesc:   { ...UI2.text.meta, margin: 0, ...UI2.clamp(3) },
   // footer: price + caption on the left │ compact action on the right (wraps under on a very narrow card)
-  priceFoot:  { ...UI2.rowBetween(SP2.md), flexWrap: 'wrap', rowGap: SP2.sm, alignItems: 'flex-end', marginTop: 'auto', paddingTop: SP2.lg, borderTop: `${SZ2.hairline}px solid ${C2.border}` },
   priceInfo:  { ...UI2.stack(SP2.xs), minWidth: 0 },
   priceLine:  { ...UI2.row(SP2.xs), alignItems: 'baseline' },
   price:      T2.cardFigure,   // standard small figure — 16px · 400
@@ -94,7 +86,6 @@ const S = {
   extInfo:    { ...UI2.row(SP2.sm), flex: 1, minWidth: 0 },
   extTag:     { ...UI2.context, display: 'block', minWidth: 0, ...UI2.truncate },   // block so the … ellipsis works
   // footer on ONE line, everything centred (icon 28 = btnXs 28); a long tag line truncates instead of pushing the button down
-  extFoot:    { ...UI2.rowBetween(SP2.md), marginTop: 'auto', paddingTop: SP2.lg, borderTop: `${SZ2.hairline}px solid ${C2.border}` },
   btnIcon:    UI2.btnIcon,
 };
 
@@ -111,13 +102,6 @@ export function PMServicesStats({ ownedCount, subIncludedCount, subAddonCount, a
     ]} />
   );
 }
-
-const Photo = ({ src, style, imgStyle = UI2.photoMedia, children }) => (
-  <div className="un2-zoom" style={style}>
-    {src && <img src={src} alt="" style={imgStyle} />}
-    {children}
-  </div>
-);
 
 export default function PMServices({
   buyGateClosed, subscription, sub, activeCampaignsCount,
@@ -213,27 +197,23 @@ export default function PMServices({
               </button>
             );
             return (
-              <article key={`addon-${s.id}`} style={S.card}>
-                <Photo src={s.image || visualAddon(i)} style={S.cardPhoto}>
-                  <div style={S.photoTags}>
-                    {sample && <span style={UI2.photoTagGlass}>Sample</span>}
-                    <span style={UI2.photoTagGlass}>{s.owned ? '✓ Added' : flavor.ribbon}</span>
+              <PhotoCard
+                key={`addon-${s.id}`}
+                image={s.image || visualAddon(i)}
+                tags={<>
+                  {sample && <span style={UI2.photoTagGlass}>Sample</span>}
+                  <span style={UI2.photoTagGlass}>{s.owned ? '✓ Added' : flavor.ribbon}</span>
+                </>}
+                title={s.name}
+                description={s.short_description}
+                foot={(
+                  <div style={S.priceInfo}>
+                    <span style={S.priceLine}><span style={S.price}>{priceBig}</span><span style={S.priceUnit}>{priceUnit}</span></span>
+                    <span style={S.caption}><i className="ti ti-sparkles" style={S.captionIcon} aria-hidden="true" />{flavor.caption}</span>
                   </div>
-                </Photo>
-                <div style={S.cardBody}>
-                  <div style={S.cardHead}>
-                    <h3 style={S.cardTitle}>{s.name}</h3>
-                    <p style={S.cardDesc}>{s.short_description}</p>
-                  </div>
-                  <div style={S.priceFoot}>
-                    <div style={S.priceInfo}>
-                      <span style={S.priceLine}><span style={S.price}>{priceBig}</span><span style={S.priceUnit}>{priceUnit}</span></span>
-                      <span style={S.caption}><i className="ti ti-sparkles" style={S.captionIcon} aria-hidden="true" />{flavor.caption}</span>
-                    </div>
-                    {btn}
-                  </div>
-                </div>
-              </article>
+                )}
+                action={btn}
+              />
             );
           })}
         </Carousel>
@@ -293,26 +273,25 @@ export default function PMServices({
         </div>
         <Carousel label="more from UrbanNest" itemWidth={Carousel.cols(3)} minItemWidth={SZ2.thumbFeature.w}>
           {externalPrograms.map((p, i) => (
-            <article key={p.key} style={S.card}>
-              <Photo src={p.image} style={S.cardPhoto}>
-                <div style={S.photoTags}><span style={UI2.photoTagGlass}>Coming Soon</span></div>
-              </Photo>
-              <div style={S.cardBody}>
-                <div style={S.cardHead}>
-                  <h3 style={S.cardTitle}>{p.title}</h3>
-                  <p style={S.cardDesc}>{p.desc}</p>
+            <PhotoCard
+              key={p.key}
+              image={p.image}
+              tags={<span style={UI2.photoTagGlass}>Coming Soon</span>}
+              title={p.title}
+              description={p.desc}
+              footAlign="center"
+              foot={(
+                <div style={S.extInfo}>
+                  <span style={S.extIcon(i)} aria-hidden="true"><i className={`ti ${p.icon}`} /></span>
+                  <span style={S.extTag}>{p.tag}</span>
                 </div>
-                <div style={S.extFoot}>
-                  <div style={S.extInfo}>
-                    <span style={S.extIcon(i)} aria-hidden="true"><i className={`ti ${p.icon}`} /></span>
-                    <span style={S.extTag}>{p.tag}</span>
-                  </div>
-                  <button type="button" className="un2-btn" style={{ ...S.cardBtn('soft'), ...OFF }} disabled title="Not available yet">
-                    <i className="ti ti-bell" style={UI2.btnXsIcon} aria-hidden="true" /> Notify Me
-                  </button>
-                </div>
-              </div>
-            </article>
+              )}
+              action={(
+                <button type="button" className="un2-btn" style={{ ...S.cardBtn('soft'), ...OFF }} disabled title="Not available yet">
+                  <i className="ti ti-bell" style={UI2.btnXsIcon} aria-hidden="true" /> Notify Me
+                </button>
+              )}
+            />
           ))}
         </Carousel>
       </section>

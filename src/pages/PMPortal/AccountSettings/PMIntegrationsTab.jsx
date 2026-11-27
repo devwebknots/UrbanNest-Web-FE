@@ -18,7 +18,7 @@ import { useNavigate } from 'react-router-dom';
 import { PMPageShell, Breadcrumb, PageFooter, ImageBackdrop } from '../../../components/layout';
 import { NavyGlow, OptionsMenu } from '../../../components/ui';
 import { C2, TONES2, ACCENT2, accentTone, FS2, SP2, SZ2, T2, UI2, pad } from '../../../constants';
-import AccountSettingsTabs from './AccountSettingsTabs';
+// import AccountSettingsTabs from './AccountSettingsTabs';   // tab strip commented out for now (see the header block)
 import backdropArt from '../../../assets/landlord/wizard-backdrop.jpg';
 
 const ON = C2.onDark;
@@ -146,7 +146,8 @@ export default function PMIntegrationsTab() {
             <p style={S.sub}>Manage third-party connections, payment providers, and automated messaging integrations.</p>
           </div>
         </div>
-        <div style={S.tabs}><AccountSettingsTabs active="integrations" /></div>
+        {/* Account Settings tab strip commented out for now (user 2026-11-27) — the sidebar already lists every Account Settings page; uncomment to restore
+        <div style={S.tabs}><AccountSettingsTabs active="integrations" /></div> */}
         <div style={S.intro}>
           <p style={S.introText}>Preview — these connections are illustrative; nothing below is wired to a real provider yet.</p>
           {/* compact stats — the same icon · caps label · value block as the row details (not the big HeroStats figures) */}

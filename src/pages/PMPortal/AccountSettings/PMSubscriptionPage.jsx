@@ -126,7 +126,7 @@ import PaymentCartModal from '../../Payment/PaymentCartModal';
 // The Services tab (same component, /services route) keeps its v1 layout below until it is redesigned.
 import { PMPageShell, Breadcrumb, PageFooter, ImageBackdrop } from '../../../components/layout';
 import { UI2 as V2UI, SP2 as V2SP, SZ2 as V2SZ, T2 as V2T } from '../../../constants';
-import AccountSettingsTabs from './AccountSettingsTabs';
+// import AccountSettingsTabs from './AccountSettingsTabs';   // tab strip commented out for now (see the header block)
 import AccountCartButton from './AccountCartButton';
 import PMSubscriptionBilling from './PMSubscriptionBilling';
 import PMServices, { PMServicesStats } from './PMServices';
@@ -565,7 +565,7 @@ export default function PMSubscriptionPage() {
   } else {
     body = loading ? skeleton : error ? errorBar(error, fetchSubscriptionData) : (
       <PMSubscriptionBilling
-        plans={plans} sub={sub}
+        plans={plans} sub={sub} currentPlan={currentPlanObj} includedServices={subscription?.included_services || []}
         monthlyPrice={monthlyPrice} addonsList={addonsList} addonsTotal={addonsTotal} totalMonthlySpend={totalMonthlySpend}
         progressPct={progressPct} daysRemaining={daysRemaining} periodStart={periodStart}
         unitsUsed={unitsUsed} totalProperties={totalProperties} capMax={capMax} capPct={capPct}
@@ -595,7 +595,8 @@ export default function PMSubscriptionPage() {
               availableAddons={planAddonServices.filter(s => !s.owned).length} activeCampaignsCount={activeCampaignsCount} />
           </div>
         )}
-        <div style={V2UI.pageHead.next}><AccountSettingsTabs active={isServices ? 'services' : 'subscription'} /></div>
+        {/* Account Settings tab strip commented out for now (user 2026-11-27) — the sidebar already lists every Account Settings page; uncomment to restore
+        <div style={V2UI.pageHead.next}><AccountSettingsTabs active={isServices ? 'services' : 'subscription'} /></div> */}
       </section>
 
       {body}

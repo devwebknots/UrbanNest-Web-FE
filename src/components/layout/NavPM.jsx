@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useLayoutEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import { C2, G2, R2, SH2, F2, FS2, FW2, LH2, LS2, T2, SP2, SZ2, MOTION2, pad, UI2 } from '../../constants';
@@ -209,6 +209,11 @@ function findDefaultExpanded(activeId) {
   return 'dashboard';
 }
 
+// Sidebar scroll position survives page changes. Every PM page renders its own PMPageShell, so NavPM remounts on each
+// navigation and its list would jump back to the top — the user then had to scroll down again to reach the next
+// Account Settings item (2026-11-27). Kept in module scope (lives for the whole SPA session) and restored before paint.
+let savedNavScroll = 0;
+
 // Styles — same values as NavF (Landlord sidebar), so both portals read as one app
 const S = {
   nav: {
@@ -296,6 +301,18 @@ function LogoMark() {
 
 export default function NavPM({ activeId = 'my-dashboard' }) {
   const navigate = useNavigate();
+  // restore the sidebar's scroll before the browser paints (no visible jump), then make sure the active item is in view
+  const navRef = useRef(null);
+  useLayoutEffect(() => {
+    const el = navRef.current;
+    if (!el) return;
+    el.scrollTop = savedNavScroll;
+    const current = el.querySelector('[aria-current="page"]');
+    if (current) {
+      const n = el.getBoundingClientRect(), c = current.getBoundingClientRect();
+      if (c.top < n.top || c.bottom > n.bottom) current.scrollIntoView({ block: 'nearest' });
+    }
+  }, []);
   const { hasAccess } = useAuth();
   const [expandedId, setExpandedId] = useState(() => findDefaultExpanded(activeId));
   const [hovered, setHovered] = useState(null);
@@ -354,7 +371,7 @@ export default function NavPM({ activeId = 'my-dashboard' }) {
   };
 
   return (
-    <nav className="un2-scroll-hidden" style={S.nav} aria-label="PM navigation">
+    <nav ref={navRef} className="un2-scroll-hidden" style={S.nav} aria-label="PM navigation" onScroll={e => { savedNavScroll = e.currentTarget.scrollTop; }}>
       {/* Logo */}
       <div style={S.logo} onClick={() => navigate('/pm-portal/dashboard/my-dashboard')}>
         <LogoMark />

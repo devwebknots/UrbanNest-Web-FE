@@ -136,6 +136,7 @@ export const UI2 = {
     title:    { fontSize: FS2.base, fontWeight: FW2.semibold, color: C2.textPrimary, lineHeight: LH2.heading },
     // List item title (ListRow) — regular weight (400); pair with UI2.text.meta for its description line
     rowTitle: { fontSize: FS2.base, fontWeight: FW2.regular, color: C2.textPrimary, lineHeight: LH2.heading },   // 400 — every list / item row title
+    rowTitleLg: { fontSize: FS2.md, fontWeight: FW2.regular, color: C2.textPrimary, lineHeight: LH2.heading },   // 14 · 400 — rowTitle one step up (card / block titles inside compact cards, e.g. PM Subscription middle column)
     titleLg:  { fontSize: FS2.md, fontWeight: FW2.semibold, color: C2.textPrimary, lineHeight: LH2.heading },
     titleXl:  { fontFamily: F2.body, fontSize: FS2.lg, fontWeight: FW2.semibold, color: C2.textPrimary, lineHeight: LH2.heading },   // Inter 16 semibold — prominent item title (e.g. distribution channel name)
     body:     { ...T2.body },

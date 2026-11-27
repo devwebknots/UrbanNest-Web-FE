@@ -26,7 +26,7 @@ import {
   TabBar, BankArt, CardsArt, ListRow, OptionsMenu, EmptyState, DataTable, Modal, FormField, ReadField, SelectField, FIELD2, Checkbox,
 } from '../../../components/ui';
 import { C2, TONES2, SH2, FS2, R2, SP2, SZ2, T2, UI2 } from '../../../constants';
-import AccountSettingsTabs from './AccountSettingsTabs';
+// import AccountSettingsTabs from './AccountSettingsTabs';   // tab strip commented out for now (see the header block)
 import backdropArt from '../../../assets/landlord/wizard-backdrop.jpg';   // soft blue wave lines (same art as Approvals / Profile)
 
 const API_BASE = process.env.REACT_APP_API_BASE_URL || 'http://localhost:8001/api';
@@ -671,7 +671,8 @@ export default function PMBankAccountsTab() {
           <h1 style={S.title}>Bank Accounts</h1>
           <p style={S.sub}>Your own payout accounts, and the accounts linked to the properties and units you manage.</p>
         </div>
-        <div style={S.tabs}><AccountSettingsTabs active="bank" /></div>
+        {/* Account Settings tab strip commented out for now (user 2026-11-27) — the sidebar already lists every Account Settings page; uncomment to restore
+        <div style={S.tabs}><AccountSettingsTabs active="bank" /></div> */}
         <div style={S.tabs}>
           <TabBar variant="underline" ariaLabel="Bank account owner" value={subTab} onChange={setSubTab} tabs={SUB_TABS} />
         </div>

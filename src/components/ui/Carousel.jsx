@@ -58,7 +58,12 @@ export default function Carousel({ label = 'items', itemWidth = Carousel.cols(3)
   useEffect(() => {
     update();
     window.addEventListener('resize', update);
-    return () => window.removeEventListener('resize', update);
+    // re-check whenever the track or its cards change size (photos loading, cards settling after first paint) —
+    // otherwise the arrows could stay hidden although the row does overflow
+    const el = ref.current;
+    const ro = typeof ResizeObserver !== 'undefined' && el ? new ResizeObserver(update) : null;
+    if (ro) { ro.observe(el); Array.from(el.children).forEach(c => ro.observe(c)); }
+    return () => { window.removeEventListener('resize', update); if (ro) ro.disconnect(); };
   }, [update, count]);
   const scroll = dir => { const el = ref.current; if (el) el.scrollBy({ left: dir * el.clientWidth * 0.9, behavior: 'smooth' }); };
 
@@ -70,7 +75,8 @@ export default function Carousel({ label = 'items', itemWidth = Carousel.cols(3)
       </button>
       <div style={S.inner(!edges.atStart)}>
         <div ref={ref} className="un2-scroll-hidden" style={S.track} onScroll={update}>
-          {React.Children.map(children, child => child && <div style={S.item(itemWidth, minItemWidth)}>{child}</div>)}
+          {/* real cards only — blank text / stray spaces between tags never become an empty card slot */}
+          {React.Children.map(children, child => (child && !(typeof child === 'string' && !child.trim())) && <div style={S.item(itemWidth, minItemWidth)}>{child}</div>)}
         </div>
       </div>
       <button type="button" style={S.arrow('right', edges.atEnd)} onClick={() => scroll(1)} disabled={edges.atEnd}

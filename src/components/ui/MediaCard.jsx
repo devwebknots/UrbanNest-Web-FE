@@ -19,7 +19,10 @@ import { SP2, SZ2, UI2, pad } from '../../constants';
 //     </>} />
 //
 // Props: image · imageStyle (extra <img> style, e.g. a crop) · status (node, optional) · title · description ·
-//        descLines (clamp, default 2) · actions (node, optional) · as (default 'article') · style
+//        descLines (clamp, default 2) · children (optional block between description and actions, e.g. a price —
+//        PM Subscription plan cards) · actions (node, optional) · as (default 'article') · style
+//        size  'md' (default — 144 photo, 20 spacing: 2-up grids) | 'sm' = COMPACT for 3-up rows / carousels:
+//              112 photo (SZ2.thumbLg) and 16 spacing; everything else identical
 
 const S = {
   card:   { ...UI2.card, position: 'relative', overflow: 'hidden', display: 'flex', gap: SP2.xl, padding: pad(0, SP2.xl, 0, 0), height: '100%', boxSizing: 'border-box' },
@@ -29,20 +32,31 @@ const S = {
   status: { ...UI2.row(SP2.sm), flexWrap: 'wrap', marginBottom: SP2.md },
   title:  { ...UI2.text.rowTitle, margin: 0 },
   desc:   (lines) => ({ ...UI2.text.meta, margin: pad(SP2.xs + SP2.xxs, 0, 0), ...UI2.clamp(lines) }),
+  extra:  { marginTop: SP2.md },
   acts:   { ...UI2.row(SP2.sm), flexWrap: 'wrap', marginTop: 'auto', paddingTop: SP2.xl },
 };
 
-export default function MediaCard({ image, imageStyle, status, title, description, descLines = 2, actions, as: Tag = 'article', style }) {
+// compact size: only the photo width + spacing step down (SZ2.thumbLg · SP2.lg)
+const SM = {
+  card:  { gap: SP2.lg, padding: pad(0, SP2.lg, 0, 0) },
+  photo: { width: SZ2.thumbLg.w, minHeight: SZ2.thumbLg.h + SP2.lg * 2 },
+  body:  { padding: pad(SP2.lg, 0) },
+  acts:  { paddingTop: SP2.lg },
+};
+
+export default function MediaCard({ image, imageStyle, status, title, description, descLines = 2, children, actions, size = 'md', as: Tag = 'article', style }) {
+  const sm = size === 'sm';
   return (
-    <Tag style={{ ...S.card, ...style }}>
-      <div className="un2-zoom" style={S.photo}>
+    <Tag style={{ ...S.card, ...(sm ? SM.card : {}), ...style }}>
+      <div className="un2-zoom" style={sm ? { ...S.photo, ...SM.photo } : S.photo}>
         {image && <img src={image} alt="" style={{ ...UI2.photoMedia, ...imageStyle }} />}
       </div>
-      <div style={S.body}>
+      <div style={sm ? { ...S.body, ...SM.body } : S.body}>
         {status && <div style={S.status}>{status}</div>}
         <h3 style={S.title}>{title}</h3>
         {description && <p style={S.desc(descLines)}>{description}</p>}
-        {actions && <div style={S.acts}>{actions}</div>}
+        {children && <div style={S.extra}>{children}</div>}
+        {actions && <div style={sm ? { ...S.acts, ...SM.acts } : S.acts}>{actions}</div>}
       </div>
     </Tag>
   );
