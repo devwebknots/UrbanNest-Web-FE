@@ -68,7 +68,7 @@ const S = {
   priceFoot:  { ...UI2.rowBetween(SP2.md), flexWrap: 'wrap', rowGap: SP2.sm, alignItems: 'flex-end', marginTop: 'auto', paddingTop: SP2.lg, borderTop: `${SZ2.hairline}px solid ${C2.border}` },
   priceInfo:  { ...UI2.stack(SP2.xs), minWidth: 0 },
   priceLine:  { ...UI2.row(SP2.xs), alignItems: 'baseline' },
-  price:      T2.kpiValue,
+  price:      T2.cardFigure,   // standard small figure — 16px · 400
   priceUnit:  UI2.text.label,
   caption:    UI2.context,
   captionIcon:{ color: C2.primary },

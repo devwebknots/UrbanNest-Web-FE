@@ -21,7 +21,7 @@ import { C2, TONES2, FS2, FW2, LH2, LS2, T2, SP2, SZ2, UI2 } from '../../constan
 // Responsive (utilities.css .un2-phero-stats): wraps; ≤ 600px 2 per row without dividers.
 
 // MINI = the same row scaled down: every size steps down one notch; colours, weights, dividers, layout unchanged
-const MINI = { icon: SZ2.icon.md, gap: SP2.sm, side: SP2.lg, value: FS2.lg, note: FS2.xxs };
+const MINI = { icon: SZ2.icon.md, gap: SP2.sm, side: SP2.lg, note: FS2.xxs };
 
 const S = {
   // sides written as longhands (no padding shorthand + paddingLeft override) so the FIRST stat starts exactly on the
@@ -29,6 +29,7 @@ const S = {
   stat:   (first, sm) => ({ ...UI2.row(sm ? MINI.gap : SP2.md), paddingTop: 0, paddingBottom: 0, paddingRight: sm ? MINI.side : SP2.xl, paddingLeft: first ? 0 : (sm ? MINI.side : SP2.xl) }),
   sLabel: { ...T2.eyebrow, color: C2.textSecondary, letterSpacing: LS2.wide },
   sValue: { ...T2.kpiValue, lineHeight: LH2.tight, marginTop: SP2.xxs },
+  sValueSm: { ...T2.cardFigure, lineHeight: LH2.tight, marginTop: SP2.xxs },   // mini row: the standard small figure (16 · 400)
   sNote:  { fontSize: FS2.xs, lineHeight: LH2.heading, color: C2.textMuted, marginTop: SP2.xxs },
 };
 
@@ -44,7 +45,7 @@ export default function HeroStats({ stats = [], style, className = 'un2-phero-st
             <div style={UI2.iconBox(sm ? MINI.icon : SZ2.icon.lg, tone, { round: true })}><i className={`ti ${s.icon}`} aria-hidden="true" /></div>
             <div style={UI2.minWidth0}>
               <div style={S.sLabel}>{s.label}</div>
-              <div style={sm ? { ...S.sValue, fontSize: MINI.value } : S.sValue}>{s.value}</div>
+              <div style={sm ? S.sValueSm : S.sValue}>{s.value}</div>
               {s.note && <div style={{ ...S.sNote, ...(sm ? { fontSize: MINI.note } : {}), ...(s.noteTone ? { color: s.noteTone.strong, fontWeight: FW2.medium } : {}) }}>{s.note}</div>}
             </div>
           </div>

@@ -140,5 +140,8 @@ export const T2 = {
   figureMd:       { fontFamily: F2.body, fontSize: FS2.xxxl, fontWeight: FW2.medium, lineHeight: LH2.none, letterSpacing: LS2.tight, color: C2.navyDeep },
   // KPI figure: big numbers in KPI strips / target blocks — Inter 20px Regular (one standard for every KPI value)
   kpiValue:       { fontFamily: F2.body, fontSize: FS2.xxl, fontWeight: FW2.regular, lineHeight: LH2.none, letterSpacing: LS2.tight, color: C2.navyDeep },
+  // SMALL FIGURE — the 16px / 400 version of kpiValue for amounts inside a card (PM Services add-on price) and the mini
+  // stats row (HeroStats size="sm"). Same family / weight / colour, one size step down (user 2026-11-27).
+  cardFigure:     { fontFamily: F2.body, fontSize: FS2.lg, fontWeight: FW2.regular, lineHeight: LH2.none, letterSpacing: LS2.tight, color: C2.navyDeep },
   price:          { fontFamily: F2.body, fontSize: FS2.md, fontWeight: FW2.semibold, lineHeight: LH2.heading, color: C2.textPrimary },
 };
