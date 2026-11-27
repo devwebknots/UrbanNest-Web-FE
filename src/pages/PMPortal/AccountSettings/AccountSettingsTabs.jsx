@@ -18,13 +18,16 @@ const TAB_ICONS = {
 
 export default function AccountSettingsTabs({ active }) {
   const navigate = useNavigate();
+  // un2-tabs-flush: the first tab's icon starts on the same line as the page content below (user 2026-11-27)
   return (
-    <TabBar
-      variant="underline"
-      ariaLabel="Account settings"
-      value={active}
-      onChange={id => { const t = ACCOUNT_SETTINGS_TABS.find(x => x.id === id); if (t && id !== active) navigate(t.route); }}
-      tabs={ACCOUNT_SETTINGS_TABS.map(t => ({ id: t.id, label: t.label, icon: TAB_ICONS[t.id] }))}
-    />
+    <div className="un2-tabs-flush">
+      <TabBar
+        variant="underline"
+        ariaLabel="Account settings"
+        value={active}
+        onChange={id => { const t = ACCOUNT_SETTINGS_TABS.find(x => x.id === id); if (t && id !== active) navigate(t.route); }}
+        tabs={ACCOUNT_SETTINGS_TABS.map(t => ({ id: t.id, label: t.label, icon: TAB_ICONS[t.id] }))}
+      />
+    </div>
   );
 }

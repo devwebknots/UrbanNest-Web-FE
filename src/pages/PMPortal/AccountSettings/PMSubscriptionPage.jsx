@@ -129,7 +129,7 @@ import { UI2 as V2UI, SP2 as V2SP, SZ2 as V2SZ, T2 as V2T } from '../../../const
 import AccountSettingsTabs from './AccountSettingsTabs';
 import AccountCartButton from './AccountCartButton';
 import PMSubscriptionBilling from './PMSubscriptionBilling';
-import PMServices from './PMServices';
+import PMServices, { PMServicesStats } from './PMServices';
 import backdropArt from '../../../assets/landlord/wizard-backdrop.jpg';
 // Services tab (Fourth pass) reuses Landlord's own bundled Figma photo set
 // directly rather than duplicating the binary files — this file sits at the
@@ -552,8 +552,7 @@ export default function PMSubscriptionPage() {
     body = servicesLoading ? skeleton : servicesError ? errorBar(servicesError, fetchCatalog) : (
       <PMServices
         buyGateClosed={buyGateClosed} subscription={subscription} sub={sub}
-        ownedCount={ownedServices.length} subIncludedCount={subIncludedCount} subAddonCount={subAddonCount}
-        availableAddons={planAddonServices.filter(s => !s.owned).length} activeCampaignsCount={activeCampaignsCount}
+        activeCampaignsCount={activeCampaignsCount}
         includedReal={includedPlanServices.length} displayIncluded={displayIncludedServices} displayAddons={displayAddonServices}
         addonsAvailable={planAddonServices.filter(s => !s.owned).length} addonsAdded={planAddonServices.filter(s => s.owned).length}
         externalPrograms={EXTERNAL_PROGRAMS}
@@ -589,6 +588,13 @@ export default function PMSubscriptionPage() {
           </div>
           <AccountCartButton onClick={() => setCartOpen(true)} />
         </div>
+        {/* Services tab: the shared HeroStats row in the header, under title / subtitle (= Landlord Dashboard hero) */}
+        {isServices && !servicesLoading && !servicesError && (
+          <div style={V2UI.pageHead.stats}>
+            <PMServicesStats ownedCount={ownedServices.length} subIncludedCount={subIncludedCount} subAddonCount={subAddonCount}
+              availableAddons={planAddonServices.filter(s => !s.owned).length} activeCampaignsCount={activeCampaignsCount} />
+          </div>
+        )}
         <div style={V2UI.pageHead.next}><AccountSettingsTabs active={isServices ? 'services' : 'subscription'} /></div>
       </section>
 

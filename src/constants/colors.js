@@ -121,6 +121,8 @@ export const C2 = {
   heroWaveBase:   '#B9CDF1',   // … deepening to this blue mid-way (then softening to chipBlue at the bottom edge)
   skeleton:       '#E2E8F0',
   photoBadge:     'rgba(11, 29, 58, 0.62)',      // dark translucent label on a photo (PropertyCard type tag)
+  photoGlass:     'rgba(11, 29, 58, 0.45)',      // smoked navy GLASS on a photo (UI2.photoTagGlass) — keeps white text readable on bright photos
+  photoGlassText: '0 1px 2px rgba(11, 29, 58, 0.35)', // text-shadow for white text on photoGlass
 
   // Text
   textPrimary:    '#1E293B',

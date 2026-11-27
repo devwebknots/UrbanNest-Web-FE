@@ -90,6 +90,7 @@ export { default as TabBar } from './TabBar';
 export { default as MetricBar } from './MetricBar';
 export { default as ActionTile } from './ActionTile';
 export { default as MediaListItem } from './MediaListItem';
+export { default as MediaCard } from './MediaCard';   // horizontal page card: flush photo │ status · title · text · small actions (PM Services Included)
 export { default as PropertyCard, OptionsMenu } from './PropertyCard';
 export { default as PropertyRow } from './PropertyRow';
 export { default as SectionHeader } from './SectionHeader';

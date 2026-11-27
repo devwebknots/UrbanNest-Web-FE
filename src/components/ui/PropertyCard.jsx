@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { C2, R2, SH2, TONES2, F2, FS2, FW2, LH2, SP2, SZ2, BLUR2, pad, UI2 } from '../../constants';
+import { C2, R2, SH2, TONES2, F2, FS2, FW2, LH2, SP2, SZ2, pad, UI2 } from '../../constants';
 
 // ─── PropertyCard (Design System v2) ─────────────────────────────────────────
 // Vertical property card for portfolio grids: photo (type label + "…" menu on it) ·
@@ -32,11 +32,7 @@ const S = {
   img:     { position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', display: 'block' },
   ph:      { ...UI2.center, position: 'absolute', inset: 0, color: C2.textMuted, fontSize: FS2.display },
   tags:    { position: 'absolute', top: SP2.sm, left: SP2.sm, right: SZ2.control.lg + SP2.sm, display: 'flex', flexWrap: 'wrap', gap: SP2.xs },
-  typeTag: {
-    display: 'inline-flex', alignItems: 'center', padding: pad(SP2.xs, SP2.md), borderRadius: R2.pill,
-    background: C2.photoBadge, color: C2.white, fontSize: FS2.sm, fontWeight: FW2.semibold, lineHeight: LH2.heading,
-    backdropFilter: BLUR2.sm, WebkitBackdropFilter: BLUR2.sm, whiteSpace: 'nowrap',
-  },
+  typeTag: UI2.photoTag,   // single source: constants/components.js (identical values)
   more:    { ...UI2.btn.light, ...UI2.btnSm, position: 'absolute', top: SP2.sm, right: SP2.sm, borderRadius: R2.pill, padding: pad(0, SP2.md), fontSize: FS2.lg },
   menu:    {
     position: 'absolute', top: SP2.sm + SZ2.control.sm + SP2.xs, right: SP2.sm, zIndex: 2, minWidth: SZ2.panelMin,

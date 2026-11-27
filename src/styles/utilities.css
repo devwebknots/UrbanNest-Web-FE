@@ -763,3 +763,7 @@
 .un2-step-fill  { transform-origin: left center; animation: un2-grow-x 0.7s var(--un2-ease) backwards; animation-delay: calc(0.15s + var(--k, 0) * 0.18s); }
 .un2-step-check { display: inline-block; animation: un2-step-pop 0.45s var(--un2-spring) backwards; animation-delay: calc(0.1s + var(--k, 0) * 0.18s); }
 @media (prefers-reduced-motion: reduce) { .un2-step-pulse { animation: none; opacity: 0; } .un2-step-fill, .un2-step-check { animation: none; } }
+
+/* Flush-start underline tabs: the first tab loses its left padding so its icon starts on the page's content line
+   (Account Settings tab strip — wrap the TabBar in <div className="un2-tabs-flush">). TabBar itself is unchanged. */
+.un2-tabs-flush [role="tab"]:first-of-type { padding-left: 0 !important; }

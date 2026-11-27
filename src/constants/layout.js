@@ -42,6 +42,7 @@ export const SZ2 = {
   modalPhoto: 96,
   success:  { w: 440, banner: 184, badge: 72, edge: 40, notch: 16, msgMax: 320, orb: [180, 120, 150], glow: 300, skyline: 56, sparkle: 14 },   // SuccessModal: width · banner height · check badge · curved edge · ticket notches · message width · banner light orbs                               // photo / upload slot height inside a Modal form (Edit Property photos & video)   // v2 Modal card: default width · max height · size='sm' | 'md' | 'lg'
   pillFixed: 72,                               // fixed-width status pills in a list column (Critical / Medium / Low) — fits the longest label
+  photoTagSm: 20,                              // compact glass tag on a card photo (UI2.photoTagGlass) — fixed height, text centred
   dot:     6,
   menu:    { w: 240, maxH: 280 },           // FilterMenu dropdown: width · max height before it scrolls (rows are SZ2.field high)
   progress:6,

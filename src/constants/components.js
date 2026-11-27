@@ -270,6 +270,36 @@ export const UI2 = {
   // Spread after a button colour: { ...UI2.btn.brand, ...UI2.btnSmStd }  (primary small button = brand colour)
   btnSmStd: { minHeight: SZ2.control.sm, width: SZ2.btnSm.w, padding: pad(0, SP2.sm), fontSize: FS2.sm, gap: SP2.xs, justifyContent: 'center' },
 
+  // STANDARD PHOTO TAG — dark translucent label sitting ON a photo (PropertyCard type label · PM Services add-on ribbon).
+  //   <span style={UI2.photoTag}>Condominium</span>   (position the row of tags per use: absolute top-left SP2.sm)
+  photoTag: {
+    display: 'inline-flex', alignItems: 'center', padding: pad(SP2.xs, SP2.md), borderRadius: R2.pill,
+    background: C2.photoBadge, color: C2.white, fontSize: FS2.sm, fontWeight: FW2.semibold, lineHeight: LH2.heading,
+    backdropFilter: BLUR2.sm, WebkitBackdropFilter: BLUR2.sm, whiteSpace: 'nowrap',
+  },
+
+  // STANDARD GLASS PHOTO TAG (compact) — frosted-glass label ON a card photo (PM Services add-on ribbon / Sample / Added).
+  // Smoked navy glass (C2.photoGlass 45% — a clear 8% fill vanished on bright photos) + white glass edge + frosted-card
+  // blur + soft text shadow, so the white text reads on ANY photo; fixed height SZ2.photoTagSm (20),
+  // 10px Regular white text, 8px side padding. Use it for any small tag over a photo on a card; UI2.photoTag (dark navy,
+  // 12px semibold) stays for the larger Portfolio property-card label.
+  //   <div style={{ position: 'absolute', top: SP2.sm, left: SP2.sm, display: 'flex', gap: SP2.xs }}>
+  //     <span style={UI2.photoTagGlass}>Instant Decision</span>
+  //   </div>
+  photoTagGlass: {
+    display: 'inline-flex', alignItems: 'center', height: SZ2.photoTagSm, boxSizing: 'border-box', padding: pad(0, SP2.sm),
+    borderRadius: R2.pill, border: `1px solid ${C2.onDark.border}`, background: C2.photoGlass, color: C2.white, textShadow: C2.photoGlassText,
+    fontFamily: F2.body, fontSize: FS2.xxs, fontWeight: FW2.regular, lineHeight: LH2.heading, whiteSpace: 'nowrap',
+    backdropFilter: BLUR2.glass, WebkitBackdropFilter: BLUR2.glass,
+  },
+
+  // STANDARD EXTRA-SMALL BUTTON — use wherever a normal / small button looks bulky or there's no room
+  // (actions inside tiles, dense cards, tight rows). Size only — spread AFTER a colour:
+  //   { ...UI2.btn.brand, ...UI2.btnXs }  ·  { ...UI2.btn.soft, ...UI2.btnXs }  ·  icon: <i style={UI2.btnXsIcon} />
+  // 28 high (SZ2.control.sm — user found 24 too short) · 10 side padding · 11px Medium text · 4 gap. First used: PM Services Included tiles.
+  btnXs:       { minHeight: SZ2.control.sm, padding: pad(0, SP2.sm + SP2.xxs), fontSize: FS2.xs, gap: SP2.xs },
+  btnXsIcon:   { fontSize: FS2.sm },                                                       // 12 — icon inside a btnXs button
+
   // STANDARD COMPACT CONTROL SIZE — every compact control shares it (same box size, same text size):
   //   compact inputs (FIELD2.inputSm) · choice / amenity tiles (ChoiceTile) · any future compact chip-row control
   //   { ...UI2.<style>, ...UI2.compact }   — size only (height · side padding · text), never colours
