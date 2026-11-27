@@ -58,22 +58,26 @@ const cellStyle = (type) => UI2.table[type] || UI2.table.text;
 const alignOf = (c) => c.align || (c.type === 'amount' ? 'right' : 'left');
 
 // Every column is always shown (no minWidth / optional columns).
-export default function DataTable({ columns = [], rows = [], rowKey, empty }) {
+// size 'sm' = MINI table (UI2.tableSm): smaller heading / cell text + tighter side padding + column gap (vertical spacing = standard); weights, family,
+// colours, alignment unchanged. Cell content you render yourself (status pills…) should use fontSize: 'inherit' to follow it.
+export default function DataTable({ columns = [], rows = [], rowKey, empty, size = 'md' }) {
+  const sm = size === 'sm';
+  const M = UI2.tableSm;
   // EVERY column is always shown (no column is ever hidden). Columns are never narrower than their
   // content; if a card is too narrow for all of them, the table scrolls sideways (S.wrap).
   const cols = columns;
 
   return (
     <div style={S.wrap}>
-      <div role="table" style={S.table(cols)}>
-        <div style={{ ...S.line, ...S.head }} role="row">
-          {cols.map(c => <span key={c.key} role="columnheader" style={{ ...UI2.table.th, textAlign: alignOf(c) }}>{c.label}</span>)}
+      <div role="table" style={sm ? { ...S.table(cols), columnGap: M.columnGap } : S.table(cols)}>
+        <div style={{ ...S.line, ...S.head, ...(sm ? { padding: M.headPad } : {}) }} role="row">
+          {cols.map(c => <span key={c.key} role="columnheader" style={{ ...UI2.table.th, ...(sm ? { fontSize: M.thSize } : {}), textAlign: alignOf(c) }}>{c.label}</span>)}
         </div>
         {rows.length === 0 && <div style={{ gridColumn: '1 / -1' }}>{empty}</div>}
         {rows.map((r, i) => (
-          <div key={rowKey ? rowKey(r, i) : i} className="un2-row-hover" style={{ ...S.line, ...S.row, ...(i === rows.length - 1 ? { borderBottom: 'none' } : {}) }} role="row">
+          <div key={rowKey ? rowKey(r, i) : i} className="un2-row-hover" style={{ ...S.line, ...S.row, ...(sm ? { padding: M.rowPad } : {}), ...(i === rows.length - 1 ? { borderBottom: 'none' } : {}) }} role="row">
             {cols.map(c => (
-              <div key={c.key} role="cell" style={{ ...UI2.table.cell, ...cellStyle(c.type), textAlign: alignOf(c) }}>
+              <div key={c.key} role="cell" style={{ ...UI2.table.cell, ...cellStyle(c.type), ...(sm ? { fontSize: M.cellSize } : {}), textAlign: alignOf(c) }}>
                 {c.render ? c.render(r, i) : r[c.key]}
               </div>
             ))}

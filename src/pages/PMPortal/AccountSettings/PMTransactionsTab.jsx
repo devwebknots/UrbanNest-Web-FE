@@ -19,7 +19,7 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { PMPageShell, Breadcrumb, PageFooter, ImageBackdrop, Grid } from '../../../components/layout';
 import { HeroStats, DataTable, EmptyState, FilterMenu, filterTrigger, ActionTray, TextLink } from '../../../components/ui';
-import { C2, TONES2, ACCENT2, accentTone, FS2, SP2, SZ2, T2, UI2 } from '../../../constants';
+import { TONES2, ACCENT2, accentTone, FS2, SP2, SZ2, T2, UI2, pad } from '../../../constants';
 // import AccountSettingsTabs from './AccountSettingsTabs';   // tab strip commented out for now (see the header block)
 import backdropArt from '../../../assets/landlord/wizard-backdrop.jpg';
 
@@ -65,11 +65,11 @@ const S = {
   title:     { ...T2.heroHeading, margin: 0 },
   sub:       { ...T2.lead, margin: `${SP2.xs}px 0 0` },
   tabs:      UI2.pageHead.next,    // tabs, SP2.xl under the subtitle (= Approvals)
-  intro:     { ...UI2.pageHead.next, ...UI2.rowBetween(SP2.md), flexWrap: 'wrap' },   // intro │ scope, SP2.xl under the tabs
-  introText: { ...T2.body, color: C2.textSecondary, margin: 0 },
+  sub2:      { ...T2.lead, margin: `${SP2.xxs}px 0 0` },   // second description line — same style as the subtitle, one block
   stats:     UI2.pageHead.stats,   // stats row, SP2.xxl under the row above (= Approvals)
   // table section — heading │ toolbar, then the panels (= Approvals "All Pending Approvals")
-  section:   UI2.pageSection,
+  // section rhythm = PM Services (user 2026-11-27): shell gap 16 + 24 above = 40 between sections · heading → content 20
+  section:   { ...UI2.pageSection, paddingTop: SP2.xxl, gap: SP2.xl },
   secTitle:  { ...T2.sectionTitle, fontSize: FS2.xl, margin: 0 },
   secSub:    { ...T2.label, margin: `${SP2.xs}px 0 0` },
   tools:     { ...UI2.toolbar.tools, marginLeft: 0, justifyContent: 'flex-start' },   // own row under the heading, left-aligned (design)
@@ -78,10 +78,11 @@ const S = {
   input:     UI2.searchInput,
   menuWrap:  UI2.toolbar.menuWrap,
   toolBtn:   UI2.toolbar.button,
+  scopeBtn:  UI2.btn.light,   // Scope sits on the blue header wave → white button (white only on coloured / photo backgrounds; = PM Listings header)
   softBtn:   UI2.btn.soft,
   btnIcon:   UI2.btnIcon,
   // table panel
-  panel:     { ...UI2.card, ...UI2.stack(SP2.lg), minWidth: 0, paddingLeft: SP2.sm, paddingRight: SP2.sm },   // this page only: slimmer sides so the 7-column table fits without sideways scroll
+  panel:     { ...UI2.card, ...UI2.stack(SP2.lg), alignSelf: 'start', minWidth: 0,   /* ends at its content (no stretch to the detail card's height) */ paddingLeft: SP2.sm, paddingRight: SP2.sm },   // this page only: slimmer sides so the 7-column table fits without sideways scroll
   // selected charge card
   detail:    { ...UI2.card, ...UI2.stack(SP2.xl), alignSelf: 'start', minWidth: 0 },   // a little more air between the card's blocks (narrow column)
   detTop:    { ...UI2.rowBetween(SP2.md), alignItems: 'flex-start' },
@@ -94,19 +95,15 @@ const S = {
   detIcon:   UI2.iconBox(SZ2.icon.md, TONES2.neutral),
   // detail rows — label ABOVE value (= PM Integrations details / Subscription "Commercial Entity Info"):
   // round icon box · caps label · value, so nothing squeezes in the narrow side column
-  infos:     UI2.stack(SP2.lg),
-  info:      { ...UI2.row(SP2.md), minWidth: 0 },
-  infoIcon:  UI2.iconBox(SZ2.icon.md, TONES2.primary, { round: true }),
-  infoBody:  { ...UI2.stack(SP2.xs), flex: 1, minWidth: 0 },
-  infoCaps:  { ...UI2.capsLabel, ...UI2.truncate },
-  infoValue: UI2.text.title,
+  infoBox:   { ...UI2.inset, padding: pad(SP2.xs, SP2.md) },   // recessed details box (v1); rows carry their own rowY padding
+  infoKey:   { ...UI2.row(SP2.xs), flexShrink: 0 },
   lineHead:  { ...UI2.subhead, margin: 0 },
   lines:     UI2.stack(SP2.md),
   totalRow:  { ...UI2.cardFoot, marginTop: 0 },
   totalLbl:  UI2.text.titleLg,
   total:     (neg) => ({ ...T2.kpiValue, ...(neg ? UI2.signColor(false) : {}) }),
-  acts:      UI2.stack(SP2.sm),
-  fullBtn:   (kind) => ({ ...(kind === 'brand' ? UI2.btn.brand : UI2.btn.soft), ...UI2.btnOff, width: '100%', justifyContent: 'center' }),
+  acts:      { ...UI2.row(SP2.sm), flexWrap: 'wrap' },   // receipt actions side by side (small buttons — user 2026-11-27)
+  fullBtn:   (kind) => ({ ...(kind === 'brand' ? UI2.btn.brand : UI2.btn.soft), ...UI2.btnXs, cursor: 'not-allowed' }),   // standard extra-small button (UI2.btnXs) · not wired: full look + tooltip
   note:      { ...UI2.row(SP2.sm), alignItems: 'flex-start', ...T2.caption },
   noteIcon:  { fontSize: FS2.md, flexShrink: 0 },
 };
@@ -147,12 +144,12 @@ export default function PMTransactionsTab() {
     { key: 'label',  label: 'Transaction', type: 'primary', width: 1.4, render: t => t.label },
     { key: 'svc',    label: 'Service', render: t => t.service },
     { key: 'ref',    label: 'Reference', type: 'secondary', fit: true, render: t => t.id },
-    { key: 'amt',    label: 'Amount', type: 'amount', fit: true, render: t => <span style={t.amount < 0 ? UI2.signColor(false) : undefined}>{money(t.amount)}</span> },
+    { key: 'amt',    label: 'Amount', type: 'amount', align: 'left', fit: true, render: t => <span style={t.amount < 0 ? UI2.signColor(false) : undefined}>{money(t.amount)}</span> },
     { key: 'status', label: 'Status', type: 'status', fit: true, render: t => {
       const tone = STATUS_TONE[t.status] || TONES2.neutral;
-      return <span style={UI2.statusPill(tone)}><span style={UI2.statusDot(tone)} />{t.status}</span>;
+      return <span style={{ ...UI2.statusPill(tone), fontSize: 'inherit' }}><span style={UI2.statusDot(tone)} />{t.status}</span>;
     } },
-    { key: 'act',    label: 'Action', fit: true, align: 'right', render: t => {
+    { key: 'act',    label: 'Action', fit: true, render: t => {   // every column left-aligned (= Billing History)
       const on = t.id === selectedId;
       return (
         <button type="button" style={UI2.btn.rowIcon(on ? TONES2.primary : TONES2.neutral)} onClick={() => setSelectedId(t.id)}
@@ -167,27 +164,27 @@ export default function PMTransactionsTab() {
     <PMPageShell activeId="account-transactions" animate backdrop={<ImageBackdrop image={backdropArt} />} searchPlaceholder="Search portfolios, settings, or help…">
       <Breadcrumb items={[{ label: 'Account Settings', href: '/pm-portal/account/profile' }, { label: 'Transactions' }]} />
 
-      {/* ── Header: title · subtitle → Account Settings tabs ── */}
+      {/* ── Header (tabs removed — user 2026-11-27): title + BOTH description lines as one block on the left │ Scope
+            selector on the right of the title row (= Subscription's Cart spot) → stats row ── */}
       <section style={S.headBlock}>
         <div style={S.head}>
           <div style={UI2.minWidth0}>
             <h1 style={S.title}>Transactions</h1>
             <p style={S.sub}>A combined ledger of subscription charges, screening charges, and marketplace/promotion charges.</p>
+            <p style={S.sub2}>Historical record of payments made to UrbanNest and direct service charges.</p>
           </div>
-        </div>
-        {/* Account Settings tab strip commented out for now (user 2026-11-27) — the sidebar already lists every Account Settings page; uncomment to restore
-        <div style={S.tabs}><AccountSettingsTabs active="transactions" /></div> */}
-        <div style={S.intro}>
-          <p style={S.introText}>Historical record of payments made to UrbanNest and direct service charges.</p>
           <div style={S.menuWrap}>
             <FilterMenu
               title="Scope" ariaLabel="Transaction scope" showAll={false} options={SCOPE_OPTIONS} value="platform" onChange={() => {}}
-              triggerStyle={S.toolBtn}
+              triggerStyle={S.scopeBtn}
               trigger={filterTrigger('ti-file-text', <>Scope: <span style={UI2.strong}>{SCOPE_OPTIONS[0].label}</span></>)}
             />
           </div>
         </div>
-        <HeroStats className="un2-phero-stats un2-phero-stats-fill" style={S.stats} stats={[
+        {/* Account Settings tab strip commented out for now (user 2026-11-27) — the sidebar already lists every Account Settings page; uncomment to restore
+        <div style={S.tabs}><AccountSettingsTabs active="transactions" /></div> */}
+        {/* natural widths (standard HeroStats row) — only 3 stats, the equal-width fill left wide gaps (user 2026-11-27) */}
+        <HeroStats style={S.stats} stats={[
           { icon: 'ti-coins',              tone: TONES2.primary,             label: 'Total Paid This Month',     value: '$352.00', note: 'Includes PMS, screenings & promotions' },
           { icon: 'ti-rosette-discount-check', tone: TONES2.success,         label: 'Last Payment',              value: '$302.00', note: 'Oct 04, 2026 · Processed automatically' },
           { icon: 'ti-credit-card',        tone: accentTone(ACCENT2.blue),   label: 'Active Auto-Debit Account', value: <span style={{ fontSize: FS2.lg }}>Visa •••• 7731</span>,   /* this value only: 16px (FS2.lg) instead of the 20px stat figure */
@@ -230,10 +227,11 @@ export default function PMTransactionsTab() {
           </ActionTray>
         </div>
 
-        <Grid layout="mainSide" as="div">   {/* ≈ 69 / 31 — the 7-column table fits without sideways scroll */}
+        {/* ≈ 60 / 40 (wideLeft): the mini table fits in 60%, so the selected-charge card gets real room (user 2026-11-27) */}
+        <Grid layout="wideLeft" as="div">
           {/* table panel */}
           <div style={S.panel}>
-            <DataTable columns={columns} rows={rows} rowKey={t => t.id}
+            <DataTable size="sm" columns={columns} rows={rows} rowKey={t => t.id}   /* MINI table (UI2.tableSm) — frees room beside the detail card */
               empty={<EmptyState icon="ti-receipt-off" text="No transactions match these filters." />} />
             <div style={UI2.pager.foot}>
               <span>Showing {rows.length} of {TRANSACTIONS.length} billing entries for current billing cycle</span>
@@ -263,25 +261,20 @@ export default function PMTransactionsTab() {
                   <span style={S.detIcon} aria-hidden="true"><i className={`ti ${refunded ? 'ti-receipt-refund' : 'ti-file-invoice'}`} /></span>
                 </div>
 
-                <hr style={S.divider} />
-
-                <div style={S.infos}>
+                {/* v1 layout (user 2026-11-27): ONE compact details box — label left │ value right — in a recessed inner
+                    panel (UI2.inset, tint only) with the standard details rows (UI2.kvRow / UI2.kvVal) */}
+                <div style={S.infoBox}>
                   {[
                     ['ti-credit-card', 'Payment Method', detail.paymentMethod],
-                    ['ti-calendar', 'Timestamp', detail.timestamp],
-                    ['ti-stack-2', 'Billing Type', detail.billingType],
-                  ].map(([icon, k, v]) => (
-                    <div key={k} style={S.info}>
-                      <span style={S.infoIcon} aria-hidden="true"><i className={`ti ${icon}`} /></span>
-                      <div style={S.infoBody}>
-                        <span style={S.infoCaps}>{k}</span>
-                        <span style={S.infoValue}>{v}</span>
-                      </div>
+                    [null, 'Timestamp', detail.timestamp],
+                    [null, 'Billing Type', detail.billingType],
+                  ].map(([icon, k, v], i) => (
+                    <div key={k} style={UI2.kvRow(i === 0)}>
+                      <span style={S.infoKey}>{icon && <i className={`ti ${icon}`} aria-hidden="true" />}{k}</span>
+                      <span style={UI2.kvVal}>{v}</span>
                     </div>
                   ))}
                 </div>
-
-                <hr style={S.divider} />
 
                 <div style={S.lines}>
                   <div style={S.lineHead}>Line Item Breakdown</div>
@@ -297,10 +290,10 @@ export default function PMTransactionsTab() {
 
                 <div style={S.acts}>
                   <button type="button" className="un2-btn" style={S.fullBtn('brand')} disabled title="PDF receipt generation isn't wired up yet">
-                    <i className="ti ti-download" style={S.btnIcon} aria-hidden="true" /> Download Receipt (PDF)
+                    <i className="ti ti-download" style={UI2.btnXsIcon} aria-hidden="true" /> Download Receipt (PDF)
                   </button>
                   <button type="button" className="un2-btn" style={S.fullBtn('soft')} disabled title="Invoice printing isn't wired up yet">
-                    <i className="ti ti-printer" style={S.btnIcon} aria-hidden="true" /> Print Invoice
+                    <i className="ti ti-printer" style={UI2.btnXsIcon} aria-hidden="true" /> Print Invoice
                   </button>
                 </div>
 

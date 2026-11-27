@@ -482,6 +482,17 @@ export const UI2 = {
     status:    { overflow: 'visible', fontSize: FS2.base, fontWeight: FW2.regular, color: C2.textPrimary },                       // pill / dot+word rendered by the column — never clipped; anything plain inside gets the standard 13px cell text
   },
 
+  // MINI TABLE (<DataTable size="sm">) — the same table one size step down, for tight panels (PM Transactions beside the
+  // detail card). ONLY sizes + spacing change: font family, weights, colours, alignment stay identical (user 2026-11-27).
+  //   heading 13 Medium · cells 12 Regular · vertical padding = the standard table (row 8 · heading band 8 — user: keep the vertical space the same) · sides 8 · column gap 12
+  tableSm: {
+    headPad:   pad(SP2.sm, SP2.sm),          // vertical = standard heading band (8)
+    rowPad:    pad(LAYOUT2.rowY, SP2.sm),     // vertical = standard row (LAYOUT2.rowY 8)
+    thSize:    FS2.base,
+    cellSize:  FS2.sm,
+    columnGap: SP2.md,   // 12 — keeps the 7-col Transactions table inside its card (no stray sideways scrollbar)
+  },
+
   // ── Dashboard card patterns (Landlord Dashboard is the reference) ──────────
   //   <SectionCard style={UI2.cardFill}>                         body is a column → footer pins to the bottom
   //     <div style={UI2.labelRow}><span style={UI2.capsLabel}>Rent collection</span>
@@ -542,6 +553,7 @@ export const UI2 = {
 UI2.pager = {
   foot:    { ...UI2.rowBetween(SP2.md), flexWrap: 'wrap', ...T2.caption },
   row:     UI2.row(SP2.xs),
-  btn:     { ...UI2.btn.iconOutline(SZ2.control.md), ...UI2.btnOff },   // prev / next (disabled while there is one page)
-  current: { ...UI2.btn.brand, width: SZ2.control.md, minHeight: SZ2.control.md, padding: 0, justifyContent: 'center', cursor: 'default' },
+  // SMALL size (user 2026-11-27: the 34px pager was bulky) — 28px (SZ2.control.sm) squares, 12px page number / chevrons
+  btn:     { ...UI2.btn.iconOutline(SZ2.control.sm), fontSize: FS2.md, cursor: 'not-allowed' },   // prev / next (disabled while there is one page) — full look, no fade
+  current: { ...UI2.btn.brand, width: SZ2.control.sm, minHeight: SZ2.control.sm, padding: 0, fontSize: FS2.sm, justifyContent: 'center', cursor: 'default' },
 };
