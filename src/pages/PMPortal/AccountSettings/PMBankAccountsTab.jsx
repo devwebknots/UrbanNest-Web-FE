@@ -549,7 +549,7 @@ export default function PMBankAccountsTab() {
         {r.module_display}
       </span>
     ) },
-    { key: 'account', label: 'Assigned account', width: 1.3, render: accountCell },
+    { key: 'account', label: 'Assigned account', type: 'status', width: 1.3, render: accountCell },   // status type: ● Not assigned sits on the row's text line
     { key: 'act', label: 'Action', fit: true, render: r => (r.editable ? assignBtn(r, 'property') : ownerCell(r, 'property')) },
     { key: 'more', label: '', render: r => moreMenu(r, 'property') },
   ];
@@ -562,8 +562,8 @@ export default function PMBankAccountsTab() {
         Unit {u.unit_number}
       </span>
     ) },
-    { key: 'settle',  label: 'Owner settlement', width: 1.2, render: u => ownerCell(u.settlement, 'unit') },
-    { key: 'reserve', label: 'Unit reserve', width: 1.2, render: u => accountCell(u.reserve) },
+    { key: 'settle',  label: 'Owner settlement', type: 'status', width: 1.2, render: u => ownerCell(u.settlement, 'unit') },
+    { key: 'reserve', label: 'Unit reserve', type: 'status', width: 1.2, render: u => accountCell(u.reserve) },
     { key: 'act', label: 'Action', fit: true, render: u => (u.reserve?.editable ? assignBtn(u.reserve, 'unit') : <span style={S.muted}>—</span>) },
     { key: 'more', label: '', render: u => moreMenu(u.reserve || u.settlement, 'unit') },
   ];
