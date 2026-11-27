@@ -3,7 +3,7 @@
 // modals) inside its PMPageShell frame — this file is presentation only.
 //
 // Redesign 2 (client found the first pass cluttered) — each section gets ONE clear presentation:
-//   Header stats   — PMServicesStats (below) = the shared HeroStats row, rendered by PMSubscriptionPage IN THE PAGE
+//   Header stats   — PMServicesStats (below) = this page's own stats card (design 6075650184646956507), rendered by PMSubscriptionPage IN THE PAGE
 //                    HEADER under the title / subtitle (= Landlord Dashboard hero), not under the tabs (user 2026-11-27)
 //   Gate notice    — plan gate as a soft tinted notice row (UI2.tintRow), only when there is no plan
 //   Included       — open section heading (title · count pill · note │ Manage Plan Limits — no white card around the section,
@@ -20,8 +20,8 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Grid } from '../../../components/layout';
-import { HeroStats, NavyGlow, TextLink, Carousel, MediaCard, PhotoCard } from '../../../components/ui';
-import { C2, TONES2, ACCENT2, accentTone, FS2, R2, SP2, SZ2, T2, UI2, pad } from '../../../constants';
+import { NavyGlow, TextLink, Carousel, MediaCard, PhotoCard } from '../../../components/ui';
+import { C2, TONES2, ACCENT2, accentTone, FS2, FW2, R2, SP2, SZ2, T2, UI2, pad } from '../../../constants';
 
 const ON = C2.onDark;
 // Listing Promotion banner switched off for now (user 2026-11-27) — code kept as is; flip to true to show it again
@@ -89,17 +89,56 @@ const S = {
   btnIcon:    UI2.btnIcon,
 };
 
-// ── Header stats (Services tab) — THE shared HeroStats row, MINI size (size="sm"), natural widths
-//    (default un2-phero-stats, NOT the -fill variant that forced the labels to wrap). Placed by PMSubscriptionPage.
+// ── Header stats (Services tab) — THIS PAGE ONLY (not the shared HeroStats), design Downloads/6075650184646956507.jpg
+//    (user 2026-11-27): ONE card (UI2.card shadow) with the design's background — white → lightest-blue wash + ONE
+//    smooth light-blue swoosh rising into the bottom-right corner (not a wave) ·
+//    5 equal columns split by hairlines · rounded-SQUARE tinted icon box · sentence-case label (12 grey) · bold
+//    value (20 · 600) · the design's own labels.
+const HS = {
+  card:  { ...UI2.card, background: `linear-gradient(90deg, ${C2.white} 0%, ${C2.primaryWash} 55%, ${C2.primaryTint} 100%)`,
+           borderRadius: R2.panel,   // 10 (user 2026-11-27)
+           position: 'relative', overflow: 'hidden', padding: pad(SP2.lg, SP2.xl) },
+  swoosh:{ position: 'absolute', right: 0, bottom: 0, width: '45%', height: '100%', pointerEvents: 'none' },
+  row:   { position: 'relative', display: 'flex', alignItems: 'center' },
+  item:  (first) => ({ ...UI2.row(SP2.md), flex: '1 1 0', minWidth: 0, padding: pad(0, SP2.xl, 0, first ? 0 : SP2.xl),
+                       ...(first ? {} : { borderLeft: `${SZ2.hairline}px solid ${C2.border}` }) }),
+  icon:  (tone) => UI2.iconBox(SZ2.icon.lg, tone),   // rounded square (not round)
+  body:  { ...UI2.stack(SP2.xxs), minWidth: 0 },
+  label: { ...UI2.text.label, fontWeight: FW2.medium, ...UI2.truncate },
+  value: T2.kpiValue,   // the standard 20 · 400 figure (user 2026-11-27)
+};
 export function PMServicesStats({ ownedCount, subIncludedCount, subAddonCount, availableAddons, activeCampaignsCount }) {
+  const stats = [
+    ['ti-stack-2',      TONES2.primary,             'Active Services',   ownedCount],
+    ['ti-stack-3',      accentTone(ACCENT2.violet), 'In Plan',           subIncludedCount],
+    ['ti-puzzle',       accentTone(ACCENT2.blue),   'Active Add-ons',    subAddonCount],
+    ['ti-circle-plus',  accentTone(ACCENT2.teal),   'Available Add-ons', availableAddons],
+    ['ti-speakerphone', accentTone(ACCENT2.rose),   'Active Campaigns',  activeCampaignsCount],
+  ];
   return (
-    <HeroStats size="sm" stats={[
-      { icon: 'ti-stack-2',      tone: TONES2.primary,             label: 'Total Active Services', value: ownedCount },
-      { icon: 'ti-stack-3',      tone: accentTone(ACCENT2.violet), label: 'Included with Plan',    value: subIncludedCount },
-      { icon: 'ti-puzzle',       tone: accentTone(ACCENT2.blue),   label: "Active Add-on's",       value: subAddonCount },
-      { icon: 'ti-circle-plus',  tone: accentTone(ACCENT2.teal),   label: "Available Add-on's",    value: availableAddons },
-      { icon: 'ti-speakerphone', tone: accentTone(ACCENT2.rose),   label: 'Active Campaigns',      value: activeCampaignsCount },
-    ]} />
+    <div style={HS.card} aria-label="Services summary">
+      {/* the design's corner swoosh: one smooth curve from the bottom edge up to ~60% on the right edge */}
+      <svg style={HS.swoosh} viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
+        <defs>
+          <linearGradient id="un2-svc-swoosh" x1="0" y1="0" x2="1" y2="0">
+            <stop offset="0%" stopColor={C2.chipBlue} stopOpacity="0" />
+            <stop offset="100%" stopColor={C2.chipBlue} stopOpacity="0.9" />
+          </linearGradient>
+        </defs>
+        <path d="M0,100 C45,92 75,70 100,40 L100,100 Z" fill="url(#un2-svc-swoosh)" />
+      </svg>
+      <div style={HS.row}>
+        {stats.map(([icon, tone, label, value], i) => (
+          <div key={label} style={HS.item(i === 0)}>
+            <span style={HS.icon(tone)} aria-hidden="true"><i className={`ti ${icon}`} /></span>
+            <div style={HS.body}>
+              <span style={HS.label}>{label}</span>
+              <span style={HS.value}>{value}</span>
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
   );
 }
 

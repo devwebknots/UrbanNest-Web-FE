@@ -131,7 +131,7 @@ const S = {
   panel:     UI2.card,
   searchIcon:UI2.toolbar.searchIcon,
   input:     UI2.searchInput,
-  rowBtn:    { ...UI2.btn.brand, ...UI2.btnSmStd },       // standard small row action (= Listings "List") — Assign / Reassign
+  rowBtn:    { ...UI2.btn.brand, ...UI2.btnXs },          // standard extra-small button (UI2.btnXs) — Assign / Reassign (btnSmStd looked bulky here, user 2026-11-27)
   // Property Owner master–detail
   listCard:  { ...UI2.card, ...UI2.stack(SP2.md), alignSelf: 'start' },
   listHead:  { ...UI2.rowBetween(SP2.sm) },

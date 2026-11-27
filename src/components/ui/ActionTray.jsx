@@ -22,7 +22,8 @@ import { SH2, FS2, SP2, LAYOUT2, UI2 } from '../../constants';
 // Closed buttons are inert (not focusable / not read out). prefers-reduced-motion → no animation.
 // Styles: utilities.css .un2-tray*. Props: children (secondary buttons), primary (node, always shown),
 // label (toggle text when closed, default "Options"), closeLabel (when open, default "Options"),
-// compact (true → soft toggle for light surfaces / card headers; its text hides on narrow cards).
+// compact (true → soft toggle for light surfaces / card headers; its text hides on narrow cards),
+// toggleStyle (optional colour override for the toggle, e.g. UI2.btn.brand — PM Transactions; size stays standard).
 // The toggle is ALWAYS the standard button height, the same as the action buttons it reveals.
 
 const S = {
@@ -35,7 +36,7 @@ const S = {
   chevron:  { fontSize: FS2.sm, marginLeft: -SP2.xxs },
 };
 
-export default function ActionTray({ children, primary, label = 'Options', closeLabel = 'Options', compact = false }) {
+export default function ActionTray({ children, primary, label = 'Options', closeLabel = 'Options', compact = false, toggleStyle }) {
   const [open, setOpen] = useState(false);
   const ref = useRef(null);
   const trayId = useId();
@@ -73,7 +74,7 @@ export default function ActionTray({ children, primary, label = 'Options', close
       </div>
       {items.length > 0 && (
         <button
-          type="button" className={`un2-btn un2-tray-toggle${open ? ' is-open' : ''}`} style={compact ? S.toggleSm : S.toggle} title={open ? closeLabel : label} aria-label={open ? closeLabel : label}
+          type="button" className={`un2-btn un2-tray-toggle${open ? ' is-open' : ''}`} style={{ ...(compact ? S.toggleSm : S.toggle), ...(toggleStyle ? { ...toggleStyle, flexShrink: 0 } : {}) }} title={open ? closeLabel : label} aria-label={open ? closeLabel : label}
           aria-expanded={open} aria-controls={trayId}
           onClick={() => setOpen(o => !o)}
         >

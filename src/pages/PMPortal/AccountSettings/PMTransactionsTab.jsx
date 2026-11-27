@@ -171,11 +171,13 @@ export default function PMTransactionsTab() {
           <div style={UI2.minWidth0}>
             <h1 style={S.title}>Transactions</h1>
             <p style={S.sub}>A combined ledger of subscription charges, screening charges, and marketplace/promotion charges.</p>
-            <p style={S.sub2}>Historical record of payments made to UrbanNest and direct service charges.</p>
+            {/* second description line — commented out for now (user 2026-11-27); uncomment to restore
+            <p style={S.sub2}>Historical record of payments made to UrbanNest and direct service charges.</p> */}
           </div>
           <div style={S.menuWrap}>
             <FilterMenu
               title="Scope" ariaLabel="Transaction scope" showAll={false} options={SCOPE_OPTIONS} value="platform" onChange={() => {}}
+              matchWidth   /* menu as wide as the Scope button → full option label, edges aligned (no "Billing …" cut-off) */
               triggerStyle={S.scopeBtn}
               trigger={filterTrigger('ti-file-text', <>Scope: <span style={UI2.strong}>{SCOPE_OPTIONS[0].label}</span></>)}
             />
@@ -206,7 +208,8 @@ export default function PMTransactionsTab() {
             <input style={S.input} type="search" placeholder="Search description or reference ID…"
               value={query} onChange={e => setQuery(e.target.value)} aria-label="Search transactions" />
           </label>
-          <ActionTray compact label="Options">
+          {/* this page only: dark gradient Options toggle (user 2026-11-27) */}
+          <ActionTray compact label="Options" toggleStyle={UI2.btn.brand}>
             <div style={S.menuWrap}>
               <FilterMenu
                 title="Service" allLabel="All Services" ariaLabel="Filter by service" itemIcon="ti-apps" allIcon="ti-list"

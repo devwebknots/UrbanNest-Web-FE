@@ -431,7 +431,7 @@ export const G2 = {
 };
 
 // Radii — same scale as mobile `borderRadius`
-export const R2 = { xs: 4, sm: 6, md: 8, lg: 12, xl: 16, xxl: 20, header: 28, button: 7, pill: 9999, round: '50%' };
+export const R2 = { xs: 4, sm: 6, md: 8, panel: 10, lg: 12, xl: 16, xxl: 20, header: 28, button: 7, pill: 9999, round: '50%' };   // panel 10 = compact summary card (PM Services stats)
 
 // Shadows — web equivalents of mobile `shadows`
 export const SH2 = {
